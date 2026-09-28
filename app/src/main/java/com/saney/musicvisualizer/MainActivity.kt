@@ -8,11 +8,14 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
+import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
+import android.view.WindowInsets
+import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
@@ -84,8 +87,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        window.statusBarColor = COLOR_BG
-        window.navigationBarColor = COLOR_BG
+        enableImmersiveFullscreen()
+        window.statusBarColor = Color.TRANSPARENT
+        window.navigationBarColor = Color.TRANSPARENT
 
         controller = ViewModelProvider(this)[PlaybackController::class.java]
         controller.setAnalysisPermissionGranted(hasAnalysisPermission())
@@ -99,6 +103,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
 
         showLibrary()
+    }
+
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) {
+            enableImmersiveFullscreen()
+        }
     }
 
     override fun onStart() {
@@ -167,10 +178,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val root = FrameLayout(this).apply {
             setBackgroundColor(COLOR_BG)
         }
+        applySafeArea(root)
 
         val scroll = ScrollView(this).apply {
             clipToPadding = false
-            setPadding(dp(18), dp(10), dp(18), dp(210))
+            setPadding(dp(18), dp(10), dp(18), dp(24))
         }
 
         val content = LinearLayout(this).apply {
@@ -191,6 +203,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         val modeScroller = HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
+            overScrollMode = View.OVER_SCROLL_NEVER
+            post { scrollTo(0, 0) }
         }
         val modes = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -251,7 +265,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     libraryCard(item.first, item.second, item.third) {
                         toast("${item.second}: запрацює після media scanner")
                     },
-                    LinearLayout.LayoutParams(0, dp(122), 1f).apply {
+                    LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
                         if (index == 0) marginEnd = dp(6) else marginStart = dp(6)
                         bottomMargin = dp(12)
                     },
@@ -270,14 +284,27 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         bottomStack.addView(
             buildPulseDock(),
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(92)).apply {
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
                 bottomMargin = dp(8)
             },
         )
         bottomStack.addView(
             buildBottomNav(active = "library"),
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(76)),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ),
         )
+
+        bottomStack.addOnLayoutChangeListener { _, _, top, _, bottom, _, _, _, _ ->
+            val requiredBottom = (bottom - top) + dp(18)
+            if (scroll.paddingBottom != requiredBottom) {
+                scroll.setPadding(dp(18), dp(10), dp(18), requiredBottom)
+            }
+        }
 
         root.addView(
             bottomStack,
@@ -295,6 +322,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val root = FrameLayout(this).apply {
             setBackgroundColor(COLOR_BG)
         }
+        applySafeArea(root)
 
         sceneView = ReactiveSceneView(this).also { view ->
             root.addView(
@@ -387,15 +415,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        actions.addView(actionTile("≡", "Черга") { toast("Queue — наступний етап") }, LinearLayout.LayoutParams(0, dp(62), 1f))
-        actions.addView(actionTile("▥", "Сцена") { toast("Scene Lab — наступний етап") }, LinearLayout.LayoutParams(0, dp(62), 1f))
-        actions.addView(actionTile("☷", "Tone") { toast("Tone Lab — наступний етап") }, LinearLayout.LayoutParams(0, dp(62), 1f))
-        actions.addView(actionTile("•••", "Ще") { toast("Більше дій — наступний етап") }, LinearLayout.LayoutParams(0, dp(62), 1f))
+        actions.addView(actionTile("≡", "Черга") { toast("Queue — наступний етап") }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        actions.addView(actionTile("▥", "Сцена") { toast("Scene Lab — наступний етап") }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        actions.addView(actionTile("☷", "Tone") { toast("Tone Lab — наступний етап") }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        actions.addView(actionTile("•••", "Ще") { toast("Більше дій — наступний етап") }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         controls.addView(actions)
 
         controls.addView(
             buildBottomNav(active = "visualizer"),
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(64)).apply { topMargin = dp(7) },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(7) },
         )
 
         root.addView(
@@ -415,6 +446,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val card = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = dp(84)
             setPadding(dp(10), dp(8), dp(10), dp(8))
             background = panelDrawable(COLOR_PANEL, 26, Color.argb(110, 43, 170, 221), 1)
             visibility = View.GONE
@@ -456,6 +488,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val nav = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
+            minimumHeight = dp(64)
+            setPadding(0, dp(4), 0, dp(4))
             background = panelDrawable(Color.rgb(15, 22, 29), 26, Color.argb(80, 255, 255, 255), 1)
         }
 
@@ -485,7 +519,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val chip = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(16), dp(11), dp(16), dp(11))
+            minimumHeight = dp(64)
+            setPadding(dp(16), dp(10), dp(16), dp(10))
             background = panelDrawable(
                 if (active) Color.rgb(40, 29, 15) else Color.rgb(8, 25, 31),
                 28,
@@ -504,7 +539,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         text.addView(label(subtitle, 11f, COLOR_MUTED, false))
         chip.addView(text)
 
-        chip.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(70)).apply {
+        chip.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        ).apply {
             marginEnd = dp(10)
         }
         return chip
@@ -514,7 +552,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(16), dp(12), dp(16), dp(12))
+            minimumHeight = dp(122)
+            setPadding(dp(16), dp(14), dp(16), dp(14))
             background = panelDrawable(Color.rgb(14, 21, 28), 24, Color.argb(80, 255, 255, 255), 1)
             addView(label(icon, 28f, COLOR_ACCENT_CYAN, true))
             addView(label(title, 17f, Color.WHITE, true))
@@ -561,6 +600,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun actionTile(icon: String, title: String, action: () -> Unit): TextView =
         label("$icon\n$title", 12f, Color.WHITE, true).apply {
             gravity = Gravity.CENTER
+            minimumHeight = dp(62)
             background = panelDrawable(Color.rgb(12, 20, 27), 18, Color.argb(90, 68, 175, 211), 1)
             setOnClickListener { action() }
             setPadding(dp(4), dp(4), dp(4), dp(4))
@@ -640,6 +680,69 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowTotal = null
         nowSeek = null
         nowPlay = null
+    }
+
+    private fun enableImmersiveFullscreen() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            window.setDecorFitsSystemWindows(false)
+            window.insetsController?.let { controller ->
+                controller.hide(
+                    WindowInsets.Type.statusBars() or
+                        WindowInsets.Type.navigationBars(),
+                )
+                controller.systemBarsBehavior =
+                    android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
+        } else {
+            @Suppress("DEPRECATION")
+            window.decorView.systemUiVisibility =
+                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
+                    View.SYSTEM_UI_FLAG_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
+                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
+                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            val attributes = window.attributes
+            attributes.layoutInDisplayCutoutMode =
+                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
+            window.attributes = attributes
+        }
+    }
+
+    private fun applySafeArea(root: View) {
+        root.setOnApplyWindowInsetsListener { view, insets ->
+            val cutout = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+                insets.displayCutout
+            } else {
+                null
+            }
+
+            val gestureInsets = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                insets.getInsets(WindowInsets.Type.systemGestures())
+            } else {
+                null
+            }
+
+            val bottomGesture = when {
+                gestureInsets != null -> gestureInsets.bottom
+                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ->
+                    @Suppress("DEPRECATION")
+                    insets.systemGestureInsets.bottom
+                else -> 0
+            }
+
+            view.setPadding(
+                cutout?.safeInsetLeft ?: 0,
+                cutout?.safeInsetTop ?: 0,
+                cutout?.safeInsetRight ?: 0,
+                maxOf(cutout?.safeInsetBottom ?: 0, bottomGesture),
+            )
+            insets
+        }
+        root.requestApplyInsets()
     }
 
     private fun toast(message: String) {

@@ -5,32 +5,60 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.view.Gravity
+import android.view.View
 import android.view.ViewGroup
-import android.widget.Button
 import android.widget.FrameLayout
+import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
+import android.widget.ProgressBar
+import android.widget.ScrollView
+import android.widget.SeekBar
+import android.widget.Space
 import android.widget.TextView
+import android.widget.Toast
 import androidx.activity.ComponentActivity
+import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.util.UnstableApi
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.playback.PlaybackController
 import com.saney.musicvisualizer.playback.PlaybackSnapshot
+import com.saney.musicvisualizer.ui.PulseMiniView
 import com.saney.musicvisualizer.ui.ReactiveSceneView
 import java.util.Locale
 
 @UnstableApi
 class MainActivity : ComponentActivity(), PlaybackController.Listener {
+
+    private enum class Screen { LIBRARY, NOW_PLAYING }
+
     private lateinit var controller: PlaybackController
-    private lateinit var sceneView: ReactiveSceneView
-    private lateinit var titleView: TextView
-    private lateinit var statusView: TextView
-    private lateinit var playButton: Button
+    private var screen = Screen.LIBRARY
+    private var latestSnapshot = PlaybackSnapshot()
+
+    private var sceneView: ReactiveSceneView? = null
+    private var miniPulseView: PulseMiniView? = null
+    private var dock: View? = null
+    private var dockTitle: TextView? = null
+    private var dockSubtitle: TextView? = null
+    private var dockPlay: TextView? = null
+    private var dockProgress: ProgressBar? = null
+
+    private var nowTitle: TextView? = null
+    private var nowArtist: TextView? = null
+    private var nowStatus: TextView? = null
+    private var nowElapsed: TextView? = null
+    private var nowTotal: TextView? = null
+    private var nowSeek: SeekBar? = null
+    private var nowPlay: TextView? = null
+
     private var pendingOpenAfterPermission = false
 
     private val openAudio = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -40,8 +68,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
             controller.load(uri, resolveDisplayName(uri))
             controller.play()
+            showNowPlaying()
         }
     }
+
     private val requestAudioAnalysisPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             controller.setAnalysisPermissionGranted(granted)
@@ -53,66 +83,523 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        controller = ViewModelProvider(this).get(PlaybackController::class.java)
+
+        window.statusBarColor = COLOR_BG
+        window.navigationBarColor = COLOR_BG
+
+        controller = ViewModelProvider(this)[PlaybackController::class.java]
         controller.setAnalysisPermissionGranted(hasAnalysisPermission())
 
-        sceneView = ReactiveSceneView(this)
-        titleView = textView(20f, Color.WHITE).apply { text = "FARIC Music Visualizer"; maxLines = 2 }
-        statusView = textView(13f, Color.rgb(205, 207, 218)).apply { text = "Оберіть локальний аудіофайл"; maxLines = 3 }
-
-        val chooseButton = Button(this).apply { text = "Обрати музику"; setOnClickListener { chooseTrack() } }
-        playButton = Button(this).apply { text = "▶"; isEnabled = false; setOnClickListener { controller.togglePlayPause() } }
-
-        val root = FrameLayout(this)
-        root.addView(sceneView, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
-        val panel = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(18), dp(14), dp(18), dp(18))
-            setBackgroundColor(Color.argb(205, 12, 13, 20))
+        onBackPressedDispatcher.addCallback(this) {
+            if (screen == Screen.NOW_PLAYING) {
+                showLibrary()
+            } else {
+                finish()
+            }
         }
-        panel.addView(titleView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
-        panel.addView(statusView, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(5) })
-        val buttons = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        buttons.addView(chooseButton, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        buttons.addView(playButton, LinearLayout.LayoutParams(dp(72), ViewGroup.LayoutParams.WRAP_CONTENT).apply { marginStart = dp(8) })
-        panel.addView(buttons, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(10) })
-        root.addView(panel, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM))
-        setContentView(root)
+
+        showLibrary()
     }
 
-    override fun onStart() { super.onStart(); controller.listener = this; controller.emitCurrentState() }
+    override fun onStart() {
+        super.onStart()
+        controller.listener = this
+        controller.emitCurrentState()
+    }
+
     override fun onStop() {
         controller.listener = null
-        if (!isChangingConfigurations) controller.pause()
+        if (!isChangingConfigurations) {
+            controller.pause()
+        }
         super.onStop()
     }
 
     override fun onPlaybackSnapshot(snapshot: PlaybackSnapshot) {
-        titleView.text = snapshot.trackName ?: "FARIC Music Visualizer"
-        playButton.isEnabled = snapshot.trackName != null
-        playButton.text = if (snapshot.isPlaying) "Ⅱ" else "▶"
-        sceneView.setPlaying(snapshot.isPlaying)
-        val timeline = if (snapshot.trackName == null) "" else " · ${formatTime(snapshot.positionMs)} / ${formatTime(snapshot.durationMs)}"
-        val analyzer = when {
-            snapshot.trackName == null -> ""
-            snapshot.analysisActive -> " · audio-reactive ON"
-            else -> " · audio-reactive OFF"
+        latestSnapshot = snapshot
+
+        dock?.visibility = if (snapshot.trackName == null) View.GONE else View.VISIBLE
+        dockTitle?.text = snapshot.trackName ?: "Нічого не грає"
+        dockSubtitle?.text = if (snapshot.analysisActive) {
+            "Локальний файл · reactive ON"
+        } else {
+            "Локальний файл"
         }
-        statusView.text = snapshot.status + timeline + analyzer
+        dockPlay?.text = if (snapshot.isPlaying) "Ⅱ" else "▶"
+
+        val ratio = if (snapshot.durationMs > 0L) {
+            ((snapshot.positionMs.toDouble() / snapshot.durationMs) * 1000.0).toInt().coerceIn(0, 1000)
+        } else {
+            0
+        }
+        dockProgress?.progress = ratio
+
+        nowTitle?.text = snapshot.trackName ?: "FARIC PulseDeck"
+        nowArtist?.text = if (snapshot.trackName == null) "Оберіть музику" else "Невідомий виконавець"
+        nowStatus?.text = buildString {
+            append(snapshot.status)
+            if (snapshot.trackName != null) {
+                append(if (snapshot.analysisActive) " · reactive ON" else " · reactive OFF")
+            }
+        }
+        nowElapsed?.text = formatTime(snapshot.positionMs)
+        nowTotal?.text = formatTime(snapshot.durationMs)
+        nowPlay?.text = if (snapshot.isPlaying) "Ⅱ" else "▶"
+        sceneView?.setPlaying(snapshot.isPlaying)
+
+        nowSeek?.let { seek ->
+            if (!seek.isPressed) {
+                seek.progress = ratio
+            }
+            seek.isEnabled = snapshot.durationMs > 0L
+        }
     }
 
-    override fun onSceneSignal(signal: SceneSignal) = sceneView.updateSignal(signal)
+    override fun onSceneSignal(signal: SceneSignal) {
+        sceneView?.updateSignal(signal)
+        miniPulseView?.updateSignal(signal)
+    }
+
+    private fun showLibrary() {
+        screen = Screen.LIBRARY
+        clearScreenRefs()
+
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(COLOR_BG)
+        }
+
+        val scroll = ScrollView(this).apply {
+            clipToPadding = false
+            setPadding(dp(18), dp(10), dp(18), dp(210))
+        }
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        header.addView(label("FARIC", 28f, Color.WHITE, true))
+        header.addView(label("  PulseDeck", 22f, COLOR_MUTED, false))
+        header.addView(Space(this), LinearLayout.LayoutParams(0, 1, 1f))
+        header.addView(iconButton("⌕") { toast("Пошук з'явиться разом з локальним індексом") })
+        header.addView(iconButton("⋮") { toast("Меню PulseDeck — наступна хвиля") })
+
+        content.addView(header)
+
+        val modeScroller = HorizontalScrollView(this).apply {
+            isHorizontalScrollBarEnabled = false
+        }
+        val modes = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            setPadding(0, dp(18), 0, dp(8))
+        }
+        modes.addView(modeChip("♫", "Бібліотека", "Моя музика", true) { })
+        modes.addView(modeChip("▥", "Tone Lab", "Звук і ефекти", false) { toast("Tone Lab — наступний етап") })
+        modes.addView(modeChip("◉", "Scene Lab", "Візуальні сцени", false) { toast("Scene Lab — наступний етап") })
+        modeScroller.addView(modes)
+        content.addView(modeScroller)
+
+        val hero = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(20), dp(20), dp(20), dp(20))
+            background = panelDrawable(COLOR_PANEL, 28, COLOR_ACCENT_ORANGE, 1)
+        }
+        hero.addView(label("Твоя музика. Твоя сцена.", 25f, Color.WHITE, true))
+        hero.addView(label(
+            "PulseDeck об'єднує локальний плеєр і музичний visualizer. Почнемо з файлів на телефоні.",
+            15f,
+            COLOR_MUTED,
+            false,
+        ))
+        hero.addView(
+            actionPill("＋  Обрати музику", true) { chooseTrack() },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(56)).apply { topMargin = dp(18) },
+        )
+        content.addView(
+            hero,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(14)
+            },
+        )
+
+        content.addView(
+            label("Library Worlds", 20f, Color.WHITE, true),
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                topMargin = dp(24)
+                bottomMargin = dp(10)
+            },
+        )
+
+        val categories = listOf(
+            Triple("♫", "Усі треки", "локальна бібліотека"),
+            Triple("▰", "Теки", "папки й каталоги"),
+            Triple("◉", "Альбоми", "обкладинки й релізи"),
+            Triple("●", "Виконавці", "артисти"),
+            Triple("✦", "Жанри", "стилі музики"),
+            Triple("20", "Роки", "хронологія"),
+            Triple("♡", "Улюблені", "твоя добірка"),
+            Triple("↺", "Нещодавні", "останні треки"),
+        )
+
+        categories.chunked(2).forEach { pair ->
+            val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            pair.forEachIndexed { index, item ->
+                row.addView(
+                    libraryCard(item.first, item.second, item.third) {
+                        toast("${item.second}: запрацює після media scanner")
+                    },
+                    LinearLayout.LayoutParams(0, dp(122), 1f).apply {
+                        if (index == 0) marginEnd = dp(6) else marginStart = dp(6)
+                        bottomMargin = dp(12)
+                    },
+                )
+            }
+            content.addView(row)
+        }
+
+        scroll.addView(content)
+        root.addView(scroll)
+
+        val bottomStack = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), 0, dp(12), dp(10))
+        }
+
+        bottomStack.addView(
+            buildPulseDock(),
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(92)).apply {
+                bottomMargin = dp(8)
+            },
+        )
+        bottomStack.addView(
+            buildBottomNav(active = "library"),
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(76)),
+        )
+
+        root.addView(
+            bottomStack,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM),
+        )
+
+        setContentView(root)
+        onPlaybackSnapshot(latestSnapshot)
+    }
+
+    private fun showNowPlaying() {
+        screen = Screen.NOW_PLAYING
+        clearScreenRefs()
+
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(COLOR_BG)
+        }
+
+        sceneView = ReactiveSceneView(this).also { view ->
+            root.addView(
+                view,
+                FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
+            )
+        }
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(14), dp(8), dp(14), dp(8))
+            background = panelDrawable(Color.argb(135, 4, 8, 12), 24, Color.TRANSPARENT, 0)
+        }
+        header.addView(iconButton("‹") { showLibrary() })
+        header.addView(
+            label("FARIC  PulseDeck", 18f, Color.WHITE, true),
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(8) },
+        )
+        header.addView(iconButton("⋮") { toast("Додаткові дії — наступна хвиля") })
+
+        root.addView(
+            header,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(64), Gravity.TOP).apply {
+                leftMargin = dp(12)
+                rightMargin = dp(12)
+                topMargin = dp(8)
+            },
+        )
+
+        val controls = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_HORIZONTAL
+            setPadding(dp(18), dp(16), dp(18), dp(12))
+            background = panelDrawable(Color.argb(224, 6, 10, 15), 30, Color.argb(100, 54, 202, 255), 1)
+        }
+
+        nowTitle = label("FARIC PulseDeck", 26f, Color.WHITE, true).apply {
+            gravity = Gravity.CENTER
+            maxLines = 1
+        }
+        nowArtist = label("Оберіть музику", 17f, COLOR_MUTED, false).apply { gravity = Gravity.CENTER }
+        nowStatus = label("Готово", 11f, COLOR_MUTED, false).apply { gravity = Gravity.CENTER }
+
+        controls.addView(nowTitle)
+        controls.addView(nowArtist)
+        controls.addView(nowStatus)
+
+        nowSeek = SeekBar(this).apply {
+            max = 1000
+            progressTintList = android.content.res.ColorStateList.valueOf(COLOR_ACCENT_CYAN)
+            thumbTintList = android.content.res.ColorStateList.valueOf(COLOR_ACCENT_ORANGE)
+            setOnSeekBarChangeListener(object : SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(seekBar: SeekBar?, progress: Int, fromUser: Boolean) = Unit
+                override fun onStartTrackingTouch(seekBar: SeekBar?) = Unit
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {
+                    val duration = latestSnapshot.durationMs
+                    if (duration > 0L && seekBar != null) {
+                        controller.seekTo(duration * seekBar.progress / 1000L)
+                    }
+                }
+            })
+        }
+        controls.addView(
+            nowSeek,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(42)).apply { topMargin = dp(8) },
+        )
+
+        val times = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        nowElapsed = label("0:00", 13f, Color.WHITE, true)
+        nowTotal = label("0:00", 13f, Color.WHITE, true).apply { gravity = Gravity.END }
+        times.addView(nowElapsed, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        times.addView(nowTotal, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        controls.addView(times)
+
+        val transport = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(0, dp(8), 0, dp(6))
+        }
+        transport.addView(roundControl("⤨", 50, false) { toast("Shuffle запрацює з чергою") })
+        transport.addView(roundControl("◀", 54, false) { toast("Previous запрацює з чергою") })
+        nowPlay = roundControl("▶", 72, true) { controller.togglePlayPause() }
+        transport.addView(nowPlay)
+        transport.addView(roundControl("▶", 54, false) { toast("Next запрацює з чергою") })
+        transport.addView(roundControl("↻", 50, false) { toast("Repeat запрацює з чергою") })
+        controls.addView(transport)
+
+        val actions = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+        }
+        actions.addView(actionTile("≡", "Черга") { toast("Queue — наступний етап") }, LinearLayout.LayoutParams(0, dp(62), 1f))
+        actions.addView(actionTile("▥", "Сцена") { toast("Scene Lab — наступний етап") }, LinearLayout.LayoutParams(0, dp(62), 1f))
+        actions.addView(actionTile("☷", "Tone") { toast("Tone Lab — наступний етап") }, LinearLayout.LayoutParams(0, dp(62), 1f))
+        actions.addView(actionTile("•••", "Ще") { toast("Більше дій — наступний етап") }, LinearLayout.LayoutParams(0, dp(62), 1f))
+        controls.addView(actions)
+
+        controls.addView(
+            buildBottomNav(active = "visualizer"),
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(64)).apply { topMargin = dp(7) },
+        )
+
+        root.addView(
+            controls,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM).apply {
+                leftMargin = dp(10)
+                rightMargin = dp(10)
+                bottomMargin = dp(8)
+            },
+        )
+
+        setContentView(root)
+        onPlaybackSnapshot(latestSnapshot)
+    }
+
+    private fun buildPulseDock(): View {
+        val card = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(10), dp(8), dp(10), dp(8))
+            background = panelDrawable(COLOR_PANEL, 26, Color.argb(110, 43, 170, 221), 1)
+            visibility = View.GONE
+            setOnClickListener { showNowPlaying() }
+        }
+        dock = card
+
+        miniPulseView = PulseMiniView(this)
+        card.addView(miniPulseView, LinearLayout.LayoutParams(dp(58), dp(58)))
+
+        val textArea = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(10), 0, dp(6), 0)
+        }
+        dockTitle = label("Нічого не грає", 16f, Color.WHITE, true).apply { maxLines = 1 }
+        dockSubtitle = label("Локальний файл", 12f, COLOR_MUTED, false).apply { maxLines = 1 }
+        dockProgress = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply {
+            max = 1000
+            progressTintList = android.content.res.ColorStateList.valueOf(COLOR_ACCENT_CYAN)
+        }
+
+        textArea.addView(dockTitle)
+        textArea.addView(dockSubtitle)
+        textArea.addView(
+            dockProgress,
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(8)).apply { topMargin = dp(5) },
+        )
+        card.addView(textArea, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+
+        dockPlay = roundControl("▶", 52, false) {
+            controller.togglePlayPause()
+        }
+        card.addView(dockPlay)
+
+        return card
+    }
+
+    private fun buildBottomNav(active: String): View {
+        val nav = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            background = panelDrawable(Color.rgb(15, 22, 29), 26, Color.argb(80, 255, 255, 255), 1)
+        }
+
+        nav.addView(
+            navItem("⌂", "Бібліотека", active == "library") { showLibrary() },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f),
+        )
+        nav.addView(
+            navItem("▥", "Візуалізатор", active == "visualizer") {
+                if (latestSnapshot.trackName != null) showNowPlaying() else toast("Спочатку оберіть музику")
+            },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f),
+        )
+        nav.addView(
+            navItem("⌕", "Пошук", false) { toast("Пошук — після media scanner") },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f),
+        )
+        nav.addView(
+            navItem("≡", "Черга", false) { toast("Черга — наступний етап") },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f),
+        )
+
+        return nav
+    }
+
+    private fun modeChip(icon: String, title: String, subtitle: String, active: Boolean, action: () -> Unit): View {
+        val chip = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(16), dp(11), dp(16), dp(11))
+            background = panelDrawable(
+                if (active) Color.rgb(40, 29, 15) else Color.rgb(8, 25, 31),
+                28,
+                if (active) COLOR_ACCENT_ORANGE else COLOR_ACCENT_CYAN,
+                1,
+            )
+            setOnClickListener { action() }
+        }
+        chip.addView(label(icon, 23f, if (active) COLOR_ACCENT_ORANGE else COLOR_ACCENT_CYAN, true))
+
+        val text = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(10), 0, 0, 0)
+        }
+        text.addView(label(title, 15f, Color.WHITE, true))
+        text.addView(label(subtitle, 11f, COLOR_MUTED, false))
+        chip.addView(text)
+
+        chip.layoutParams = LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(70)).apply {
+            marginEnd = dp(10)
+        }
+        return chip
+    }
+
+    private fun libraryCard(icon: String, title: String, subtitle: String, action: () -> Unit): View =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(16), dp(12), dp(16), dp(12))
+            background = panelDrawable(Color.rgb(14, 21, 28), 24, Color.argb(80, 255, 255, 255), 1)
+            addView(label(icon, 28f, COLOR_ACCENT_CYAN, true))
+            addView(label(title, 17f, Color.WHITE, true))
+            addView(label(subtitle, 11f, COLOR_MUTED, false))
+            setOnClickListener { action() }
+        }
+
+    private fun actionPill(text: String, accent: Boolean, action: () -> Unit): TextView =
+        label(text, 16f, if (accent) Color.BLACK else Color.WHITE, true).apply {
+            gravity = Gravity.CENTER
+            background = panelDrawable(
+                if (accent) COLOR_ACCENT_ORANGE else COLOR_PANEL_2,
+                24,
+                if (accent) COLOR_ACCENT_ORANGE else Color.argb(100, 255, 255, 255),
+                1,
+            )
+            setOnClickListener { action() }
+        }
+
+    private fun iconButton(text: String, action: () -> Unit): TextView =
+        label(text, 27f, Color.WHITE, false).apply {
+            gravity = Gravity.CENTER
+            background = panelDrawable(Color.argb(120, 16, 22, 30), 26, Color.argb(80, 255, 255, 255), 1)
+            setOnClickListener { action() }
+            layoutParams = LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginStart = dp(7) }
+        }
+
+    private fun roundControl(text: String, sizeDp: Int, accent: Boolean, action: () -> Unit): TextView =
+        label(text, if (sizeDp >= 70) 31f else 20f, Color.WHITE, true).apply {
+            gravity = Gravity.CENTER
+            background = panelDrawable(
+                if (accent) Color.rgb(42, 29, 16) else Color.rgb(12, 20, 27),
+                sizeDp / 2,
+                if (accent) COLOR_ACCENT_ORANGE else Color.argb(150, 73, 142, 173),
+                if (accent) 2 else 1,
+            )
+            setOnClickListener { action() }
+            layoutParams = LinearLayout.LayoutParams(dp(sizeDp), dp(sizeDp)).apply {
+                marginStart = dp(5)
+                marginEnd = dp(5)
+            }
+        }
+
+    private fun actionTile(icon: String, title: String, action: () -> Unit): TextView =
+        label("$icon\n$title", 12f, Color.WHITE, true).apply {
+            gravity = Gravity.CENTER
+            background = panelDrawable(Color.rgb(12, 20, 27), 18, Color.argb(90, 68, 175, 211), 1)
+            setOnClickListener { action() }
+            setPadding(dp(4), dp(4), dp(4), dp(4))
+        }
+
+    private fun navItem(icon: String, title: String, active: Boolean, action: () -> Unit): TextView =
+        label("$icon\n$title", 11f, if (active) COLOR_ACCENT_ORANGE else COLOR_MUTED, active).apply {
+            gravity = Gravity.CENTER
+            setOnClickListener { action() }
+        }
+
+    private fun label(text: String, sizeSp: Float, color: Int, bold: Boolean): TextView =
+        TextView(this).apply {
+            this.text = text
+            textSize = sizeSp
+            setTextColor(color)
+            typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
+        }
+
+    private fun panelDrawable(fill: Int, radiusDp: Int, stroke: Int, strokeDp: Int): GradientDrawable =
+        GradientDrawable().apply {
+            shape = GradientDrawable.RECTANGLE
+            cornerRadius = dp(radiusDp).toFloat()
+            setColor(fill)
+            if (strokeDp > 0 && Color.alpha(stroke) > 0) {
+                setStroke(dp(strokeDp), stroke)
+            }
+        }
 
     private fun chooseTrack() {
-        if (hasAnalysisPermission()) openAudio.launch(arrayOf("audio/*"))
-        else {
+        if (hasAnalysisPermission()) {
+            openAudio.launch(arrayOf("audio/*"))
+        } else {
             pendingOpenAfterPermission = true
             requestAudioAnalysisPermission.launch(Manifest.permission.RECORD_AUDIO)
         }
     }
 
-    private fun hasAnalysisPermission() =
+    private fun hasAnalysisPermission(): Boolean =
         checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
     private fun resolveDisplayName(uri: Uri): String {
@@ -122,10 +609,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             if (cursor != null && cursor.moveToFirst()) {
                 val index = cursor.getColumnIndex(OpenableColumns.DISPLAY_NAME)
                 if (index >= 0) cursor.getString(index) else uri.lastPathSegment.orEmpty()
-            } else uri.lastPathSegment.orEmpty()
+            } else {
+                uri.lastPathSegment.orEmpty()
+            }
         } catch (_: Throwable) {
             uri.lastPathSegment ?: "Аудіофайл"
-        } finally { cursor?.close() }
+        } finally {
+            cursor?.close()
+        }
     }
 
     private fun formatTime(ms: Long): String {
@@ -133,6 +624,37 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val seconds = ms / 1000L
         return String.format(Locale.US, "%d:%02d", seconds / 60L, seconds % 60L)
     }
-    private fun textView(sizeSp: Float, color: Int) = TextView(this).apply { textSize = sizeSp; setTextColor(color) }
-    private fun dp(value: Int) = (value * resources.displayMetrics.density).toInt()
+
+    private fun clearScreenRefs() {
+        sceneView = null
+        miniPulseView = null
+        dock = null
+        dockTitle = null
+        dockSubtitle = null
+        dockPlay = null
+        dockProgress = null
+        nowTitle = null
+        nowArtist = null
+        nowStatus = null
+        nowElapsed = null
+        nowTotal = null
+        nowSeek = null
+        nowPlay = null
+    }
+
+    private fun toast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    private fun dp(value: Int): Int =
+        (value * resources.displayMetrics.density).toInt()
+
+    companion object {
+        private val COLOR_BG = Color.rgb(2, 6, 10)
+        private val COLOR_PANEL = Color.rgb(13, 20, 27)
+        private val COLOR_PANEL_2 = Color.rgb(22, 28, 35)
+        private val COLOR_MUTED = Color.rgb(165, 178, 190)
+        private val COLOR_ACCENT_ORANGE = Color.rgb(255, 153, 24)
+        private val COLOR_ACCENT_CYAN = Color.rgb(35, 211, 238)
+    }
 }

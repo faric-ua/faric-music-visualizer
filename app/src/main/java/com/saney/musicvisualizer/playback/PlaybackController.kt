@@ -43,7 +43,7 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
     private val progressTicker = object : Runnable {
         override fun run() {
             emitCurrentState()
-            mainHandler.postDelayed(this, 500L)
+            mainHandler.postDelayed(this, 250L)
         }
     }
 
@@ -53,10 +53,18 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
                 currentSessionId = audioSessionId
                 reconnectAnalyzer()
             }
+
             override fun onIsPlayingChanged(isPlaying: Boolean) {
-                status = if (isPlaying) "Відтворення" else if (trackName == null) "Оберіть локальний аудіофайл" else "Пауза"
+                status = if (isPlaying) {
+                    "Відтворення"
+                } else if (trackName == null) {
+                    "Оберіть локальний аудіофайл"
+                } else {
+                    "Пауза"
+                }
                 emitCurrentState()
             }
+
             override fun onPlaybackStateChanged(playbackState: Int) {
                 status = when (playbackState) {
                     Player.STATE_BUFFERING -> "Буферизація…"
@@ -66,6 +74,7 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
                 }
                 emitCurrentState()
             }
+
             override fun onPlayerError(error: PlaybackException) {
                 status = "Помилка відтворення: ${error.errorCodeName}"
                 emitCurrentState()
@@ -81,9 +90,26 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         player.prepare()
         emitCurrentState()
     }
-    fun play() { if (trackName != null) player.play() }
-    fun pause() = player.pause()
-    fun togglePlayPause() { if (player.isPlaying) pause() else play() }
+
+    fun play() {
+        if (trackName != null) player.play()
+    }
+
+    fun pause() {
+        player.pause()
+    }
+
+    fun togglePlayPause() {
+        if (player.isPlaying) pause() else play()
+    }
+
+    fun seekTo(positionMs: Long) {
+        val duration = player.duration
+        if (duration != C.TIME_UNSET && duration > 0L) {
+            player.seekTo(positionMs.coerceIn(0L, duration))
+            emitCurrentState()
+        }
+    }
 
     fun setAnalysisPermissionGranted(granted: Boolean) {
         analysisPermissionGranted = granted
@@ -94,12 +120,16 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         val duration = player.duration.takeUnless { it == C.TIME_UNSET } ?: 0L
         listener?.onPlaybackSnapshot(
             PlaybackSnapshot(
-                trackName,
-                player.isPlaying,
-                player.currentPosition.coerceAtLeast(0L),
-                duration.coerceAtLeast(0L),
-                analysisActive,
-                if (!analysisPermissionGranted && trackName != null) "$status · реакція на звук вимкнена без дозволу" else status,
+                trackName = trackName,
+                isPlaying = player.isPlaying,
+                positionMs = player.currentPosition.coerceAtLeast(0L),
+                durationMs = duration.coerceAtLeast(0L),
+                analysisActive = analysisActive,
+                status = if (!analysisPermissionGranted && trackName != null) {
+                    "$status · реакція на звук вимкнена без дозволу"
+                } else {
+                    status
+                },
             ),
         )
     }
@@ -108,10 +138,12 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         analyzer?.close()
         analyzer = null
         analysisActive = false
+
         if (!analysisPermissionGranted || currentSessionId == C.AUDIO_SESSION_ID_UNSET) {
             emitCurrentState()
             return
         }
+
         try {
             analyzer = AudioCaptureAnalyzer(currentSessionId) { signal ->
                 mainHandler.post { listener?.onSceneSignal(signal) }
@@ -120,6 +152,7 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         } catch (_: Throwable) {
             status = "Аудіо грає, але системний Visualizer недоступний"
         }
+
         emitCurrentState()
     }
 

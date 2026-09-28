@@ -1,39 +1,39 @@
 # Current Handoff
 
-Project: FARIC Music Visualizer
+Project: FARIC Music Visualizer / PulseDeck
 
 Verified:
-- public GitHub repository exists;
-- Termux checkout/aliases/widget PASS on phone;
-- baseline Validate workflow PASS;
-- Android scaffold CI PASS: run 36446252861;
-- verified source for that Android PASS: 6232cebfc7a9ea8a00b3c2934775e4a73a08bc6b.
+- repository / Termux workflow;
+- Android scaffold CI;
+- stable signer pipeline;
+- local audio playback works on the real phone;
+- reference screenshots analyzed as interaction patterns;
+- original FARIC PulseDeck design accepted by user.
 
-Current implementation:
-- Android package: `com.saney.musicvisualizer`;
-- AGP 9.2 / Gradle 9.4.1 / Java 17 baseline;
-- Media3 playback;
-- local audio picker;
-- Android audio-session Visualizer analysis;
-- spectrum bands + adaptive bass/onset prototype;
-- first Canvas scene: dark orb + radial reactive rays + glow;
-- project-specific stable signer pipeline prepared.
+Current release:
+- v0.2.0 PulseDeck shell;
+- source implementation candidate is being built/tested;
+- package remains `com.saney.musicvisualizer`.
+
+v0.2.0 implementation:
+- Library landing shell;
+- Library Worlds placeholders;
+- persistent PulseDock mini-player;
+- full Now Playing screen;
+- reactive PulseCore scene;
+- play/pause;
+- seek;
+- elapsed/total time;
+- navigation/action placeholders for later modules.
 
 Evidence boundary:
-- playback/audio-reactive sync/Canvas scene are NOT phone-PASS yet;
-- stable signer secrets must be created on the phone and uploaded to GitHub;
-- signing material must never enter Git or chat.
+- local scanner / queue / EQ / YTM backend are NOT implemented yet;
+- v0.2.0 UI is not phone-PASS until signed APK is installed and tested.
 
 Next:
-1. update phone checkout;
-2. create the dedicated development signer using menu item 5;
-3. make encrypted signer backup using item 7;
-4. upload the five GitHub secrets using item 6;
-5. wait for exact signed Android build PASS;
-6. download exact APK with item 8;
-7. install and perform first playback/beat/rotation phone QA.
-
-
-Latest UX adjustment:
-- menu item 8 downloads the exact current-commit APK into a versioned folder under Android Download and then opens that folder;
-- target folder: `/storage/emulated/0/Download/FARIC-Music-Visualizer-vX.Y.Z-build/`.
+1. CI compile/test/build v0.2.0;
+2. download exact signed APK;
+3. phone QA Library → track → PulseDock → Now Playing;
+4. test seek/play/pause/reactive scene;
+5. test rotation and Back;
+6. record findings before media-scanner work.

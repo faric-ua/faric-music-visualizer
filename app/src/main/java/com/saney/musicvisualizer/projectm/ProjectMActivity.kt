@@ -305,7 +305,7 @@ class ProjectMActivity : ComponentActivity() {
         val cached = catalogCache[mode]
 
         if (cached != null && cached.isNotEmpty()) {
-            applyCatalog(
+            prepareQueueAsync(
                 mode = mode,
                 pool = cached,
                 auto = auto,
@@ -351,7 +351,7 @@ class ProjectMActivity : ComponentActivity() {
 
                 catalogCache[mode] = pool
 
-                applyCatalog(
+                prepareQueueAsync(
                     mode = mode,
                     pool = pool,
                     auto = auto,
@@ -360,7 +360,7 @@ class ProjectMActivity : ComponentActivity() {
         }
     }
 
-    private fun applyCatalog(
+    private fun prepareQueueAsync(
         mode: ProjectMBackgroundMode,
         pool: List<File>,
         auto: Boolean,
@@ -370,33 +370,64 @@ class ProjectMActivity : ComponentActivity() {
             return
         }
 
-        val remembered =
-            stateStore
-                .lastPresetFileOrNull()
-                ?.takeIf { remembered ->
-                    pool.any {
-                        it.absolutePath == remembered.absolutePath
+        val generation = ++catalogGeneration
+        val previousCurrent = presetQueue?.current
+        val remembered = stateStore.lastPresetFileOrNull()
+
+        status.text =
+            "QUEUE · ${mode.name} · FG ${currentForegroundSample.label}"
+
+        thread(name = "projectm-queue-${mode.name.lowercase()}") {
+            val poolPaths =
+                pool
+                    .asSequence()
+                    .map { it.absolutePath }
+                    .toHashSet()
+
+            val current =
+                previousCurrent
+                    ?.takeIf {
+                        it.absolutePath in poolPaths
                     }
+                    ?: remembered
+                        ?.takeIf {
+                            it.absolutePath in poolPaths &&
+                                ratingsStore.ratingFor(it) !=
+                                    ProjectMPresetRating.HIDDEN
+                        }
+
+            val queue =
+                ProjectMPresetQueue(
+                    pool = pool,
+                    current = current,
+                    ratingOf = { preset ->
+                        ratingsStore.ratingFor(preset)
+                    },
+                )
+
+            mainHandler.post {
+                if (
+                    isFinishing ||
+                    isDestroyed ||
+                    generation != catalogGeneration
+                ) {
+                    return@post
                 }
 
-        val current =
-            presetQueue?.current
-                ?.takeIf { active ->
-                    pool.any {
-                        it.absolutePath == active.absolutePath
-                    }
-                }
-                ?: remembered
+                applyPreparedQueue(
+                    mode = mode,
+                    queue = queue,
+                    auto = auto,
+                )
+            }
+        }
+    }
 
-        val queue =
-            ProjectMPresetQueue(
-                pool = pool,
-                current = current,
-                ratingOf = { preset ->
-                    ratingsStore.ratingFor(preset)
-                },
-            )
-
+    private fun applyPreparedQueue(
+        mode: ProjectMBackgroundMode,
+        queue: ProjectMPresetQueue,
+        auto: Boolean,
+    ) {
         presetQueue = queue
 
         val selected = queue.current
@@ -447,7 +478,7 @@ class ProjectMActivity : ComponentActivity() {
 
         switchDisplayedPreset(
             file = next,
-            smoothTransition = true,
+            smoothTransition = !manual,
         )
 
         warmAhead(queue)
@@ -503,15 +534,30 @@ class ProjectMActivity : ComponentActivity() {
             rating = rating,
         )
 
-        val pool =
-            catalogCache[currentBackgroundMode]
+        val queue =
+            presetQueue
+                ?: run {
+                    updateStatus()
+                    return
+                }
 
-        if (!pool.isNullOrEmpty()) {
-            applyCatalog(
-                mode = currentBackgroundMode,
-                pool = pool,
-                auto = autoEnabled,
+        val hidCurrent =
+            queue.updateRating(
+                file = current,
+                rating = rating,
             )
+
+        if (hidCurrent) {
+            val next = queue.advance()
+
+            if (next != null) {
+                switchDisplayedPreset(
+                    file = next,
+                    smoothTransition = false,
+                )
+            }
+
+            warmAhead(queue)
         }
 
         updateStatus()

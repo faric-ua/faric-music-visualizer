@@ -19,10 +19,12 @@ add_alias() {
 
 add_alias "visualizer-code" "cd \"$REPO\""
 add_alias "visualizer-menu" "bash \"$REPO/scripts/termux-menu.sh\""
+add_alias "vis" "bash \"$REPO/scripts/termux-menu.sh\""
 
 echo "Configured:"
 echo "  visualizer-code"
 echo "  visualizer-menu"
+echo "  vis"
 echo
 echo "Activate now:"
 echo "  source \"$RC_FILE\""

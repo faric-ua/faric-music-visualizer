@@ -61,14 +61,19 @@
 - [x] Define two-layer scene architecture: foreground visualizer + independent background.
 - [x] Document controlled-random behavior and background source priority.
 - [x] Create v0.3.0 release / QA / diagram skeleton.
-- [ ] Add SceneSpec / visualizer / background / palette models.
-- [ ] Add testable RandomSceneEngine with immediate-repeat prevention.
-- [ ] Add SceneOrchestrator with manual + timed switching.
-- [ ] Implement 3 foreground visualizer styles.
-- [ ] Implement 4 built-in procedural backgrounds.
-- [ ] Add background crossfade.
-- [ ] Add manual Shuffle Scene action to Now Playing.
-- [ ] Keep local FFT/beat stream alive across scene changes.
+- [x] Add SceneSpec / visualizer / background / palette models.
+- [x] Add testable RandomSceneEngine with immediate-repeat prevention.
+- [x] Add SceneOrchestrator with manual + timed switching.
+- [x] Implement 3 foreground visualizer styles in source candidate: radial / wave ribbon / spectrum bars.
+- [x] Implement 4 built-in procedural backgrounds in source candidate: aurora / neon mist / night grid / ember cloud.
+- [x] Add ~850 ms scene/background crossfade.
+- [x] Add manual Shuffle Scene action to Now Playing.
+- [x] Keep local FFT/beat stream alive across scene changes by changing only SceneSpec/rendering.
 - [ ] CI build/test PASS.
 - [ ] Signed APK phone QA with 3 musically different tracks.
 - [ ] Close v0.3.0 only after automatic + manual scene switching phone PASS.
+
+
+Current v0.3.0 source commits:
+- `da4bb5e` — random scene models/engine/orchestrator + tests; Android CI PASS.
+- `925e716` — renderer integration, 3 foreground styles, 4 procedural backgrounds, Shuffle action, version 0.3.0; CI pending.

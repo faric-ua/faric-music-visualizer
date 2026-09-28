@@ -3,6 +3,7 @@
 #include <GLES2/gl2.h>
 
 #include <algorithm>
+#include <atomic>
 #include <chrono>
 #include <cmath>
 #include <cstdint>
@@ -31,7 +32,7 @@ static GLint g_u_mid = -1;
 static GLint g_u_high = -1;
 static GLint g_u_beat = -1;
 static GLint g_u_mode = -1;
-static int g_foreground_sample = 0;
+static std::atomic<int> g_foreground_sample{0};
 
 static int g_width = 1;
 static int g_height = 1;
@@ -642,7 +643,10 @@ static void draw_foreground_locked() {
     glUniform1f(g_u_mid, g_mid);
     glUniform1f(g_u_high, g_high);
     glUniform1f(g_u_beat, g_beat);
-    glUniform1f(g_u_mode, static_cast<float>(g_foreground_sample));
+    glUniform1f(
+        g_u_mode,
+        static_cast<float>(g_foreground_sample.load(std::memory_order_relaxed))
+    );
 
     glBindBuffer(
         GL_ARRAY_BUFFER,
@@ -1131,11 +1135,13 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetForegroundSample
         JNIEnv*,
         jclass,
         jint sampleId) {
-    std::lock_guard<std::mutex> lock(g_mutex);
-    g_foreground_sample = std::clamp(
-        static_cast<int>(sampleId),
-        0,
-        2
+    g_foreground_sample.store(
+        std::clamp(
+            static_cast<int>(sampleId),
+            0,
+            2
+        ),
+        std::memory_order_relaxed
     );
 }
 

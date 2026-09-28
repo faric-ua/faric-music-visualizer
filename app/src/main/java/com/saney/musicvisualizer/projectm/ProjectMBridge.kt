@@ -8,8 +8,13 @@ object ProjectMBridge {
     @Volatile
     private var active = false
 
-    fun create(width: Int, height: Int, presetPath: String) {
-        nativeCreate(width, height, presetPath)
+    fun create(
+        width: Int,
+        height: Int,
+        presetPath: String,
+        texturePath: String,
+    ) {
+        nativeCreate(width, height, presetPath, texturePath)
         active = true
     }
 
@@ -36,7 +41,13 @@ object ProjectMBridge {
         nativeAddPcm(pcm, pcm.size)
     }
 
-    private external fun nativeCreate(width: Int, height: Int, presetPath: String)
+    private external fun nativeCreate(
+        width: Int,
+        height: Int,
+        presetPath: String,
+        texturePath: String,
+    )
+
     private external fun nativeResize(width: Int, height: Int)
     private external fun nativeRender()
     private external fun nativeAddPcm(pcm: ShortArray, frameCount: Int)

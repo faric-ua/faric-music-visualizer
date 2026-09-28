@@ -37,7 +37,7 @@ test -f "$SHA_FILE"
 
 (cd "$TMP" && sha256sum -c "$(basename "$SHA_FILE")")
 
-DEST="/storage/emulated/0/Documents/FARIC-Music-Visualizer/packages/v${VERSION}"
+DEST="/storage/emulated/0/Download/FARIC-Music-Visualizer-v${VERSION}-build"
 mkdir -p "$DEST"
 cp "$APK" "$SHA_FILE" "$DEST/"
 (cd "$DEST" && sha256sum -c "$(basename "$SHA_FILE")")
@@ -47,3 +47,18 @@ echo "PASS: exact APK поточного commit:"
 echo "  $DEST/$(basename "$APK")"
 echo "GitHub run: $RUN_ID"
 echo "Source SHA: $HEAD_SHA"
+echo
+
+echo "Відкриваю папку завантаження…"
+if command -v termux-open >/dev/null 2>&1; then
+  if termux-open "$DEST" >/dev/null 2>&1; then
+    exit 0
+  fi
+fi
+
+# Fallback: open Android file picker at Downloads if direct folder opening
+# is unsupported by the installed file manager.
+am start   -a android.intent.action.OPEN_DOCUMENT_TREE   --es android.provider.extra.INITIAL_URI   "content://com.android.externalstorage.documents/root/primary"   >/dev/null 2>&1 || true
+
+echo "Якщо файловий менеджер не відкрився автоматично:"
+echo "  $DEST"

@@ -30,6 +30,8 @@ static GLint g_u_bass = -1;
 static GLint g_u_mid = -1;
 static GLint g_u_high = -1;
 static GLint g_u_beat = -1;
+static GLint g_u_mode = -1;
+static int g_foreground_sample = 0;
 
 static int g_width = 1;
 static int g_height = 1;
@@ -71,6 +73,7 @@ uniform float uBass;
 uniform float uMid;
 uniform float uHigh;
 uniform float uBeat;
+uniform float uMode;
 
 const float PI = 3.14159265358979323846;
 
@@ -168,11 +171,48 @@ void main() {
 
     vec3 accent = mix(orange, cyan, colorMix);
 
-    float intensity =
+    float pulseRays =
         ring * (0.72 + uBeat * 0.45)
         + spokes * (0.28 + uAmplitude * 0.56)
         + coreGlow
         + sparks;
+
+    float orbit1 = 1.0 - smoothstep(
+        0.010 + uHigh * 0.008,
+        0.026 + uHigh * 0.010,
+        abs(radius - (0.18 + 0.035 * sin(uTime * 1.7) + uBass * 0.05))
+    );
+    float orbit2 = 1.0 - smoothstep(
+        0.008,
+        0.022,
+        abs(radius - (0.30 + 0.028 * sin(uTime * 2.1 + angle * 3.0) + uMid * 0.06))
+    );
+    float orbitRings =
+        (orbit1 + orbit2) * (0.38 + uAmplitude * 0.45 + uBeat * 0.35)
+        + coreGlow * 0.55;
+
+    float haloPhase = fract((angle + PI) / (2.0 * PI) * 48.0);
+    float haloBars = 1.0 - smoothstep(
+        0.08,
+        0.22,
+        abs(haloPhase - 0.5)
+    );
+    float haloBand = 1.0 - smoothstep(
+        0.018,
+        0.050,
+        abs(radius - (0.25 + uBass * 0.08 + uBeat * 0.04))
+    );
+    float spectrumHalo =
+        haloBars * haloBand * (0.45 + uMid * 0.55 + uHigh * 0.45)
+        + sparks * 0.8
+        + coreGlow * 0.35;
+
+    float intensity = pulseRays;
+    if (uMode > 0.5 && uMode < 1.5) {
+        intensity = orbitRings;
+    } else if (uMode >= 1.5) {
+        intensity = spectrumHalo;
+    }
 
     float alpha = clamp(intensity, 0.0, 1.0);
     vec3 color = accent * intensity;
@@ -233,6 +273,7 @@ static void destroy_foreground_locked() {
     g_u_mid = -1;
     g_u_high = -1;
     g_u_beat = -1;
+    g_u_mode = -1;
 }
 
 static bool create_foreground_locked() {
@@ -337,6 +378,11 @@ static bool create_foreground_locked() {
     g_u_beat = glGetUniformLocation(
         g_foreground_program,
         "uBeat"
+    );
+
+    g_u_mode = glGetUniformLocation(
+        g_foreground_program,
+        "uMode"
     );
 
     const GLfloat vertices[] = {
@@ -468,6 +514,7 @@ static void draw_foreground_locked() {
     glUniform1f(g_u_mid, g_mid);
     glUniform1f(g_u_high, g_high);
     glUniform1f(g_u_beat, g_beat);
+    glUniform1f(g_u_mode, static_cast<float>(g_foreground_sample));
 
     glBindBuffer(
         GL_ARRAY_BUFFER,
@@ -705,6 +752,11 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeCreate(
             true
         );
 
+        projectm_set_preset_locked(
+            g_projectm,
+            false
+        );
+
         projectm_playlist_set_position(
             g_playlist,
             0,
@@ -867,6 +919,34 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetSignal(
 }
 
 extern "C" JNIEXPORT void JNICALL
+Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetAutoPresetSwitching(
+        JNIEnv*,
+        jclass,
+        jboolean enabled) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
+    if (g_projectm) {
+        projectm_set_preset_locked(
+            g_projectm,
+            enabled != JNI_TRUE
+        );
+    }
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetForegroundSample(
+        JNIEnv*,
+        jclass,
+        jint sampleId) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    g_foreground_sample = std::clamp(
+        static_cast<int>(sampleId),
+        0,
+        2
+    );
+}
+
+extern "C" JNIEXPORT void JNICALL
 Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeNextPreset(
         JNIEnv*,
         jclass) {
@@ -878,6 +958,13 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeNextPreset(
             g_playlist
         ) > 0
     ) {
+        if (g_projectm) {
+            projectm_set_preset_locked(
+                g_projectm,
+                true
+            );
+        }
+
         projectm_playlist_play_next(
             g_playlist,
             true

@@ -62,3 +62,23 @@ Hotfix source:
 
 Phone acceptance:
 - pending exact signed v0.2.1 APK.
+
+
+## v0.3.0 — Random Visualizer Core
+
+User priority:
+- visualizer quality is now the highest product-risk item;
+- foreground visualizer and background must be independent layers;
+- background should later support AI-generated, user-imported, and random source-pack assets.
+
+Current target:
+- prove a controlled random scene engine before adding more player/library breadth.
+
+v0.3.0 first implementation sequence:
+1. pure/testable scene models + random selector;
+2. scene orchestrator;
+3. multiple foreground render styles;
+4. multiple procedural backgrounds + crossfade;
+5. manual Shuffle Scene in Now Playing;
+6. automatic interval switching;
+7. phone QA before user/AI external background sources.

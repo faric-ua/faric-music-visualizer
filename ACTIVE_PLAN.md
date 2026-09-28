@@ -54,3 +54,21 @@
 - [x] Guard fullscreen/inset handling so failure cannot crash the app.
 - [x] Bump package version to 0.2.1 / versionCode 3.
 - [ ] Install v0.2.1 on phone and confirm launch PASS.
+
+
+## v0.3.0 — Random Visualizer Core
+
+- [x] Define two-layer scene architecture: foreground visualizer + independent background.
+- [x] Document controlled-random behavior and background source priority.
+- [x] Create v0.3.0 release / QA / diagram skeleton.
+- [ ] Add SceneSpec / visualizer / background / palette models.
+- [ ] Add testable RandomSceneEngine with immediate-repeat prevention.
+- [ ] Add SceneOrchestrator with manual + timed switching.
+- [ ] Implement 3 foreground visualizer styles.
+- [ ] Implement 4 built-in procedural backgrounds.
+- [ ] Add background crossfade.
+- [ ] Add manual Shuffle Scene action to Now Playing.
+- [ ] Keep local FFT/beat stream alive across scene changes.
+- [ ] CI build/test PASS.
+- [ ] Signed APK phone QA with 3 musically different tracks.
+- [ ] Close v0.3.0 only after automatic + manual scene switching phone PASS.

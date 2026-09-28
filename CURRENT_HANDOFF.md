@@ -135,3 +135,12 @@ Phone evaluation mode:
 - background may render below native resolution without reducing UI/foreground resolution;
 - balanced baseline: 78% surface resolution, mesh 72x40, 60 FPS target metadata, 0.70 s soft cut;
 - next optimization is AUTO quality based on sustained measured FPS and later thermal/battery signals.
+
+
+## v0.5.0 compositor foundation
+
+- projectM remains pinned to stable v4.1.7 and renders the background;
+- FARIC now has a first native GLES foreground shader drawn after projectM in the same frame;
+- PlaybackController forwards SceneSignal amplitude/bass/mid/high/beat to the native foreground;
+- foreground v1 = pulse ring + radial rays + sparkle response;
+- stable v4.1.7 C API has no public user-FBO render function, so true offscreen projectM texture composition is deferred rather than switching to unreleased upstream code.

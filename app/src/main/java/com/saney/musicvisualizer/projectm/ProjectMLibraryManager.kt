@@ -9,6 +9,7 @@ import java.net.URL
 import java.util.zip.ZipInputStream
 
 object ProjectMLibraryManager {
+    // Keep upstream revisions pinned so the installed library is reproducible.
     private const val CREAM_COMMIT = "0180df21f5e0bd39b9060cc5de420ed2f1f9e509"
     private const val TEXTURE_COMMIT = "6368812f27bc747b517218fbf89d21d59afce4d9"
     private const val EXPECTED_PRESET_COUNT = 9_795

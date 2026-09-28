@@ -168,3 +168,13 @@ Phone evaluation mode:
 - SharedPreferences persist TOP/ALL, AUTO/MANUAL, last preset and foreground sample;
 - this is file/path prefetch, not three GPU-precompiled projectM scenes; actual projectM parse/shader compilation still occurs when a preset becomes active;
 - ratings/hidden persistence remain the next v0.5.3 block in VISUALIZER_TODO.md.
+
+
+## v0.5.3 preset ratings
+
+- persistent SharedPreferences rating store added for projectM presets;
+- canonical preset identity is relative to Cream of the Crop/TOP/test roots, so TOP and ALL share ratings;
+- controls: 👍 like, 👎 dislike, − hide;
+- queue weights: UP=6, NONE=3, DOWN=1, HIDDEN=0;
+- hidden preset is excluded from current/next queue but source .milk is never deleted;
+- hidden-management/recovery screen remains TODO.

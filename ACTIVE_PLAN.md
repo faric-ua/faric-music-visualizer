@@ -192,3 +192,17 @@ Current v0.3.0 source commits:
 - [ ] Android CI PASS for v0.5.2.
 - [ ] Phone fast-start / PRELOAD 3/3 PASS.
 - [ ] Phone FG amplitude + solar flare review.
+
+
+## v0.5.3 — Persistent preset ratings
+
+- [x] Add NONE / UP / DOWN / HIDDEN rating model.
+- [x] Add 👍 / 👎 / − controls.
+- [x] Persist ratings across app restarts.
+- [x] Use canonical relative preset identity across TOP and ALL.
+- [x] HIDDEN removes preset from queue without deleting .milk file.
+- [x] Weight queue selection UP 6 / NONE 3 / DOWN 1 / HIDDEN 0.
+- [x] Show rating and current preset name in LAB status.
+- [ ] Android CI PASS for v0.5.3.
+- [ ] Phone rating persistence PASS.
+- [ ] Phone hide/no-delete behavior PASS.

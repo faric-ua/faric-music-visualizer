@@ -155,3 +155,16 @@ Phone evaluation mode:
 - NEXT calls projectM preset lock before programmatic next, so automatic switching stops until TOP or ВСІ is pressed;
 - layer-1 foreground catalog is append-only: Pulse Rays retained; Orbit Rings and Spectrum Halo added;
 - FG cycles foreground sample independently from the background playlist.
+
+
+## v0.5.2 fast visualizer queue
+
+- canonical working TODO is docs/visualizer/VISUALIZER_TODO.md;
+- FG amplitude is increased substantially; bass is the dominant expansion driver;
+- all three existing FG samples remain available and now include edge solar-flare energy with per-sample intensity;
+- projectM first render can load a single remembered .milk directly instead of scanning the whole TOP/ALL directory on the GL thread;
+- Kotlin owns a CURRENT + 3 NEXT queue; the next three files are read ahead off the render thread to warm filesystem cache;
+- FARIC now owns 18s AUTO timing. NEXT or visualizer tap switches to MANUAL; TOP/ALL restore AUTO;
+- SharedPreferences persist TOP/ALL, AUTO/MANUAL, last preset and foreground sample;
+- this is file/path prefetch, not three GPU-precompiled projectM scenes; actual projectM parse/shader compilation still occurs when a preset becomes active;
+- ratings/hidden persistence remain the next v0.5.3 block in VISUALIZER_TODO.md.

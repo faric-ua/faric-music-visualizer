@@ -1,5 +1,7 @@
 package com.saney.musicvisualizer.projectm
 
+import com.saney.musicvisualizer.analysis.SceneSignal
+
 object ProjectMBridge {
     init {
         System.loadLibrary("faric_projectm")
@@ -51,6 +53,17 @@ object ProjectMBridge {
         nativeAddPcm(pcm, pcm.size)
     }
 
+    fun pushSignalIfActive(signal: SceneSignal) {
+        if (!active) return
+        nativeSetSignal(
+            signal.amplitude,
+            signal.bass,
+            signal.mid,
+            signal.high,
+            signal.beatStrength,
+        )
+    }
+
     private external fun nativeCreate(
         width: Int,
         height: Int,
@@ -65,6 +78,13 @@ object ProjectMBridge {
     private external fun nativeResize(width: Int, height: Int)
     private external fun nativeRender()
     private external fun nativeAddPcm(pcm: ShortArray, frameCount: Int)
+    private external fun nativeSetSignal(
+        amplitude: Float,
+        bass: Float,
+        mid: Float,
+        high: Float,
+        beat: Float,
+    )
     private external fun nativeNextPreset()
     private external fun nativeDestroy()
 }

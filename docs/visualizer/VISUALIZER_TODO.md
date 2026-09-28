@@ -14,31 +14,31 @@ This file is the working implementation queue for the current visualizer directi
 ## v0.5.2 — Reactive FG + fast preset startup
 
 ### Foreground motion
-- [ ] Increase foreground movement amplitude substantially.
-- [ ] Make bass the strongest scale/expansion driver.
-- [ ] Keep very fast bass/beat attack with smoother release.
-- [ ] Increase ray/ring travel range without clipping the full scene.
-- [ ] Add edge solar-flare energy tongues.
-- [ ] Make flare motion react to bass + beat and texture/detail react to highs.
-- [ ] Tune flare strength separately for Pulse Rays / Orbit Rings / Spectrum Halo.
+- [x] Increase foreground movement amplitude substantially.
+- [x] Make bass the strongest scale/expansion driver.
+- [x] Keep very fast bass/beat attack with smoother release.
+- [x] Increase ray/ring travel range without clipping the full scene.
+- [x] Add edge solar-flare energy tongues.
+- [x] Make flare motion react to bass + beat and texture/detail react to highs.
+- [x] Tune flare strength separately for Pulse Rays / Orbit Rings / Spectrum Halo.
 
 ### projectM startup / next-preset latency
-- [ ] Stop scanning thousands of preset files on the GL thread when opening projectM.
-- [ ] Build/cache a Kotlin preset catalog outside the render thread.
-- [ ] Open immediately with the last valid preset when possible.
-- [ ] Maintain CURRENT + 3 NEXT preset queue.
-- [ ] Prefetch the next 3 preset files into memory/page cache off the GL thread.
-- [ ] NEXT consumes one prepared item and immediately replenishes the queue.
-- [ ] TOP / ALL rebuild the queue from their own filtered source pool.
-- [ ] Tap on visualizer must use the same manual NEXT path, never bypass queue state.
+- [x] Stop scanning thousands of preset files on the GL thread when opening projectM.
+- [x] Build/cache a Kotlin preset catalog outside the render thread.
+- [x] Open immediately with the last valid preset when possible.
+- [x] Maintain CURRENT + 3 NEXT preset queue.
+- [x] Prefetch the next 3 preset files into memory/page cache off the GL thread.
+- [x] NEXT consumes one prepared item and immediately replenishes the queue.
+- [x] TOP / ALL rebuild the queue from their own filtered source pool.
+- [x] Tap on visualizer must use the same manual NEXT path, never bypass queue state.
 - [ ] Preserve current track position while switching/rebuilding visualizer state.
 
 ### Persistent visualizer state
-- [ ] Remember last background mode: TOP / ALL.
-- [ ] Remember AUTO vs MANUAL state.
-- [ ] Remember last background preset.
-- [ ] Remember selected FARIC foreground sample.
-- [ ] Restore state without blocking first render.
+- [x] Remember last background mode: TOP / ALL.
+- [x] Remember AUTO vs MANUAL state.
+- [x] Remember last background preset.
+- [x] Remember selected FARIC foreground sample.
+- [x] Restore state without blocking first render.
 
 ## v0.5.3 — preset ratings and filtering
 

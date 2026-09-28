@@ -23,6 +23,7 @@ class ProjectMActivity : ComponentActivity() {
     private lateinit var root: FrameLayout
     private lateinit var status: TextView
     private lateinit var stateStore: ProjectMStateStore
+    private lateinit var ratingsStore: ProjectMPresetRatingsStore
 
     private var projectMView: ProjectMView? = null
     private var downloadRunning = false
@@ -49,6 +50,7 @@ class ProjectMActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
 
         stateStore = ProjectMStateStore(this)
+        ratingsStore = ProjectMPresetRatingsStore(this)
         currentForegroundSample = stateStore.foregroundSample
         currentBackgroundMode = stateStore.backgroundMode
         autoEnabled = stateStore.autoEnabled
@@ -70,7 +72,7 @@ class ProjectMActivity : ComponentActivity() {
         val controls = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
-            setPadding(dp(8), dp(8), dp(8), dp(12))
+            setPadding(dp(8), dp(6), dp(8), dp(4))
             setBackgroundColor(Color.argb(155, 0, 0, 0))
 
             addView(control("ТОП") {
@@ -96,6 +98,43 @@ class ProjectMActivity : ComponentActivity() {
             })
         }
 
+        val ratingControls = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER
+            setPadding(dp(8), dp(2), dp(8), dp(10))
+            setBackgroundColor(Color.argb(155, 0, 0, 0))
+
+            addView(control("👍") {
+                rateCurrent(ProjectMPresetRating.UP)
+            })
+
+            addView(control("👎") {
+                rateCurrent(ProjectMPresetRating.DOWN)
+            })
+
+            addView(control("−") {
+                rateCurrent(ProjectMPresetRating.HIDDEN)
+            })
+        }
+
+        val bottomControls = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(
+                controls,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+            addView(
+                ratingControls,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+        }
+
         root.addView(
             status,
             FrameLayout.LayoutParams(
@@ -106,7 +145,7 @@ class ProjectMActivity : ComponentActivity() {
         )
 
         root.addView(
-            controls,
+            bottomControls,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -151,7 +190,13 @@ class ProjectMActivity : ComponentActivity() {
     }
 
     private fun openFastFromRememberedState() {
-        val remembered = stateStore.lastPresetFileOrNull()
+        val remembered =
+            stateStore
+                .lastPresetFileOrNull()
+                ?.takeIf {
+                    ratingsStore.ratingFor(it) !=
+                        ProjectMPresetRating.HIDDEN
+                }
         val quickFallback =
             firstMilk(ProjectMLibraryManager.testPresetDir(this))
                 ?: firstMilk(ProjectMLibraryManager.fullPresetDir(this))
@@ -347,6 +392,9 @@ class ProjectMActivity : ComponentActivity() {
             ProjectMPresetQueue(
                 pool = pool,
                 current = current,
+                ratingOf = { preset ->
+                    ratingsStore.ratingFor(preset)
+                },
             )
 
         presetQueue = queue
@@ -443,6 +491,32 @@ class ProjectMActivity : ComponentActivity() {
         stateStore.lastPresetPath = file.absolutePath
     }
 
+    private fun rateCurrent(
+        rating: ProjectMPresetRating,
+    ) {
+        val current =
+            displayedPreset
+                ?: return
+
+        ratingsStore.setRating(
+            file = current,
+            rating = rating,
+        )
+
+        val pool =
+            catalogCache[currentBackgroundMode]
+
+        if (!pool.isNullOrEmpty()) {
+            applyCatalog(
+                mode = currentBackgroundMode,
+                pool = pool,
+                auto = autoEnabled,
+            )
+        }
+
+        updateStatus()
+    }
+
     private fun cycleForeground() {
         currentForegroundSample =
             currentForegroundSample.next()
@@ -527,14 +601,38 @@ class ProjectMActivity : ComponentActivity() {
                 ?.size
                 ?: 0
 
-        val sourceCount =
-            catalogCache[currentBackgroundMode]
-                ?.size
+        val visibleCount =
+            presetQueue
+                ?.availableCount
                 ?: 0
 
+        val current = displayedPreset
+        val rating =
+            current
+                ?.let {
+                    ratingsStore.ratingFor(it)
+                }
+                ?: ProjectMPresetRating.NONE
+
+        val presetName =
+            current
+                ?.nameWithoutExtension
+                ?.take(34)
+                ?: "—"
+
         status.text =
-            "$mode · ${currentBackgroundMode.name} $sourceCount · PRELOAD $queueSize/3 · FG ${currentForegroundSample.label}"
+            "$mode · ${currentBackgroundMode.name} $visibleCount · PRELOAD $queueSize/3 · ${ratingSymbol(rating)} $presetName · FG ${currentForegroundSample.label}"
     }
+
+    private fun ratingSymbol(
+        rating: ProjectMPresetRating,
+    ): String =
+        when (rating) {
+            ProjectMPresetRating.NONE -> "○"
+            ProjectMPresetRating.UP -> "👍"
+            ProjectMPresetRating.DOWN -> "👎"
+            ProjectMPresetRating.HIDDEN -> "−"
+        }
 
     private fun firstMilk(root: File): File? {
         if (!root.isDirectory) return null

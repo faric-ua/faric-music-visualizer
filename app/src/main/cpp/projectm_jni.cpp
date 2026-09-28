@@ -33,7 +33,8 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeCreate(
         jclass,
         jint width,
         jint height,
-        jstring presetPath) {
+        jstring presetPath,
+        jstring texturePath) {
     std::lock_guard<std::mutex> lock(g_mutex);
     destroy_locked();
 
@@ -41,6 +42,12 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeCreate(
     std::string path = pathChars ? pathChars : "";
     if (pathChars) {
         env->ReleaseStringUTFChars(presetPath, pathChars);
+    }
+
+    const char* textureChars = env->GetStringUTFChars(texturePath, nullptr);
+    std::string texture = textureChars ? textureChars : "";
+    if (textureChars) {
+        env->ReleaseStringUTFChars(texturePath, textureChars);
     }
 
     g_projectm = projectm_create();
@@ -57,6 +64,11 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeCreate(
     projectm_set_hard_cut_duration(g_projectm, 18);
     projectm_set_hard_cut_sensitivity(g_projectm, 1.0);
     projectm_set_beat_sensitivity(g_projectm, 1.15);
+
+    if (!texture.empty()) {
+        const char* texturePaths[] = { texture.c_str() };
+        projectm_set_texture_search_paths(g_projectm, texturePaths, 1);
+    }
 
     g_playlist = projectm_playlist_create(g_projectm);
     if (!g_playlist) {

@@ -144,3 +144,18 @@ Current v0.3.0 source commits:
 - [ ] Add adaptive AUTO quality tier after phone data.
 - [ ] Replace Visualizer waveform feed with direct Media3 PCM.
 - [ ] Render projectM into compositor texture/FBO below FARIC foreground.
+
+
+## v0.5.0 — First real compositor
+
+- [x] Keep stable projectM 4.1.7 as background engine.
+- [x] Feed FARIC SceneSignal to native projectM GL context.
+- [x] Render FARIC foreground after projectM in the same GL frame.
+- [x] Add foreground pulse ring / rays / high-frequency sparkles.
+- [x] Use fast attack and slower release in native foreground response.
+- [x] Document stable-vs-development projectM FBO API boundary.
+- [ ] Android CI PASS for v0.5.0.
+- [ ] Phone: background and foreground visibly independent.
+- [ ] Phone: foreground audio reaction PASS.
+- [ ] Phone: 5-minute smoothness/heat PASS.
+- [ ] Design next 3–5 original FARIC foreground scenes.

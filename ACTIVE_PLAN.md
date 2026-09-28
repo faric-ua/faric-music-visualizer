@@ -159,3 +159,20 @@ Current v0.3.0 source commits:
 - [ ] Phone: foreground audio reaction PASS.
 - [ ] Phone: 5-minute smoothness/heat PASS.
 - [ ] Design next 3–5 original FARIC foreground scenes.
+
+
+## v0.5.1 — Layered sample controls
+
+- [x] Keep complete 9,795 projectM library installed.
+- [x] Add derived TOP half-pool (~4,898 presets) without deleting full library.
+- [x] Keep TEST 40 stored for QA.
+- [x] TOP and ВСІ enable automatic background switching.
+- [x] NEXT locks projectM automatic preset switching and changes only manually afterward.
+- [x] TOP or ВСІ explicitly re-enable automatic switching after manual mode.
+- [x] Preserve Pulse Rays foreground sample.
+- [x] Add Orbit Rings foreground sample.
+- [x] Add Spectrum Halo foreground sample.
+- [x] Add FG control to switch layer-1 sample without changing layer-2 background.
+- [ ] Android CI PASS for v0.5.1.
+- [ ] Phone verify TOP count and manual/auto transition contract.
+- [ ] Phone review all 3 foreground samples.

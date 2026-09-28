@@ -178,3 +178,14 @@ Phone evaluation mode:
 - queue weights: UP=6, NONE=3, DOWN=1, HIDDEN=0;
 - hidden preset is excluded from current/next queue but source .milk is never deleted;
 - hidden-management/recovery screen remains TODO.
+
+
+## v0.5.4 interaction latency
+
+- phone finding: projectM actions could appear about 5 seconds after tap;
+- main cause found in app code: rating actions rebuilt/rated thousands of presets synchronously on the main thread;
+- queue creation now runs off-main; ratings are cached and stored in queue candidates;
+- 👍/👎 update in-place; HIDDEN removes one item and advances without full rebuild;
+- manual NEXT disables smooth dual-preset transition;
+- FG selection uses atomic native state and no longer waits behind projectM GL load mutex;
+- phone verification is required; if only background NEXT remains slow afterward, next diagnosis is per-preset projectM parse/shader compile latency.

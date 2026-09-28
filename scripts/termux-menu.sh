@@ -24,6 +24,7 @@ show_status() {
 update_project() {
   clear
   cd "$REPO" || exit 1
+
   if ! git diff --quiet || ! git diff --cached --quiet || [ -n "$(git ls-files --others --exclude-standard)" ]; then
     echo "Є локальні або нові файли. Оновлення зупинено."
     git status --short
@@ -34,9 +35,39 @@ update_project() {
   branch="$(git branch --show-current)"
   test -n "$branch" || { echo "Не вдалося визначити гілку."; pause_menu; return; }
 
-  git fetch --prune origin "+refs/heads/$branch:refs/remotes/origin/$branch" &&
-  git merge --ff-only "refs/remotes/origin/$branch"
-  pause_menu
+  before="$(git rev-parse HEAD)"
+
+  if ! git fetch --prune origin "+refs/heads/$branch:refs/remotes/origin/$branch"; then
+    echo
+    echo "Не вдалося отримати оновлення з GitHub."
+    pause_menu
+    return
+  fi
+
+  if ! git merge --ff-only "refs/remotes/origin/$branch"; then
+    echo
+    echo "Fast-forward оновлення не вдалося. Нічого не форсую."
+    pause_menu
+    return
+  fi
+
+  after="$(git rev-parse HEAD)"
+
+  echo
+  if [ "$before" = "$after" ]; then
+    echo "PASS: репозиторій уже актуальний."
+    pause_menu
+    return
+  fi
+
+  echo "PASS: репозиторій оновлено."
+  echo "Було:  $(printf '%.10s' "$before")"
+  echo "Стало: $(printf '%.10s' "$after")"
+  echo
+  echo "Перезапускаю меню з нової версії…" 
+  sleep 1
+
+  exec bash "$REPO/scripts/termux-menu.sh"
 }
 
 open_code() {
@@ -64,7 +95,7 @@ while true; do
   echo
   echo "1 — Відкрити shell у коді"
   echo "2 — Git status"
-  echo "3 — Оновити проєкт з GitHub"
+  echo "3 — Оновити репозиторій з GitHub"
   echo "4 — Показати ACTIVE_PLAN"
   echo "5 — Створити окремий development signer"
   echo "6 — Передати signer secrets у GitHub"

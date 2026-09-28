@@ -75,15 +75,27 @@ echo "Current repo HEAD: $HEAD_SHA"
 echo
 
 echo "Відкриваю папку завантаження…"
-if command -v termux-open >/dev/null 2>&1; then
-  if termux-open "$DEST" >/dev/null 2>&1; then
+
+# Android's document picker understands an initial *document* URI. Using
+# --es sends a plain String and can be silently ignored; --eu sends a Uri.
+RELATIVE_DIR="Download/FARIC-Music-Visualizer-v${VERSION}-build"
+ENCODED_RELATIVE_DIR="${RELATIVE_DIR//\//%2F}"
+INITIAL_URI="content://com.android.externalstorage.documents/document/primary%3A${ENCODED_RELATIVE_DIR}"
+
+if command -v am >/dev/null 2>&1; then
+  if am start \
+    -a android.intent.action.OPEN_DOCUMENT_TREE \
+    --eu android.provider.extra.INITIAL_URI "$INITIAL_URI" \
+    >/dev/null 2>&1; then
     exit 0
   fi
 fi
 
-# Fallback: open Android file picker at Downloads if direct folder opening
-# is unsupported by the installed file manager.
-am start   -a android.intent.action.OPEN_DOCUMENT_TREE   --es android.provider.extra.INITIAL_URI   "content://com.android.externalstorage.documents/root/primary"   >/dev/null 2>&1 || true
+# Secondary fallback. Some Android file managers support opening filesystem
+# directories through Termux:API, others do not.
+if command -v termux-open >/dev/null 2>&1; then
+  termux-open "$DEST" >/dev/null 2>&1 || true
+fi
 
 echo "Якщо файловий менеджер не відкрився автоматично:"
 echo "  $DEST"

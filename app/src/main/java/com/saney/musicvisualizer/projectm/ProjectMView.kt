@@ -11,17 +11,18 @@ import javax.microedition.khronos.opengles.GL10
 
 class ProjectMView(
     context: Context,
-    private val presetDirectory: File,
+    private val initialPreset: File,
     private val textureDirectory: File,
     private val profile: ProjectMPerformanceProfile = ProjectMPerformanceProfile.BALANCED_BACKGROUND,
     private var foregroundSample: FaricForegroundSample = FaricForegroundSample.PULSE_RAYS,
+    private val onTapNext: () -> Unit = {},
 ) : GLSurfaceView(context) {
 
     init {
         setEGLContextClientVersion(2)
         setRenderer(
             Renderer(
-                presetPath = presetDirectory.absolutePath,
+                presetPath = initialPreset.absolutePath,
                 texturePath = textureDirectory.absolutePath,
                 profile = profile,
                 foregroundSample = foregroundSample,
@@ -49,10 +50,20 @@ class ProjectMView(
 
     override fun onTouchEvent(event: MotionEvent): Boolean {
         if (event.action == MotionEvent.ACTION_UP) {
-            queueEvent { ProjectMBridge.nextPreset() }
+            onTapNext()
             return true
         }
         return true
+    }
+
+    fun loadPreset(file: File, smoothTransition: Boolean = true) {
+        if (!file.isFile) return
+        queueEvent {
+            ProjectMBridge.loadPreset(
+                path = file.absolutePath,
+                smoothTransition = smoothTransition,
+            )
+        }
     }
 
     fun setForegroundSample(sample: FaricForegroundSample) {
@@ -89,7 +100,8 @@ class ProjectMView(
                     texturePath = texturePath,
                     profile = profile,
                 )
-                ProjectMBridge.enableAutoPresetSwitching(true)
+                // FARIC owns AUTO/MANUAL timing. projectM internal switching stays locked.
+                ProjectMBridge.enableAutoPresetSwitching(false)
                 ProjectMBridge.setForegroundSample(foregroundSample)
                 created = true
             } else {

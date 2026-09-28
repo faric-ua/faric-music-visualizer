@@ -7,24 +7,41 @@ import kotlin.random.Random
 class ProjectMPresetQueue(
     pool: List<File>,
     current: File?,
+    private val ratingOf: (File) -> ProjectMPresetRating = {
+        ProjectMPresetRating.NONE
+    },
     private val random: Random = Random.Default,
     private val aheadCount: Int = 3,
 ) {
     private val candidates =
         pool
             .asSequence()
-            .filter { it.isFile && it.extension.equals("milk", ignoreCase = true) }
+            .filter {
+                it.isFile &&
+                    it.extension.equals(
+                        "milk",
+                        ignoreCase = true,
+                    )
+            }
+            .filter {
+                ratingOf(it) != ProjectMPresetRating.HIDDEN
+            }
             .distinctBy { it.absolutePath }
             .toList()
 
     private val next = ArrayDeque<File>()
     private val recent = ArrayDeque<String>()
 
+    val availableCount: Int
+        get() = candidates.size
+
     var current: File? =
         current?.takeIf { candidate ->
-            candidates.any { it.absolutePath == candidate.absolutePath }
+            candidates.any {
+                it.absolutePath == candidate.absolutePath
+            }
         }
-        ?: candidates.randomOrNull(random)
+            ?: pickWeighted(candidates)
         private set
 
     init {
@@ -40,12 +57,16 @@ class ProjectMPresetQueue(
         }
 
         val selected =
-            if (next.isNotEmpty()) next.removeFirst()
-            else pickCandidate()
+            if (next.isNotEmpty()) {
+                next.removeFirst()
+            } else {
+                pickCandidate()
+            }
 
         current = selected
         selected?.let(::remember)
         refill()
+
         return selected
     }
 
@@ -53,15 +74,31 @@ class ProjectMPresetQueue(
         next.toList()
 
     private fun refill() {
-        while (next.size < aheadCount && candidates.isNotEmpty()) {
-            val candidate = pickCandidate() ?: break
+        var attempts = 0
+        val maxAttempts = (aheadCount * 20).coerceAtLeast(30)
 
-            if (
-                next.none { it.absolutePath == candidate.absolutePath } &&
-                current?.absolutePath != candidate.absolutePath
-            ) {
+        while (
+            next.size < aheadCount &&
+            candidates.isNotEmpty() &&
+            attempts < maxAttempts
+        ) {
+            attempts++
+
+            val candidate =
+                pickCandidate()
+                    ?: break
+
+            val duplicate =
+                next.any {
+                    it.absolutePath == candidate.absolutePath
+                } ||
+                    current?.absolutePath == candidate.absolutePath
+
+            if (!duplicate) {
                 next.addLast(candidate)
-            } else if (candidates.size <= aheadCount + 1) {
+            }
+
+            if (candidates.size <= next.size + 1) {
                 break
             }
         }
@@ -71,16 +108,59 @@ class ProjectMPresetQueue(
         if (candidates.isEmpty()) return null
 
         val recentSet = recent.toHashSet()
-        val preferred = candidates.filterNot { it.absolutePath in recentSet }
 
-        return when {
-            preferred.isNotEmpty() -> preferred[random.nextInt(preferred.size)]
-            else -> candidates[random.nextInt(candidates.size)]
-        }
+        val preferred =
+            candidates.filterNot {
+                it.absolutePath in recentSet
+            }
+
+        return pickWeighted(
+            if (preferred.isNotEmpty()) {
+                preferred
+            } else {
+                candidates
+            },
+        )
     }
+
+    private fun pickWeighted(source: List<File>): File? {
+        if (source.isEmpty()) return null
+
+        val totalWeight =
+            source.sumOf {
+                weightFor(ratingOf(it))
+            }
+
+        if (totalWeight <= 0) {
+            return source[random.nextInt(source.size)]
+        }
+
+        var roll = random.nextInt(totalWeight)
+
+        for (file in source) {
+            roll -= weightFor(ratingOf(file))
+
+            if (roll < 0) {
+                return file
+            }
+        }
+
+        return source.last()
+    }
+
+    private fun weightFor(
+        rating: ProjectMPresetRating,
+    ): Int =
+        when (rating) {
+            ProjectMPresetRating.UP -> 6
+            ProjectMPresetRating.NONE -> 3
+            ProjectMPresetRating.DOWN -> 1
+            ProjectMPresetRating.HIDDEN -> 0
+        }
 
     private fun remember(file: File) {
         val path = file.absolutePath
+
         recent.remove(path)
         recent.addLast(path)
 
@@ -97,11 +177,14 @@ class ProjectMPresetQueue(
 
             for (file in files.take(3)) {
                 runCatching {
-                    file.inputStream().buffered().use { input ->
-                        while (input.read(buffer) > 0) {
-                            // Read-through intentionally warms the filesystem page cache.
+                    file
+                        .inputStream()
+                        .buffered()
+                        .use { input ->
+                            while (input.read(buffer) > 0) {
+                                // Read-through intentionally warms filesystem cache.
+                            }
                         }
-                    }
                 }
             }
         }

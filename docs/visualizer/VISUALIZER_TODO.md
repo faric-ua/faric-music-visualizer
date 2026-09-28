@@ -104,3 +104,16 @@ Phone acceptance must include:
 - foreground sample switching;
 - screen-off playback;
 - 5-minute heat/smoothness check.
+
+
+## v0.5.4 — interaction latency hotfix
+
+- [x] Move TOP/ALL queue construction off the main thread.
+- [x] Cache persistent preset ratings in memory.
+- [x] Store rating inside prepared queue candidates.
+- [x] Stop rebuilding the whole queue for 👍 / 👎.
+- [x] Hide one preset in-place instead of rebuilding 4k/9k candidates.
+- [x] Make manual NEXT a direct non-smooth switch.
+- [x] Make FG switching independent from projectM GL load queue/mutex.
+- [ ] Phone verify sub-second button response.
+- [ ] Measure actual heavy-preset compile/load latency after UI freeze is removed.

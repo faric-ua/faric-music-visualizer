@@ -144,3 +144,14 @@ Phone evaluation mode:
 - PlaybackController forwards SceneSignal amplitude/bass/mid/high/beat to the native foreground;
 - foreground v1 = pulse ring + radial rays + sparkle response;
 - stable v4.1.7 C API has no public user-FBO render function, so true offscreen projectM texture composition is deferred rather than switching to unreleased upstream code.
+
+
+## v0.5.1 layered controls
+
+- full 9,795 projectM library stays installed;
+- derived TOP pool contains every second sorted preset, target 4,898, preserving the full source library;
+- TEST 40 remains stored but is no longer the primary UI mode;
+- TOP / ВСІ recreate background playlist with automatic projectM switching enabled;
+- NEXT calls projectM preset lock before programmatic next, so automatic switching stops until TOP or ВСІ is pressed;
+- layer-1 foreground catalog is append-only: Pulse Rays retained; Orbit Rings and Spectrum Halo added;
+- FG cycles foreground sample independently from the background playlist.

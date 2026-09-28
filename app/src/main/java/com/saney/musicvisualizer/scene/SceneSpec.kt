@@ -7,6 +7,7 @@ enum class VisualizerType {
 }
 
 enum class BackgroundType {
+    WARP_STARFIELD,
     AURORA,
     NEON_MIST,
     NIGHT_GRID,

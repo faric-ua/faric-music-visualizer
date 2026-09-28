@@ -77,3 +77,20 @@
 Current v0.3.0 source commits:
 - `da4bb5e` — random scene models/engine/orchestrator + tests; Android CI PASS.
 - `925e716` — renderer integration, 3 foreground styles, 4 procedural backgrounds, Shuffle action, version 0.3.0; CI pending.
+
+
+## v0.3.1 — Instant Reactivity + Warp Background
+
+- [x] Record phone finding: v0.3.0 reaction is too soft/late.
+- [x] Add permanent UI centering rule UI-001.
+- [x] Increase Android FFT capture to maximum supported rate.
+- [x] Replace averaged frequency energy with peak + RMS response.
+- [x] Add fast attack / slower release foreground response.
+- [x] Split foreground frequency response from independent background drive.
+- [x] Add WARP_STARFIELD background with music-driven travel speed/streak length.
+- [x] Weight random background selection toward WARP_STARFIELD without immediate repeats.
+- [x] Increase visual range of radial / wave / spectrum renderers.
+- [ ] CI PASS for v0.3.1.
+- [ ] Phone QA: immediate bass/mid/high reaction.
+- [ ] Phone QA: background travel clearly independent from foreground.
+- [ ] Phone QA: transport/action/nav glyphs visually centered.

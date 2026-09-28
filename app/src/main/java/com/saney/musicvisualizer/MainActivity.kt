@@ -608,6 +608,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun iconButton(text: String, action: () -> Unit): TextView =
         label(text, 27f, Color.WHITE, false).apply {
             gravity = Gravity.CENTER
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+            includeFontPadding = false
             background = panelDrawable(Color.argb(120, 16, 22, 30), 26, Color.argb(80, 255, 255, 255), 1)
             setOnClickListener { action() }
             layoutParams = LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginStart = dp(7) }
@@ -616,6 +618,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun roundControl(text: String, sizeDp: Int, accent: Boolean, action: () -> Unit): TextView =
         label(text, if (sizeDp >= 70) 31f else 20f, Color.WHITE, true).apply {
             gravity = Gravity.CENTER
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+            includeFontPadding = false
             background = panelDrawable(
                 if (accent) Color.rgb(42, 29, 16) else Color.rgb(12, 20, 27),
                 sizeDp / 2,
@@ -632,6 +636,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun actionTile(icon: String, title: String, action: () -> Unit): TextView =
         label("$icon\n$title", 12f, Color.WHITE, true).apply {
             gravity = Gravity.CENTER
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+            includeFontPadding = false
             minimumHeight = dp(62)
             background = panelDrawable(Color.rgb(12, 20, 27), 18, Color.argb(90, 68, 175, 211), 1)
             setOnClickListener { action() }
@@ -641,6 +647,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun navItem(icon: String, title: String, active: Boolean, action: () -> Unit): TextView =
         label("$icon\n$title", 11f, if (active) COLOR_ACCENT_ORANGE else COLOR_MUTED, active).apply {
             gravity = Gravity.CENTER
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+            includeFontPadding = false
             setOnClickListener { action() }
         }
 
@@ -649,6 +657,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             this.text = text
             textSize = sizeSp
             setTextColor(color)
+            includeFontPadding = false
             typeface = if (bold) Typeface.DEFAULT_BOLD else Typeface.DEFAULT
         }
 

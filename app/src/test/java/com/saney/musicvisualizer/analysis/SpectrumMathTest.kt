@@ -15,6 +15,15 @@ class SpectrumMathTest {
     }
 
     @Test
+    fun narrowFrequencySpikeRemainsStrongInsteadOfBeingAveragedAway() {
+        val fft = ByteArray(1024)
+        fft[10] = 120
+        fft[11] = 100
+        val energy = SpectrumMath.fromFft(fft, 48_000_000)
+        assertTrue(energy.bass > 0.35f)
+    }
+
+    @Test
     fun emptyFftReturnsZeroEnergy() {
         val energy = SpectrumMath.fromFft(ByteArray(0), 48_000_000)
         assertTrue(energy.amplitude == 0f)

@@ -82,3 +82,19 @@ v0.3.0 first implementation sequence:
 5. manual Shuffle Scene in Now Playing;
 6. automatic interval switching;
 7. phone QA before user/AI external background sources.
+
+
+## v0.3.1 phone feedback
+
+New product direction:
+- frequency response must attack much faster;
+- foreground and background must have independent reactive behavior;
+- preferred default atmosphere is fast warp travel through stars;
+- visible glyph centering is now a formal project UI rule, not a one-off fix.
+
+Implementation target:
+- max Android Visualizer capture rate;
+- peak/RMS spectrum energy;
+- asymmetric fast-attack response;
+- WARP_STARFIELD;
+- shared visual-centering rule UI-001.

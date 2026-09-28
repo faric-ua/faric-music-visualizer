@@ -13,20 +13,28 @@ class AudioCaptureAnalyzer(
     init {
         visualizer.captureSize = Visualizer.getCaptureSizeRange()[1]
         visualizer.scalingMode = Visualizer.SCALING_MODE_NORMALIZED
-        val captureRate = (Visualizer.getMaxCaptureRate() / 2).coerceAtLeast(1)
+
+        // Use the highest capture rate exposed by Android Visualizer.
+        // The previous /2 rate made frequency changes visibly late.
+        val captureRate = Visualizer.getMaxCaptureRate().coerceAtLeast(1)
+
         visualizer.setDataCaptureListener(
             object : Visualizer.OnDataCaptureListener {
                 override fun onWaveFormDataCapture(v: Visualizer?, waveform: ByteArray?, samplingRate: Int) = Unit
+
                 override fun onFftDataCapture(v: Visualizer?, fft: ByteArray?, samplingRate: Int) {
                     if (fft == null) return
+
                     val bands = SpectrumMath.fromFft(fft, samplingRate)
+                    val beat = beatDetector.update(bands.bass, SystemClock.elapsedRealtime())
+
                     onSignal(
                         SceneSignal(
-                            bands.amplitude,
-                            bands.bass,
-                            bands.mid,
-                            bands.high,
-                            beatDetector.update(bands.bass, SystemClock.elapsedRealtime()),
+                            amplitude = bands.amplitude,
+                            bass = bands.bass,
+                            mid = bands.mid,
+                            high = bands.high,
+                            beatStrength = beat,
                         ),
                     )
                 }

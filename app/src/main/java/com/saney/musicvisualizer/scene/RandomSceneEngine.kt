@@ -11,9 +11,9 @@ class RandomSceneEngine(
 
     fun next(): SceneSpec {
         val visualizer = pickDifferent(VisualizerType.entries, lastVisualizer)
-        val background = pickDifferent(BackgroundType.entries, lastBackground)
+        val background = pickBackgroundDifferent(lastBackground)
         val palette = AccentPalette.entries[random.nextInt(AccentPalette.entries.size)]
-        val intensity = (0.72f + random.nextFloat() * 0.28f).coerceIn(0f, 1f)
+        val intensity = (0.82f + random.nextFloat() * 0.18f).coerceIn(0f, 1f)
 
         lastVisualizer = visualizer
         lastBackground = background
@@ -27,11 +27,24 @@ class RandomSceneEngine(
         )
     }
 
+    private fun pickBackgroundDifferent(previous: BackgroundType?): BackgroundType {
+        val weighted = listOf(
+            BackgroundType.WARP_STARFIELD,
+            BackgroundType.WARP_STARFIELD,
+            BackgroundType.WARP_STARFIELD,
+            BackgroundType.AURORA,
+            BackgroundType.NEON_MIST,
+            BackgroundType.NIGHT_GRID,
+            BackgroundType.EMBER_CLOUD,
+        )
+        val candidates = if (previous == null) weighted else weighted.filterNot { it == previous }
+        return candidates[random.nextInt(candidates.size)]
+    }
+
     private fun <T> pickDifferent(values: List<T>, previous: T?): T {
         if (values.size <= 1 || previous == null) {
             return values[random.nextInt(values.size)]
         }
-
         val candidates = values.filterNot { it == previous }
         return candidates[random.nextInt(candidates.size)]
     }

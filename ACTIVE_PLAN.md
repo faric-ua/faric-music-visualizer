@@ -128,3 +128,19 @@ Current v0.3.0 source commits:
 - [ ] Phone full-library download/install PASS.
 - [ ] Phone TEST 40 visual-quality review.
 - [ ] Phone full-library switching smoke.
+
+
+## v0.4.2 — projectM background + mobile optimization
+
+- [x] Lock projectM role to background visual layer.
+- [x] Lock future FARIC renderer role to foreground layer.
+- [x] Add projectM phone performance profiles.
+- [x] Default projectM background render scale to 78%.
+- [x] Default projectM mesh to 72x40.
+- [x] Shorten projectM soft cuts to reduce dual-preset render cost.
+- [x] Add render FPS telemetry to logcat.
+- [ ] CI PASS for v0.4.2.
+- [ ] Phone quality/performance comparison PASS.
+- [ ] Add adaptive AUTO quality tier after phone data.
+- [ ] Replace Visualizer waveform feed with direct Media3 PCM.
+- [ ] Render projectM into compositor texture/FBO below FARIC foreground.

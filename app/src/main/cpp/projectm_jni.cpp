@@ -34,7 +34,11 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeCreate(
         jint width,
         jint height,
         jstring presetPath,
-        jstring texturePath) {
+        jstring texturePath,
+        jint meshX,
+        jint meshY,
+        jint targetFps,
+        jdouble softCutSeconds) {
     std::lock_guard<std::mutex> lock(g_mutex);
     destroy_locked();
 
@@ -58,8 +62,10 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeCreate(
 
     projectm_set_window_size(g_projectm, width, height);
     projectm_set_aspect_correction(g_projectm, true);
+    projectm_set_mesh_size(g_projectm, meshX, meshY);
+    projectm_set_fps(g_projectm, targetFps);
     projectm_set_preset_duration(g_projectm, 18);
-    projectm_set_soft_cut_duration(g_projectm, 2.2);
+    projectm_set_soft_cut_duration(g_projectm, softCutSeconds);
     projectm_set_hard_cut_enabled(g_projectm, true);
     projectm_set_hard_cut_duration(g_projectm, 18);
     projectm_set_hard_cut_sensitivity(g_projectm, 1.0);

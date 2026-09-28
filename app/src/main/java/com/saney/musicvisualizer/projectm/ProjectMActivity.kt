@@ -191,10 +191,12 @@ class ProjectMActivity : ComponentActivity() {
             root.removeView(old)
         }
 
+        val profile = ProjectMPerformanceProfile.BALANCED_BACKGROUND
         val view = ProjectMView(
             context = this,
             presetDirectory = presetDir,
             textureDirectory = textureDir,
+            profile = profile,
         )
 
         projectMView = view

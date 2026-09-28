@@ -13,8 +13,18 @@ object ProjectMBridge {
         height: Int,
         presetPath: String,
         texturePath: String,
+        profile: ProjectMPerformanceProfile,
     ) {
-        nativeCreate(width, height, presetPath, texturePath)
+        nativeCreate(
+            width,
+            height,
+            presetPath,
+            texturePath,
+            profile.meshX,
+            profile.meshY,
+            profile.targetFps,
+            profile.softCutSeconds,
+        )
         active = true
     }
 
@@ -46,6 +56,10 @@ object ProjectMBridge {
         height: Int,
         presetPath: String,
         texturePath: String,
+        meshX: Int,
+        meshY: Int,
+        targetFps: Int,
+        softCutSeconds: Double,
     )
 
     private external fun nativeResize(width: Int, height: Int)

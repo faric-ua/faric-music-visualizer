@@ -126,3 +126,12 @@ Phone evaluation mode:
 - TEST 40 is generated locally after full install;
 - 8 presets each from Geometric, Particles, Supernova, Waveform and Hypnotic;
 - ProjectM LAB defaults to TEST 40, while ВСІ switches to the whole local library.
+
+
+## v0.4.2 architecture decision
+
+- projectM is the background visual layer, not the foreground;
+- future FARIC renderer is the foreground reactive layer;
+- background may render below native resolution without reducing UI/foreground resolution;
+- balanced baseline: 78% surface resolution, mesh 72x40, 60 FPS target metadata, 0.70 s soft cut;
+- next optimization is AUTO quality based on sustained measured FPS and later thermal/battery signals.

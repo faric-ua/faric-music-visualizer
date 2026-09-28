@@ -57,6 +57,29 @@ object ProjectMLibraryManager {
 
     fun expectedTopCount(): Int = EXPECTED_TOP_COUNT
 
+    fun presetId(file: File): String {
+        val normalized =
+            file.absolutePath.replace('\\', '/')
+
+        val roots =
+            listOf(
+                "/cream-of-the-crop/",
+                "/faric-top-half/",
+                "/faric-test-40/",
+            )
+
+        for (root in roots) {
+            val index = normalized.indexOf(root)
+            if (index >= 0) {
+                return normalized
+                    .substring(index + root.length)
+                    .lowercase()
+            }
+        }
+
+        return file.name.lowercase()
+    }
+
     fun state(context: Context): LibraryState {
         val presetCount = countMilk(fullPresetDir(context))
         val topCount = countMilk(topPresetDir(context))

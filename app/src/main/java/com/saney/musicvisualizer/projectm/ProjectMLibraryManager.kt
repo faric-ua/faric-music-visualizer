@@ -13,6 +13,7 @@ object ProjectMLibraryManager {
     private const val CREAM_COMMIT = "0180df21f5e0bd39b9060cc5de420ed2f1f9e509"
     private const val TEXTURE_COMMIT = "6368812f27bc747b517218fbf89d21d59afce4d9"
     private const val EXPECTED_PRESET_COUNT = 9_795
+    private const val EXPECTED_TOP_COUNT = (EXPECTED_PRESET_COUNT + 1) / 2
     private const val TEST_PER_CATEGORY = 8
 
     private val testCategories = listOf(
@@ -32,6 +33,7 @@ object ProjectMLibraryManager {
     data class LibraryState(
         val installed: Boolean,
         val presetCount: Int,
+        val topPresetCount: Int,
         val testPresetCount: Int,
     )
 
@@ -40,6 +42,9 @@ object ProjectMLibraryManager {
 
     fun fullPresetDir(context: Context): File =
         File(root(context), "presets/cream-of-the-crop")
+
+    fun topPresetDir(context: Context): File =
+        File(root(context), "presets/faric-top-half")
 
     fun textureDir(context: Context): File =
         File(root(context), "textures")
@@ -50,14 +55,34 @@ object ProjectMLibraryManager {
     private fun marker(context: Context): File =
         File(root(context), ".full-library-$CREAM_COMMIT")
 
+    fun expectedTopCount(): Int = EXPECTED_TOP_COUNT
+
     fun state(context: Context): LibraryState {
         val presetCount = countMilk(fullPresetDir(context))
+        val topCount = countMilk(topPresetDir(context))
         val testCount = countMilk(testPresetDir(context))
+
         return LibraryState(
             installed = marker(context).exists() && presetCount >= EXPECTED_PRESET_COUNT,
             presetCount = presetCount,
+            topPresetCount = topCount,
             testPresetCount = testCount,
         )
+    }
+
+    fun ensureDerivedPacks(context: Context): LibraryState {
+        val before = state(context)
+        if (!before.installed) return before
+
+        if (before.topPresetCount != EXPECTED_TOP_COUNT) {
+            buildTopHalf(context)
+        }
+
+        if (before.testPresetCount < 40) {
+            buildTestPack(context)
+        }
+
+        return state(context)
     }
 
     fun installAll(
@@ -75,6 +100,7 @@ object ProjectMLibraryManager {
         cache.mkdirs()
         presets.deleteRecursively()
         textures.deleteRecursively()
+        topPresetDir(context).deleteRecursively()
         testPresetDir(context).deleteRecursively()
         marker(context).delete()
 
@@ -85,6 +111,7 @@ object ProjectMLibraryManager {
 
         onProgress("Розпаковка 9 795 preset-ів…")
         var extracted = 0
+
         unzip(creamZip) { relative, input ->
             if (!relative.endsWith(".milk", ignoreCase = true)) return@unzip
 
@@ -106,6 +133,7 @@ object ProjectMLibraryManager {
         onProgress("Розпаковка текстур…")
         unzip(textureZip) { relative, input ->
             if (!relative.startsWith("textures/")) return@unzip
+
             val normalized = relative.removePrefix("textures/")
             if (normalized.isBlank()) return@unzip
 
@@ -115,10 +143,15 @@ object ProjectMLibraryManager {
         }
 
         val total = countMilk(presets)
+
         require(total >= EXPECTED_PRESET_COUNT) {
             "Очікувалось щонайменше $EXPECTED_PRESET_COUNT preset-ів, отримано $total"
         }
 
+        onProgress("Формую ТОП ½…")
+        buildTopHalf(context)
+
+        onProgress("Формую TEST 40…")
         buildTestPack(context)
 
         marker(context).writeText(
@@ -129,6 +162,34 @@ object ProjectMLibraryManager {
         textureZip.delete()
 
         return state(context)
+    }
+
+    fun buildTopHalf(context: Context): Int {
+        val source = fullPresetDir(context)
+        val target = topPresetDir(context)
+
+        target.deleteRecursively()
+        target.mkdirs()
+
+        val all = source
+            .walkTopDown()
+            .filter { it.isFile && it.extension.equals("milk", ignoreCase = true) }
+            .sortedBy { it.relativeTo(source).invariantSeparatorsPath.lowercase() }
+            .toList()
+
+        var copied = 0
+
+        all.forEachIndexed { index, preset ->
+            if (index % 2 != 0) return@forEachIndexed
+
+            val relative = preset.relativeTo(source)
+            val destination = File(target, relative.path)
+            destination.parentFile?.mkdirs()
+            preset.copyTo(destination, overwrite = true)
+            copied++
+        }
+
+        return copied
     }
 
     fun buildTestPack(context: Context): Int {
@@ -230,7 +291,7 @@ object ProjectMLibraryManager {
     }
 
     private fun stripArchiveRoot(path: String): String {
-        val normalized = path.replace('\\', '/')
+        val normalized = path.replace('\\\\', '/')
         val slash = normalized.indexOf('/')
 
         return if (slash >= 0 && slash + 1 < normalized.length) {

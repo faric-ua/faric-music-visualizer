@@ -34,6 +34,8 @@ import androidx.media3.common.util.UnstableApi
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.playback.PlaybackController
 import com.saney.musicvisualizer.playback.PlaybackSnapshot
+import com.saney.musicvisualizer.scene.SceneOrchestrator
+import com.saney.musicvisualizer.scene.SceneSpec
 import com.saney.musicvisualizer.ui.PulseMiniView
 import com.saney.musicvisualizer.ui.ReactiveSceneView
 import java.util.Locale
@@ -44,6 +46,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private enum class Screen { LIBRARY, NOW_PLAYING }
 
     private lateinit var controller: PlaybackController
+    private lateinit var sceneOrchestrator: SceneOrchestrator
+    private lateinit var currentScene: SceneSpec
     private var screen = Screen.LIBRARY
     private var latestSnapshot = PlaybackSnapshot()
 
@@ -94,6 +98,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         controller = ViewModelProvider(this)[PlaybackController::class.java]
         controller.setAnalysisPermissionGranted(hasAnalysisPermission())
 
+        sceneOrchestrator = SceneOrchestrator { spec ->
+            currentScene = spec
+            sceneView?.setScene(spec)
+        }
+        currentScene = sceneOrchestrator.currentScene()
+
         onBackPressedDispatcher.addCallback(this) {
             if (screen == Screen.NOW_PLAYING) {
                 showLibrary()
@@ -119,11 +129,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     override fun onStop() {
+        sceneOrchestrator.stop()
         controller.listener = null
         if (!isChangingConfigurations) {
             controller.pause()
         }
         super.onStop()
+    }
+
+    override fun onDestroy() {
+        sceneOrchestrator.close()
+        super.onDestroy()
     }
 
     override fun onPlaybackSnapshot(snapshot: PlaybackSnapshot) {
@@ -158,6 +174,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowPlay?.text = if (snapshot.isPlaying) "Ⅱ" else "▶"
         sceneView?.setPlaying(snapshot.isPlaying)
 
+        if (screen == Screen.NOW_PLAYING && snapshot.isPlaying) {
+            sceneOrchestrator.start()
+        } else {
+            sceneOrchestrator.stop()
+        }
+
         nowSeek?.let { seek ->
             if (!seek.isPressed) {
                 seek.progress = ratio
@@ -173,6 +195,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun showLibrary() {
         screen = Screen.LIBRARY
+        sceneOrchestrator.stop()
         clearScreenRefs()
 
         val root = FrameLayout(this).apply {
@@ -326,6 +349,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         applySafeArea(root)
 
         sceneView = ReactiveSceneView(this).also { view ->
+            view.setScene(currentScene)
             root.addView(
                 view,
                 FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
@@ -417,7 +441,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             gravity = Gravity.CENTER
         }
         actions.addView(actionTile("≡", "Черга") { toast("Queue — наступний етап") }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
-        actions.addView(actionTile("▥", "Сцена") { toast("Scene Lab — наступний етап") }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        actions.addView(
+            actionTile("⤨", "Shuffle") {
+                val next = sceneOrchestrator.shuffleNow()
+                toast("Сцена: " + next.visualizerType.name.lowercase().replace('_', ' '))
+            },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+        )
         actions.addView(actionTile("☷", "Tone") { toast("Tone Lab — наступний етап") }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         actions.addView(actionTile("•••", "Ще") { toast("Більше дій — наступний етап") }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         controls.addView(actions)

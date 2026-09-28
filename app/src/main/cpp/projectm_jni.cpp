@@ -91,15 +91,17 @@ void main() {
     float angle = atan(p.y, p.x);
 
     float pulseRadius =
-        0.205
-        + uBass * 0.045
-        + uMid * 0.012
-        + uBeat * 0.030;
+        0.175
+        + uAmplitude * 0.025
+        + uBass * 0.115
+        + uMid * 0.026
+        + uBeat * 0.085;
 
     float ringWidth =
-        0.008
-        + uHigh * 0.010
-        + uBeat * 0.010;
+        0.010
+        + uHigh * 0.016
+        + uBass * 0.006
+        + uBeat * 0.020;
 
     float ring = 1.0 - smoothstep(
         ringWidth,
@@ -117,18 +119,24 @@ void main() {
     );
 
     float angularEnergy =
-        0.48
-        + 0.28 * sin(angle * 3.0 + uTime * (0.8 + uMid * 1.8))
-        + 0.16 * sin(angle * 7.0 - uTime * (1.0 + uHigh * 2.2));
+        0.50
+        + 0.30 * sin(
+            angle * 3.0
+            + uTime * (1.15 + uMid * 2.8 + uBass * 1.4)
+        )
+        + 0.18 * sin(
+            angle * 7.0
+            - uTime * (1.45 + uHigh * 3.0 + uBeat * 1.6)
+        );
 
     float spokeLength =
-        0.31
-        + uAmplitude * 0.10
-        + uBass * 0.17
-        + uMid * 0.08
-        + uHigh * 0.06
-        + uBeat * 0.11
-        + angularEnergy * 0.055;
+        0.285
+        + uAmplitude * 0.175
+        + uBass * 0.285
+        + uMid * 0.115
+        + uHigh * 0.085
+        + uBeat * 0.185
+        + angularEnergy * 0.075;
 
     float innerMask = smoothstep(
         pulseRadius + 0.012,
@@ -178,20 +186,50 @@ void main() {
         + sparks;
 
     float orbit1 = 1.0 - smoothstep(
-        0.010 + uHigh * 0.008,
-        0.026 + uHigh * 0.010,
-        abs(radius - (0.18 + 0.035 * sin(uTime * 1.7) + uBass * 0.05))
+        0.010 + uHigh * 0.010,
+        0.030 + uHigh * 0.012,
+        abs(
+            radius
+            - (
+                0.16
+                + 0.070 * sin(uTime * (2.0 + uBass * 2.8))
+                + uBass * 0.090
+                + uBeat * 0.055
+            )
+        )
     );
-    float orbit2 = 1.0 - smoothstep(
-        0.008,
-        0.022,
-        abs(radius - (0.30 + 0.028 * sin(uTime * 2.1 + angle * 3.0) + uMid * 0.06))
-    );
-    float orbitRings =
-        (orbit1 + orbit2) * (0.38 + uAmplitude * 0.45 + uBeat * 0.35)
-        + coreGlow * 0.55;
 
-    float haloPhase = fract((angle + PI) / (2.0 * PI) * 48.0);
+    float orbit2 = 1.0 - smoothstep(
+        0.010,
+        0.026,
+        abs(
+            radius
+            - (
+                0.31
+                + 0.060 * sin(
+                    uTime * (2.45 + uMid * 2.2)
+                    + angle * 3.0
+                )
+                + uMid * 0.075
+                + uBeat * 0.045
+            )
+        )
+    );
+
+    float orbitRings =
+        (orbit1 + orbit2)
+        * (0.42 + uAmplitude * 0.55 + uBass * 0.30 + uBeat * 0.52)
+        + coreGlow * 0.62;
+
+    float haloPhase = fract(
+        (
+            angle
+            + PI
+            + uTime * (0.35 + uHigh * 0.75 + uBass * 0.20)
+        )
+        / (2.0 * PI)
+        * 48.0
+    );
     float haloBars = 1.0 - smoothstep(
         0.08,
         0.22,
@@ -199,13 +237,96 @@ void main() {
     );
     float haloBand = 1.0 - smoothstep(
         0.018,
-        0.050,
-        abs(radius - (0.25 + uBass * 0.08 + uBeat * 0.04))
+        0.055,
+        abs(
+            radius
+            - (
+                0.23
+                + uBass * 0.145
+                + uAmplitude * 0.035
+                + uBeat * 0.080
+            )
+        )
     );
+
     float spectrumHalo =
-        haloBars * haloBand * (0.45 + uMid * 0.55 + uHigh * 0.45)
-        + sparks * 0.8
-        + coreGlow * 0.35;
+        haloBars
+        * haloBand
+        * (
+            0.50
+            + uMid * 0.62
+            + uHigh * 0.58
+            + uBass * 0.26
+            + uBeat * 0.42
+        )
+        + sparks * 0.95
+        + coreGlow * 0.42;
+
+    vec2 edgeUv = abs(vUv * 2.0 - 1.0);
+    float edgeDist = max(edgeUv.x, edgeUv.y);
+    float edgeCoord =
+        edgeUv.x > edgeUv.y
+        ? vUv.y
+        : vUv.x;
+
+    float flareReach =
+        0.075
+        + uBass * 0.160
+        + uAmplitude * 0.045
+        + uBeat * 0.125;
+
+    float flareBody = 1.0 - smoothstep(
+        flareReach,
+        flareReach + 0.085,
+        1.0 - edgeDist
+    );
+
+    float flareWave =
+        0.5
+        + 0.5 * sin(
+            edgeCoord * 52.0
+            + uTime * (3.0 + uBass * 5.0)
+            + sin(edgeCoord * 17.0 - uTime * 2.2) * 2.5
+        );
+
+    float flareFine =
+        0.5
+        + 0.5 * sin(
+            edgeCoord * 121.0
+            - uTime * (5.0 + uHigh * 8.0)
+        );
+
+    float flareTongues =
+        pow(max(flareWave, 0.0), 3.0)
+        * (0.55 + flareFine * 0.45);
+
+    float flareMode =
+        uMode < 0.5
+        ? 0.82
+        : (
+            uMode < 1.5
+            ? 0.56
+            : 1.10
+        );
+
+    float solarFlares =
+        flareBody
+        * flareTongues
+        * (
+            0.12
+            + uBass * 0.58
+            + uBeat * 0.78
+            + uHigh * 0.24
+        )
+        * flareMode;
+
+    vec3 flareHot = vec3(1.0, 0.28, 0.025);
+    vec3 flareCore = vec3(1.0, 0.92, 0.52);
+    vec3 flareColor = mix(
+        flareHot,
+        flareCore,
+        clamp(flareFine + uBeat * 0.25, 0.0, 1.0)
+    );
 
     float intensity = pulseRays;
     if (uMode > 0.5 && uMode < 1.5) {
@@ -214,8 +335,15 @@ void main() {
         intensity = spectrumHalo;
     }
 
-    float alpha = clamp(intensity, 0.0, 1.0);
-    vec3 color = accent * intensity;
+    float alpha = clamp(
+        intensity + solarFlares,
+        0.0,
+        1.0
+    );
+
+    vec3 color =
+        accent * intensity
+        + flareColor * solarFlares;
 
     gl_FragColor = vec4(color, alpha);
 }
@@ -444,32 +572,32 @@ static void draw_foreground_locked() {
         g_amplitude,
         g_target_amplitude,
         dt,
-        48.0f,
-        11.0f
+        58.0f,
+        14.0f
     );
 
     g_bass = follow(
         g_bass,
         g_target_bass,
         dt,
-        52.0f,
-        10.0f
+        72.0f,
+        16.0f
     );
 
     g_mid = follow(
         g_mid,
         g_target_mid,
         dt,
-        48.0f,
-        12.0f
+        54.0f,
+        14.0f
     );
 
     g_high = follow(
         g_high,
         g_target_high,
         dt,
-        54.0f,
-        13.0f
+        62.0f,
+        15.0f
     );
 
     if (g_target_beat > g_beat) {
@@ -477,13 +605,13 @@ static void draw_foreground_locked() {
     } else {
         g_beat = std::max(
             0.0f,
-            g_beat - dt * 4.6f
+            g_beat - dt * 3.2f
         );
     }
 
     g_target_beat = std::max(
         0.0f,
-        g_target_beat - dt * 5.5f
+        g_target_beat - dt * 4.2f
     );
 
     const float timeSeconds =

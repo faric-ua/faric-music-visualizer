@@ -149,6 +149,7 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
             analyzer = AudioCaptureAnalyzer(
                 audioSessionId = currentSessionId,
                 onSignal = { signal ->
+                    ProjectMBridge.pushSignalIfActive(signal)
                     mainHandler.post { listener?.onSceneSignal(signal) }
                 },
                 onPcm = { pcm ->

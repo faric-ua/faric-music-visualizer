@@ -21,7 +21,7 @@
 - [x] Preserve file picker + playback + audio-reactive analysis in source candidate; phone regression still pending.
 - [ ] CI build/test PASS for v0.2.0 source.
 - [ ] Download signed v0.2.0 APK.
-- [ ] Phone QA: Library → pick track → PulseDock → Now Playing.
+- [ ] Phone QA: Library → pick track → PulseDock → Now Playing. Library shell rendered on phone; fullscreen/responsive recheck pending after BUG-PD-002 fix.
 - [ ] Phone QA: seek/play/pause/reactive scene.
 - [ ] Phone QA: rotation + Back lifecycle.
 - [ ] Record findings and close v0.2.0 shell scope.

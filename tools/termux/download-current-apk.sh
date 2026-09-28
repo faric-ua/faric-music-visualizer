@@ -61,7 +61,7 @@ test -f "$SHA_FILE"
 
 (cd "$TMP" && sha256sum -c "$(basename "$SHA_FILE")")
 
-DEST="/storage/emulated/0/Download/FARIC-Music-Visualizer-v${VERSION}-build"
+DEST="/storage/emulated/0/Documents/FARIC-Music-Visualizer/packages/v${VERSION}"
 mkdir -p "$DEST"
 cp "$APK" "$SHA_FILE" "$DEST/"
 (cd "$DEST" && sha256sum -c "$(basename "$SHA_FILE")")
@@ -79,7 +79,7 @@ echo "Відкриваю папку завантаження…"
 # Open the exact directory in Android's file UI. ACTION_VIEW is important:
 # ACTION_OPEN_DOCUMENT_TREE shows a folder-selection dialog with
 # "Використовувати цю папку", which is not what we want here.
-RELATIVE_DIR="Download/FARIC-Music-Visualizer-v${VERSION}-build"
+RELATIVE_DIR="Documents/FARIC-Music-Visualizer/packages/v${VERSION}"
 ENCODED_RELATIVE_DIR="${RELATIVE_DIR//\//%2F}"
 DIR_URI="content://com.android.externalstorage.documents/document/primary%3A${ENCODED_RELATIVE_DIR}"
 

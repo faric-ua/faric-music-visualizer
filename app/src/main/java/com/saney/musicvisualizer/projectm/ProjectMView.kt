@@ -14,6 +14,7 @@ class ProjectMView(
     private val presetDirectory: File,
     private val textureDirectory: File,
     private val profile: ProjectMPerformanceProfile = ProjectMPerformanceProfile.BALANCED_BACKGROUND,
+    private var foregroundSample: FaricForegroundSample = FaricForegroundSample.PULSE_RAYS,
 ) : GLSurfaceView(context) {
 
     init {
@@ -23,6 +24,7 @@ class ProjectMView(
                 presetPath = presetDirectory.absolutePath,
                 texturePath = textureDirectory.absolutePath,
                 profile = profile,
+                foregroundSample = foregroundSample,
             ),
         )
         renderMode = RENDERMODE_CONTINUOUSLY
@@ -53,6 +55,11 @@ class ProjectMView(
         return true
     }
 
+    fun setForegroundSample(sample: FaricForegroundSample) {
+        foregroundSample = sample
+        queueEvent { ProjectMBridge.setForegroundSample(sample) }
+    }
+
     fun releaseProjectM() {
         queueEvent { ProjectMBridge.destroy() }
     }
@@ -61,6 +68,7 @@ class ProjectMView(
         private val presetPath: String,
         private val texturePath: String,
         private val profile: ProjectMPerformanceProfile,
+        private val foregroundSample: FaricForegroundSample,
     ) : GLSurfaceView.Renderer {
         private var created = false
         private var frameCount = 0
@@ -81,6 +89,8 @@ class ProjectMView(
                     texturePath = texturePath,
                     profile = profile,
                 )
+                ProjectMBridge.enableAutoPresetSwitching(true)
+                ProjectMBridge.setForegroundSample(foregroundSample)
                 created = true
             } else {
                 ProjectMBridge.resize(width, height)

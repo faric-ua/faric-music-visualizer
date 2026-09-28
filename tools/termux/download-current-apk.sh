@@ -74,18 +74,33 @@ echo "APK source SHA: $BUILD_SHA"
 echo "Current repo HEAD: $HEAD_SHA"
 echo
 
-echo "Відкриваю папку завантаження…"
-
-# Open the exact directory in Android's file UI. ACTION_VIEW is important:
-# ACTION_OPEN_DOCUMENT_TREE shows a folder-selection dialog with
-# "Використовувати цю папку", which is not what we want here.
-RELATIVE_DIR="Documents/FARIC-Music-Visualizer/packages/v${VERSION}"
-ENCODED_RELATIVE_DIR="${RELATIVE_DIR//\//%2F}"
-DIR_URI="content://com.android.externalstorage.documents/document/primary%3A${ENCODED_RELATIVE_DIR}"
+echo "Відкриваю папку APK…"
 
 opened=0
 
-if command -v am >/dev/null 2>&1; then
+# Samsung My Files is installed on the user's phone. Its generic
+# DocumentsProvider route can drop us at Documents instead of the requested
+# child directory, so try an explicit filesystem-folder VIEW first.
+if command -v pm >/dev/null 2>&1 &&
+   pm path com.sec.android.app.myfiles >/dev/null 2>&1 &&
+   command -v am >/dev/null 2>&1; then
+  if am start \
+    -W \
+    -a android.intent.action.VIEW \
+    -d "file://$DEST" \
+    -t "resource/folder" \
+    -p com.sec.android.app.myfiles \
+    >/dev/null 2>&1; then
+    opened=1
+  fi
+fi
+
+# Generic document-provider fallback for other file managers.
+if [ "$opened" -eq 0 ] && command -v am >/dev/null 2>&1; then
+  RELATIVE_DIR="Documents/FARIC-Music-Visualizer/packages/v${VERSION}"
+  ENCODED_RELATIVE_DIR="${RELATIVE_DIR//\//%2F}"
+  DIR_URI="content://com.android.externalstorage.documents/document/primary%3A${ENCODED_RELATIVE_DIR}"
+
   if am start \
     -a android.intent.action.VIEW \
     -d "$DIR_URI" \
@@ -96,15 +111,15 @@ if command -v am >/dev/null 2>&1; then
   fi
 fi
 
-# Secondary fallback for file managers that understand filesystem paths.
+# Last fallback for file managers that accept plain filesystem directories.
 if [ "$opened" -eq 0 ] && command -v termux-open >/dev/null 2>&1; then
-  if termux-open "$DEST" >/dev/null 2>&1; then
+  if termux-open --view "$DEST" >/dev/null 2>&1; then
     opened=1
   fi
 fi
 
 if [ "$opened" -eq 0 ]; then
-  echo "Не вдалося автоматично відкрити папку."
+  echo "Не вдалося автоматично відкрити точну папку."
   echo "APK збережено тут:"
   echo "  $DEST"
 fi

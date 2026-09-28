@@ -68,7 +68,7 @@ class ProjectMView(
 
     fun setForegroundSample(sample: FaricForegroundSample) {
         foregroundSample = sample
-        queueEvent { ProjectMBridge.setForegroundSample(sample) }
+        ProjectMBridge.setForegroundSample(sample)
     }
 
     fun releaseProjectM() {

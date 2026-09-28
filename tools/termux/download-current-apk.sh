@@ -18,8 +18,32 @@ HEAD_SHA="$(git rev-parse HEAD)"
 VERSION="$(sed -n 's/.*versionName = "\([^"]*\)".*/\1/p' app/build.gradle.kts | head -n 1)"
 test -n "$VERSION"
 
-RUN_ID="$(gh api "repos/$REPO/actions/workflows/$WORKFLOW/runs?head_sha=$HEAD_SHA&status=success&per_page=20" --jq '.workflow_runs[0].id // empty')"
-test -n "$RUN_ID" || { echo "Немає успішного Android run для $HEAD_SHA"; exit 1; }
+RUN_ID=""
+BUILD_SHA=""
+
+while IFS=$'\t' read -r candidate_run candidate_sha; do
+  [ -n "$candidate_run" ] || continue
+  [ -n "$candidate_sha" ] || continue
+
+  if ! git merge-base --is-ancestor "$candidate_sha" "$HEAD_SHA" 2>/dev/null; then
+    continue
+  fi
+
+  if git diff --quiet "$candidate_sha" "$HEAD_SHA" --       app       build.gradle.kts       settings.gradle.kts       gradle.properties       .github/workflows/android.yml; then
+    RUN_ID="$candidate_run"
+    BUILD_SHA="$candidate_sha"
+    break
+  fi
+done < <(
+  gh api "repos/$REPO/actions/workflows/$WORKFLOW/runs?branch=main&status=success&per_page=20"     --jq '.workflow_runs[] | [.id, .head_sha] | @tsv'
+)
+
+if [ -z "$RUN_ID" ]; then
+  echo "Немає успішного Android run для поточного APK source."
+  echo "Поточний HEAD: $HEAD_SHA"
+  echo "Потрібен новий Android build."
+  exit 1
+fi
 
 ARTIFACT="$(gh api "repos/$REPO/actions/runs/$RUN_ID/artifacts" --jq '.artifacts[] | select(.expired == false) | .name' | grep "^FARIC-Music-Visualizer-v${VERSION}-Debug$" | head -n 1)"
 test -n "$ARTIFACT" || { echo "Не знайдено exact artifact для run $RUN_ID"; exit 1; }
@@ -43,10 +67,11 @@ cp "$APK" "$SHA_FILE" "$DEST/"
 (cd "$DEST" && sha256sum -c "$(basename "$SHA_FILE")")
 
 echo
-echo "PASS: exact APK поточного commit:"
+echo "PASS: APK відповідає поточному Android source:"
 echo "  $DEST/$(basename "$APK")"
 echo "GitHub run: $RUN_ID"
-echo "Source SHA: $HEAD_SHA"
+echo "APK source SHA: $BUILD_SHA"
+echo "Current repo HEAD: $HEAD_SHA"
 echo
 
 echo "Відкриваю папку завантаження…"

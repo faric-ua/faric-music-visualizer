@@ -1,9 +1,16 @@
 plugins {
     id("com.android.application")
 }
+
+val devKeystorePath = providers.environmentVariable("VISUALIZER_DEV_KEYSTORE_PATH").orNull
+val devStorePassword = providers.environmentVariable("VISUALIZER_DEV_STORE_PASSWORD").orNull
+val devKeyAlias = providers.environmentVariable("VISUALIZER_DEV_KEY_ALIAS").orNull
+val devKeyPassword = providers.environmentVariable("VISUALIZER_DEV_KEY_PASSWORD").orNull
+
 android {
     namespace = "com.saney.musicvisualizer"
     compileSdk = 36
+
     defaultConfig {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
@@ -12,12 +19,41 @@ android {
         versionName = "0.1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
+
+    signingConfigs {
+        if (
+            !devKeystorePath.isNullOrBlank() &&
+            !devStorePassword.isNullOrBlank() &&
+            !devKeyAlias.isNullOrBlank() &&
+            !devKeyPassword.isNullOrBlank()
+        ) {
+            create("stableDev") {
+                storeFile = file(devKeystorePath)
+                storePassword = devStorePassword
+                keyAlias = devKeyAlias
+                keyPassword = devKeyPassword
+            }
+        }
+    }
+
+    buildTypes {
+        getByName("debug") {
+            if (signingConfigs.names.contains("stableDev")) {
+                signingConfig = signingConfigs.getByName("stableDev")
+            }
+        }
+    }
+
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_17
         targetCompatibility = JavaVersion.VERSION_17
     }
-    buildFeatures { buildConfig = true }
+
+    buildFeatures {
+        buildConfig = true
+    }
 }
+
 dependencies {
     implementation("androidx.activity:activity-ktx:1.13.0")
     implementation("androidx.media3:media3-common:1.11.1")

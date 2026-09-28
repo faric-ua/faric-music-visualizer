@@ -5,16 +5,17 @@
 - [x] Repository created as public GitHub repository.
 - [x] Termux local checkout and shortcuts verified.
 - [x] Baseline docs/contracts committed and CI PASS.
-- [ ] Android project scaffold created with unique package identity.
+- [x] Android project scaffold created with unique package identity; CI run 36446252861 PASS on source 6232ceb.
 - [ ] Dedicated development signer/secrets created for this project.
+- [ ] Encrypted signer backup created and checksum verified.
 - [ ] Local audio file picker + playback verified on phone.
-- [ ] Audio analysis stream exposes amplitude + frequency bands.
-- [ ] Beat/onset event model implemented and testable.
-- [ ] First scene renders central orb + radial pulse + glow.
+- [ ] Audio analysis stream exposes amplitude + frequency bands on phone.
+- [x] Beat/onset event model implemented and unit-tested in CI.
+- [ ] First scene renders central orb + radial pulse + glow on phone.
 - [ ] Background supports static image mode.
 - [ ] Background supports video loop mode.
 - [ ] Scene/settings survive rotation without duplicate playback.
-- [ ] Signed development APK built.
+- [ ] Signed development APK built and exact signer verified.
 - [ ] Real-phone QA with at least 3 musically different tracks.
 - [ ] v0.1.0 evidence and release closeout completed.
 

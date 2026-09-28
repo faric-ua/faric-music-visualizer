@@ -112,3 +112,19 @@ Current v0.3.0 source commits:
 - [ ] Decide GO / NO-GO for projectM as FARIC foreground engine.
 - [ ] If GO: move long-lived playback into MediaSessionService.
 - [ ] If GO: render projectM as foreground layer above FARIC background compositor.
+
+
+## v0.4.1 — Full preset library + TEST 40
+
+- [x] Add one-time downloader for pinned Cream of the Crop commit.
+- [x] Preserve complete 9,795-preset category hierarchy on device.
+- [x] Add pinned MilkDrop texture-pack downloader.
+- [x] Add zip-slip-safe extraction and preset-count validation.
+- [x] Add TEST 40 generator: 8 each from Geometric / Particles / Supernova / Waveform / Hypnotic.
+- [x] Add LAB controls: TEST 40 / ВСІ / NEXT.
+- [x] Add texture search path to projectM JNI bridge.
+- [x] Keep tiny bundled presets only as first-download fallback.
+- [ ] Android CI PASS for final v0.4.1 HEAD.
+- [ ] Phone full-library download/install PASS.
+- [ ] Phone TEST 40 visual-quality review.
+- [ ] Phone full-library switching smoke.

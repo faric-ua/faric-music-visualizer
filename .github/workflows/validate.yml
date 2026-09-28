@@ -39,7 +39,7 @@ jobs:
           test -f docs/architecture/ARCHITECTURE.md
           test -f docs/assistant-kit/AUDIO_VISUAL_CONTRACT.md
           test -f docs/v.0.1.0/RELEASE_META.json
-          ! grep -RIn \
-            --exclude-dir=.git \
-            -E 'BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY|ghp_|github_pat_' \
-            ./
+          private_key='BEGIN (RSA |OPENSSH |EC )?PRIVATE'' KEY'
+          token_a='ghp''_'
+          token_b='github_pat''_'
+          ! git grep -nE "$private_key|$token_a|$token_b" -- .

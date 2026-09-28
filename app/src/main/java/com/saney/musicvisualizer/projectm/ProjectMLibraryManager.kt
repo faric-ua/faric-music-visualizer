@@ -291,7 +291,7 @@ object ProjectMLibraryManager {
     }
 
     private fun stripArchiveRoot(path: String): String {
-        val normalized = path.replace('\\\\', '/')
+        val normalized = path.replace('\\', '/')
         val slash = normalized.indexOf('/')
 
         return if (slash >= 0 && slash + 1 < normalized.length) {

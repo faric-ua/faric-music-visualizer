@@ -23,6 +23,7 @@ class ProjectMActivity : ComponentActivity() {
     private lateinit var status: TextView
     private var projectMView: ProjectMView? = null
     private var downloadRunning = false
+    private var currentForegroundSample = FaricForegroundSample.PULSE_RAYS
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -47,9 +48,10 @@ class ProjectMActivity : ComponentActivity() {
             setPadding(dp(8), dp(8), dp(8), dp(12))
             setBackgroundColor(Color.argb(155, 0, 0, 0))
 
-            addView(control("TEST 40") { launchTestPack() })
+            addView(control("ТОП") { launchTopPresets() })
             addView(control("ВСІ") { launchAllPresets() })
-            addView(control("NEXT") { projectMView?.queueEvent { ProjectMBridge.nextPreset() } })
+            addView(control("NEXT") { manualNext() })
+            addView(control("FG") { cycleForeground() })
         }
 
         root.addView(
@@ -74,8 +76,18 @@ class ProjectMActivity : ComponentActivity() {
 
         val state = ProjectMLibraryManager.state(this)
         if (state.installed) {
-            status.text = "projectM · бібліотека ${state.presetCount} · TEST ${state.testPresetCount}"
-            launchTestPack()
+            val fallback = if (state.testPresetCount >= 40) {
+                ProjectMLibraryManager.testPresetDir(this)
+            } else {
+                ProjectMLibraryManager.fullPresetDir(this)
+            }
+
+            showProjectM(
+                presetDir = fallback,
+                textureDir = ProjectMLibraryManager.textureDir(this),
+            )
+            status.text = "projectM · готую ТОП ½…"
+            prepareDerivedPacks()
         } else {
             val fallback = ProjectMAssets.prepare(this)
             showProjectM(
@@ -123,8 +135,8 @@ class ProjectMActivity : ComponentActivity() {
                     if (isFinishing || isDestroyed) return@post
 
                     status.text =
-                        "projectM · бібліотека ${state.presetCount} · TEST ${state.testPresetCount}"
-                    launchTestPack()
+                        "projectM · бібліотека ${state.presetCount} · ТОП ${state.topPresetCount}"
+                    launchTopPresets()
                 }
             } catch (error: Throwable) {
                 mainHandler.post {
@@ -136,6 +148,69 @@ class ProjectMActivity : ComponentActivity() {
                 }
             }
         }
+    }
+
+    private fun prepareDerivedPacks() {
+        thread(name = "projectm-derived-packs") {
+            try {
+                val state = ProjectMLibraryManager.ensureDerivedPacks(this)
+
+                mainHandler.post {
+                    if (isFinishing || isDestroyed) return@post
+                    status.text =
+                        "AUTO · ТОП ${state.topPresetCount} / ВСІ ${state.presetCount} · FG ${currentForegroundSample.label}"
+                    launchTopPresets()
+                }
+            } catch (error: Throwable) {
+                mainHandler.post {
+                    if (!isFinishing && !isDestroyed) {
+                        status.text =
+                            "Помилка ТОП бібліотеки: ${error.message ?: error.javaClass.simpleName}"
+                    }
+                }
+            }
+        }
+    }
+
+    private fun launchTopPresets() {
+        val state = ProjectMLibraryManager.state(this)
+
+        if (!state.installed) {
+            status.text = "Завантажую повну бібліотеку…"
+            installFullLibrary()
+            return
+        }
+
+        if (state.topPresetCount != ProjectMLibraryManager.expectedTopCount()) {
+            status.text = "Формую ТОП ½…"
+            prepareDerivedPacks()
+            return
+        }
+
+        showProjectM(
+            presetDir = ProjectMLibraryManager.topPresetDir(this),
+            textureDir = ProjectMLibraryManager.textureDir(this),
+        )
+
+        status.text =
+            "AUTO · ТОП ${state.topPresetCount} · FG ${currentForegroundSample.label}"
+    }
+
+    private fun manualNext() {
+        projectMView?.queueEvent {
+            ProjectMBridge.nextPreset()
+        }
+
+        val state = ProjectMLibraryManager.state(this)
+        status.text =
+            "MANUAL · NEXT · ${state.topPresetCount}/${state.presetCount} · FG ${currentForegroundSample.label}"
+    }
+
+    private fun cycleForeground() {
+        currentForegroundSample = currentForegroundSample.next()
+        projectMView?.setForegroundSample(currentForegroundSample)
+        status.text =
+            "FG ${currentForegroundSample.label} · фон без змін"
     }
 
     private fun launchTestPack() {
@@ -176,7 +251,7 @@ class ProjectMActivity : ComponentActivity() {
         )
 
         status.text =
-            "BG projectM + FG FARIC · ВСІ ${state.presetCount} · tap/NEXT"
+            "AUTO · ВСІ ${state.presetCount} · FG ${currentForegroundSample.label}"
     }
 
     private fun showProjectM(
@@ -197,6 +272,7 @@ class ProjectMActivity : ComponentActivity() {
             presetDirectory = presetDir,
             textureDirectory = textureDir,
             profile = profile,
+            foregroundSample = currentForegroundSample,
         )
 
         projectMView = view

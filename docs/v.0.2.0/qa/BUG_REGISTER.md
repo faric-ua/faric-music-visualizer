@@ -38,3 +38,9 @@ Follow-up path correction:
 - future APK downloads now use:
   `/storage/emulated/0/Documents/FARIC-Music-Visualizer/packages/v<version>/`;
 - fix commit: `e9959a370a702a0bec6b748a63a3665cbe41fdb0`.
+
+Second phone follow-up:
+- screenshot showed Samsung My Files opening only the `Documents` root, with `FARIC-Music-Visualizer` visible but not entered;
+- generic document-provider directory VIEW is therefore insufficient on this device;
+- downloader now tries Samsung My Files explicitly with a `file://` folder VIEW before generic fallbacks;
+- fix commit: `17df2b758c96f7fc9591f2994ff3b737d3839e10`.

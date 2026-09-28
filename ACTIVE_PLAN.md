@@ -176,3 +176,19 @@ Current v0.3.0 source commits:
 - [ ] Android CI PASS for v0.5.1.
 - [ ] Phone verify TOP count and manual/auto transition contract.
 - [ ] Phone review all 3 foreground samples.
+
+
+## v0.5.2 — Strong FG + fast preset queue
+
+- [x] Document layered visualizer TODO in docs/visualizer/VISUALIZER_TODO.md.
+- [x] Increase FG movement amplitude and bass-driven expansion.
+- [x] Add solar-flare edge energy driven by bass/beat/highs.
+- [x] Keep all existing FG samples available.
+- [x] Remove large projectM directory scan from GL first-render path.
+- [x] Fast-start from last valid preset.
+- [x] Add CURRENT + 3 NEXT queue and background file prefetch.
+- [x] FARIC owns AUTO/MANUAL 18s switching; NEXT/tap disables AUTO.
+- [x] Persist TOP/ALL, AUTO/MANUAL, last preset and FG sample.
+- [ ] Android CI PASS for v0.5.2.
+- [ ] Phone fast-start / PRELOAD 3/3 PASS.
+- [ ] Phone FG amplitude + solar flare review.

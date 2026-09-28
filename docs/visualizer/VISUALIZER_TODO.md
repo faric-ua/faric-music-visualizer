@@ -43,26 +43,26 @@ This file is the working implementation queue for the current visualizer directi
 ## v0.5.3 — preset ratings and filtering
 
 ### Rating model
-- [ ] Add four states: NONE / UP / DOWN / HIDDEN.
-- [ ] Add UI actions: 👍 / 👎 / −.
-- [ ] 👍 increases future selection preference.
-- [ ] 👎 keeps preset available but lowers future selection preference.
-- [ ] − hides preset from active pools without deleting the file.
-- [ ] Hidden preset immediately leaves the active queue.
-- [ ] Ratings apply to the same preset across TOP and ALL modes.
-- [ ] Persist all ratings across app restarts/upgrades.
+- [x] Add four states: NONE / UP / DOWN / HIDDEN.
+- [x] Add UI actions: 👍 / 👎 / −.
+- [x] 👍 increases future selection preference.
+- [x] 👎 keeps preset available but lowers future selection preference.
+- [x] − hides preset from active pools without deleting the file.
+- [x] Hidden preset immediately leaves the active queue.
+- [x] Ratings apply to the same preset across TOP and ALL modes.
+- [x] Persist all ratings across app restarts/upgrades.
 
 ### Selection policy
-- [ ] HIDDEN weight = 0.
-- [ ] UP presets get highest random-selection weight.
-- [ ] NONE presets remain normal.
-- [ ] DOWN presets remain selectable at low weight.
-- [ ] Avoid immediate repeats.
-- [ ] Keep a short recently-played history to reduce repetition.
+- [x] HIDDEN weight = 0.
+- [x] UP presets get highest random-selection weight.
+- [x] NONE presets remain normal.
+- [x] DOWN presets remain selectable at low weight.
+- [x] Avoid immediate repeats.
+- [x] Keep a short recently-played history to reduce repetition.
 
 ### Management UI
-- [ ] Show current preset name/id.
-- [ ] Show current rating state.
+- [x] Show current preset name/id.
+- [x] Show current rating state.
 - [ ] Add hidden-presets management/recovery screen later.
 - [ ] Add liked-presets-only background mode later.
 

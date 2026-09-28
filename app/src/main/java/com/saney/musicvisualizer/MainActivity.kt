@@ -8,14 +8,11 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
-import android.os.Build
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
-import android.view.WindowInsets
-import android.view.WindowManager
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
 import android.widget.LinearLayout
@@ -28,6 +25,10 @@ import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.addCallback
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.util.UnstableApi
 import com.saney.musicvisualizer.analysis.SceneSignal
@@ -87,7 +88,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        enableImmersiveFullscreen()
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
 
@@ -312,6 +312,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         setContentView(root)
+        enableImmersiveFullscreen()
         onPlaybackSnapshot(latestSnapshot)
     }
 
@@ -439,6 +440,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         setContentView(root)
+        enableImmersiveFullscreen()
         onPlaybackSnapshot(latestSnapshot)
     }
 
@@ -683,66 +685,33 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun enableImmersiveFullscreen() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            window.setDecorFitsSystemWindows(false)
-            window.insetsController?.let { controller ->
-                controller.hide(
-                    WindowInsets.Type.statusBars() or
-                        WindowInsets.Type.navigationBars(),
-                )
-                controller.systemBarsBehavior =
-                    android.view.WindowInsetsController.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
-        } else {
-            @Suppress("DEPRECATION")
-            window.decorView.systemUiVisibility =
-                View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-                    View.SYSTEM_UI_FLAG_FULLSCREEN or
-                    View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                    View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                    View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                    View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-        }
+        runCatching {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-            val attributes = window.attributes
-            attributes.layoutInDisplayCutoutMode =
-                WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES
-            window.attributes = attributes
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                hide(WindowInsetsCompat.Type.systemBars())
+                systemBarsBehavior =
+                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+            }
         }
     }
 
     private fun applySafeArea(root: View) {
-        root.setOnApplyWindowInsetsListener { view, insets ->
-            val cutout = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                insets.displayCutout
-            } else {
-                null
-            }
+        ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
+            runCatching {
+                val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
+                val gestures = insets.getInsets(WindowInsetsCompat.Type.systemGestures())
 
-            val gestureInsets = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                insets.getInsets(WindowInsets.Type.systemGestures())
-            } else {
-                null
+                view.setPadding(
+                    cutout.left,
+                    cutout.top,
+                    cutout.right,
+                    maxOf(cutout.bottom, gestures.bottom),
+                )
             }
-
-            val bottomGesture = when {
-                gestureInsets != null -> gestureInsets.bottom
-                Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q ->
-                    @Suppress("DEPRECATION")
-                    insets.systemGestureInsets.bottom
-                else -> 0
-            }
-
-            view.setPadding(
-                cutout?.safeInsetLeft ?: 0,
-                cutout?.safeInsetTop ?: 0,
-                cutout?.safeInsetRight ?: 0,
-                maxOf(cutout?.safeInsetBottom ?: 0, bottomGesture),
-            )
             insets
         }
-        root.requestApplyInsets()
+        ViewCompat.requestApplyInsets(root)
     }
 
     private fun toast(message: String) {

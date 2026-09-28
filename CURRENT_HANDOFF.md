@@ -112,3 +112,17 @@ Background playback finding:
 - music stopped on screen-off because MainActivity.onStop() explicitly paused the controller;
 - that pause is removed in v0.4.0;
 - production architecture still requires MediaSessionService for robust background playback and system media controls.
+
+
+## v0.4.1 projectM library
+
+Full preset strategy:
+- complete Cream of the Crop library is downloaded on-device, not embedded in the APK;
+- source is pinned to commit 0180df21f5e0bd39b9060cc5de420ed2f1f9e509;
+- expected count is 9,795 .milk presets with category hierarchy preserved;
+- MilkDrop texture pack is pinned to 6368812f27bc747b517218fbf89d21d59afce4d9.
+
+Phone evaluation mode:
+- TEST 40 is generated locally after full install;
+- 8 presets each from Geometric, Particles, Supernova, Waveform and Hypnotic;
+- ProjectM LAB defaults to TEST 40, while ВСІ switches to the whole local library.

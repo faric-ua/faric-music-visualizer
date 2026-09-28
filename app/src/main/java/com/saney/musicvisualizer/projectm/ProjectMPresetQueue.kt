@@ -7,12 +7,17 @@ import kotlin.random.Random
 class ProjectMPresetQueue(
     pool: List<File>,
     current: File?,
-    private val ratingOf: (File) -> ProjectMPresetRating = {
+    ratingOf: (File) -> ProjectMPresetRating = {
         ProjectMPresetRating.NONE
     },
     private val random: Random = Random.Default,
     private val aheadCount: Int = 3,
 ) {
+    private data class Candidate(
+        val file: File,
+        var rating: ProjectMPresetRating,
+    )
+
     private val candidates =
         pool
             .asSequence()
@@ -23,25 +28,32 @@ class ProjectMPresetQueue(
                         ignoreCase = true,
                     )
             }
-            .filter {
-                ratingOf(it) != ProjectMPresetRating.HIDDEN
-            }
             .distinctBy { it.absolutePath }
-            .toList()
+            .mapNotNull { file ->
+                val rating = ratingOf(file)
 
-    private val next = ArrayDeque<File>()
+                if (rating == ProjectMPresetRating.HIDDEN) {
+                    null
+                } else {
+                    Candidate(file, rating)
+                }
+            }
+            .toMutableList()
+
+    private val next = ArrayDeque<Candidate>()
     private val recent = ArrayDeque<String>()
 
     val availableCount: Int
         get() = candidates.size
 
     var current: File? =
-        current?.takeIf { candidate ->
-            candidates.any {
-                it.absolutePath == candidate.absolutePath
+        current
+            ?.takeIf { candidate ->
+                candidates.any {
+                    it.file.absolutePath == candidate.absolutePath
+                }
             }
-        }
-            ?: pickWeighted(candidates)
+            ?: pickWeighted(candidates)?.file
         private set
 
     init {
@@ -50,7 +62,10 @@ class ProjectMPresetQueue(
     }
 
     fun advance(): File? {
-        if (candidates.isEmpty()) return null
+        if (candidates.isEmpty()) {
+            current = null
+            return null
+        }
 
         if (next.isEmpty()) {
             refill()
@@ -63,19 +78,58 @@ class ProjectMPresetQueue(
                 pickCandidate()
             }
 
-        current = selected
-        selected?.let(::remember)
+        current = selected?.file
+        current?.let(::remember)
         refill()
 
-        return selected
+        return current
+    }
+
+    fun updateRating(
+        file: File,
+        rating: ProjectMPresetRating,
+    ): Boolean {
+        val path = file.absolutePath
+        val candidate =
+            candidates.firstOrNull {
+                it.file.absolutePath == path
+            }
+
+        if (rating == ProjectMPresetRating.HIDDEN) {
+            candidates.removeAll {
+                it.file.absolutePath == path
+            }
+
+            val retained =
+                next.filterNot {
+                    it.file.absolutePath == path
+                }
+
+            next.clear()
+            retained.forEach(next::addLast)
+
+            val hidCurrent =
+                current?.absolutePath == path
+
+            if (hidCurrent) {
+                current = null
+            }
+
+            refill()
+            return hidCurrent
+        }
+
+        candidate?.rating = rating
+        return false
     }
 
     fun nextAhead(): List<File> =
-        next.toList()
+        next.map { it.file }
 
     private fun refill() {
         var attempts = 0
-        val maxAttempts = (aheadCount * 20).coerceAtLeast(30)
+        val maxAttempts =
+            (aheadCount * 20).coerceAtLeast(30)
 
         while (
             next.size < aheadCount &&
@@ -90,9 +144,11 @@ class ProjectMPresetQueue(
 
             val duplicate =
                 next.any {
-                    it.absolutePath == candidate.absolutePath
+                    it.file.absolutePath ==
+                        candidate.file.absolutePath
                 } ||
-                    current?.absolutePath == candidate.absolutePath
+                    current?.absolutePath ==
+                        candidate.file.absolutePath
 
             if (!duplicate) {
                 next.addLast(candidate)
@@ -104,14 +160,14 @@ class ProjectMPresetQueue(
         }
     }
 
-    private fun pickCandidate(): File? {
+    private fun pickCandidate(): Candidate? {
         if (candidates.isEmpty()) return null
 
         val recentSet = recent.toHashSet()
 
         val preferred =
             candidates.filterNot {
-                it.absolutePath in recentSet
+                it.file.absolutePath in recentSet
             }
 
         return pickWeighted(
@@ -123,25 +179,29 @@ class ProjectMPresetQueue(
         )
     }
 
-    private fun pickWeighted(source: List<File>): File? {
+    private fun pickWeighted(
+        source: List<Candidate>,
+    ): Candidate? {
         if (source.isEmpty()) return null
 
         val totalWeight =
             source.sumOf {
-                weightFor(ratingOf(it))
+                weightFor(it.rating)
             }
 
         if (totalWeight <= 0) {
-            return source[random.nextInt(source.size)]
+            return source[
+                random.nextInt(source.size)
+            ]
         }
 
         var roll = random.nextInt(totalWeight)
 
-        for (file in source) {
-            roll -= weightFor(ratingOf(file))
+        for (candidate in source) {
+            roll -= weightFor(candidate.rating)
 
             if (roll < 0) {
-                return file
+                return candidate
             }
         }
 
@@ -182,7 +242,7 @@ class ProjectMPresetQueue(
                         .buffered()
                         .use { input ->
                             while (input.read(buffer) > 0) {
-                                // Read-through intentionally warms filesystem cache.
+                                // Read-through warms filesystem page cache.
                             }
                         }
                 }

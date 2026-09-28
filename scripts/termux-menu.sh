@@ -64,7 +64,7 @@ update_project() {
   echo "Було:  $(printf '%.10s' "$before")"
   echo "Стало: $(printf '%.10s' "$after")"
   echo
-  echo "Перезапускаю меню з нової версії…" 
+  echo "Перезапускаю меню з нової версії…"
   sleep 1
 
   exec bash "$REPO/scripts/termux-menu.sh"
@@ -101,6 +101,8 @@ while true; do
   echo "6 — Передати signer secrets у GitHub"
   echo "7 — Backup development signer"
   echo "8 — Завантажити APK і відкрити папку"
+  echo "9 — Запустити Android build"
+  echo "10 — Статус Android build"
   echo "0 — Вийти"
   echo
   printf "Вибір: "
@@ -115,6 +117,8 @@ while true; do
     6) run_tool "$REPO/tools/termux/configure-github-signing-secrets.sh" ;;
     7) run_tool "$REPO/tools/termux/backup-dev-signing-key.sh" ;;
     8) run_tool "$REPO/tools/termux/download-current-apk.sh" ;;
+    9) run_tool "$REPO/tools/termux/run-android-build.sh" ;;
+    10) run_tool "$REPO/tools/termux/android-build-status.sh" ;;
     0) clear; exit 0 ;;
     *) echo "Невідомий пункт."; sleep 1 ;;
   esac

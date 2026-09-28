@@ -1,0 +1,137 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="1005" viewBox="0 0 512 1005">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#02070b"/>
+      <stop offset="0.55" stop-color="#071118"/>
+      <stop offset="1" stop-color="#020508"/>
+    </linearGradient>
+    <radialGradient id="core" cx="45%" cy="45%" r="58%">
+      <stop offset="0" stop-color="#122532"/>
+      <stop offset="0.45" stop-color="#07131b"/>
+      <stop offset="0.72" stop-color="#101014"/>
+      <stop offset="1" stop-color="#020304"/>
+    </radialGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#ff9918"/>
+      <stop offset="0.48" stop-color="#ffd066"/>
+      <stop offset="0.52" stop-color="#29d3ee"/>
+      <stop offset="1" stop-color="#16aee5"/>
+    </linearGradient>
+    <filter id="glowOrange" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="8" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="glowCyan" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="7" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <style>
+      .t{font-family:Inter,Roboto,Arial,sans-serif;fill:#fff}
+      .m{font-family:Inter,Roboto,Arial,sans-serif;fill:#9aabb8}
+      .panel{fill:#0c151d;stroke:#203746;stroke-width:1}
+      .panel2{fill:#111920;stroke:#263642;stroke-width:1}
+    </style>
+  </defs>
+
+  <rect width="512" height="1005" rx="34" fill="url(#bg)"/>
+  <circle cx="105" cy="312" r="145" fill="#ff7a0010"/>
+  <circle cx="420" cy="330" r="180" fill="#00c8ff0d"/>
+
+  <path d="M30 64 l14 -14 11 12 11 -17 16 21" fill="none" stroke="#ff9818" stroke-width="5" stroke-linecap="round"/>
+  <text x="94" y="66" class="t" font-size="23" font-weight="800">FARIC</text>
+  <text x="174" y="66" class="m" font-size="18">PulseDeck</text>
+  <circle cx="432" cy="57" r="15" fill="none" stroke="#e9f6ff" stroke-width="3"/>
+  <line x1="443" y1="68" x2="454" y2="79" stroke="#e9f6ff" stroke-width="3" stroke-linecap="round"/>
+  <circle cx="481" cy="48" r="3" fill="#e9f6ff"/><circle cx="481" cy="58" r="3" fill="#e9f6ff"/><circle cx="481" cy="68" r="3" fill="#e9f6ff"/>
+
+  <rect x="24" y="92" width="148" height="55" rx="27" fill="#281c0e" stroke="#ff9918" stroke-width="1.5"/>
+  <text x="42" y="125" fill="#ffb23d" font-size="24">♫</text>
+  <text x="75" y="116" class="t" font-size="14" font-weight="700">Бібліотека</text>
+  <text x="75" y="134" class="m" font-size="10">Моя музика</text>
+
+  <rect x="182" y="92" width="145" height="55" rx="27" fill="#071b23" stroke="#1bcce9"/>
+  <text x="198" y="125" fill="#1ed0eb" font-size="20">▥</text>
+  <text x="226" y="116" class="t" font-size="14" font-weight="700">Tone Lab</text>
+  <text x="226" y="134" class="m" font-size="10">Звук і ефекти</text>
+
+  <rect x="337" y="92" width="151" height="55" rx="27" fill="#0b1523" stroke="#5365ff"/>
+  <text x="353" y="125" fill="#7786ff" font-size="20">◉</text>
+  <text x="382" y="116" class="t" font-size="14" font-weight="700">Scene Lab</text>
+  <text x="382" y="134" class="m" font-size="10">Візуальні сцени</text>
+
+  <path d="M0 260 C80 210 135 310 210 254 S350 203 512 270" fill="none" stroke="#ff861f" stroke-opacity=".35" stroke-width="2"/>
+  <path d="M0 288 C85 350 155 216 245 284 S393 348 512 255" fill="none" stroke="#1bcce9" stroke-opacity=".33" stroke-width="2"/>
+
+  <circle cx="256" cy="337" r="124" fill="none" stroke="#ff8d19" stroke-opacity=".18" stroke-width="18" filter="url(#glowOrange)"/>
+  <circle cx="256" cy="337" r="116" fill="none" stroke="#24d2ee" stroke-opacity=".16" stroke-width="18" filter="url(#glowCyan)"/>
+  <circle cx="256" cy="337" r="111" fill="url(#core)" stroke="url(#accent)" stroke-width="4"/>
+  <circle cx="256" cy="337" r="91" fill="#09151b"/>
+  <path d="M178 348 C206 288 232 383 260 321 S319 310 341 351" fill="none" stroke="#ff8c20" stroke-width="5" stroke-linecap="round" filter="url(#glowOrange)"/>
+  <path d="M174 329 C210 377 239 290 278 349 S327 358 342 315" fill="none" stroke="#24d3ef" stroke-width="4" stroke-linecap="round" filter="url(#glowCyan)"/>
+  <circle cx="256" cy="337" r="15" fill="#fff" opacity=".08"/>
+  <text x="256" y="344" text-anchor="middle" class="t" font-size="17" font-weight="800">PULSE</text>
+
+  <g stroke-linecap="round">
+    <line x1="256" y1="205" x2="256" y2="181" stroke="#ff9b1e" stroke-width="3"/>
+    <line x1="220" y1="211" x2="213" y2="188" stroke="#ff9b1e" stroke-width="3"/>
+    <line x1="186" y1="226" x2="173" y2="205" stroke="#ff9b1e" stroke-width="3"/>
+    <line x1="156" y1="251" x2="136" y2="235" stroke="#ff9b1e" stroke-width="3"/>
+    <line x1="292" y1="211" x2="302" y2="185" stroke="#28d1ee" stroke-width="3"/>
+    <line x1="326" y1="226" x2="341" y2="202" stroke="#28d1ee" stroke-width="3"/>
+    <line x1="356" y1="251" x2="379" y2="232" stroke="#28d1ee" stroke-width="3"/>
+  </g>
+
+  <text x="256" y="496" text-anchor="middle" class="t" font-size="27" font-weight="800">Heartbeat</text>
+  <text x="256" y="521" text-anchor="middle" class="m" font-size="16">Unknown Artist</text>
+  <text x="256" y="543" text-anchor="middle" class="m" font-size="11">Converted Music · MP3 · 320 кбіт/с</text>
+
+  <path d="M35 580 C100 550 147 604 214 580 S334 590 477 565" fill="none" stroke="url(#accent)" stroke-width="2.5"/>
+  <circle cx="211" cy="581" r="7" fill="#ffb330" stroke="#fff2d2"/>
+  <text x="35" y="605" class="t" font-size="13">1:28</text>
+  <text x="448" y="605" class="t" font-size="13">3:40</text>
+
+  <circle cx="86" cy="664" r="31" class="panel"/>
+  <text x="86" y="672" text-anchor="middle" fill="#ff9b1d" font-size="23">⤨</text>
+  <circle cx="178" cy="664" r="33" class="panel"/>
+  <text x="178" y="672" text-anchor="middle" class="t" font-size="23">◀</text>
+  <circle cx="256" cy="664" r="46" fill="#2a1c0e" stroke="#ff9a18" stroke-width="3" filter="url(#glowOrange)"/>
+  <text x="256" y="677" text-anchor="middle" class="t" font-size="40">Ⅱ</text>
+  <circle cx="334" cy="664" r="33" class="panel"/>
+  <text x="334" y="672" text-anchor="middle" class="t" font-size="23">▶</text>
+  <circle cx="426" cy="664" r="31" class="panel"/>
+  <text x="426" y="672" text-anchor="middle" fill="#23cee9" font-size="23">↻</text>
+
+  <rect x="26" y="730" width="105" height="65" rx="20" class="panel2"/>
+  <text x="78" y="754" text-anchor="middle" class="t" font-size="20">≡</text>
+  <text x="78" y="779" text-anchor="middle" class="m" font-size="11">Черга</text>
+  <rect x="143" y="730" width="105" height="65" rx="20" fill="#071c24" stroke="#1bcce9"/>
+  <text x="195" y="754" text-anchor="middle" fill="#22d2ec" font-size="20">▥</text>
+  <text x="195" y="779" text-anchor="middle" class="m" font-size="11">Сцена</text>
+  <rect x="260" y="730" width="105" height="65" rx="20" class="panel2"/>
+  <text x="312" y="754" text-anchor="middle" class="t" font-size="20">☷</text>
+  <text x="312" y="779" text-anchor="middle" class="m" font-size="11">Еквалайзер</text>
+  <rect x="377" y="730" width="105" height="65" rx="20" fill="#071c24" stroke="#1bcce9"/>
+  <text x="429" y="754" text-anchor="middle" fill="#22d2ec" font-size="20">◉</text>
+  <text x="429" y="779" text-anchor="middle" class="m" font-size="11">Ефекти</text>
+
+  <rect x="18" y="814" width="476" height="86" rx="28" fill="#0c151d" stroke="#2a4657"/>
+  <rect x="34" y="829" width="56" height="56" rx="15" fill="#07151b" stroke="#ff9818"/>
+  <path d="M42 858 C52 840 61 875 70 849 S82 843 86 861" fill="none" stroke="url(#accent)" stroke-width="3"/>
+  <text x="106" y="846" class="t" font-size="16" font-weight="800">Heartbeat</text>
+  <text x="106" y="865" class="m" font-size="11">Unknown Artist</text>
+  <rect x="106" y="878" width="246" height="4" rx="2" fill="#1e303b"/>
+  <rect x="106" y="878" width="132" height="4" rx="2" fill="url(#accent)"/>
+  <circle cx="403" cy="857" r="28" fill="#0b1720" stroke="#345569"/>
+  <text x="403" y="865" text-anchor="middle" class="t" font-size="26">Ⅱ</text>
+  <text x="461" y="865" text-anchor="middle" class="t" font-size="22">≡</text>
+
+  <rect x="18" y="910" width="476" height="74" rx="28" fill="#0d151c" stroke="#1c2c36"/>
+  <text x="78" y="941" text-anchor="middle" fill="#ff9b1b" font-size="19">⌂</text>
+  <text x="78" y="965" text-anchor="middle" fill="#ff9b1b" font-size="10">Бібліотека</text>
+  <text x="196" y="941" text-anchor="middle" class="m" font-size="19">▥</text>
+  <text x="196" y="965" text-anchor="middle" class="m" font-size="10">Візуалізатор</text>
+  <text x="316" y="941" text-anchor="middle" class="m" font-size="19">⌕</text>
+  <text x="316" y="965" text-anchor="middle" class="m" font-size="10">Пошук</text>
+  <text x="434" y="941" text-anchor="middle" class="m" font-size="19">≡</text>
+  <text x="434" y="965" text-anchor="middle" class="m" font-size="10">Черга</text>
+</svg>

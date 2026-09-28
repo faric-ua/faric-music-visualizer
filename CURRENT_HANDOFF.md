@@ -37,3 +37,12 @@ Next:
 4. test seek/play/pause/reactive scene;
 5. test rotation and Back;
 6. record findings before media-scanner work.
+
+
+Latest design/tooling update:
+- FARIC PulseDeck skin V1 is stored in-repo as the canonical SVG prototype:
+  `docs/design/pulsedeck/prototypes/PULSEDECK_SKIN_V1.svg`;
+- Termux menu now contains:
+  - `9 — Запустити Android build`;
+  - `10 — Статус Android build`;
+- build dispatch verifies a clean/synced branch before starting `.github/workflows/android.yml`.

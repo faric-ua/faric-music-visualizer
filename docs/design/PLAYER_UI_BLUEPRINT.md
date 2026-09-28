@@ -159,3 +159,20 @@ YouTube embedded mode must expose capability limits clearly.
 - persistent bottom UI must not hide the final list row;
 - selection/action sheets survive rotation;
 - current queue/playback state must not duplicate after recreation.
+
+
+## 10. Canonical approved skin
+
+The first approved visual baseline is stored in:
+
+`docs/design/pulsedeck/prototypes/PULSEDECK_SKIN_V1.svg`
+
+It is immutable historical design evidence. Future major visual redesigns get a new numbered prototype instead of overwriting V1.
+
+The implementation may adapt spacing, typography and density for real Android constraints, but should preserve:
+- graphite/black foundation;
+- orange + cyan accents;
+- PulseCore focal visual;
+- luminous spectrum/waves;
+- PulseDock;
+- rounded glass-like surfaces.

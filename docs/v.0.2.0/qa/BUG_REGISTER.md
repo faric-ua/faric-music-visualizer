@@ -31,3 +31,10 @@ Follow-up 2026-09-28:
 - this is not the desired behavior for APK handoff;
 - opener changed from `ACTION_OPEN_DOCUMENT_TREE` to `ACTION_VIEW` with directory MIME `vnd.android.document/directory`;
 - follow-up fix commit: `ac11347ddf9841dccfaa5051bc917b38bd2fca1b`.
+
+Follow-up path correction:
+- project artifacts belong under `/storage/emulated/0/Documents/FARIC-Music-Visualizer/`;
+- v0.1.0 was already stored under the project's `packages/` tree;
+- future APK downloads now use:
+  `/storage/emulated/0/Documents/FARIC-Music-Visualizer/packages/v<version>/`;
+- fix commit: `e9959a370a702a0bec6b748a63a3665cbe41fdb0`.

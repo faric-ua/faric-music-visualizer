@@ -2,11 +2,12 @@
 
 ## v0.1.0 — Foundation + first reactive scene
 
-- [ ] Repository created as public GitHub repository.
-- [ ] Termux local checkout and shortcuts verified.
-- [ ] Baseline docs/contracts committed and CI PASS.
-- [ ] Android project scaffold created with unique package/signing identity.
-- [ ] Local audio file picker + playback implemented.
+- [x] Repository created as public GitHub repository.
+- [x] Termux local checkout and shortcuts verified.
+- [x] Baseline docs/contracts committed and CI PASS.
+- [ ] Android project scaffold created with unique package identity.
+- [ ] Dedicated development signer/secrets created for this project.
+- [ ] Local audio file picker + playback verified on phone.
 - [ ] Audio analysis stream exposes amplitude + frequency bands.
 - [ ] Beat/onset event model implemented and testable.
 - [ ] First scene renders central orb + radial pulse + glow.

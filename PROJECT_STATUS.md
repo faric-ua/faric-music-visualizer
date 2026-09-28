@@ -1,17 +1,28 @@
 # Project Status
 
-Phase: foundation
+Phase: Android v0.1.0 implementation candidate
 
-Implemented:
+Verified:
+- repository foundation;
 - project contracts;
 - release/QA discipline;
 - Termux bootstrap/menu;
-- validation workflow.
+- baseline validation workflow.
 
-Not implemented:
-- Android application;
-- audio playback;
-- FFT/beat analysis;
-- rendering engine;
-- APK pipeline;
-- signing.
+Implemented in source candidate:
+- Android project scaffold;
+- local audio file picker;
+- Media3 playback controller retained across rotation via ViewModel;
+- Android audio-session Visualizer capture;
+- amplitude/bass/mid/high extraction;
+- adaptive bass/onset prototype;
+- first Canvas reactive scene.
+
+Not yet verified:
+- Android CI compile/build;
+- stable project-specific signer;
+- APK install;
+- real-phone playback;
+- real-phone beat sync;
+- lifecycle behavior;
+- image/video background modes.

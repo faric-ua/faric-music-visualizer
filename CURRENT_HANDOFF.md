@@ -2,22 +2,27 @@
 
 Project: FARIC Music Visualizer
 
-State:
-- repository foundation being created;
-- product direction defined;
-- Android scaffold not created yet;
-- no signer yet;
-- no APK yet.
+Verified:
+- public GitHub repository exists;
+- Termux checkout/aliases/widget PASS on phone;
+- baseline Validate workflow PASS.
 
-Reference concept analyzed outside Git:
-- portrait music visualizer;
-- animated fantasy/abstract background;
-- central dark orb/logo;
-- strong radial light pulses synced to beat.
+Current implementation candidate:
+- Android package: `com.saney.musicvisualizer`;
+- AGP 9.2 / Gradle 9.4.1 / Java 17 baseline;
+- Media3 playback;
+- local audio picker;
+- Android audio-session Visualizer analysis;
+- spectrum bands + adaptive bass/onset prototype;
+- first Canvas scene: dark orb + radial reactive rays + glow.
+
+Evidence boundary:
+- this is source/CI work until an APK is built and tested on the real phone;
+- audio-reactive sync is NOT phone-PASS yet;
+- this project must get its own stable development signer before normal APK installation QA.
 
 Next:
-1. confirm GitHub/Termux foundation PASS;
-2. create Android v0.1.0 scaffold;
-3. implement local audio playback;
-4. expose deterministic audio feature stream;
-5. render first beat-reactive scene.
+1. get Android CI PASS for the scaffold;
+2. create this project's dedicated development signer and GitHub secrets;
+3. build exact signed APK;
+4. install and perform first playback/beat/rotation phone QA.

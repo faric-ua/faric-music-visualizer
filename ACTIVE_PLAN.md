@@ -14,11 +14,11 @@
 ## v0.2.0 — PulseDeck shell
 
 - [x] Create v0.2.0 release/QA/diagram skeleton before feature code.
-- [ ] Replace temporary main screen with Library landing shell.
-- [ ] Add persistent PulseDock mini-player.
-- [ ] Add full Now Playing screen using PulseCore visualizer.
-- [ ] Add seek + elapsed/total controls.
-- [ ] Preserve file picker + playback + audio-reactive analysis.
+- [x] Replace temporary main screen with Library landing shell (source candidate d01c374).
+- [x] Add persistent PulseDock mini-player (source candidate d01c374).
+- [x] Add full Now Playing screen using PulseCore visualizer (source candidate d01c374).
+- [x] Add seek + elapsed/total controls (source candidate d01c374).
+- [x] Preserve file picker + playback + audio-reactive analysis in source candidate; phone regression still pending.
 - [ ] CI build/test PASS for v0.2.0 source.
 - [ ] Download signed v0.2.0 APK.
 - [ ] Phone QA: Library → pick track → PulseDock → Now Playing.

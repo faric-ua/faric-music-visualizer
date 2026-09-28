@@ -129,11 +129,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     override fun onStop() {
+        // Do not pause playback here. Screen lock and Home both stop the Activity,
+        // but a music player must keep playing. A MediaSessionService migration is
+        // tracked separately for full long-lived background playback/notification.
         sceneOrchestrator.stop()
         controller.listener = null
-        if (!isChangingConfigurations) {
-            controller.pause()
-        }
         super.onStop()
     }
 
@@ -448,7 +448,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
         )
-        actions.addView(actionTile("☷", "Tone") { toast("Tone Lab — наступний етап") }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        actions.addView(
+            actionTile("M", "projectM") {
+                startActivity(Intent(this, com.saney.musicvisualizer.projectm.ProjectMActivity::class.java))
+            },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+        )
         actions.addView(actionTile("•••", "Ще") { toast("Більше дій — наступний етап") }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
         controls.addView(actions)
 

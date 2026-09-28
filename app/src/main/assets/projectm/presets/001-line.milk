@@ -1,0 +1,12 @@
+[preset00]
+// libprojectM v4.1.7 test preset, vendored for FARIC integration spike
+fdecay=0
+warp=0;
+nWaveMode=6
+fWaveScale=1
+fwavesmoothing=0.01
+wave_r=1.0
+wave_g=1.0
+wave_b=1.0
+wave_x=0.500000
+wave_y=0.500000

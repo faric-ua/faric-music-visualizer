@@ -6,6 +6,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FaricMusicVisualizer">
         <activity
+            android:name=".projectm.ProjectMActivity"
+            android:exported="false" />
+        <activity
             android:name=".MainActivity"
             android:exported="true">
             <intent-filter>

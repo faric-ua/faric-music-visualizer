@@ -28,7 +28,7 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    timeout-minutes: 20
+    timeout-minutes: 35
     env:
       VISUALIZER_DEV_KEYSTORE_B64: ${{ secrets.VISUALIZER_DEV_KEYSTORE_B64 }}
       VISUALIZER_DEV_STORE_PASSWORD: ${{ secrets.VISUALIZER_DEV_STORE_PASSWORD }}
@@ -68,12 +68,12 @@ jobs:
           echo "ANDROID_SDK_ROOT=$SDK_ROOT" >> "$GITHUB_ENV"
           echo "SDKMANAGER=$SDKMANAGER" >> "$GITHUB_ENV"
 
-      - name: Install Android SDK 36
+      - name: Install Android SDK 36 + native toolchain
         shell: bash
         run: |
           set -euo pipefail
           yes | "$SDKMANAGER" --licenses >/dev/null || true
-          "$SDKMANAGER" "platforms;android-36" "build-tools;36.0.0"
+          "$SDKMANAGER"             "platforms;android-36"             "build-tools;36.0.0"             "ndk;27.2.12479018"             "cmake;3.22.1"
 
       - name: Require stable signer for trusted builds
         if: github.event_name != 'pull_request'

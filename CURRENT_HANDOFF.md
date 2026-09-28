@@ -98,3 +98,17 @@ Implementation target:
 - asymmetric fast-attack response;
 - WARP_STARFIELD;
 - shared visual-centering rule UI-001.
+
+
+## v0.4.0 projectM spike
+
+Current experiment:
+- libprojectM 4.1.7 via pinned CMake FetchContent;
+- arm64-v8a only for the first phone spike;
+- projectM LAB is intentionally separate from the FARIC scene compositor;
+- Android Visualizer waveform feeds PCM into projectM only while LAB is active.
+
+Background playback finding:
+- music stopped on screen-off because MainActivity.onStop() explicitly paused the controller;
+- that pause is removed in v0.4.0;
+- production architecture still requires MediaSessionService for robust background playback and system media controls.

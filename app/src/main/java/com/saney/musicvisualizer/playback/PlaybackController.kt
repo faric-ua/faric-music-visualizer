@@ -13,6 +13,7 @@ import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.saney.musicvisualizer.analysis.AudioCaptureAnalyzer
 import com.saney.musicvisualizer.analysis.SceneSignal
+import com.saney.musicvisualizer.projectm.ProjectMBridge
 
 data class PlaybackSnapshot(
     val trackName: String? = null,
@@ -145,9 +146,15 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         }
 
         try {
-            analyzer = AudioCaptureAnalyzer(currentSessionId) { signal ->
-                mainHandler.post { listener?.onSceneSignal(signal) }
-            }
+            analyzer = AudioCaptureAnalyzer(
+                audioSessionId = currentSessionId,
+                onSignal = { signal ->
+                    mainHandler.post { listener?.onSceneSignal(signal) }
+                },
+                onPcm = { pcm ->
+                    ProjectMBridge.pushPcmIfActive(pcm)
+                },
+            )
             analysisActive = true
         } catch (_: Throwable) {
             status = "Аудіо грає, але системний Visualizer недоступний"

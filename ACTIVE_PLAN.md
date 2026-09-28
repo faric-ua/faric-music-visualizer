@@ -94,3 +94,21 @@ Current v0.3.0 source commits:
 - [ ] Phone QA: immediate bass/mid/high reaction.
 - [ ] Phone QA: background travel clearly independent from foreground.
 - [ ] Phone QA: transport/action/nav glyphs visually centered.
+
+
+## v0.4.0 — projectM integration spike + screen-off playback
+
+- [x] Research official libprojectM Android/JNI example and current 4.x API.
+- [x] Pin libprojectM to stable v4.1.7 for the spike.
+- [x] Add NDK/CMake build path for arm64-v8a.
+- [x] Add projectM LAB fullscreen activity.
+- [x] Feed Android Visualizer waveform into projectM as 16-bit mono PCM.
+- [x] Bundle only small upstream test presets for integration validation.
+- [x] Add projectM entry from Now Playing.
+- [x] Remove Activity onStop() pause that stopped music on screen lock.
+- [ ] CI native build PASS.
+- [ ] Phone: screen-off playback PASS for 60+ seconds.
+- [ ] Phone: projectM renders and reacts to audio.
+- [ ] Decide GO / NO-GO for projectM as FARIC foreground engine.
+- [ ] If GO: move long-lived playback into MediaSessionService.
+- [ ] If GO: render projectM as foreground layer above FARIC background compositor.

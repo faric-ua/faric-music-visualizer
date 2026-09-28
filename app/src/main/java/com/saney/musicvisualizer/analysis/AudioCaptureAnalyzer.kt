@@ -6,6 +6,7 @@ import android.os.SystemClock
 class AudioCaptureAnalyzer(
     audioSessionId: Int,
     private val onSignal: (SceneSignal) -> Unit,
+    private val onPcm: ((ShortArray) -> Unit)? = null,
 ) : AutoCloseable {
     private val beatDetector = AdaptiveBeatDetector()
     private val visualizer = Visualizer(audioSessionId)
@@ -14,15 +15,32 @@ class AudioCaptureAnalyzer(
         visualizer.captureSize = Visualizer.getCaptureSizeRange()[1]
         visualizer.scalingMode = Visualizer.SCALING_MODE_NORMALIZED
 
-        // Use the highest capture rate exposed by Android Visualizer.
-        // The previous /2 rate made frequency changes visibly late.
         val captureRate = Visualizer.getMaxCaptureRate().coerceAtLeast(1)
 
         visualizer.setDataCaptureListener(
             object : Visualizer.OnDataCaptureListener {
-                override fun onWaveFormDataCapture(v: Visualizer?, waveform: ByteArray?, samplingRate: Int) = Unit
+                override fun onWaveFormDataCapture(
+                    visualizer: Visualizer?,
+                    waveform: ByteArray?,
+                    samplingRate: Int,
+                ) {
+                    if (waveform == null || onPcm == null) return
 
-                override fun onFftDataCapture(v: Visualizer?, fft: ByteArray?, samplingRate: Int) {
+                    // Android Visualizer waveform is 8-bit unsigned PCM around 128.
+                    // Convert it to signed 16-bit mono for the projectM spike.
+                    val pcm = ShortArray(waveform.size)
+                    for (index in waveform.indices) {
+                        val unsigned = waveform[index].toInt() and 0xFF
+                        pcm[index] = ((unsigned - 128) shl 8).toShort()
+                    }
+                    onPcm.invoke(pcm)
+                }
+
+                override fun onFftDataCapture(
+                    visualizer: Visualizer?,
+                    fft: ByteArray?,
+                    samplingRate: Int,
+                ) {
                     if (fft == null) return
 
                     val bands = SpectrumMath.fromFft(fft, samplingRate)
@@ -40,7 +58,7 @@ class AudioCaptureAnalyzer(
                 }
             },
             captureRate,
-            false,
+            true,
             true,
         )
         visualizer.enabled = true

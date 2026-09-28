@@ -1,0 +1,16 @@
+[preset00]
+// libprojectM v4.1.7 test preset, vendored for FARIC integration spike
+fDecay=1
+zoom=0
+rot=0.0
+warp=1
+ob_size=0.2
+ob_r=0.0
+ob_g=0.0
+ob_b=0.0
+ob_a=0.0
+ib_size=0.1
+ib_r=1.0
+ib_g=0.0
+ib_b=0.0
+ib_a=1.0

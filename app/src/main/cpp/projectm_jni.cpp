@@ -843,59 +843,85 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeCreate(
         );
     }
 
-    g_playlist =
-        projectm_playlist_create(
-            g_projectm
-        );
+    const bool directPreset =
+        path.size() >= 5
+        && path.substr(path.size() - 5) == ".milk";
 
-    if (!g_playlist) {
-        LOGE(
-            "projectm_playlist_create failed"
-        );
-
-        return;
-    }
-
-    const auto added =
-        projectm_playlist_add_path(
-            g_playlist,
-            path.c_str(),
-            true,
-            false
-        );
-
-    LOGI(
-        "preset path=%s presets=%u mesh=%dx%d viewport=%dx%d",
-        path.c_str(),
-        added,
-        meshX,
-        meshY,
-        g_width,
-        g_height
-    );
-
-    if (added > 0) {
-        projectm_playlist_set_shuffle(
-            g_playlist,
-            true
-        );
-
+    if (directPreset) {
         projectm_set_preset_locked(
             g_projectm,
+            true
+        );
+
+        projectm_load_preset_file(
+            g_projectm,
+            path.c_str(),
             false
         );
 
-        projectm_playlist_set_position(
-            g_playlist,
-            0,
-            true
+        LOGI(
+            "direct preset=%s mesh=%dx%d viewport=%dx%d",
+            path.c_str(),
+            meshX,
+            meshY,
+            g_width,
+            g_height
         );
     } else {
-        projectm_load_preset_file(
-            g_projectm,
-            "idle://",
-            false
+        g_playlist =
+            projectm_playlist_create(
+                g_projectm
+            );
+
+        if (!g_playlist) {
+            LOGE(
+                "projectm_playlist_create failed"
+            );
+
+            return;
+        }
+
+        const auto added =
+            projectm_playlist_add_path(
+                g_playlist,
+                path.c_str(),
+                true,
+                false
+            );
+
+        LOGI(
+            "preset path=%s presets=%u mesh=%dx%d viewport=%dx%d",
+            path.c_str(),
+            added,
+            meshX,
+            meshY,
+            g_width,
+            g_height
         );
+
+        if (added > 0) {
+            projectm_playlist_set_shuffle(
+                g_playlist,
+                true
+            );
+
+            projectm_set_preset_locked(
+                g_projectm,
+                false
+            );
+
+            projectm_playlist_set_position(
+                g_playlist,
+                0,
+                true
+            );
+        } else {
+            projectm_load_preset_file(
+                g_projectm,
+                "idle://",
+                false
+            );
+        }
     }
 
     create_foreground_locked();
@@ -1044,6 +1070,45 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetSignal(
                 1.0f
             )
         );
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeLoadPreset(
+        JNIEnv* env,
+        jclass,
+        jstring presetPath,
+        jboolean smoothTransition) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
+    if (!g_projectm || !presetPath) {
+        return;
+    }
+
+    const char* pathChars =
+        env->GetStringUTFChars(
+            presetPath,
+            nullptr
+        );
+
+    if (!pathChars) {
+        return;
+    }
+
+    projectm_set_preset_locked(
+        g_projectm,
+        true
+    );
+
+    projectm_load_preset_file(
+        g_projectm,
+        pathChars,
+        smoothTransition == JNI_TRUE
+    );
+
+    env->ReleaseStringUTFChars(
+        presetPath,
+        pathChars
+    );
 }
 
 extern "C" JNIEXPORT void JNICALL

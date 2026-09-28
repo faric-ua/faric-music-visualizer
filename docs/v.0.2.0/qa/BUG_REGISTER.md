@@ -4,7 +4,7 @@ No findings yet.
 
 ## BUG-PD-001 — APK folder does not open after menu item 8
 
-Status: FIXED IN SOURCE / PHONE RECHECK REQUIRED
+Status: FIX ITERATED / PHONE RECHECK REQUIRED
 
 Observed:
 - APK downloads and checksum verification complete;
@@ -24,3 +24,10 @@ Fix commit:
 
 Phone acceptance:
 - pending.
+
+
+Follow-up 2026-09-28:
+- phone screenshot confirmed the first fix opened Android's folder-selection UI with the button "Використовувати цю папку";
+- this is not the desired behavior for APK handoff;
+- opener changed from `ACTION_OPEN_DOCUMENT_TREE` to `ACTION_VIEW` with directory MIME `vnd.android.document/directory`;
+- follow-up fix commit: `ac11347ddf9841dccfaa5051bc917b38bd2fca1b`.

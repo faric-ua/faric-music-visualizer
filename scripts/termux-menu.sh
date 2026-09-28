@@ -69,7 +69,7 @@ while true; do
   echo "5 — Створити окремий development signer"
   echo "6 — Передати signer secrets у GitHub"
   echo "7 — Backup development signer"
-  echo "8 — Завантажити APK поточного commit"
+  echo "8 — Завантажити APK і відкрити папку"
   echo "0 — Вийти"
   echo
   printf "Вибір: "

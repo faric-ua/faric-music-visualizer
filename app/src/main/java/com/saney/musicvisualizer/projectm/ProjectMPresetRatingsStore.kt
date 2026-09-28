@@ -3,6 +3,7 @@ package com.saney.musicvisualizer.projectm
 import android.content.Context
 import java.io.File
 import java.security.MessageDigest
+import java.util.concurrent.ConcurrentHashMap
 
 enum class ProjectMPresetRating {
     NONE,
@@ -15,14 +16,24 @@ class ProjectMPresetRatingsStore(context: Context) {
     private val prefs =
         context.getSharedPreferences("projectm_preset_ratings", Context.MODE_PRIVATE)
 
-    fun ratingFor(file: File): ProjectMPresetRating =
-        ratingForId(ProjectMLibraryManager.presetId(file))
+    private val cache =
+        ConcurrentHashMap<String, ProjectMPresetRating>()
+
+    fun ratingFor(file: File): ProjectMPresetRating {
+        val id = ProjectMLibraryManager.presetId(file)
+        return cache[id] ?: ratingForId(id).also {
+            cache[id] = it
+        }
+    }
 
     fun setRating(
         file: File,
         rating: ProjectMPresetRating,
     ) {
         val key = ratingKey(ProjectMLibraryManager.presetId(file))
+
+        val id = ProjectMLibraryManager.presetId(file)
+        cache[id] = rating
 
         prefs.edit().apply {
             if (rating == ProjectMPresetRating.NONE) {

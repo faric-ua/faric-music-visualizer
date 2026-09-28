@@ -11,7 +11,7 @@
 - [x] Original FARIC PulseDeck product language defined.
 - [x] Shared standalone/YTM player architecture defined.
 
-## v0.2.0 — PulseDeck shell
+## v0.2.1 — PulseDeck fullscreen hotfix
 
 - [x] Create v0.2.0 release/QA/diagram skeleton before feature code.
 - [x] Replace temporary main screen with Library landing shell (source candidate d01c374).
@@ -19,9 +19,9 @@
 - [x] Add full Now Playing screen using PulseCore visualizer (source candidate d01c374).
 - [x] Add seek + elapsed/total controls (source candidate d01c374).
 - [x] Preserve file picker + playback + audio-reactive analysis in source candidate; phone regression still pending.
-- [ ] CI build/test PASS for v0.2.0 source.
-- [ ] Download signed v0.2.0 APK.
-- [ ] Phone QA: Library → pick track → PulseDock → Now Playing. Library shell rendered on phone; fullscreen/responsive recheck pending after BUG-PD-002 fix.
+- [ ] CI build/test PASS for v0.2.1 source.
+- [ ] Download signed v0.2.1 APK.
+- [ ] Phone QA: app launches without crash in fullscreen; Library → pick track → PulseDock → Now Playing.
 - [ ] Phone QA: seek/play/pause/reactive scene.
 - [ ] Phone QA: rotation + Back lifecycle.
 - [ ] Record findings and close v0.2.0 shell scope.
@@ -44,3 +44,13 @@
 - [ ] Particles.
 - [ ] AI-generated scenes.
 - [ ] Recording/export.
+
+
+### Crash hotfix notes
+
+- [x] User reported startup crash after first immersive fullscreen implementation.
+- [x] Replace direct platform insets APIs with AndroidX WindowCompat / WindowInsetsCompat.
+- [x] Move immersive activation until after setContentView.
+- [x] Guard fullscreen/inset handling so failure cannot crash the app.
+- [x] Bump package version to 0.2.1 / versionCode 3.
+- [ ] Install v0.2.1 on phone and confirm launch PASS.

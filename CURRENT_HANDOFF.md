@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release:
-- v0.2.0 PulseDeck shell;
+- v0.2.1 PulseDeck fullscreen hotfix;
 - source implementation candidate is being built/tested;
 - package remains `com.saney.musicvisualizer`.
 
@@ -46,3 +46,19 @@ Latest design/tooling update:
   - `9 — Запустити Android build`;
   - `10 — Статус Android build`;
 - build dispatch verifies a clean/synced branch before starting `.github/workflows/android.yml`.
+
+
+## v0.2.1 startup-crash hotfix
+
+Phone finding:
+- v0.2.0 immersive build installed but closed with an Android crash dialog on launch.
+
+Hotfix source:
+- direct platform `WindowInsets` / `WindowInsetsController` calls removed from the fullscreen path;
+- AndroidX `WindowCompat`, `WindowInsetsCompat`, and `WindowInsetsControllerCompat` used instead;
+- immersive mode is applied after `setContentView`;
+- fullscreen/inset operations are guarded with `runCatching`, so unsupported device behavior should not terminate startup;
+- version bumped to `0.2.1` / versionCode 3.
+
+Phone acceptance:
+- pending exact signed v0.2.1 APK.

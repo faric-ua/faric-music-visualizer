@@ -76,26 +76,35 @@ echo
 
 echo "Відкриваю папку завантаження…"
 
-# Android's document picker understands an initial *document* URI. Using
-# --es sends a plain String and can be silently ignored; --eu sends a Uri.
+# Open the exact directory in Android's file UI. ACTION_VIEW is important:
+# ACTION_OPEN_DOCUMENT_TREE shows a folder-selection dialog with
+# "Використовувати цю папку", which is not what we want here.
 RELATIVE_DIR="Download/FARIC-Music-Visualizer-v${VERSION}-build"
 ENCODED_RELATIVE_DIR="${RELATIVE_DIR//\//%2F}"
-INITIAL_URI="content://com.android.externalstorage.documents/document/primary%3A${ENCODED_RELATIVE_DIR}"
+DIR_URI="content://com.android.externalstorage.documents/document/primary%3A${ENCODED_RELATIVE_DIR}"
+
+opened=0
 
 if command -v am >/dev/null 2>&1; then
   if am start \
-    -a android.intent.action.OPEN_DOCUMENT_TREE \
-    --eu android.provider.extra.INITIAL_URI "$INITIAL_URI" \
+    -a android.intent.action.VIEW \
+    -d "$DIR_URI" \
+    -t "vnd.android.document/directory" \
+    -f 0x10000000 \
     >/dev/null 2>&1; then
-    exit 0
+    opened=1
   fi
 fi
 
-# Secondary fallback. Some Android file managers support opening filesystem
-# directories through Termux:API, others do not.
-if command -v termux-open >/dev/null 2>&1; then
-  termux-open "$DEST" >/dev/null 2>&1 || true
+# Secondary fallback for file managers that understand filesystem paths.
+if [ "$opened" -eq 0 ] && command -v termux-open >/dev/null 2>&1; then
+  if termux-open "$DEST" >/dev/null 2>&1; then
+    opened=1
+  fi
 fi
 
-echo "Якщо файловий менеджер не відкрився автоматично:"
-echo "  $DEST"
+if [ "$opened" -eq 0 ]; then
+  echo "Не вдалося автоматично відкрити папку."
+  echo "APK збережено тут:"
+  echo "  $DEST"
+fi

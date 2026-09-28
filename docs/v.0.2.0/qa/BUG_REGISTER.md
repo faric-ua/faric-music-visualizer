@@ -44,3 +44,26 @@ Second phone follow-up:
 - generic document-provider directory VIEW is therefore insufficient on this device;
 - downloader now tries Samsung My Files explicitly with a `file://` folder VIEW before generic fallbacks;
 - fix commit: `17df2b758c96f7fc9591f2994ff3b737d3839e10`.
+
+## BUG-PD-002 — PulseDeck shell clips content / wastes system-bar space
+
+Status: FIXED IN SOURCE / PHONE RECHECK REQUIRED
+
+Observed on phone:
+- Library shell renders successfully;
+- top/header area sits too close to system UI;
+- some Library Worlds card text is clipped because card heights are fixed;
+- available vertical space is reduced by system bars.
+
+Fix:
+- immersive fullscreen is now the default;
+- status/navigation bars are hidden and may be revealed transiently by swipe;
+- display-cutout and gesture safe areas are respected;
+- Library card/mode-chip/PulseDock/navigation heights are content-aware instead of hard-fixed;
+- Library scroll bottom padding now follows the real measured PulseDock/navigation stack height.
+
+Fix commit:
+- `a1a8f5d8b616e414ef78a553cfa4674ee098afc7`
+
+Phone acceptance:
+- pending.

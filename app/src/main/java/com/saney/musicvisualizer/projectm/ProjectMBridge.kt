@@ -42,6 +42,14 @@ object ProjectMBridge {
         if (active) nativeNextPreset()
     }
 
+    fun enableAutoPresetSwitching(enabled: Boolean) {
+        if (active) nativeSetAutoPresetSwitching(enabled)
+    }
+
+    fun setForegroundSample(sample: FaricForegroundSample) {
+        if (active) nativeSetForegroundSample(sample.nativeId)
+    }
+
     fun destroy() {
         if (!active) return
         active = false
@@ -85,6 +93,8 @@ object ProjectMBridge {
         high: Float,
         beat: Float,
     )
+    private external fun nativeSetAutoPresetSwitching(enabled: Boolean)
+    private external fun nativeSetForegroundSample(sampleId: Int)
     private external fun nativeNextPreset()
     private external fun nativeDestroy()
 }

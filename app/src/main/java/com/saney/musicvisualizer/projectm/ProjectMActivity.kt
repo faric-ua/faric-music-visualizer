@@ -158,7 +158,7 @@ class ProjectMActivity : ComponentActivity() {
 
         val updated = ProjectMLibraryManager.state(this)
         status.text =
-            "TEST ${updated.testPresetCount}: Geometric · Particles · Supernova · Waveform · Hypnotic"
+            "BG projectM + FG FARIC · TEST ${updated.testPresetCount} · tap/NEXT"
     }
 
     private fun launchAllPresets() {
@@ -176,7 +176,7 @@ class ProjectMActivity : ComponentActivity() {
         )
 
         status.text =
-            "ВСЯ БІБЛІОТЕКА · ${state.presetCount} preset-ів · tap/NEXT = наступний"
+            "BG projectM + FG FARIC · ВСІ ${state.presetCount} · tap/NEXT"
     }
 
     private fun showProjectM(

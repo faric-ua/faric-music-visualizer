@@ -1,47 +1,46 @@
 # Active Plan
 
-## v0.1.0 — Foundation + first reactive scene
+## Verified foundation
 
-- [x] Repository created as public GitHub repository.
-- [x] Termux local checkout and shortcuts verified.
-- [x] Baseline docs/contracts committed and CI PASS.
-- [x] Android project scaffold created with unique package identity; CI run 36446252861 PASS on source 6232ceb.
-- [ ] Dedicated development signer/secrets created for this project.
-- [ ] Encrypted signer backup created and checksum verified.
-- [ ] Local audio file picker + playback verified on phone.
-- [ ] Audio analysis stream exposes amplitude + frequency bands on phone.
-- [x] Beat/onset event model implemented and unit-tested in CI.
-- [ ] First scene renders central orb + radial pulse + glow on phone.
-- [ ] Background supports static image mode.
-- [ ] Background supports video loop mode.
-- [ ] Scene/settings survive rotation without duplicate playback.
-- [ ] Signed development APK built and exact signer verified.
-- [ ] Real-phone QA with at least 3 musically different tracks.
-- [ ] v0.1.0 evidence and release closeout completed.
+- [x] Public repository + Termux workflow.
+- [x] Baseline validation CI.
+- [x] Android scaffold.
+- [x] Stable signer workflow.
+- [x] Local audio playback is real-phone confirmed by user.
+- [x] Poweramp screenshots analyzed as interaction references only.
+- [x] Original FARIC PulseDeck product language defined.
+- [x] Shared standalone/YTM player architecture defined.
 
-## Player foundation — next major product phase
+## v0.2.0 — PulseDeck shell
 
-- [x] Analyze supplied full-player reference screenshots as interaction patterns only.
-- [x] Define original FARIC PulseDeck visual/UX language.
-- [x] Define shared local/YTM playback architecture.
-- [ ] Convert current single-screen prototype into reusable player-model/player-core/player-ui boundaries.
+- [x] Create v0.2.0 release/QA/diagram skeleton before feature code.
+- [ ] Replace temporary main screen with Library landing shell.
 - [ ] Add persistent PulseDock mini-player.
-- [ ] Add full Now Playing screen.
-- [ ] Add local library scanner and media index.
-- [ ] Add Library Worlds: tracks/folders/albums/artists/genres/years.
-- [ ] Add queue, shuffle, repeat, favorites and multi-select Action Shelf.
-- [ ] Add unified search.
-- [ ] Add Tone Lab EQ foundation.
-- [ ] Add Scene Lab.
-- [ ] Define versioned Android library handoff for YTM.
-- [ ] Implement official YouTube embedded backend in YTM as a separate, explicitly tested phase.
+- [ ] Add full Now Playing screen using PulseCore visualizer.
+- [ ] Add seek + elapsed/total controls.
+- [ ] Preserve file picker + playback + audio-reactive analysis.
+- [ ] CI build/test PASS for v0.2.0 source.
+- [ ] Download signed v0.2.0 APK.
+- [ ] Phone QA: Library → pick track → PulseDock → Now Playing.
+- [ ] Phone QA: seek/play/pause/reactive scene.
+- [ ] Phone QA: rotation + Back lifecycle.
+- [ ] Record findings and close v0.2.0 shell scope.
+
+## Next player phases
+
+- [ ] Local media scanner and durable library index.
+- [ ] Library Worlds: tracks/folders/albums/artists/genres/years.
+- [ ] Queue + previous/next + shuffle/repeat.
+- [ ] Favorites and multi-select Action Shelf.
+- [ ] Unified search.
+- [ ] Tone Lab EQ foundation.
+- [ ] Scene Lab background/preset controls.
+- [ ] Versioned reusable player library for YTM.
+- [ ] Official YouTube embedded backend inside YTM.
 
 ## Later
 
 - [ ] Procedural shader backgrounds.
-- [ ] Particle field.
-- [ ] Multiple presets.
-- [ ] Microphone input mode.
-- [ ] AI-generated image backgrounds.
-- [ ] AI-assisted scene generation.
-- [ ] Recording/export of visualizer video.
+- [ ] Particles.
+- [ ] AI-generated scenes.
+- [ ] Recording/export.

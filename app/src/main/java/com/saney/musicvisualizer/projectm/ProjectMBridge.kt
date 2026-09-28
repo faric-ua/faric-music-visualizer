@@ -38,6 +38,12 @@ object ProjectMBridge {
         if (active) nativeRender()
     }
 
+    fun loadPreset(path: String, smoothTransition: Boolean = true) {
+        if (active && path.isNotBlank()) {
+            nativeLoadPreset(path, smoothTransition)
+        }
+    }
+
     fun nextPreset() {
         if (active) nativeNextPreset()
     }
@@ -93,6 +99,7 @@ object ProjectMBridge {
         high: Float,
         beat: Float,
     )
+    private external fun nativeLoadPreset(path: String, smoothTransition: Boolean)
     private external fun nativeSetAutoPresetSwitching(enabled: Boolean)
     private external fun nativeSetForegroundSample(sampleId: Int)
     private external fun nativeNextPreset()

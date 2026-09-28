@@ -32,3 +32,8 @@ Next:
 5. wait for exact signed Android build PASS;
 6. download exact APK with item 8;
 7. install and perform first playback/beat/rotation phone QA.
+
+
+Latest UX adjustment:
+- menu item 8 downloads the exact current-commit APK into a versioned folder under Android Download and then opens that folder;
+- target folder: `/storage/emulated/0/Download/FARIC-Music-Visualizer-vX.Y.Z-build/`.

@@ -1,0 +1,41 @@
+# Android / Gradle
+.gradle/
+**/build/
+local.properties
+*.apk
+*.aab
+*.apks
+
+# IDE
+.idea/
+*.iml
+
+# Signing / secrets
+*.jks
+*.keystore
+*.jks.b64
+*.p12
+*.pfx
+*.pem
+*.key
+.env
+.env.*
+secrets.properties
+release-signing.properties
+
+# Python / generated
+__pycache__/
+*.pyc
+
+# OS / editors
+.DS_Store
+Thumbs.db
+*.swp
+
+# Local references and large media
+reference-media/
+*.mp4
+*.mov
+*.mkv
+*.wav
+*.flac

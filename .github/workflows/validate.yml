@@ -1,0 +1,45 @@
+name: Validate
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+  pull_request:
+
+concurrency:
+  group: validate-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Shell syntax
+        shell: bash
+        run: |
+          set -euo pipefail
+          bash -n scripts/termux-menu.sh
+          bash -n tools/install_termux_aliases.sh
+          bash -n tools/install_termux_widget.sh
+
+      - name: Repository contracts
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f START_HERE_ASSISTANT.md
+          test -f CURRENT_HANDOFF.md
+          test -f ACTIVE_PLAN.md
+          test -f docs/product/PRODUCT_VISION.md
+          test -f docs/architecture/ARCHITECTURE.md
+          test -f docs/assistant-kit/AUDIO_VISUAL_CONTRACT.md
+          test -f docs/v.0.1.0/RELEASE_META.json
+          ! grep -RIn \
+            --exclude-dir=.git \
+            -E 'BEGIN (RSA |OPENSSH |EC )?PRIVATE KEY|ghp_|github_pat_' \
+            ./

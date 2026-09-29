@@ -37,6 +37,7 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
     private var currentSessionId = C.AUDIO_SESSION_ID_UNSET
     private var analysisPermissionGranted = false
     private var trackName: String? = null
+    private var trackUri: Uri? = null
     private var status = "Оберіть локальний аудіофайл"
     private var analysisActive = false
     var listener: Listener? = null
@@ -86,11 +87,15 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
 
     fun load(uri: Uri, displayName: String) {
         trackName = displayName
+        trackUri = uri
         status = "Завантаження…"
         player.setMediaItem(MediaItem.fromUri(uri))
         player.prepare()
         emitCurrentState()
     }
+
+    fun currentTrackUri(): Uri? =
+        trackUri
 
     fun play() {
         if (trackName != null) player.play()

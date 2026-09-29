@@ -234,3 +234,14 @@ Phone evaluation mode:
 - The transition veil reaches 88% opacity and stays over slow loads, making them look intentional instead of frozen.
 - Repeated NEXT, TOP/ALL and rating actions are guarded during the transition; FG remains independent.
 - Phone QA should verify manual NEXT, AUTO, and HEAVY preset transitions.
+
+
+## v0.6.5 offline export analysis
+
+- OfflineAudioAnalyzer decodes the selected local audio via MediaExtractor + MediaCodec.
+- PCM is reduced to mono and analyzed with a 2048-point FFT / 1024-sample hop.
+- Timeline contains amplitude, bass 35–180 Hz, mid 180–2000 Hz, high 2000–10000 Hz and adaptive beat strength.
+- OfflineAnalysisResult.signalAt(timeMs) is now the deterministic export signal source.
+- Export Lab can analyze the current track and PNG proof uses offline signal when available.
+- Analysis is currently in-memory only and is invalidated when a new track is chosen.
+- Next implementation step after phone verification: render a short frame sequence and encode H.264, then mux audio.

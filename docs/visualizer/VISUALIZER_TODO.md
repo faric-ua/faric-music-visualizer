@@ -138,3 +138,27 @@ Phone acceptance must include:
 - [ ] Add H.264 MP4 export with audio mux.
 - [ ] Export 9:16 / 16:9 / 1:1 / 4:5.
 - [ ] Preview/export parity test.
+
+
+## v0.6.0 — Music Video Creator foundation
+
+- [x] Add PlaybackTheme registry and common theme metadata.
+- [x] Add MusicVideoProject model with 9:16 / 16:9 / 1:1 / 4:5 profiles.
+- [x] Add Hero Pack 1 FG: Neon Emblem.
+- [x] Add Hero Pack 1 FG: Energy Core.
+- [x] Add Hero Pack 1 FG: Orbital Crown.
+- [x] Add Hero Pack 1 FG: Star Seed.
+- [x] Add Hero Pack 1 FG: Wave Idol.
+- [x] Keep Pulse Rays / Orbit Rings / Spectrum Halo.
+- [x] Replace physical ~4,898 TOP copy with persistent indexes.
+- [x] Reduce default projectM pool to indexed 1,200 seed presets.
+- [x] Keep ALL 9,795 available without duplicate preset files.
+- [x] Remove normal startup recursive count of 9k preset files.
+- [x] Document future .faricpack delivery model.
+- [ ] Phone migration/storage PASS.
+- [ ] Phone review all 8 FG samples.
+- [ ] Measure per-preset projectM load/compile latency.
+- [ ] Mark/avoid consistently heavy projectM presets.
+- [ ] Add user-facing theme picker.
+- [ ] Implement standalone Neon Emblem PlaybackTheme.
+- [ ] Implement first deterministic export proof.

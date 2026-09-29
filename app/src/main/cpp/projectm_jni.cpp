@@ -1263,7 +1263,7 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetSignal(
         );
 }
 
-extern "C" JNIEXPORT void JNICALL
+extern "C" JNIEXPORT jlong JNICALL
 Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeLoadPreset(
         JNIEnv* env,
         jclass,
@@ -1272,7 +1272,7 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeLoadPreset(
     std::lock_guard<std::mutex> lock(g_mutex);
 
     if (!g_projectm || !presetPath) {
-        return;
+        return static_cast<jlong>(-1);
     }
 
     const char* pathChars =
@@ -1282,8 +1282,11 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeLoadPreset(
         );
 
     if (!pathChars) {
-        return;
+        return static_cast<jlong>(-1);
     }
+
+    const auto started =
+        std::chrono::steady_clock::now();
 
     projectm_set_preset_locked(
         g_projectm,
@@ -1296,10 +1299,26 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeLoadPreset(
         smoothTransition == JNI_TRUE
     );
 
+    const auto finished =
+        std::chrono::steady_clock::now();
+
+    const auto loadMs =
+        std::chrono::duration_cast<
+            std::chrono::milliseconds
+        >(finished - started).count();
+
+    LOGI(
+        "preset load %lld ms · %s",
+        static_cast<long long>(loadMs),
+        pathChars
+    );
+
     env->ReleaseStringUTFChars(
         presetPath,
         pathChars
     );
+
+    return static_cast<jlong>(loadMs);
 }
 
 extern "C" JNIEXPORT void JNICALL

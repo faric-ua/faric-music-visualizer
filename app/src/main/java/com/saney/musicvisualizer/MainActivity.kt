@@ -32,22 +32,32 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.util.UnstableApi
 import com.saney.musicvisualizer.analysis.SceneSignal
+import com.saney.musicvisualizer.export.ExportFrameProof
 import com.saney.musicvisualizer.playback.PlaybackController
 import com.saney.musicvisualizer.playback.PlaybackSnapshot
 import com.saney.musicvisualizer.scene.SceneOrchestrator
 import com.saney.musicvisualizer.scene.SceneSpec
+import com.saney.musicvisualizer.theme.ExportAspectRatio
+import com.saney.musicvisualizer.theme.MusicVideoProject
 import com.saney.musicvisualizer.theme.PlaybackThemeId
 import com.saney.musicvisualizer.theme.PlaybackThemeRegistry
 import com.saney.musicvisualizer.theme.PlaybackThemeStore
+import com.saney.musicvisualizer.theme.ThemeInput
 import com.saney.musicvisualizer.ui.HeroThemeView
 import com.saney.musicvisualizer.ui.PulseMiniView
 import com.saney.musicvisualizer.ui.ReactiveSceneView
 import java.util.Locale
+import kotlin.concurrent.thread
 
 @UnstableApi
 class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
-    private enum class Screen { LIBRARY, NOW_PLAYING, THEME_PICKER }
+    private enum class Screen {
+        LIBRARY,
+        NOW_PLAYING,
+        THEME_PICKER,
+        EXPORT_LAB,
+    }
 
     private lateinit var controller: PlaybackController
     private lateinit var sceneOrchestrator: SceneOrchestrator
@@ -56,6 +66,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var selectedThemeId = PlaybackThemeId.VISUALIZER
     private var screen = Screen.LIBRARY
     private var latestSnapshot = PlaybackSnapshot()
+    private var latestSignal =
+        SceneSignal(
+            amplitude = 0f,
+            bass = 0f,
+            mid = 0f,
+            high = 0f,
+            beatStrength = 0f,
+        )
+    private var exportAspectRatio =
+        ExportAspectRatio.VERTICAL_9_16
 
     private var sceneView: ReactiveSceneView? = null
     private var heroThemeView: HeroThemeView? = null
@@ -117,7 +137,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         onBackPressedDispatcher.addCallback(this) {
             when (screen) {
                 Screen.NOW_PLAYING -> showLibrary()
-                Screen.THEME_PICKER -> {
+                Screen.THEME_PICKER,
+                Screen.EXPORT_LAB,
+                -> {
                     if (latestSnapshot.trackName != null) {
                         showNowPlaying()
                     } else {
@@ -226,6 +248,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     override fun onSceneSignal(signal: SceneSignal) {
+        latestSignal = signal
         sceneView?.updateSignal(signal)
         heroThemeView?.updateSignal(signal)
         miniPulseView?.updateSignal(signal)
@@ -524,7 +547,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
         )
-        actions.addView(actionTile("•••", "Ще") { toast("Більше дій — наступний етап") }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        actions.addView(
+            actionTile("⇩", "Export") {
+                showExportLab()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f,
+            ),
+        )
         controls.addView(actions)
 
         controls.addView(
@@ -548,6 +580,271 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         enableImmersiveFullscreen()
         onPlaybackSnapshot(latestSnapshot)
     }
+
+    private fun showExportLab() {
+        screen = Screen.EXPORT_LAB
+        sceneOrchestrator.stop()
+        clearScreenRefs()
+
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(COLOR_BG)
+        }
+        applySafeArea(root)
+
+        val scroll = ScrollView(this).apply {
+            clipToPadding = false
+            setPadding(dp(16), dp(10), dp(16), dp(30))
+        }
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+        header.addView(
+            iconButton("‹") {
+                if (latestSnapshot.trackName != null) {
+                    showNowPlaying()
+                } else {
+                    showLibrary()
+                }
+            },
+        )
+        header.addView(
+            label(
+                "Export Lab",
+                24f,
+                Color.WHITE,
+                true,
+            ),
+            LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f,
+            ).apply {
+                marginStart = dp(10)
+            },
+        )
+        content.addView(header)
+
+        val themeTitle =
+            PlaybackThemeRegistry
+                .byId(selectedThemeId)
+                .title
+
+        content.addView(
+            label(
+                "Тема: $themeTitle\nТрек: ${latestSnapshot.trackName ?: "—"}",
+                15f,
+                Color.WHITE,
+                true,
+            ),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(18)
+            },
+        )
+
+        content.addView(
+            label(
+                "Перший export proof: FARIC рендерить кадр не через screenshot UI, а через детермінований renderer. Це той самий шлях, на якому далі буде MP4.",
+                13f,
+                COLOR_MUTED,
+                false,
+            ),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(10)
+                bottomMargin = dp(18)
+            },
+        )
+
+        content.addView(
+            label("Формат", 18f, Color.WHITE, true),
+        )
+
+        val formats =
+            listOf(
+                ExportAspectRatio.VERTICAL_9_16 to "9:16 · TikTok / Shorts",
+                ExportAspectRatio.LANDSCAPE_16_9 to "16:9 · YouTube",
+                ExportAspectRatio.SQUARE_1_1 to "1:1 · Square",
+                ExportAspectRatio.PORTRAIT_4_5 to "4:5 · Feed",
+            )
+
+        formats.forEach { (ratio, title) ->
+            content.addView(
+                actionPill(
+                    text =
+                        if (ratio == exportAspectRatio) {
+                            "✓  $title"
+                        } else {
+                            title
+                        },
+                    accent =
+                        ratio == exportAspectRatio,
+                ) {
+                    exportAspectRatio = ratio
+                    showExportLab()
+                },
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    dp(52),
+                ).apply {
+                    topMargin = dp(8)
+                },
+            )
+        }
+
+        val exportReady =
+            isDeterministicExportReady(
+                selectedThemeId,
+            )
+
+        content.addView(
+            actionPill(
+                text =
+                    if (exportReady) {
+                        "Зберегти тестовий кадр PNG"
+                    } else {
+                        "Ця тема ще не готова до export proof"
+                    },
+                accent = exportReady,
+            ) {
+                if (exportReady) {
+                    exportProofFrame()
+                } else {
+                    toast("Обери Hero, Vinyl або Cassette")
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(58),
+            ).apply {
+                topMargin = dp(22)
+            },
+        )
+
+        content.addView(
+            label(
+                "Далі: offline audio analysis → кадри по точному timestamp → H.264/AAC MP4. Поточний PNG proof перевіряє саму preview/export-parity основу.",
+                12f,
+                COLOR_MUTED,
+                false,
+            ),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+            },
+        )
+
+        scroll.addView(content)
+        root.addView(scroll)
+        setContentView(root)
+        enableImmersiveFullscreen()
+    }
+
+    private fun exportProofFrame() {
+        val snapshot = latestSnapshot
+        val signal = latestSignal
+        val theme = selectedThemeId
+        val ratio = exportAspectRatio
+
+        if (!isDeterministicExportReady(theme)) {
+            toast("Ця тема ще не підтримує export proof")
+            return
+        }
+
+        toast("Рендерю ${ratio.width}×${ratio.height}…")
+
+        thread(name = "faric-export-frame") {
+            runCatching {
+                val project =
+                    MusicVideoProject(
+                        themeId = theme,
+                        aspectRatio = ratio,
+                        frameRate = 30,
+                    )
+
+                val input =
+                    ThemeInput(
+                        title = snapshot.trackName.orEmpty(),
+                        artist =
+                            if (snapshot.trackName == null) {
+                                ""
+                            } else {
+                                "Невідомий виконавець"
+                            },
+                        durationMs = snapshot.durationMs,
+                        positionMs = snapshot.positionMs,
+                        amplitude = signal.amplitude,
+                        bass = signal.bass,
+                        mid = signal.mid,
+                        high = signal.high,
+                        beat = signal.beatStrength,
+                    )
+
+                val bitmap =
+                    ExportFrameProof.render(
+                        project = project,
+                        input = input,
+                        timeMs = snapshot.positionMs,
+                    )
+
+                val safeTheme =
+                    PlaybackThemeRegistry
+                        .byId(theme)
+                        .title
+                        .replace(" ", "-")
+
+                val uri =
+                    ExportFrameProof.savePng(
+                        context = this,
+                        bitmap = bitmap,
+                        displayName =
+                            "FARIC-$safeTheme-${System.currentTimeMillis()}.png",
+                    )
+
+                bitmap.recycle()
+                uri
+            }.onSuccess { uri ->
+                runOnUiThread {
+                    if (uri != null) {
+                        toast("Готово · Pictures/FARIC")
+                    } else {
+                        toast("Не вдалося зберегти кадр")
+                    }
+                }
+            }.onFailure { error ->
+                runOnUiThread {
+                    toast(
+                        "Export proof: ${error.message ?: error.javaClass.simpleName}",
+                    )
+                }
+            }
+        }
+    }
+
+    private fun isDeterministicExportReady(
+        id: PlaybackThemeId,
+    ): Boolean =
+        id in setOf(
+            PlaybackThemeId.NEON_EMBLEM,
+            PlaybackThemeId.ENERGY_CORE,
+            PlaybackThemeId.ORBITAL_CROWN,
+            PlaybackThemeId.STAR_SEED,
+            PlaybackThemeId.WAVE_IDOL,
+            PlaybackThemeId.VINYL,
+            PlaybackThemeId.CASSETTE,
+        )
 
     private fun showThemePicker() {
         screen = Screen.THEME_PICKER

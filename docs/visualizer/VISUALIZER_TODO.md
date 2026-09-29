@@ -195,3 +195,21 @@ Phone acceptance must include:
 - [ ] Phone review Vinyl/Cassette.
 - [ ] Collect real LOAD distribution and tune heavy threshold.
 - [ ] Next: deterministic export proof.
+
+
+## v0.6.5 — Offline export audio analysis
+
+- [x] Expose current local track URI to export pipeline.
+- [x] Decode local audio with MediaExtractor + MediaCodec.
+- [x] Convert decoded PCM to mono.
+- [x] Add overlapping 2048 FFT / 1024 hop analysis.
+- [x] Produce amplitude / bass / mid / high bands.
+- [x] Add adaptive beat impulse timeline.
+- [x] Add OfflineAnalysisResult.signalAt(timeMs).
+- [x] Wire offline analysis into Export Lab.
+- [x] Use offline signal for deterministic PNG export proof when available.
+- [ ] Phone-test MP3/M4A decoding.
+- [ ] Add persistent analysis cache.
+- [ ] Render short frame sequence from offline timeline.
+- [ ] Encode first H.264 clip.
+- [ ] Mux original audio into MP4.

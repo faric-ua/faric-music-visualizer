@@ -125,8 +125,8 @@ Phone acceptance must include:
 - [x] Record Cassette / Vinyl / Portrait Halo references.
 - [x] Record Glass Core / Crystal Pulse reference from 332877.mp4.
 - [x] Record Neon Emblem / Energy Crown reference from 332878.mp4.
-- [ ] Create common PlaybackTheme contract.
-- [ ] Add theme registry and picker.
+- [x] Create common PlaybackTheme contract.
+- [x] Add theme registry and picker.
 - [ ] Prototype Portrait Halo.
 - [ ] Prototype Vinyl.
 - [ ] Prototype Cassette.
@@ -162,3 +162,20 @@ Phone acceptance must include:
 - [ ] Add user-facing theme picker.
 - [ ] Implement standalone Neon Emblem PlaybackTheme.
 - [ ] Implement first deterministic export proof.
+
+
+## v0.6.1 — Standalone Hero Themes
+
+- [x] Persist selected playback theme.
+- [x] Add user-facing Playback Theme picker.
+- [x] Add standalone HeroThemeView independent from projectM.
+- [x] Make Neon Emblem selectable in Now Playing.
+- [x] Make Energy Core selectable in Now Playing.
+- [x] Make Orbital Crown selectable in Now Playing.
+- [x] Make Star Seed selectable in Now Playing.
+- [x] Make Wave Idol selectable in Now Playing.
+- [x] Keep original Visualizer selectable.
+- [ ] Android CI PASS for v0.6.1.
+- [ ] Phone visual review for five Hero Themes.
+- [ ] Phone verify no playback restart when switching themes.
+- [ ] Next: deterministic theme frame-state contract for export parity.

@@ -245,3 +245,13 @@ Phone evaluation mode:
 - Export Lab can analyze the current track and PNG proof uses offline signal when available.
 - Analysis is currently in-memory only and is invalidated when a new track is chosen.
 - Next implementation step after phone verification: render a short frame sequence and encode H.264, then mux audio.
+
+
+## v0.6.6 first H.264 proof
+
+- Export Lab can now render a 3-second silent H.264 MP4 proof from OfflineAnalysisResult.
+- Each frame uses exact signalAt(timestamp), not live Visualizer capture.
+- Proof uses 15 fps and scales the long edge to <=960 px for first-device correctness testing.
+- Runtime AVC encoder discovery supports YUV420 planar/semi-planar/flexible input.
+- Output is written by MediaMuxer and published to Movies/FARIC.
+- Audio is intentionally not present yet; next step is AAC/audio mux.

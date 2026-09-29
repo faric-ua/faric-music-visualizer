@@ -64,3 +64,16 @@ Selected Playback Theme is remembered across app restarts.
 - create deterministic time-based renderer contract;
 - make Neon Emblem the first exportable scene;
 - then add user logo / cover / background image/video.
+
+
+## Adaptive projectM FAST pool
+
+projectM preset load time is now measured inside the native load call and persisted as a smoothed estimate per preset.
+
+- FAST/TOP excludes known presets with estimated load time >= 1200 ms;
+- ALL still keeps the full library available;
+- no preset file is deleted;
+- this performance score is independent from 👍/👎/hidden user ratings;
+- LAB status shows LOAD timing and learned HEAVY count.
+
+This is the next optimization step after replacing the old duplicated TOP folder with the 1,200-item index.

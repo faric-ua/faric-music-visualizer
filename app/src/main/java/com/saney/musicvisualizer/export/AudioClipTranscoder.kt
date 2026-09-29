@@ -125,7 +125,7 @@ object AudioClipTranscoder {
                 )
                 setInteger(
                     MediaFormat.KEY_MAX_INPUT_SIZE,
-                    16 * 1024,
+                    64 * 1024,
                 )
             }
 
@@ -356,8 +356,12 @@ object AudioClipTranscoder {
                                     endUs
                                 ) {
                                     decoderOutputDone = true
-                                    keepDrainingDecoder = false
                                 }
+
+                                // Give the AAC encoder a chance to drain after each
+                                // decoded PCM buffer instead of filling all input
+                                // buffers in one decoder burst.
+                                keepDrainingDecoder = false
                             }
                         }
                     }

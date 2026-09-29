@@ -24,6 +24,7 @@ class ProjectMActivity : ComponentActivity() {
     private lateinit var status: TextView
     private lateinit var stateStore: ProjectMStateStore
     private lateinit var ratingsStore: ProjectMPresetRatingsStore
+    private lateinit var performanceStore: ProjectMPresetPerformanceStore
 
     private var projectMView: ProjectMView? = null
     private var downloadRunning = false
@@ -51,6 +52,7 @@ class ProjectMActivity : ComponentActivity() {
 
         stateStore = ProjectMStateStore(this)
         ratingsStore = ProjectMPresetRatingsStore(this)
+        performanceStore = ProjectMPresetPerformanceStore(this)
         currentForegroundSample = stateStore.foregroundSample
         currentBackgroundMode = stateStore.backgroundMode
         autoEnabled = stateStore.autoEnabled
@@ -319,13 +321,22 @@ class ProjectMActivity : ComponentActivity() {
             "INDEX · ${mode.name} · FG ${currentForegroundSample.label}"
 
         thread(name = "projectm-index-${mode.name.lowercase()}") {
-            val pool =
+            val sourcePool =
                 when (mode) {
                     ProjectMBackgroundMode.TOP ->
                         ProjectMLibraryManager.fastPresetFiles(this)
 
                     ProjectMBackgroundMode.ALL ->
                         ProjectMLibraryManager.allPresetFiles(this)
+                }
+
+            val pool =
+                if (mode == ProjectMBackgroundMode.TOP) {
+                    sourcePool.filterNot {
+                        performanceStore.isHeavy(it)
+                    }
+                } else {
+                    sourcePool
                 }
 
             mainHandler.post {
@@ -502,6 +513,25 @@ class ProjectMActivity : ComponentActivity() {
             view.loadPreset(
                 file = file,
                 smoothTransition = smoothTransition,
+                onLoaded = { loadMs ->
+                    performanceStore.recordLoad(
+                        file = file,
+                        loadMs = loadMs,
+                    )
+
+                    if (
+                        loadMs >=
+                        ProjectMPresetPerformanceStore
+                            .HEAVY_PRESET_MS
+                    ) {
+                        status.text =
+                            "HEAVY ${loadMs}ms · ${file.nameWithoutExtension.take(28)} · у FAST буде пропущено"
+                    } else {
+                        updateStatus(
+                            lastLoadMs = loadMs,
+                        )
+                    }
+                },
             )
 
             displayedPreset = file
@@ -624,7 +654,9 @@ class ProjectMActivity : ComponentActivity() {
         mainHandler.removeCallbacks(autoRunnable)
     }
 
-    private fun updateStatus() {
+    private fun updateStatus(
+        lastLoadMs: Long? = null,
+    ) {
         val mode =
             if (autoEnabled) "AUTO"
             else "MANUAL"
@@ -651,11 +683,20 @@ class ProjectMActivity : ComponentActivity() {
         val presetName =
             current
                 ?.nameWithoutExtension
-                ?.take(34)
+                ?.take(28)
                 ?: "—"
 
+        val loadPart =
+            lastLoadMs
+                ?.takeIf { it >= 0L }
+                ?.let { " · LOAD ${it}ms" }
+                .orEmpty()
+
+        val heavyCount =
+            performanceStore.heavyCount()
+
         status.text =
-            "$mode · ${currentBackgroundMode.name} $visibleCount · PRELOAD $queueSize/3 · ${ratingSymbol(rating)} $presetName · FG ${currentForegroundSample.label}"
+            "$mode · ${currentBackgroundMode.name} $visibleCount · PRELOAD $queueSize/3 · HEAVY $heavyCount · ${ratingSymbol(rating)} $presetName$loadPart · FG ${currentForegroundSample.label}"
     }
 
     private fun ratingSymbol(

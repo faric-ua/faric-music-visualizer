@@ -28,6 +28,7 @@ object ShortVideoExportProof {
         val width: Int,
         val height: Int,
         val durationMs: Long,
+        val hasAudio: Boolean,
     )
 
     private const val MIME = "video/avc"
@@ -37,6 +38,7 @@ object ShortVideoExportProof {
 
     fun export(
         context: Context,
+        sourceAudioUri: Uri,
         project: MusicVideoProject,
         analysis: OfflineAnalysisResult,
         title: String,
@@ -70,7 +72,7 @@ object ShortVideoExportProof {
                     ).toInt(),
             )
 
-        val temp =
+        val videoTemp =
             File(
                 context.cacheDir,
                 "faric-proof-${System.currentTimeMillis()}.mp4",
@@ -119,7 +121,7 @@ object ShortVideoExportProof {
 
         val muxer =
             MediaMuxer(
-                temp.absolutePath,
+                videoTemp.absolutePath,
                 MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
             )
 
@@ -376,7 +378,7 @@ object ShortVideoExportProof {
                 onProgress(
                     (
                         (frameIndex + 1) *
-                            100 /
+                            75 /
                             frameCount
                         ).coerceIn(
                         0,
@@ -419,7 +421,7 @@ object ShortVideoExportProof {
                 // Drain until EOS.
             }
 
-            onProgress(100)
+            onProgress(78)
         } finally {
             bitmap.recycle()
 
@@ -436,23 +438,58 @@ object ShortVideoExportProof {
             muxer.release()
         }
 
-        val uri =
-            publishMp4(
-                context = context,
-                source = temp,
-                displayName =
-                    "FARIC-proof-${System.currentTimeMillis()}.mp4",
+        val audioTemp =
+            File(
+                context.cacheDir,
+                "faric-proof-audio-${System.currentTimeMillis()}.m4a",
             )
 
-        temp.delete()
+        val muxedTemp =
+            File(
+                context.cacheDir,
+                "faric-proof-av-${System.currentTimeMillis()}.mp4",
+            )
 
-        return Result(
-            uri = uri,
-            frameCount = frameCount,
-            width = width,
-            height = height,
-            durationMs = durationMs,
-        )
+        try {
+            AudioClipTranscoder.transcodeToAacMp4(
+                context = context,
+                sourceUri = sourceAudioUri,
+                startMs = startMs,
+                durationMs = durationMs,
+                outputFile = audioTemp,
+            )
+
+            onProgress(92)
+
+            Mp4AvMuxer.mux(
+                videoFile = videoTemp,
+                audioFile = audioTemp,
+                outputFile = muxedTemp,
+            )
+
+            onProgress(100)
+
+            val uri =
+                publishMp4(
+                    context = context,
+                    source = muxedTemp,
+                    displayName =
+                        "FARIC-proof-${System.currentTimeMillis()}.mp4",
+                )
+
+            return Result(
+                uri = uri,
+                frameCount = frameCount,
+                width = width,
+                height = height,
+                durationMs = durationMs,
+                hasAudio = true,
+            )
+        } finally {
+            videoTemp.delete()
+            audioTemp.delete()
+            muxedTemp.delete()
+        }
     }
 
     private fun findEncoder():

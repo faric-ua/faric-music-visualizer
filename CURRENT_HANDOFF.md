@@ -255,3 +255,13 @@ Phone evaluation mode:
 - Runtime AVC encoder discovery supports YUV420 planar/semi-planar/flexible input.
 - Output is written by MediaMuxer and published to Movies/FARIC.
 - Audio is intentionally not present yet; next step is AAC/audio mux.
+
+
+## v0.6.7 audible MP4 proof
+
+- FARIC now transcodes the selected local audio range to AAC-LC 160 kbps and muxes it with the deterministic H.264 proof.
+- Export proof remains 3 seconds / 15 fps / long edge <=960 px until phone correctness is confirmed.
+- Audio decode accepts PCM16 and PCM float output, then encodes AAC before final AV mux.
+- Final proof is published to Movies/FARIC and should contain the matching music segment from the same source timestamp range.
+- Next phone checks: MP3/M4A compatibility, A/V sync, no initial silence, no color corruption, export duration.
+- After PASS: move to 30 fps, higher resolution, arbitrary range, then full-track export.

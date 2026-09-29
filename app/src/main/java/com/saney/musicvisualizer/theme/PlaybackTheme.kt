@@ -150,6 +150,20 @@ object PlaybackThemeRegistry {
             PlaybackThemeSpec(
                 id = PlaybackThemeId.WAVE_IDOL,
                 title = "Wave Idol",
+                subtitle = "Органічний центральний силует із музичних хвиль",
+                family = ThemeFamily.HERO,
+                capabilities = setOf(
+                    ThemeCapability.CUSTOM_LOGO,
+                    ThemeCapability.BACKGROUND_IMAGE,
+                    ThemeCapability.BACKGROUND_VIDEO,
+                    ThemeCapability.REACTIVE_BANDS,
+                    ThemeCapability.TRACK_METADATA,
+                ),
+                previewOrder = 65,
+            ),
+            PlaybackThemeSpec(
+                id = PlaybackThemeId.WAVE_IDOL,
+                title = "Wave Idol",
                 subtitle = "Живий центральний силует із хвиль та аури",
                 family = ThemeFamily.HERO,
                 capabilities = setOf(

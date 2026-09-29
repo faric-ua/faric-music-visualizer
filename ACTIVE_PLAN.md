@@ -272,3 +272,15 @@ Current v0.3.0 source commits:
 - [ ] Phone analysis PASS on real MP3/M4A.
 - [ ] Next: short deterministic H.264 clip.
 - [ ] Then: audio mux → real MP4 music-video proof.
+
+
+## v0.6.6 — First H.264 video proof
+
+- [x] Offline timeline drives every proof frame.
+- [x] Add H.264 MediaCodec encoder proof.
+- [x] Add MediaMuxer MP4 output.
+- [x] Add Export Lab 3-second video action.
+- [x] Save proof under Movies/FARIC.
+- [ ] Android CI PASS for v0.6.6.
+- [ ] Phone H.264 playback/color PASS.
+- [ ] Next: audio mux/AAC.

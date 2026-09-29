@@ -33,6 +33,8 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.util.UnstableApi
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.export.ExportFrameProof
+import com.saney.musicvisualizer.export.OfflineAnalysisResult
+import com.saney.musicvisualizer.export.OfflineAudioAnalyzer
 import com.saney.musicvisualizer.playback.PlaybackController
 import com.saney.musicvisualizer.playback.PlaybackSnapshot
 import com.saney.musicvisualizer.scene.SceneOrchestrator
@@ -77,6 +79,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var exportAspectRatio =
         ExportAspectRatio.VERTICAL_9_16
 
+    private var offlineAnalysis: OfflineAnalysisResult? = null
+    private var offlineAnalysisUri: String? = null
+    private var offlineAnalysisRunning = false
+
     private var sceneView: ReactiveSceneView? = null
     private var heroThemeView: HeroThemeView? = null
     private var miniPulseView: PulseMiniView? = null
@@ -101,6 +107,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             runCatching {
                 contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
             }
+            offlineAnalysis = null
+            offlineAnalysisUri = null
+            offlineAnalysisRunning = false
+
             controller.load(uri, resolveDisplayName(uri))
             controller.play()
             showNowPlaying()
@@ -666,6 +676,79 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
         )
 
+        val currentTrackUri =
+            controller
+                .currentTrackUri()
+                ?.toString()
+
+        val analysisReady =
+            offlineAnalysis != null &&
+                offlineAnalysisUri ==
+                currentTrackUri
+
+        val analysisText =
+            when {
+                offlineAnalysisRunning ->
+                    "Offline analysis · обробка…"
+
+                analysisReady ->
+                    "✓ Offline analysis · ${offlineAnalysis?.signals?.size ?: 0} кадрів сигналу"
+
+                currentTrackUri == null ->
+                    "Offline analysis · спочатку обери трек"
+
+                else ->
+                    "Offline analysis · ще не виконано"
+            }
+
+        content.addView(
+            label(
+                analysisText,
+                13f,
+                if (analysisReady) {
+                    COLOR_ACCENT_CYAN
+                } else {
+                    COLOR_MUTED
+                },
+                analysisReady,
+            ),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                bottomMargin = dp(8)
+            },
+        )
+
+        content.addView(
+            actionPill(
+                text =
+                    when {
+                        offlineAnalysisRunning ->
+                            "Аналізую трек…"
+
+                        analysisReady ->
+                            "Повторити offline analysis"
+
+                        else ->
+                            "Проаналізувати трек офлайн"
+                    },
+                accent =
+                    currentTrackUri != null &&
+                        !offlineAnalysisRunning,
+            ) {
+                if (!offlineAnalysisRunning) {
+                    runOfflineAnalysis()
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(54),
+            ).apply {
+                bottomMargin = dp(20)
+            },
+        )
+
         content.addView(
             label("Формат", 18f, Color.WHITE, true),
         )
@@ -752,9 +835,83 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         enableImmersiveFullscreen()
     }
 
+    private fun runOfflineAnalysis() {
+        val uri =
+            controller.currentTrackUri()
+
+        if (uri == null) {
+            toast("Спочатку обери локальний трек")
+            return
+        }
+
+        if (offlineAnalysisRunning) {
+            return
+        }
+
+        offlineAnalysisRunning = true
+        offlineAnalysis = null
+        offlineAnalysisUri = null
+
+        if (screen == Screen.EXPORT_LAB) {
+            showExportLab()
+        }
+
+        toast("Offline analysis запущено")
+
+        thread(name = "faric-offline-audio-analysis") {
+            runCatching {
+                OfflineAudioAnalyzer.analyze(
+                    context = this,
+                    uri = uri,
+                )
+            }.onSuccess { result ->
+                offlineAnalysis = result
+                offlineAnalysisUri =
+                    uri.toString()
+                offlineAnalysisRunning = false
+
+                runOnUiThread {
+                    toast(
+                        "Аналіз готовий · ${result.signals.size} сигналів",
+                    )
+
+                    if (screen == Screen.EXPORT_LAB) {
+                        showExportLab()
+                    }
+                }
+            }.onFailure { error ->
+                offlineAnalysisRunning = false
+
+                runOnUiThread {
+                    toast(
+                        "Offline analysis: ${error.message ?: error.javaClass.simpleName}",
+                    )
+
+                    if (screen == Screen.EXPORT_LAB) {
+                        showExportLab()
+                    }
+                }
+            }
+        }
+    }
+
     private fun exportProofFrame() {
         val snapshot = latestSnapshot
-        val signal = latestSignal
+        val currentUriKey =
+            controller
+                .currentTrackUri()
+                ?.toString()
+
+        val signal =
+            offlineAnalysis
+                ?.takeIf {
+                    offlineAnalysisUri ==
+                        currentUriKey
+                }
+                ?.signalAt(
+                    snapshot.positionMs,
+                )
+                ?: latestSignal
         val theme = selectedThemeId
         val ratio = exportAspectRatio
 

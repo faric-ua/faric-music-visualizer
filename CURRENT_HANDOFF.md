@@ -225,3 +225,12 @@ Phone evaluation mode:
 - >=1200ms is currently HEAVY; FAST/TOP filters learned heavy presets, ALL does not;
 - LAB status exposes LOAD and HEAVY count for phone diagnosis;
 - next milestone is deterministic scene-at-time evaluation and first MP4 export proof.
+
+
+## v0.6.4 smooth projectM transitions
+
+- FARIC now fades between projectM presets with a 170 ms fade-out and 320 ms fade-in.
+- The next preset is still direct-loaded so LOAD timing remains meaningful and projectM dual-render soft-cut cost stays avoided.
+- The transition veil reaches 88% opacity and stays over slow loads, making them look intentional instead of frozen.
+- Repeated NEXT, TOP/ALL and rating actions are guarded during the transition; FG remains independent.
+- Phone QA should verify manual NEXT, AUTO, and HEAVY preset transitions.

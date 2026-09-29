@@ -763,6 +763,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             PlaybackThemeId.STAR_SEED,
             PlaybackThemeId.WAVE_IDOL,
             PlaybackThemeId.VINYL,
+            PlaybackThemeId.CASSETTE,
             -> true
 
             else -> false

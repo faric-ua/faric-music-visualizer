@@ -213,3 +213,19 @@ Phone acceptance must include:
 - [ ] Render short frame sequence from offline timeline.
 - [ ] Encode first H.264 clip.
 - [ ] Mux original audio into MP4.
+
+
+## v0.6.6 — First H.264 video proof
+
+- [x] Render short frame sequence from offline timeline.
+- [x] Discover AVC encoder at runtime.
+- [x] Support YUV420 planar / semi-planar / flexible input.
+- [x] Convert deterministic Canvas frames to encoder YUV.
+- [x] Encode 3-second H.264 proof at 15 fps.
+- [x] Write MP4 through MediaMuxer.
+- [x] Publish proof to Movies/FARIC.
+- [ ] Phone-test color correctness on Samsung.
+- [ ] Phone-test all aspect ratios.
+- [ ] Add AAC audio path / mux.
+- [ ] Increase export profile toward 1080p 30 fps.
+- [ ] Extend from 3-second proof to arbitrary clip range/full song.

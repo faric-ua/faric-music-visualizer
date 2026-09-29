@@ -125,32 +125,12 @@ object Mp4AvMuxer {
         muxer: MediaMuxer,
         targetTrack: Int,
     ) {
-        val format =
-            extractor.getTrackFormat(
-                extractor.sampleTrackIndex
-                    .takeIf { it >= 0 }
-                    ?: 0,
-            )
-
-        val maxInputSize =
-            if (
-                format.containsKey(
-                    MediaFormat.KEY_MAX_INPUT_SIZE,
-                )
-            ) {
-                format.getInteger(
-                    MediaFormat.KEY_MAX_INPUT_SIZE,
-                )
-                    .coerceAtLeast(
-                        256 * 1024,
-                    )
-            } else {
-                1024 * 1024
-            }
-
+        // Encoded proof samples are small, but use a generous reusable
+        // buffer so this function does not depend on track ordering or optional
+        // KEY_MAX_INPUT_SIZE metadata.
         val buffer =
             ByteBuffer.allocate(
-                maxInputSize,
+                4 * 1024 * 1024,
             )
 
         val info =

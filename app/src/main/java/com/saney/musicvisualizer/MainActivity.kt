@@ -370,12 +370,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         applySafeArea(root)
 
-        sceneView = ReactiveSceneView(this).also { view ->
-            view.setScene(currentScene)
-            root.addView(
-                view,
-                FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT),
-            )
+        if (isStandaloneHeroTheme(selectedThemeId)) {
+            heroThemeView = HeroThemeView(this).also { view ->
+                view.setTheme(selectedThemeId)
+                root.addView(
+                    view,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                    ),
+                )
+            }
+        } else {
+            sceneView = ReactiveSceneView(this).also { view ->
+                view.setScene(currentScene)
+                root.addView(
+                    view,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                    ),
+                )
+            }
         }
 
         val header = LinearLayout(this).apply {
@@ -462,11 +478,27 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
         }
-        actions.addView(actionTile("≡", "Черга") { toast("Queue — наступний етап") }, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f))
+        actions.addView(
+            actionTile("◉", "Тема") { showThemePicker() },
+            LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f,
+            ),
+        )
         actions.addView(
             actionTile("⤨", "Shuffle") {
-                val next = sceneOrchestrator.shuffleNow()
-                toast("Сцена: " + next.visualizerType.name.lowercase().replace('_', ' '))
+                if (selectedThemeId == PlaybackThemeId.VISUALIZER) {
+                    val next = sceneOrchestrator.shuffleNow()
+                    toast(
+                        "Сцена: " +
+                            next.visualizerType.name
+                                .lowercase()
+                                .replace('_', ' '),
+                    )
+                } else {
+                    toast("Shuffle для Hero Themes — наступним кроком")
+                }
             },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
         )
@@ -735,6 +767,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun clearScreenRefs() {
         sceneView = null
+        heroThemeView = null
         miniPulseView = null
         dock = null
         dockTitle = null

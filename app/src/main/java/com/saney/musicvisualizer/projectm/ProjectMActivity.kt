@@ -198,8 +198,8 @@ class ProjectMActivity : ComponentActivity() {
                         ProjectMPresetRating.HIDDEN
                 }
         val quickFallback =
-            firstMilk(ProjectMLibraryManager.testPresetDir(this))
-                ?: firstMilk(ProjectMLibraryManager.fullPresetDir(this))
+            ProjectMLibraryManager.firstIndexedPreset(this)
+                ?: firstMilk(ProjectMLibraryManager.testPresetDir(this))
 
         val initial = remembered ?: quickFallback
 
@@ -319,26 +319,14 @@ class ProjectMActivity : ComponentActivity() {
             "INDEX · ${mode.name} · FG ${currentForegroundSample.label}"
 
         thread(name = "projectm-index-${mode.name.lowercase()}") {
-            val root =
+            val pool =
                 when (mode) {
                     ProjectMBackgroundMode.TOP ->
-                        ProjectMLibraryManager.topPresetDir(this)
+                        ProjectMLibraryManager.fastPresetFiles(this)
 
                     ProjectMBackgroundMode.ALL ->
-                        ProjectMLibraryManager.fullPresetDir(this)
+                        ProjectMLibraryManager.allPresetFiles(this)
                 }
-
-            val pool =
-                root
-                    .walkTopDown()
-                    .filter {
-                        it.isFile &&
-                            it.extension.equals(
-                                "milk",
-                                ignoreCase = true,
-                            )
-                    }
-                    .toList()
 
             mainHandler.post {
                 if (

@@ -202,6 +202,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowPlay?.text = if (snapshot.isPlaying) "Ⅱ" else "▶"
         sceneView?.setPlaying(snapshot.isPlaying)
         heroThemeView?.setPlaying(snapshot.isPlaying)
+        heroThemeView?.setMetadata(
+            title = snapshot.trackName,
+            artist = if (snapshot.trackName == null) null else "Невідомий виконавець",
+        )
 
         if (
             screen == Screen.NOW_PLAYING &&
@@ -758,6 +762,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             PlaybackThemeId.ORBITAL_CROWN,
             PlaybackThemeId.STAR_SEED,
             PlaybackThemeId.WAVE_IDOL,
+            PlaybackThemeId.VINYL,
             -> true
 
             else -> false

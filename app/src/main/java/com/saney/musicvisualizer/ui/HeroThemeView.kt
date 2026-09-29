@@ -44,6 +44,9 @@ class HeroThemeView(context: Context) : View(context) {
 
     private var playing = false
     private var lastFrameMs = SystemClock.elapsedRealtime()
+    private var vinylRotation = 0f
+    private var trackTitle = "FARIC"
+    private var artistName = ""
 
     fun setTheme(theme: PlaybackThemeId) {
         themeId = theme
@@ -52,6 +55,24 @@ class HeroThemeView(context: Context) : View(context) {
 
     fun setPlaying(value: Boolean) {
         playing = value
+        postInvalidateOnAnimation()
+    }
+
+    fun setMetadata(
+        title: String?,
+        artist: String?,
+    ) {
+        trackTitle =
+            title
+                ?.substringBeforeLast('.')
+                ?.takeIf { it.isNotBlank() }
+                ?: "FARIC"
+
+        artistName =
+            artist
+                ?.takeIf { it.isNotBlank() }
+                ?: ""
+
         postInvalidateOnAnimation()
     }
 
@@ -90,6 +111,9 @@ class HeroThemeView(context: Context) : View(context) {
             targetBass *= 0.90f
             targetMid *= 0.90f
             targetHigh *= 0.90f
+        } else {
+            vinylRotation =
+                (vinylRotation + dt * 34f) % 360f
         }
 
         val w = width.toFloat()
@@ -119,6 +143,9 @@ class HeroThemeView(context: Context) : View(context) {
 
             PlaybackThemeId.WAVE_IDOL ->
                 drawWaveIdol(canvas, cx, cy, minSide, time)
+
+            PlaybackThemeId.VINYL ->
+                drawVinyl(canvas, cx, cy, minSide)
 
             else ->
                 drawNeonEmblem(canvas, cx, cy, minSide, time)
@@ -600,6 +627,170 @@ class HeroThemeView(context: Context) : View(context) {
                 stroke,
             )
         }
+    }
+
+    private fun drawVinyl(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        minSide: Float,
+    ) {
+        val recordRadius =
+            minSide * (
+                0.245f +
+                    bass * 0.016f +
+                    beat * 0.012f
+                )
+
+        drawGlow(
+            canvas,
+            cx,
+            cy,
+            recordRadius * 1.35f,
+            Color.rgb(255, 112, 38),
+            0.08f + bass * 0.13f + beat * 0.11f,
+        )
+
+        fill.color = Color.rgb(6, 7, 10)
+        fill.alpha = 248
+        canvas.drawCircle(
+            cx,
+            cy,
+            recordRadius,
+            fill,
+        )
+
+        repeat(11) { index ->
+            val grooveRadius =
+                recordRadius * (
+                    0.32f +
+                        index * 0.058f
+                    )
+
+            stroke.color =
+                if (index % 2 == 0) {
+                    Color.rgb(44, 49, 55)
+                } else {
+                    Color.rgb(23, 27, 32)
+                }
+
+            stroke.alpha =
+                120 + (high * 45f).toInt()
+            stroke.strokeWidth =
+                minSide * 0.0014f
+
+            canvas.drawCircle(
+                cx,
+                cy,
+                grooveRadius,
+                stroke,
+            )
+        }
+
+        val markerRadius = recordRadius * 0.80f
+        val markerAngle =
+            vinylRotation /
+                180f *
+                PI.toFloat()
+
+        stroke.color = Color.rgb(255, 255, 255)
+        stroke.alpha = 70
+        stroke.strokeWidth = minSide * 0.0025f
+
+        canvas.drawCircle(
+            cx + cosF(markerAngle) * markerRadius,
+            cy + sinF(markerAngle) * markerRadius,
+            minSide * 0.007f,
+            stroke,
+        )
+
+        val labelRadius =
+            recordRadius * (
+                0.31f +
+                    beat * 0.02f
+                )
+
+        fill.shader =
+            RadialGradient(
+                cx,
+                cy,
+                labelRadius,
+                intArrayOf(
+                    Color.rgb(255, 176, 51),
+                    Color.rgb(202, 75, 28),
+                    Color.rgb(83, 18, 15),
+                ),
+                null,
+                Shader.TileMode.CLAMP,
+            )
+
+        canvas.drawCircle(
+            cx,
+            cy,
+            labelRadius,
+            fill,
+        )
+        fill.shader = null
+
+        stroke.color = Color.rgb(255, 216, 125)
+        stroke.alpha = 200
+        stroke.strokeWidth = minSide * 0.0025f
+        canvas.drawCircle(
+            cx,
+            cy,
+            labelRadius * 0.94f,
+            stroke,
+        )
+
+        fill.color = Color.rgb(235, 216, 174)
+        fill.alpha = 255
+        canvas.drawCircle(
+            cx,
+            cy,
+            minSide * 0.010f,
+            fill,
+        )
+
+        val title =
+            trackTitle
+                .replace('_', ' ')
+                .take(22)
+
+        textPaint.color = Color.WHITE
+        textPaint.alpha = 235
+        textPaint.textSize =
+            labelRadius * 0.22f
+
+        canvas.save()
+        canvas.rotate(
+            vinylRotation,
+            cx,
+            cy,
+        )
+
+        canvas.drawText(
+            title,
+            cx,
+            cy - labelRadius * 0.15f,
+            textPaint,
+        )
+
+        textPaint.textSize =
+            labelRadius * 0.14f
+        textPaint.alpha = 190
+
+        canvas.drawText(
+            if (artistName.isBlank()) {
+                "FARIC VINYL"
+            } else {
+                artistName.take(24)
+            },
+            cx,
+            cy + labelRadius * 0.22f,
+            textPaint,
+        )
+
+        canvas.restore()
     }
 
     private fun drawWaveIdol(

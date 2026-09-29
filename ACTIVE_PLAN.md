@@ -206,3 +206,21 @@ Current v0.3.0 source commits:
 - [ ] Android CI PASS for v0.5.3.
 - [ ] Phone rating persistence PASS.
 - [ ] Phone hide/no-delete behavior PASS.
+
+
+## v0.6.0 — Music video creator foundation
+
+- [x] Define product roadmap for song → style → preview → export.
+- [x] Add 10-theme PlaybackTheme registry.
+- [x] Add MusicVideoProject export profile model.
+- [x] Add 5 new reactive hero-center FG samples.
+- [x] Keep previous 3 FG samples.
+- [x] ProjectM Library Index v2: original presets stored once.
+- [x] Default projectM seed pool reduced to 1,200 indexed items.
+- [x] ALL 9,795 remains available by index.
+- [x] v0.5.x duplicated TOP directory removed on migration.
+- [ ] Android CI PASS for v0.6.0.
+- [ ] Phone migration PASS.
+- [ ] Phone Hero Pack 1 visual review.
+- [ ] Next: standalone Neon Emblem theme + theme picker.
+- [ ] Next: deterministic export spike using Media3 Transformer/effect pipeline.

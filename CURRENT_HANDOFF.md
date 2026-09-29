@@ -203,3 +203,14 @@ Phone evaluation mode:
 - visual pack architecture documented for future versioned .faricpack delivery outside the APK;
 - next product step: standalone PlaybackTheme picker/preview, then deterministic export spike;
 - projectM may still have per-preset shader compile latency; measure it separately after phone test.
+
+
+## v0.6.1 standalone hero themes
+
+- Playback Theme picker is now user-facing in MainActivity;
+- selected theme is persisted via PlaybackThemeStore;
+- HeroThemeView renders Neon Emblem, Energy Core, Orbital Crown, Star Seed and Wave Idol independently of projectM;
+- live PlaybackController SceneSignal drives HeroThemeView directly;
+- Visualizer mode still uses ReactiveSceneView and can still open projectM LAB;
+- planned Portrait Halo / Glass Core / Vinyl / Cassette / Poster are visible as coming-soon entries;
+- next architecture task is to split live smoothing from deterministic frame-at-time evaluation so preview and export share the same scene math.

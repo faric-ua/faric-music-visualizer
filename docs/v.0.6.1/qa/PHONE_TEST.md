@@ -26,3 +26,12 @@ Play a bass-heavy track and test:
 - [ ] Select Visualizer and confirm original FARIC scene still works.
 - [ ] projectM button still opens projectM LAB.
 - [ ] Track progress/play/pause stay correct.
+
+
+## Adaptive projectM learning
+- [ ] Open projectM and press NEXT repeatedly.
+- [ ] Status shows `LOAD <n>ms` after a successful switch.
+- [ ] A preset >=1200 ms is reported as HEAVY.
+- [ ] Re-enter TOP/FAST and confirm known heavy presets are excluded from that pool.
+- [ ] ALL still exposes the full library.
+- [ ] 👍/👎/− ratings remain unchanged by performance learning.

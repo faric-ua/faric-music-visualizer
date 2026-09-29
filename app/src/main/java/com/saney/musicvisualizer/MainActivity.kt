@@ -820,13 +820,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 text =
                     when {
                         !exportReady ->
-                            "H.264 proof недоступний для цієї теми"
+                            "MP4 proof недоступний для цієї теми"
 
                         !analysisReady ->
                             "Спочатку виконай offline analysis"
 
                         else ->
-                            "Експортувати 3 с H.264 proof"
+                            "Експортувати 3 с MP4 зі звуком"
                     },
                 accent =
                     exportReady &&
@@ -855,7 +855,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         content.addView(
             label(
-                "PNG proof перевіряє кадр, а H.264 proof уже рендерить 3 секунди відео з offline timeline. Аудіо в цей proof ще не mux-иться — це наступний крок.",
+                "PNG proof перевіряє кадр. MP4 proof рендерить 3 секунди відео з offline timeline, кодує фрагмент музики в AAC і mux-ить звук із H.264.",
                 12f,
                 COLOR_MUTED,
                 false,
@@ -964,12 +964,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             return
         }
 
-        toast("Рендерю 3 с H.264 proof…")
+        toast("Рендерю 3 с H.264 + AAC proof…")
 
         thread(name = "faric-h264-proof") {
             runCatching {
                 ShortVideoExportProof.export(
                     context = this,
+                    sourceAudioUri =
+                        controller.currentTrackUri()
+                            ?: error("Current track URI missing"),
                     project =
                         MusicVideoProject(
                             themeId = theme,
@@ -996,16 +999,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 runOnUiThread {
                     if (result.uri != null) {
                         toast(
-                            "Готово · ${result.width}×${result.height} · ${result.frameCount} кадрів · Movies/FARIC",
+                            "Готово · ${result.width}×${result.height} · ${result.frameCount} кадрів · зі звуком · Movies/FARIC",
                         )
                     } else {
-                        toast("Не вдалося зберегти H.264 proof")
+                        toast("Не вдалося зберегти MP4 proof")
                     }
                 }
             }.onFailure { error ->
                 runOnUiThread {
                     toast(
-                        "H.264 proof: ${error.message ?: error.javaClass.simpleName}",
+                        "MP4 proof: ${error.message ?: error.javaClass.simpleName}",
                     )
                 }
             }

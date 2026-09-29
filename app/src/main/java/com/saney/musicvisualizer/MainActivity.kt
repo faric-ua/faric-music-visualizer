@@ -35,6 +35,7 @@ import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.export.ExportFrameProof
 import com.saney.musicvisualizer.export.OfflineAnalysisResult
 import com.saney.musicvisualizer.export.OfflineAudioAnalyzer
+import com.saney.musicvisualizer.export.ShortVideoExportProof
 import com.saney.musicvisualizer.playback.PlaybackController
 import com.saney.musicvisualizer.playback.PlaybackSnapshot
 import com.saney.musicvisualizer.scene.SceneOrchestrator
@@ -815,8 +816,46 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         content.addView(
+            actionPill(
+                text =
+                    when {
+                        !exportReady ->
+                            "H.264 proof недоступний для цієї теми"
+
+                        !analysisReady ->
+                            "Спочатку виконай offline analysis"
+
+                        else ->
+                            "Експортувати 3 с H.264 proof"
+                    },
+                accent =
+                    exportReady &&
+                        analysisReady &&
+                        !offlineAnalysisRunning,
+            ) {
+                if (
+                    exportReady &&
+                    analysisReady &&
+                    !offlineAnalysisRunning
+                ) {
+                    exportProofVideo()
+                } else if (!analysisReady) {
+                    toast(
+                        "Спочатку проаналізуй трек офлайн",
+                    )
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(58),
+            ).apply {
+                topMargin = dp(10)
+            },
+        )
+
+        content.addView(
             label(
-                "Далі: offline audio analysis → кадри по точному timestamp → H.264/AAC MP4. Поточний PNG proof перевіряє саму preview/export-parity основу.",
+                "PNG proof перевіряє кадр, а H.264 proof уже рендерить 3 секунди відео з offline timeline. Аудіо в цей proof ще не mux-иться — це наступний крок.",
                 12f,
                 COLOR_MUTED,
                 false,
@@ -890,6 +929,84 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     if (screen == Screen.EXPORT_LAB) {
                         showExportLab()
                     }
+                }
+            }
+        }
+    }
+
+    private fun exportProofVideo() {
+        val analysis =
+            offlineAnalysis
+                ?: run {
+                    toast("Спочатку виконай offline analysis")
+                    return
+                }
+
+        val currentUriKey =
+            controller
+                .currentTrackUri()
+                ?.toString()
+
+        if (
+            offlineAnalysisUri !=
+            currentUriKey
+        ) {
+            toast("Offline analysis не відповідає поточному треку")
+            return
+        }
+
+        val snapshot = latestSnapshot
+        val theme = selectedThemeId
+        val ratio = exportAspectRatio
+
+        if (!isDeterministicExportReady(theme)) {
+            toast("Ця тема ще не підтримує H.264 proof")
+            return
+        }
+
+        toast("Рендерю 3 с H.264 proof…")
+
+        thread(name = "faric-h264-proof") {
+            runCatching {
+                ShortVideoExportProof.export(
+                    context = this,
+                    project =
+                        MusicVideoProject(
+                            themeId = theme,
+                            aspectRatio = ratio,
+                            frameRate = 15,
+                        ),
+                    analysis = analysis,
+                    title =
+                        snapshot.trackName.orEmpty(),
+                    artist =
+                        if (snapshot.trackName == null) {
+                            ""
+                        } else {
+                            "Невідомий виконавець"
+                        },
+                    startMs =
+                        snapshot.positionMs
+                            .coerceAtMost(
+                                (analysis.durationMs - 500L)
+                                    .coerceAtLeast(0L),
+                            ),
+                )
+            }.onSuccess { result ->
+                runOnUiThread {
+                    if (result.uri != null) {
+                        toast(
+                            "Готово · ${result.width}×${result.height} · ${result.frameCount} кадрів · Movies/FARIC",
+                        )
+                    } else {
+                        toast("Не вдалося зберегти H.264 proof")
+                    }
+                }
+            }.onFailure { error ->
+                runOnUiThread {
+                    toast(
+                        "H.264 proof: ${error.message ?: error.javaClass.simpleName}",
+                    )
                 }
             }
         }

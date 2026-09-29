@@ -22,6 +22,7 @@ class ProjectMActivity : ComponentActivity() {
 
     private lateinit var root: FrameLayout
     private lateinit var status: TextView
+    private lateinit var transitionVeil: View
     private lateinit var stateStore: ProjectMStateStore
     private lateinit var ratingsStore: ProjectMPresetRatingsStore
     private lateinit var performanceStore: ProjectMPresetPerformanceStore
@@ -40,6 +41,7 @@ class ProjectMActivity : ComponentActivity() {
         mutableMapOf<ProjectMBackgroundMode, List<File>>()
 
     private var catalogGeneration = 0
+    private var presetTransitionRunning = false
 
     private val autoRunnable = Runnable {
         if (autoEnabled) {
@@ -152,6 +154,29 @@ class ProjectMActivity : ComponentActivity() {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM,
+            ),
+        )
+
+        transitionVeil =
+            View(this).apply {
+                setBackgroundColor(
+                    Color.rgb(
+                        2,
+                        6,
+                        10,
+                    ),
+                )
+                alpha = 0f
+                isClickable = false
+                isFocusable = false
+            }
+
+        root.addView(
+            transitionVeil,
+            0,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
 
@@ -296,6 +321,9 @@ class ProjectMActivity : ComponentActivity() {
         mode: ProjectMBackgroundMode,
         auto: Boolean,
     ) {
+        if (presetTransitionRunning) {
+            return
+        }
         currentBackgroundMode = mode
         autoEnabled = auto
 
@@ -456,6 +484,10 @@ class ProjectMActivity : ComponentActivity() {
     }
 
     private fun manualNext() {
+        if (presetTransitionRunning) {
+            return
+        }
+
         if (presetQueue == null) {
             activateMode(
                 mode = currentBackgroundMode,
@@ -503,46 +535,94 @@ class ProjectMActivity : ComponentActivity() {
     ) {
         if (!file.isFile) return
 
+        @Suppress("UNUSED_VARIABLE")
+        val requestedProjectMSmoothCut =
+            smoothTransition
+
         val view = projectMView
 
         if (view == null) {
             showProjectM(file)
-        } else if (
-            displayedPreset?.absolutePath != file.absolutePath
-        ) {
-            view.loadPreset(
-                file = file,
-                smoothTransition = smoothTransition,
-                onLoaded = { loadMs ->
-                    performanceStore.recordLoad(
-                        file = file,
-                        loadMs = loadMs,
-                    )
-
-                    if (
-                        loadMs >=
-                        ProjectMPresetPerformanceStore
-                            .HEAVY_PRESET_MS
-                    ) {
-                        status.text =
-                            "HEAVY ${loadMs}ms · ${file.nameWithoutExtension.take(28)} · у FAST буде пропущено"
-                    } else {
-                        updateStatus(
-                            lastLoadMs = loadMs,
-                        )
-                    }
-                },
-            )
-
-            displayedPreset = file
+            return
         }
 
-        stateStore.lastPresetPath = file.absolutePath
+        if (
+            displayedPreset?.absolutePath ==
+            file.absolutePath
+        ) {
+            return
+        }
+
+        presetTransitionRunning = true
+        displayedPreset = file
+        stateStore.lastPresetPath =
+            file.absolutePath
+
+        status.text =
+            "ПЕРЕХІД · ${file.nameWithoutExtension.take(28)}"
+
+        transitionVeil
+            .animate()
+            .cancel()
+
+        transitionVeil.alpha = 0f
+
+        transitionVeil
+            .animate()
+            .alpha(PRESET_VEIL_ALPHA)
+            .setDuration(PRESET_FADE_OUT_MS)
+            .withEndAction {
+                view.loadPreset(
+                    file = file,
+                    smoothTransition = false,
+                    onLoaded = { loadMs ->
+                        performanceStore.recordLoad(
+                            file = file,
+                            loadMs = loadMs,
+                        )
+
+                        if (
+                            loadMs >=
+                            ProjectMPresetPerformanceStore
+                                .HEAVY_PRESET_MS
+                        ) {
+                            status.text =
+                                "HEAVY ${loadMs}ms · ${file.nameWithoutExtension.take(28)} · у FAST буде пропущено"
+                        } else {
+                            updateStatus(
+                                lastLoadMs = loadMs,
+                            )
+                        }
+
+                        transitionVeil
+                            .animate()
+                            .cancel()
+
+                        transitionVeil
+                            .animate()
+                            .alpha(0f)
+                            .setDuration(PRESET_FADE_IN_MS)
+                            .withEndAction {
+                                presetTransitionRunning = false
+
+                                if (autoEnabled) {
+                                    scheduleAuto()
+                                }
+                            }
+                            .start()
+                    },
+                )
+            }
+            .start()
     }
 
     private fun rateCurrent(
         rating: ProjectMPresetRating,
     ) {
+        if (presetTransitionRunning) {
+            return
+        }
+
         val current =
             displayedPreset
                 ?: return
@@ -793,5 +873,8 @@ class ProjectMActivity : ComponentActivity() {
 
     companion object {
         private const val AUTO_SWITCH_MS = 18_000L
+        private const val PRESET_FADE_OUT_MS = 170L
+        private const val PRESET_FADE_IN_MS = 320L
+        private const val PRESET_VEIL_ALPHA = 0.88f
     }
 }

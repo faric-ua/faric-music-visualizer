@@ -229,3 +229,20 @@ Phone acceptance must include:
 - [ ] Add AAC audio path / mux.
 - [ ] Increase export profile toward 1080p 30 fps.
 - [ ] Extend from 3-second proof to arbitrary clip range/full song.
+
+
+## v0.6.7 — Audible MP4 proof
+
+- [x] Transcode selected source audio range to AAC-LC.
+- [x] Support decoded PCM16 and PCM float input.
+- [x] Mux AAC audio with deterministic H.264 proof video.
+- [x] Publish final MP4 with sound to Movies/FARIC.
+- [x] Keep visual timeline and audio clip on the same source range.
+- [ ] Phone verify MP3 source.
+- [ ] Phone verify M4A/AAC source.
+- [ ] Phone verify A/V sync.
+- [ ] Phone verify color format.
+- [ ] Raise proof to 30 fps after correctness PASS.
+- [ ] Raise toward 1080p after performance PASS.
+- [ ] Add arbitrary clip range.
+- [ ] Add full-song export.

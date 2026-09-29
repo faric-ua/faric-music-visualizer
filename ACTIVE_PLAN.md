@@ -310,3 +310,18 @@ Phone finding from the 2026-09-29 screen recording:
 - [ ] Phone: Energy Core remains visibly reactive for 15+ seconds.
 - [ ] Phone: pause 2+ seconds → resume has no artificial 2–3 second giant pulse.
 - [ ] Phone: verify at least two additional Layer-1 themes.
+
+
+## v0.6.9 — Layer-1 ring continuity hotfix
+
+Phone finding from 333058.mp4:
+- [x] v0.6.8 keeps live Layer-1 response active much longer than before.
+- [x] Identify remaining visual seam: the visible outer ring is currently a transient beat shockwave, so it disappears between beat envelopes.
+- [x] Identify radius snap: a new stronger beat can restart the same shockwave at a smaller radius, creating a visible inward jump.
+- [x] Add two persistent Neon Emblem base rings that remain visible between beats and still react softly to amplitude / bass / high.
+- [x] Split beat shockwaves into two alternating slots so an outgoing ring can continue expanding while the next beat starts a new ring.
+- [x] Make each shockwave radius strictly progress outward with its own phase instead of deriving radius from the decaying beat value.
+- [ ] Android CI PASS for v0.6.9.
+- [ ] Phone: base Layer-1 rings remain visible continuously for 20+ seconds.
+- [ ] Phone: consecutive beats produce overlapping outward waves without an inward radius snap.
+- [ ] Phone: confirm ring visibility on dark/quiet passages remains subtle, not overpowering.

@@ -42,6 +42,12 @@ class HeroThemeView(context: Context) : View(context) {
     private var high = 0f
     private var beat = 0f
 
+    private var shockwavePhaseA = 1f
+    private var shockwaveStrengthA = 0f
+    private var shockwavePhaseB = 1f
+    private var shockwaveStrengthB = 0f
+    private var nextShockwaveSlot = 0
+
     private var playing = false
     private var lastFrameMs = SystemClock.elapsedRealtime()
     private var vinylRotation = 0f
@@ -88,6 +94,18 @@ class HeroThemeView(context: Context) : View(context) {
         high = max(high, signal.high * 0.96f)
         beat = max(beat, signal.beatStrength)
 
+        if (signal.beatStrength > 0.02f) {
+            if (nextShockwaveSlot == 0) {
+                shockwavePhaseA = 0f
+                shockwaveStrengthA = signal.beatStrength
+                nextShockwaveSlot = 1
+            } else {
+                shockwavePhaseB = 0f
+                shockwaveStrengthB = signal.beatStrength
+                nextShockwaveSlot = 0
+            }
+        }
+
         postInvalidateOnAnimation()
     }
 
@@ -105,6 +123,13 @@ class HeroThemeView(context: Context) : View(context) {
         mid = follow(mid, targetMid, dt, 54f, 13f)
         high = follow(high, targetHigh, dt, 62f, 14f)
         beat = (beat - dt * 3.4f).coerceAtLeast(0f)
+
+        shockwavePhaseA =
+            (shockwavePhaseA + dt * 2.25f)
+                .coerceAtMost(1f)
+        shockwavePhaseB =
+            (shockwavePhaseB + dt * 2.25f)
+                .coerceAtMost(1f)
 
         if (!playing) {
             targetAmplitude *= 0.90f
@@ -154,7 +179,7 @@ class HeroThemeView(context: Context) : View(context) {
                 drawNeonEmblem(canvas, cx, cy, minSide, time)
         }
 
-        drawBeatShockwave(canvas, cx, cy, minSide)
+        drawBeatShockwaves(canvas, cx, cy, minSide)
         postInvalidateOnAnimation()
     }
 
@@ -319,6 +344,15 @@ class HeroThemeView(context: Context) : View(context) {
                     bass * 0.055f +
                     beat * 0.040f
                 )
+
+        drawNeonBaseRings(
+            canvas = canvas,
+            cx = cx,
+            cy = cy,
+            minSide = minSide,
+            baseRadius = baseRadius,
+            time = time,
+        )
 
         val points = 132
         path.reset()
@@ -1224,26 +1258,142 @@ class HeroThemeView(context: Context) : View(context) {
         )
     }
 
-    private fun drawBeatShockwave(
+    private fun drawNeonBaseRings(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        minSide: Float,
+        baseRadius: Float,
+        time: Float,
+    ) {
+        val breathe =
+            0.5f +
+                0.5f *
+                sinF(
+                    time * 0.85f +
+                        mid * 1.8f,
+                )
+
+        val innerRadius =
+            baseRadius +
+                minSide * (
+                    0.052f +
+                        bass * 0.018f +
+                        breathe * 0.006f
+                    )
+
+        stroke.color = Color.rgb(83, 233, 235)
+        stroke.alpha =
+            (
+                58 +
+                    bass * 34f +
+                    high * 22f
+                ).toInt().coerceIn(48, 118)
+        stroke.strokeWidth =
+            minSide * (
+                0.0017f +
+                    high * 0.0010f
+                )
+        canvas.drawCircle(
+            cx,
+            cy,
+            innerRadius,
+            stroke,
+        )
+
+        val outerRadius =
+            baseRadius +
+                minSide * (
+                    0.148f +
+                        amplitude * 0.016f +
+                        (1f - breathe) * 0.008f
+                    )
+
+        stroke.color = Color.rgb(90, 168, 255)
+        stroke.alpha =
+            (
+                28 +
+                    amplitude * 24f +
+                    high * 20f
+                ).toInt().coerceIn(24, 82)
+        stroke.strokeWidth =
+            minSide * (
+                0.0012f +
+                    high * 0.0008f
+                )
+        canvas.drawCircle(
+            cx,
+            cy,
+            outerRadius,
+            stroke,
+        )
+    }
+
+    private fun drawBeatShockwaves(
         canvas: Canvas,
         cx: Float,
         cy: Float,
         minSide: Float,
     ) {
-        if (beat <= 0.02f) return
+        drawBeatShockwave(
+            canvas = canvas,
+            cx = cx,
+            cy = cy,
+            minSide = minSide,
+            phase = shockwavePhaseA,
+            strength = shockwaveStrengthA,
+        )
+
+        drawBeatShockwave(
+            canvas = canvas,
+            cx = cx,
+            cy = cy,
+            minSide = minSide,
+            phase = shockwavePhaseB,
+            strength = shockwaveStrengthB,
+        )
+    }
+
+    private fun drawBeatShockwave(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        minSide: Float,
+        phase: Float,
+        strength: Float,
+    ) {
+        if (phase >= 1f || strength <= 0.02f) return
+
+        val eased =
+            1f -
+                (1f - phase) *
+                    (1f - phase)
 
         val radius =
             minSide * (
-                0.19f +
-                    (1f - beat) * 0.28f +
-                    bass * 0.05f
+                0.205f +
+                    eased * 0.30f +
+                    bass * 0.025f
                 )
+
+        val fade =
+            (1f - phase) *
+                (1f - phase)
 
         stroke.color = Color.rgb(104, 239, 255)
         stroke.alpha =
-            (beat * 130f).toInt().coerceIn(0, 145)
+            (
+                strength *
+                    fade *
+                    150f
+                ).toInt().coerceIn(0, 150)
         stroke.strokeWidth =
-            minSide * (0.002f + beat * 0.005f)
+            minSide * (
+                0.0015f +
+                    strength *
+                    (1f - phase) *
+                    0.0045f
+                )
 
         canvas.drawCircle(
             cx,

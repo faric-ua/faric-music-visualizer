@@ -259,3 +259,15 @@ Phone acceptance must include:
 - [ ] Phone verify 15+ seconds of continuous Energy Core response.
 - [ ] Phone verify Pause → Play.
 - [ ] Phone smoke Neon Emblem + one additional Hero theme.
+
+
+## v0.6.9 — Neon Emblem ring continuity
+
+- [x] Separate persistent Layer-1 rings from transient beat shockwaves.
+- [x] Keep two low-alpha base rings visible between beats.
+- [x] React base rings continuously to amplitude / bass / high.
+- [x] Replace beat-derived radius reversal with monotonic shockwave phase.
+- [x] Allow two beat waves to overlap instead of reusing one radius state.
+- [ ] Phone verify 20+ seconds without full ring disappearance.
+- [ ] Phone verify no inward snap on closely spaced beats.
+- [ ] Phone verify visual weight stays subtle.

@@ -288,3 +288,27 @@ Next:
 3. play Energy Core for at least 15 seconds and confirm continuing beat/bass movement;
 4. pause for at least 2 seconds, resume, and confirm there is no artificial startup-only burst;
 5. smoke two other Layer-1 themes before closing the hotfix.
+
+
+## v0.6.9 Layer-1 ring continuity
+
+Phone evidence:
+- v0.6.8 improved sustained audio response;
+- new 333058.mp4 shows the remaining issue is ring continuity rather than complete signal loss;
+- the outer cyan ring disappears between beats because it was implemented only as a transient shockwave;
+- when a new beat arrives, the same beat-derived radius can jump inward, which reads as a transition seam.
+
+Implementation:
+- Neon Emblem now owns two always-present low-alpha base rings;
+- those rings breathe/react continuously from amplitude, bass and highs;
+- beat shockwaves are no longer the only visible outer rings;
+- two independent shockwave slots alternate on beat events, allowing the previous wave to finish outward while a new wave begins;
+- shockwave radius is monotonic from inner to outer radius using phase/easing;
+- version is `0.6.9` / versionCode 23.
+
+Next phone check:
+1. install exact signed v0.6.9 APK;
+2. Neon Emblem for 20+ seconds;
+3. verify at least one outer/base ring is always present;
+4. watch several fast beats for no inward jump/seam;
+5. confirm rings remain subtle during quieter passages.

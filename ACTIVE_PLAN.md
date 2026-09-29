@@ -247,3 +247,15 @@ Current v0.3.0 source commits:
 - [ ] Android CI PASS.
 - [ ] Phone test retro themes and projectM LOAD timings.
 - [ ] Next: export MVP architecture and first MP4 proof.
+
+
+## v0.6.4 — Smooth projectM transitions
+
+- [x] Add FARIC-owned fade between projectM presets.
+- [x] Keep projectM direct load for meaningful LOAD timing.
+- [x] Mask heavy preset load behind a lightweight transition veil.
+- [x] Block repeated NEXT/rating/mode changes during transition.
+- [x] Keep FG switching independent.
+- [ ] Android CI PASS.
+- [ ] Phone manual NEXT transition PASS.
+- [ ] Phone AUTO transition PASS.

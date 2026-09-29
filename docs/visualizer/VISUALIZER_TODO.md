@@ -117,3 +117,24 @@ Phone acceptance must include:
 - [x] Make FG switching independent from projectM GL load queue/mutex.
 - [ ] Phone verify sub-second button response.
 - [ ] Measure actual heavy-preset compile/load latency after UI freeze is removed.
+
+
+## Playback Theme Engine + video export
+
+- [x] Create research notebook: docs/visualizer/PLAYBACK_THEME_EXPORT_RESEARCH.md.
+- [x] Record Cassette / Vinyl / Portrait Halo references.
+- [x] Record Glass Core / Crystal Pulse reference from 332877.mp4.
+- [x] Record Neon Emblem / Energy Crown reference from 332878.mp4.
+- [ ] Create common PlaybackTheme contract.
+- [ ] Add theme registry and picker.
+- [ ] Prototype Portrait Halo.
+- [ ] Prototype Vinyl.
+- [ ] Prototype Cassette.
+- [ ] Prototype Glass Core / Crystal Pulse.
+- [ ] Prototype Neon Emblem / Energy Crown.
+- [ ] Support user image / album cover / logo / background video inputs.
+- [ ] Build deterministic scene-at-time renderer for export.
+- [ ] Add offline audio analysis for frame-perfect export.
+- [ ] Add H.264 MP4 export with audio mux.
+- [ ] Export 9:16 / 16:9 / 1:1 / 4:5.
+- [ ] Preview/export parity test.

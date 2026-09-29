@@ -46,7 +46,7 @@ class AudioCaptureAnalyzer(
 
                     val rawBands = SpectrumMath.fromFft(fft, samplingRate)
                     val bands = liveDynamics.update(rawBands)
-                    val beat = beatDetector.update(bands.bass, SystemClock.elapsedRealtime())
+                    val beat = beatDetector.update(bands, SystemClock.elapsedRealtime())
 
                     onSignal(
                         SceneSignal(

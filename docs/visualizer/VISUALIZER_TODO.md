@@ -271,3 +271,15 @@ Phone acceptance must include:
 - [ ] Phone verify 20+ seconds without full ring disappearance.
 - [ ] Phone verify no inward snap on closely spaced beats.
 - [ ] Phone verify visual weight stays subtle.
+
+
+## v0.6.10 — beat-ring trigger reliability
+
+- [x] Preserve ring reset/jump on each detected beat.
+- [x] Remove persistent base-ring experiment from v0.6.9.
+- [x] Detect beat from bass or broadband transient.
+- [x] Add derivative/rise trigger for sharp non-bass impacts.
+- [x] Keep duplicate-hit cooldown.
+- [x] Add repeated-hit and broadband-hit tests.
+- [ ] Phone verify fewer missed rings on obvious beats.
+- [ ] Phone verify no excessive false positives.

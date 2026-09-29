@@ -312,3 +312,24 @@ Next phone check:
 3. verify at least one outer/base ring is always present;
 4. watch several fast beats for no inward jump/seam;
 5. confirm rings remain subtle during quieter passages.
+
+
+## v0.6.10 beat-ring detection correction
+
+User clarified the v0.6.9 interpretation:
+- the ring reset/jump is visually desirable;
+- the problem is missed beat events, not ring continuity between beats.
+
+Implementation:
+- restore the pre-v0.6.9 Neon Emblem ring behavior;
+- remove always-present base rings and overlapping shockwave slots introduced by the incorrect interpretation;
+- `AdaptiveBeatDetector` now evaluates full `BandEnergy`, not bass alone;
+- a hit can trigger from strong bass OR a sharp broadband transient using amplitude/mid/high;
+- cooldown remains to prevent duplicate triggers for one impact;
+- version is `0.6.10` / versionCode 24.
+
+Phone acceptance:
+1. play a rhythmically obvious section for 20+ seconds;
+2. count visible missed rings on clear beats;
+3. confirm the reset/jump remains;
+4. confirm the detector is not firing rings continuously between beats.

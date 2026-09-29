@@ -325,3 +325,20 @@ Phone finding from 333058.mp4:
 - [ ] Phone: base Layer-1 rings remain visible continuously for 20+ seconds.
 - [ ] Phone: consecutive beats produce overlapping outward waves without an inward radius snap.
 - [ ] Phone: confirm ring visibility on dark/quiet passages remains subtle, not overpowering.
+
+
+## v0.6.10 — Beat ring hit-detection correction
+
+User clarification after 333058.mp4:
+- [x] The inward/reset jump of the ring is desirable and should remain.
+- [x] The real defect is that some audible beats do not produce a Layer-1 ring at all.
+- [x] Revert the v0.6.9 persistent base-ring interpretation.
+- [x] Keep the original beat-ring reset/jump behavior.
+- [x] Expand beat detection from bass-only to bass OR broadband transient energy.
+- [x] Add transient-rise triggering so snare/mid/high-heavy impacts can create a visual beat even without a large bass spike.
+- [x] Keep a short cooldown to avoid double-firing the same hit.
+- [x] Add unit coverage for broadband hits and repeated rhythmic hits.
+- [ ] Android CI PASS for v0.6.10.
+- [ ] Phone: obvious beats trigger the ring much more consistently.
+- [ ] Phone: desired inward/reset jump remains visible.
+- [ ] Phone: no excessive false rings between beats.

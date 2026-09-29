@@ -56,13 +56,25 @@ class ProjectMView(
         return true
     }
 
-    fun loadPreset(file: File, smoothTransition: Boolean = true) {
+    fun loadPreset(
+        file: File,
+        smoothTransition: Boolean = true,
+        onLoaded: ((Long) -> Unit)? = null,
+    ) {
         if (!file.isFile) return
+
         queueEvent {
-            ProjectMBridge.loadPreset(
-                path = file.absolutePath,
-                smoothTransition = smoothTransition,
-            )
+            val loadMs =
+                ProjectMBridge.loadPreset(
+                    path = file.absolutePath,
+                    smoothTransition = smoothTransition,
+                )
+
+            if (onLoaded != null) {
+                post {
+                    onLoaded(loadMs)
+                }
+            }
         }
     }
 

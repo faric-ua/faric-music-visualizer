@@ -259,3 +259,16 @@ Current v0.3.0 source commits:
 - [ ] Android CI PASS.
 - [ ] Phone manual NEXT transition PASS.
 - [ ] Phone AUTO transition PASS.
+
+
+## v0.6.5 — Offline export analysis
+
+- [x] Add deterministic full-track PCM analysis.
+- [x] Add FARIC radix-2 FFT path independent from Android Visualizer.
+- [x] Build SceneSignal timeline for exact timestamps.
+- [x] Export Lab can analyze current local track.
+- [x] PNG proof consumes offline timeline when ready.
+- [ ] Android CI PASS for v0.6.5.
+- [ ] Phone analysis PASS on real MP3/M4A.
+- [ ] Next: short deterministic H.264 clip.
+- [ ] Then: audio mux → real MP4 music-video proof.

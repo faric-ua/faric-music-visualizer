@@ -13,10 +13,8 @@ import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.theme.PlaybackThemeId
 import kotlin.math.PI
 import kotlin.math.abs
-import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
-import kotlin.math.sin
 
 class HeroThemeView(context: Context) : View(context) {
     private val fill = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -173,7 +171,7 @@ class HeroThemeView(context: Context) : View(context) {
         )
 
         val sidePulse =
-            0.5f + 0.5f * sin(time * 0.55f)
+            0.5f + 0.5f * sinF(time * 0.55f)
 
         drawGlow(
             canvas,
@@ -224,7 +222,7 @@ class HeroThemeView(context: Context) : View(context) {
 
             val x =
                 seedA * w +
-                    sin(
+                    sinF(
                         time * (0.28f + seedC * 0.45f) +
                             index,
                     ) * minSide * 0.025f
@@ -301,14 +299,14 @@ class HeroThemeView(context: Context) : View(context) {
                     (2f * PI.toFloat())
 
             val local =
-                sin(angle * 5f + time * (1.4f + mid * 2.2f)) *
+                sinF(angle * 5f + time * (1.4f + mid * 2.2f)) *
                     minSide * 0.010f +
-                    sin(angle * 11f - time * (2.0f + high * 3.0f)) *
+                    sinF(angle * 11f - time * (2.0f + high * 3.0f)) *
                     minSide * 0.006f
 
             val spike =
                 if (beat > 0.04f) {
-                    sin(angle * 17f + time * 4f) *
+                    sinF(angle * 17f + time * 4f) *
                         minSide * 0.010f *
                         beat
                 } else {
@@ -316,8 +314,8 @@ class HeroThemeView(context: Context) : View(context) {
                 }
 
             val radius = baseRadius + local + spike
-            val x = cx + cos(angle) * radius
-            val y = cy + sin(angle) * radius
+            val x = cx + cosF(angle) * radius
+            val y = cy + sinF(angle) * radius
 
             if (i == 0) path.moveTo(x, y)
             else path.lineTo(x, y)
@@ -400,7 +398,7 @@ class HeroThemeView(context: Context) : View(context) {
             val noise =
                 0.55f +
                     0.45f *
-                    sin(
+                    sinF(
                         time * (2.1f + high * 2.4f) +
                             i * 1.73f,
                     )
@@ -425,10 +423,10 @@ class HeroThemeView(context: Context) : View(context) {
                 minSide * (0.0025f + high * 0.002f)
 
             canvas.drawLine(
-                cx + cos(angle) * start,
-                cy + sin(angle) * start,
-                cx + cos(angle) * (start + length),
-                cy + sin(angle) * (start + length),
+                cx + cosF(angle) * start,
+                cy + sinF(angle) * start,
+                cx + cosF(angle) * (start + length),
+                cy + sinF(angle) * (start + length),
                 stroke,
             )
         }
@@ -545,16 +543,16 @@ class HeroThemeView(context: Context) : View(context) {
             val wobble =
                 minSide *
                     0.008f *
-                    sin(time * 1.8f + i * 1.4f)
+                    sinF(time * 1.8f + i * 1.4f)
 
             val x =
                 cx +
-                    cos(angle + time * 0.05f) *
+                    cosF(angle + time * 0.05f) *
                     (radius + wobble)
 
             val y =
                 cy +
-                    sin(angle + time * 0.05f) *
+                    sinF(angle + time * 0.05f) *
                     (radius + wobble)
 
             if (i == 0) path.moveTo(x, y)
@@ -595,10 +593,10 @@ class HeroThemeView(context: Context) : View(context) {
                 minSide * 0.003f
 
             canvas.drawLine(
-                cx + cos(angle) * start,
-                cy + sin(angle) * start,
-                cx + cos(angle) * end,
-                cy + sin(angle) * end,
+                cx + cosF(angle) * start,
+                cy + sinF(angle) * start,
+                cx + cosF(angle) * end,
+                cy + sinF(angle) * end,
                 stroke,
             )
         }
@@ -638,7 +636,7 @@ class HeroThemeView(context: Context) : View(context) {
                     0.055f +
                         (1f - normalized) * 0.065f +
                         bass * 0.040f +
-                        sin(
+                        sinF(
                             p * 18f -
                                 time * (2.0f + mid * 2.5f),
                         ) * 0.014f
@@ -668,7 +666,7 @@ class HeroThemeView(context: Context) : View(context) {
                     0.055f +
                         (1f - normalized) * 0.065f +
                         bass * 0.040f +
-                        sin(
+                        sinF(
                             p * 18f -
                                 time * (2.0f + mid * 2.5f),
                         ) * 0.014f
@@ -856,12 +854,24 @@ class HeroThemeView(context: Context) : View(context) {
 
     private fun hash01(seed: Int): Float {
         val value =
-            sin(seed * 12.9898f) *
+            sinF(seed * 12.9898f) *
                 43758.5453f
 
         return abs(
             value -
-                kotlin.math.floor(value),
+                kotlin.math.floor(
+                    value.toDouble(),
+                ).toFloat(),
         )
     }
+
+    private fun sinF(value: Float): Float =
+        kotlin.math.sin(
+            value.toDouble(),
+        ).toFloat()
+
+    private fun cosF(value: Float): Float =
+        kotlin.math.cos(
+            value.toDouble(),
+        ).toFloat()
 }

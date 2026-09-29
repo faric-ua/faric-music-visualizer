@@ -284,3 +284,13 @@ Current v0.3.0 source commits:
 - [ ] Android CI PASS for v0.6.6.
 - [ ] Phone H.264 playback/color PASS.
 - [ ] Next: audio mux/AAC.
+
+
+## v0.6.7 — Audible MP4 proof
+
+- [x] Add AAC audio transcode for selected proof range.
+- [x] Add H.264 + AAC final MP4 mux.
+- [x] Expose 3-second MP4-with-audio action in Export Lab.
+- [ ] Android CI PASS for v0.6.7.
+- [ ] Phone A/V sync PASS.
+- [ ] Next: 30 fps / 1080p tuning.

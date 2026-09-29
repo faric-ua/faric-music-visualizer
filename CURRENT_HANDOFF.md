@@ -189,3 +189,17 @@ Phone evaluation mode:
 - manual NEXT disables smooth dual-preset transition;
 - FG selection uses atomic native state and no longer waits behind projectM GL load mutex;
 - phone verification is required; if only background NEXT remains slow afterward, next diagnosis is per-preset projectM parse/shader compile latency.
+
+
+## v0.6.0 music video creator foundation
+
+- new product target: pick song → pick style/background → preview → export finished MP4;
+- theme domain added under app/.../theme with 10 registered playback themes and export aspect profiles;
+- projectM full 9,795 library is not inside the APK; it is downloaded/extracted after install into app disk storage;
+- Library Index v2 replaces the old physical ~4,898 TOP duplicate with a 1,200-item index pointing at original files;
+- ALL remains 9,795 through a persistent index; normal state checks no longer recursively count the full tree;
+- migration deletes only the obsolete faric-top-half copy, never the original Cream library or ratings;
+- five new FG hero samples: Neon Emblem, Energy Core, Orbital Crown, Star Seed, Wave Idol; old three remain;
+- visual pack architecture documented for future versioned .faricpack delivery outside the APK;
+- next product step: standalone PlaybackTheme picker/preview, then deterministic export spike;
+- projectM may still have per-preset shader compile latency; measure it separately after phone test.

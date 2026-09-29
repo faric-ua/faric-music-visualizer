@@ -53,6 +53,10 @@ object HeroThemeRenderer {
                 drawStarSeed(canvas, cx, cy, minSide, t, input)
             PlaybackThemeId.WAVE_IDOL ->
                 drawWaveIdol(canvas, cx, cy, minSide, t, input)
+            PlaybackThemeId.VINYL ->
+                drawVinyl(canvas, cx, cy, minSide, t, input)
+            PlaybackThemeId.CASSETTE ->
+                drawCassette(canvas, cx, cy, minSide, t, input)
             else ->
                 drawNeonEmblem(canvas, cx, cy, minSide, t, input)
         }
@@ -753,6 +757,351 @@ object HeroThemeRenderer {
             input,
             Color.rgb(255, 62, 188),
         )
+    }
+
+    private fun drawVinyl(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        minSide: Float,
+        t: Float,
+        input: ThemeInput,
+    ) {
+        val rotation =
+            t * (
+                34f +
+                    input.mid * 18f
+                )
+
+        val radius =
+            minSide *
+                (
+                    0.245f +
+                        input.bass * 0.016f +
+                        input.beat * 0.012f
+                    )
+
+        fill.color = Color.rgb(6, 7, 10)
+        fill.alpha = 248
+        canvas.drawCircle(cx, cy, radius, fill)
+
+        repeat(11) { index ->
+            val groove =
+                radius *
+                    (
+                        0.32f +
+                            index * 0.058f
+                        )
+
+            stroke.color =
+                if (index % 2 == 0) {
+                    Color.rgb(44, 49, 55)
+                } else {
+                    Color.rgb(23, 27, 32)
+                }
+            stroke.alpha =
+                110 +
+                    (input.high * 55f)
+                        .toInt()
+            stroke.strokeWidth =
+                minSide * 0.0014f
+            canvas.drawCircle(
+                cx,
+                cy,
+                groove,
+                stroke,
+            )
+        }
+
+        val labelRadius =
+            radius *
+                (
+                    0.31f +
+                        input.beat * 0.02f
+                    )
+
+        fill.shader = RadialGradient(
+            cx,
+            cy,
+            labelRadius,
+            intArrayOf(
+                Color.rgb(255, 176, 51),
+                Color.rgb(202, 75, 28),
+                Color.rgb(83, 18, 15),
+            ),
+            null,
+            Shader.TileMode.CLAMP,
+        )
+        canvas.drawCircle(
+            cx,
+            cy,
+            labelRadius,
+            fill,
+        )
+        fill.shader = null
+
+        canvas.save()
+        canvas.rotate(
+            rotation,
+            cx,
+            cy,
+        )
+
+        fill.textAlign = Paint.Align.CENTER
+        fill.isFakeBoldText = true
+        fill.color = Color.WHITE
+        fill.textSize =
+            labelRadius * 0.22f
+        canvas.drawText(
+            input.title
+                .substringBeforeLast(
+                    '.',
+                    input.title,
+                )
+                .take(22),
+            cx,
+            cy - labelRadius * 0.14f,
+            fill,
+        )
+
+        fill.isFakeBoldText = false
+        fill.textSize =
+            labelRadius * 0.14f
+        fill.color =
+            Color.rgb(255, 225, 185)
+        canvas.drawText(
+            input.artist
+                .ifBlank { "FARIC VINYL" }
+                .take(24),
+            cx,
+            cy + labelRadius * 0.22f,
+            fill,
+        )
+
+        canvas.restore()
+
+        fill.color =
+            Color.rgb(235, 216, 174)
+        canvas.drawCircle(
+            cx,
+            cy,
+            minSide * 0.010f,
+            fill,
+        )
+    }
+
+    private fun drawCassette(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        minSide: Float,
+        t: Float,
+        input: ThemeInput,
+    ) {
+        val bodyWidth =
+            minSide *
+                (
+                    0.62f +
+                        input.beat * 0.012f
+                    )
+        val bodyHeight =
+            minSide *
+                (
+                    0.34f +
+                        input.bass * 0.012f
+                    )
+
+        val left =
+            cx - bodyWidth / 2f
+        val top =
+            cy - bodyHeight / 2f
+        val right =
+            cx + bodyWidth / 2f
+        val bottom =
+            cy + bodyHeight / 2f
+        val corner =
+            minSide * 0.035f
+
+        fill.color =
+            Color.rgb(219, 210, 185)
+        fill.alpha = 250
+        canvas.drawRoundRect(
+            left,
+            top,
+            right,
+            bottom,
+            corner,
+            corner,
+            fill,
+        )
+
+        stroke.color =
+            Color.rgb(84, 69, 54)
+        stroke.alpha = 220
+        stroke.strokeWidth =
+            minSide * 0.004f
+        canvas.drawRoundRect(
+            left,
+            top,
+            right,
+            bottom,
+            corner,
+            corner,
+            stroke,
+        )
+
+        val labelInset =
+            minSide * 0.045f
+        val labelTop =
+            top + minSide * 0.035f
+        val labelBottom =
+            cy + minSide * 0.035f
+
+        fill.color =
+            Color.rgb(245, 137, 45)
+        canvas.drawRoundRect(
+            left + labelInset,
+            labelTop,
+            right - labelInset,
+            labelBottom,
+            minSide * 0.018f,
+            minSide * 0.018f,
+            fill,
+        )
+
+        val reelY =
+            cy + bodyHeight * 0.10f
+        val reelOffset =
+            bodyWidth * 0.205f
+        val reelRadius =
+            minSide *
+                (
+                    0.070f +
+                        input.bass * 0.008f
+                    )
+
+        drawCassetteReel(
+            canvas,
+            cx - reelOffset,
+            reelY,
+            reelRadius,
+            t * 120f,
+            minSide,
+        )
+        drawCassetteReel(
+            canvas,
+            cx + reelOffset,
+            reelY,
+            reelRadius,
+            -t * 128f,
+            minSide,
+        )
+
+        fill.color =
+            Color.rgb(35, 33, 29)
+        canvas.drawRoundRect(
+            cx - bodyWidth * 0.13f,
+            reelY - reelRadius * 0.62f,
+            cx + bodyWidth * 0.13f,
+            reelY + reelRadius * 0.62f,
+            minSide * 0.012f,
+            minSide * 0.012f,
+            fill,
+        )
+
+        fill.textAlign =
+            Paint.Align.CENTER
+        fill.isFakeBoldText = true
+        fill.color =
+            Color.rgb(44, 28, 17)
+        fill.textSize =
+            minSide * 0.030f
+
+        canvas.drawText(
+            input.title
+                .substringBeforeLast(
+                    '.',
+                    input.title,
+                )
+                .take(28),
+            cx,
+            labelTop + minSide * 0.045f,
+            fill,
+        )
+
+        fill.isFakeBoldText = false
+        fill.textSize =
+            minSide * 0.020f
+        canvas.drawText(
+            input.artist
+                .ifBlank { "FARIC MIX" }
+                .take(30),
+            cx,
+            labelTop + minSide * 0.075f,
+            fill,
+        )
+    }
+
+    private fun drawCassetteReel(
+        canvas: Canvas,
+        x: Float,
+        y: Float,
+        radius: Float,
+        degrees: Float,
+        minSide: Float,
+    ) {
+        fill.color =
+            Color.rgb(40, 37, 32)
+        canvas.drawCircle(
+            x,
+            y,
+            radius,
+            fill,
+        )
+
+        fill.color =
+            Color.rgb(233, 224, 196)
+        canvas.drawCircle(
+            x,
+            y,
+            radius * 0.56f,
+            fill,
+        )
+
+        val base =
+            degrees /
+                180f *
+                PI.toFloat()
+
+        repeat(6) { index ->
+            val angle =
+                base +
+                    index *
+                    PI.toFloat() /
+                    3f
+
+            stroke.color =
+                Color.rgb(92, 76, 58)
+            stroke.alpha = 220
+            stroke.strokeWidth =
+                minSide * 0.005f
+
+            canvas.drawLine(
+                x +
+                    cosf(angle) *
+                    radius * 0.18f,
+                y +
+                    sinf(angle) *
+                    radius * 0.18f,
+                x +
+                    cosf(angle) *
+                    radius * 0.52f,
+                y +
+                    sinf(angle) *
+                    radius * 0.52f,
+                stroke,
+            )
+        }
     }
 
     private fun drawCenterBadge(

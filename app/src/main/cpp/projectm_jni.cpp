@@ -263,6 +263,183 @@ void main() {
         + sparks * 0.95
         + coreGlow * 0.42;
 
+
+    // Hero 3: Neon Emblem — a locally deforming energy contour.
+    float emblemDeform =
+        0.030 * sin(angle * 5.0 + uTime * (1.4 + uMid * 2.2))
+        + 0.018 * sin(angle * 11.0 - uTime * (2.0 + uHigh * 2.8));
+
+    float emblemRadius =
+        0.235
+        + uBass * 0.105
+        + uBeat * 0.070
+        + emblemDeform;
+
+    float emblemRing =
+        1.0 - smoothstep(
+            0.010 + uHigh * 0.008,
+            0.035 + uHigh * 0.012,
+            abs(radius - emblemRadius)
+        );
+
+    float emblemSparks =
+        sparks * (0.45 + uHigh * 0.75);
+
+    float neonEmblem =
+        emblemRing * (0.62 + uAmplitude * 0.40 + uBeat * 0.70)
+        + coreGlow * 0.32
+        + emblemSparks;
+
+    // Hero 4: Energy Core — dense center plus bass/beat shockwave.
+    float coreMass =
+        exp(
+            -radius * (
+                7.6
+                - uBass * 2.8
+                - uAmplitude * 1.2
+            )
+        )
+        * (0.45 + uBass * 0.70 + uBeat * 0.42);
+
+    float shockRadius =
+        0.16
+        + uBass * 0.12
+        + uBeat * 0.17;
+
+    float shockwave =
+        1.0 - smoothstep(
+            0.010,
+            0.040 + uBeat * 0.025,
+            abs(radius - shockRadius)
+        );
+
+    float energyCore =
+        coreMass
+        + shockwave * (0.46 + uBeat * 0.90)
+        + ring * 0.24
+        + sparks * 0.32;
+
+    // Hero 5: Orbital Crown — layered rings with rotating gaps/arcs.
+    float orbitMaskA =
+        0.35 + 0.65 * pow(
+            abs(sin(angle * 3.0 + uTime * (0.9 + uMid))),
+            5.0
+        );
+
+    float orbitMaskB =
+        0.30 + 0.70 * pow(
+            abs(cos(angle * 5.0 - uTime * (1.1 + uHigh))),
+            6.0
+        );
+
+    float crownRingA =
+        1.0 - smoothstep(
+            0.008,
+            0.026,
+            abs(
+                radius
+                - (
+                    0.18
+                    + uBass * 0.075
+                    + 0.020 * sin(uTime * 1.7)
+                )
+            )
+        );
+
+    float crownRingB =
+        1.0 - smoothstep(
+            0.008,
+            0.024,
+            abs(
+                radius
+                - (
+                    0.30
+                    + uBeat * 0.080
+                    + 0.018 * sin(uTime * 2.3)
+                )
+            )
+        );
+
+    float orbitalCrown =
+        crownRingA * orbitMaskA * (0.62 + uBass * 0.55)
+        + crownRingB * orbitMaskB * (0.52 + uBeat * 0.75)
+        + coreGlow * 0.40
+        + sparks * 0.38;
+
+    // Hero 6: Star Seed — six-point living core with long beat rays.
+    float starWave =
+        0.040 * sin(angle * 6.0 + uTime * (0.9 + uMid * 1.5))
+        + 0.018 * sin(angle * 12.0 - uTime * (1.4 + uHigh * 1.8));
+
+    float starBoundary =
+        0.175
+        + uBass * 0.100
+        + uBeat * 0.060
+        + starWave;
+
+    float starEdge =
+        1.0 - smoothstep(
+            0.010,
+            0.030,
+            abs(radius - starBoundary)
+        );
+
+    float starRays =
+        pow(
+            abs(cos(angle * 6.0 + uTime * 0.32)),
+            18.0
+        )
+        * (
+            1.0 - smoothstep(
+                0.18,
+                0.52 + uBeat * 0.16 + uBass * 0.10,
+                radius
+            )
+        );
+
+    float starSeed =
+        starEdge * (0.60 + uBass * 0.55)
+        + starRays * (0.22 + uBeat * 0.78 + uHigh * 0.18)
+        + coreGlow * 0.58
+        + sparks * 0.45;
+
+    // Hero 7: Wave Idol — a symmetric organic silhouette built from wave energy.
+    float idolY = abs(p.y);
+    float idolWidth =
+        0.075
+        + 0.090 * exp(-idolY * 2.8)
+        + uBass * 0.055
+        + 0.022 * sin(
+            idolY * 16.0
+            - uTime * (2.0 + uMid * 2.0)
+        );
+
+    float idolContour =
+        1.0 - smoothstep(
+            0.008,
+            0.035 + uHigh * 0.010,
+            abs(abs(p.x) - idolWidth)
+        );
+
+    float idolHeight =
+        1.0 - smoothstep(
+            0.42 + uBeat * 0.10,
+            0.57 + uBeat * 0.14,
+            idolY
+        );
+
+    float idolAura =
+        exp(
+            -abs(abs(p.x) - idolWidth)
+            * (18.0 - uBass * 4.0)
+        )
+        * idolHeight;
+
+    float waveIdol =
+        idolContour * idolHeight * (0.55 + uMid * 0.50 + uBeat * 0.55)
+        + idolAura * (0.20 + uBass * 0.42)
+        + sparks * 0.30;
+
     vec2 edgeUv = abs(vUv * 2.0 - 1.0);
     float edgeDist = max(edgeUv.x, edgeUv.y);
     float edgeCoord =
@@ -332,8 +509,18 @@ void main() {
     float intensity = pulseRays;
     if (uMode > 0.5 && uMode < 1.5) {
         intensity = orbitRings;
-    } else if (uMode >= 1.5) {
+    } else if (uMode >= 1.5 && uMode < 2.5) {
         intensity = spectrumHalo;
+    } else if (uMode >= 2.5 && uMode < 3.5) {
+        intensity = neonEmblem;
+    } else if (uMode >= 3.5 && uMode < 4.5) {
+        intensity = energyCore;
+    } else if (uMode >= 4.5 && uMode < 5.5) {
+        intensity = orbitalCrown;
+    } else if (uMode >= 5.5 && uMode < 6.5) {
+        intensity = starSeed;
+    } else if (uMode >= 6.5) {
+        intensity = waveIdol;
     }
 
     float alpha = clamp(
@@ -1139,7 +1326,7 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetForegroundSample
         std::clamp(
             static_cast<int>(sampleId),
             0,
-            2
+            7
         ),
         std::memory_order_relaxed
     );

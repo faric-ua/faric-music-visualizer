@@ -36,6 +36,10 @@ import com.saney.musicvisualizer.playback.PlaybackController
 import com.saney.musicvisualizer.playback.PlaybackSnapshot
 import com.saney.musicvisualizer.scene.SceneOrchestrator
 import com.saney.musicvisualizer.scene.SceneSpec
+import com.saney.musicvisualizer.theme.PlaybackThemeId
+import com.saney.musicvisualizer.theme.PlaybackThemeRegistry
+import com.saney.musicvisualizer.theme.PlaybackThemeStore
+import com.saney.musicvisualizer.ui.HeroThemeView
 import com.saney.musicvisualizer.ui.PulseMiniView
 import com.saney.musicvisualizer.ui.ReactiveSceneView
 import java.util.Locale
@@ -43,15 +47,18 @@ import java.util.Locale
 @UnstableApi
 class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
-    private enum class Screen { LIBRARY, NOW_PLAYING }
+    private enum class Screen { LIBRARY, NOW_PLAYING, THEME_PICKER }
 
     private lateinit var controller: PlaybackController
     private lateinit var sceneOrchestrator: SceneOrchestrator
     private lateinit var currentScene: SceneSpec
+    private lateinit var themeStore: PlaybackThemeStore
+    private var selectedThemeId = PlaybackThemeId.VISUALIZER
     private var screen = Screen.LIBRARY
     private var latestSnapshot = PlaybackSnapshot()
 
     private var sceneView: ReactiveSceneView? = null
+    private var heroThemeView: HeroThemeView? = null
     private var miniPulseView: PulseMiniView? = null
     private var dock: View? = null
     private var dockTitle: TextView? = null
@@ -98,6 +105,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         controller = ViewModelProvider(this)[PlaybackController::class.java]
         controller.setAnalysisPermissionGranted(hasAnalysisPermission())
 
+        themeStore = PlaybackThemeStore(this)
+        selectedThemeId = themeStore.selectedThemeId
+
         sceneOrchestrator = SceneOrchestrator { spec ->
             currentScene = spec
             sceneView?.setScene(spec)
@@ -105,10 +115,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         currentScene = sceneOrchestrator.currentScene()
 
         onBackPressedDispatcher.addCallback(this) {
-            if (screen == Screen.NOW_PLAYING) {
-                showLibrary()
-            } else {
-                finish()
+            when (screen) {
+                Screen.NOW_PLAYING -> showLibrary()
+                Screen.THEME_PICKER -> {
+                    if (latestSnapshot.trackName != null) {
+                        showNowPlaying()
+                    } else {
+                        showLibrary()
+                    }
+                }
+                Screen.LIBRARY -> finish()
             }
         }
 
@@ -173,8 +189,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowTotal?.text = formatTime(snapshot.durationMs)
         nowPlay?.text = if (snapshot.isPlaying) "Ⅱ" else "▶"
         sceneView?.setPlaying(snapshot.isPlaying)
+        heroThemeView?.setPlaying(snapshot.isPlaying)
 
-        if (screen == Screen.NOW_PLAYING && snapshot.isPlaying) {
+        if (
+            screen == Screen.NOW_PLAYING &&
+            snapshot.isPlaying &&
+            selectedThemeId == PlaybackThemeId.VISUALIZER
+        ) {
             sceneOrchestrator.start()
         } else {
             sceneOrchestrator.stop()
@@ -190,6 +211,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onSceneSignal(signal: SceneSignal) {
         sceneView?.updateSignal(signal)
+        heroThemeView?.updateSignal(signal)
         miniPulseView?.updateSignal(signal)
     }
 
@@ -235,7 +257,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         modes.addView(modeChip("♫", "Бібліотека", "Моя музика", true) { })
         modes.addView(modeChip("▥", "Tone Lab", "Звук і ефекти", false) { toast("Tone Lab — наступний етап") })
-        modes.addView(modeChip("◉", "Scene Lab", "Візуальні сцени", false) { toast("Scene Lab — наступний етап") })
+        modes.addView(modeChip("◉", "Scene Lab", "Візуальні сцени", false) { showThemePicker() })
         modeScroller.addView(modes)
         content.addView(modeScroller)
 

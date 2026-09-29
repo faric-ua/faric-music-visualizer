@@ -214,3 +214,14 @@ Phone evaluation mode:
 - Visualizer mode still uses ReactiveSceneView and can still open projectM LAB;
 - planned Portrait Halo / Glass Core / Vinyl / Cassette / Poster are visible as coming-soon entries;
 - next architecture task is to split live smoothing from deterministic frame-at-time evaluation so preview and export share the same scene math.
+
+
+## v0.6.2 retro themes and projectM latency
+
+- Vinyl and Cassette are now standalone selectable Playback Themes in HeroThemeView;
+- current track title is rendered inside their labels; playback pause stops rotation;
+- projectM loadPreset now returns native load duration in milliseconds;
+- ProjectMPresetPerformanceStore smooths load time per canonical preset ID;
+- >=1200ms is currently HEAVY; FAST/TOP filters learned heavy presets, ALL does not;
+- LAB status exposes LOAD and HEAVY count for phone diagnosis;
+- next milestone is deterministic scene-at-time evaluation and first MP4 export proof.

@@ -182,8 +182,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowStatus?.text = buildString {
             append(snapshot.status)
             if (snapshot.trackName != null) {
-                append(if (snapshot.analysisActive) " · reactive ON" else " · reactive OFF")
+                append(
+                    if (snapshot.analysisActive) {
+                        " · reactive ON"
+                    } else {
+                        " · reactive OFF"
+                    },
+                )
             }
+            append(" · ")
+            append(
+                PlaybackThemeRegistry
+                    .byId(selectedThemeId)
+                    .title,
+            )
         }
         nowElapsed?.text = formatTime(snapshot.positionMs)
         nowTotal?.text = formatTime(snapshot.durationMs)
@@ -532,6 +544,224 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         enableImmersiveFullscreen()
         onPlaybackSnapshot(latestSnapshot)
     }
+
+    private fun showThemePicker() {
+        screen = Screen.THEME_PICKER
+        sceneOrchestrator.stop()
+        clearScreenRefs()
+
+        val root = FrameLayout(this).apply {
+            setBackgroundColor(COLOR_BG)
+        }
+        applySafeArea(root)
+
+        val scroll = ScrollView(this).apply {
+            clipToPadding = false
+            setPadding(
+                dp(16),
+                dp(10),
+                dp(16),
+                dp(30),
+            )
+        }
+
+        val content = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+
+        val header = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+        }
+
+        header.addView(
+            iconButton("‹") {
+                if (latestSnapshot.trackName != null) {
+                    showNowPlaying()
+                } else {
+                    showLibrary()
+                }
+            },
+        )
+
+        header.addView(
+            label(
+                "Playback Themes",
+                24f,
+                Color.WHITE,
+                true,
+            ),
+            LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f,
+            ).apply {
+                marginStart = dp(10)
+            },
+        )
+
+        content.addView(header)
+
+        content.addView(
+            label(
+                "Обери центральну сцену. Hero Themes вже працюють окремо від projectM.",
+                14f,
+                COLOR_MUTED,
+                false,
+            ),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+                bottomMargin = dp(14)
+            },
+        )
+
+        PlaybackThemeRegistry.all.forEach { spec ->
+            val implemented =
+                spec.id == PlaybackThemeId.VISUALIZER ||
+                    isStandaloneHeroTheme(spec.id)
+
+            val selected =
+                spec.id == selectedThemeId
+
+            val card = LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(
+                    dp(16),
+                    dp(14),
+                    dp(16),
+                    dp(14),
+                )
+
+                background =
+                    panelDrawable(
+                        if (selected) {
+                            Color.rgb(25, 38, 45)
+                        } else {
+                            COLOR_PANEL
+                        },
+                        22,
+                        if (selected) {
+                            COLOR_ACCENT_ORANGE
+                        } else if (implemented) {
+                            COLOR_ACCENT_CYAN
+                        } else {
+                            Color.argb(
+                                70,
+                                255,
+                                255,
+                                255,
+                            )
+                        },
+                        1,
+                    )
+
+                addView(
+                    label(
+                        buildString {
+                            if (selected) append("✓  ")
+                            append(spec.title)
+                            if (!implemented) append("  · СКОРО")
+                        },
+                        18f,
+                        Color.WHITE,
+                        true,
+                    ),
+                )
+
+                addView(
+                    label(
+                        spec.subtitle,
+                        12f,
+                        COLOR_MUTED,
+                        false,
+                    ),
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        topMargin = dp(5)
+                    },
+                )
+
+                addView(
+                    label(
+                        when {
+                            spec.id == PlaybackThemeId.VISUALIZER ->
+                                "FARIC / projectM layered visualizer"
+
+                            implemented ->
+                                "Standalone · bass / mid / high / beat reactive"
+
+                            else ->
+                                "Заплановано в Theme Engine"
+                        },
+                        11f,
+                        if (implemented) {
+                            COLOR_ACCENT_CYAN
+                        } else {
+                            COLOR_MUTED
+                        },
+                        false,
+                    ),
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        topMargin = dp(7)
+                    },
+                )
+
+                setOnClickListener {
+                    if (!implemented) {
+                        toast("${spec.title}: ще будуємо")
+                        return@setOnClickListener
+                    }
+
+                    selectedThemeId = spec.id
+                    themeStore.selectedThemeId = spec.id
+
+                    if (latestSnapshot.trackName != null) {
+                        showNowPlaying()
+                    } else {
+                        showThemePicker()
+                    }
+                }
+            }
+
+            content.addView(
+                card,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    bottomMargin = dp(10)
+                },
+            )
+        }
+
+        scroll.addView(content)
+        root.addView(scroll)
+
+        setContentView(root)
+        enableImmersiveFullscreen()
+    }
+
+    private fun isStandaloneHeroTheme(
+        id: PlaybackThemeId,
+    ): Boolean =
+        when (id) {
+            PlaybackThemeId.NEON_EMBLEM,
+            PlaybackThemeId.ENERGY_CORE,
+            PlaybackThemeId.ORBITAL_CROWN,
+            PlaybackThemeId.STAR_SEED,
+            PlaybackThemeId.WAVE_IDOL,
+            -> true
+
+            else -> false
+        }
 
     private fun buildPulseDock(): View {
         val card = LinearLayout(this).apply {

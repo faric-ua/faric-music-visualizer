@@ -294,3 +294,19 @@ Current v0.3.0 source commits:
 - [ ] Android CI PASS for v0.6.7.
 - [ ] Phone A/V sync PASS.
 - [ ] Next: 30 fps / 1080p tuning.
+
+
+## v0.6.8 — Continuous Layer-1 live reactivity hotfix
+
+Phone finding from the 2026-09-29 screen recording:
+- [x] Reproduce that standalone Layer 1 reacts strongly only for roughly the first 2–3 seconds after Play/resume, then settles into almost static motion while playback continues.
+- [x] Keep Android Visualizer capture active; fix the live signal mapping instead of adding theme-specific fake animation.
+- [x] Add adaptive local contrast for amplitude / bass / mid / high so small ongoing musical changes stay visible after the initial signal level has settled.
+- [x] Rebase the live dynamics after real silence so Pause → Play does not create a false full-scale startup burst.
+- [x] Reset beat baseline on silence so the first resumed frame is not treated as a beat.
+- [x] Apply the hotfix before SceneSignal fan-out, so Energy Core, other standalone Hero themes, ReactiveSceneView and native FARIC Layer 1 share the same corrected live signal.
+- [x] Add unit coverage for sustained reactivity and silence/resume rebasing.
+- [ ] Android CI PASS for v0.6.8.
+- [ ] Phone: Energy Core remains visibly reactive for 15+ seconds.
+- [ ] Phone: pause 2+ seconds → resume has no artificial 2–3 second giant pulse.
+- [ ] Phone: verify at least two additional Layer-1 themes.

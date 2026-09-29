@@ -12,6 +12,13 @@ class AdaptiveBeatDetector(
 
     fun update(bassEnergy: Float, nowMs: Long): Float {
         val energy = bassEnergy.coerceIn(0f, 1f)
+
+        if (energy <= SILENCE_FLOOR) {
+            baseline = 0f
+            initialized = false
+            return 0f
+        }
+
         if (!initialized) {
             baseline = energy
             initialized = true
@@ -34,5 +41,9 @@ class AdaptiveBeatDetector(
         baseline += (energy - baseline) * alpha
 
         return strength
+    }
+
+    private companion object {
+        const val SILENCE_FLOOR = 0.015f
     }
 }

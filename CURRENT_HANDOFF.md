@@ -11,8 +11,8 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release:
-- v0.2.1 PulseDeck fullscreen hotfix;
-- source implementation candidate is being built/tested;
+- v0.6.8 continuous Layer-1 live reactivity hotfix;
+- source candidate is being built/tested;
 - package remains `com.saney.musicvisualizer`.
 
 v0.2.0 implementation:
@@ -265,3 +265,26 @@ Phone evaluation mode:
 - Final proof is published to Movies/FARIC and should contain the matching music segment from the same source timestamp range.
 - Next phone checks: MP3/M4A compatibility, A/V sync, no initial silence, no color corruption, export duration.
 - After PASS: move to 30 fps, higher resolution, arbitrary range, then full-track export.
+
+
+## v0.6.8 continuous Layer-1 reactivity hotfix
+
+Phone evidence:
+- user screen recording on 2026-09-29 shows Energy Core reacting strongly for only about 2–3 seconds after Play/resume;
+- playback time keeps advancing, but the Layer-1 core/rays settle into almost static size afterward;
+- the recording itself contains no audio stream, so the visual finding proves loss of visible dynamics, not A/V sync.
+
+Implementation:
+- new `LiveSignalDynamics` sits between `SpectrumMath` and `SceneSignal`;
+- it keeps a slow local baseline per band and expands small ongoing deviations into useful visual range;
+- after several silent frames it rebases on the next non-silent frame instead of treating restart level as a huge transient;
+- `AdaptiveBeatDetector` resets its baseline on silence so Pause → Play does not inject a fake beat;
+- fix is shared by all live Layer-1 consumers, not hardcoded into Energy Core;
+- version is `0.6.8` / versionCode 22.
+
+Next:
+1. wait for Android CI;
+2. install exact signed v0.6.8 APK;
+3. play Energy Core for at least 15 seconds and confirm continuing beat/bass movement;
+4. pause for at least 2 seconds, resume, and confirm there is no artificial startup-only burst;
+5. smoke two other Layer-1 themes before closing the hotfix.

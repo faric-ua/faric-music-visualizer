@@ -9,6 +9,7 @@ class AudioCaptureAnalyzer(
     private val onPcm: ((ShortArray) -> Unit)? = null,
 ) : AutoCloseable {
     private val beatDetector = AdaptiveBeatDetector()
+    private val liveDynamics = LiveSignalDynamics()
     private val visualizer = Visualizer(audioSessionId)
 
     init {
@@ -43,7 +44,8 @@ class AudioCaptureAnalyzer(
                 ) {
                     if (fft == null) return
 
-                    val bands = SpectrumMath.fromFft(fft, samplingRate)
+                    val rawBands = SpectrumMath.fromFft(fft, samplingRate)
+                    val bands = liveDynamics.update(rawBands)
                     val beat = beatDetector.update(bands.bass, SystemClock.elapsedRealtime())
 
                     onSignal(

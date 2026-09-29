@@ -246,3 +246,16 @@ Phone acceptance must include:
 - [ ] Raise toward 1080p after performance PASS.
 - [ ] Add arbitrary clip range.
 - [ ] Add full-song export.
+
+
+## v0.6.8 — continuous live Layer-1 dynamics
+
+- [x] Reproduce startup-only live response from phone recording.
+- [x] Add shared adaptive live band contrast before Layer-1 SceneSignal fan-out.
+- [x] Preserve small bass/mid/high changes after the absolute FFT level settles.
+- [x] Rebase after sustained silence instead of amplifying Pause → Play as a fake transient.
+- [x] Reset beat baseline on silence.
+- [x] Add unit tests for long-running pulses and resume behavior.
+- [ ] Phone verify 15+ seconds of continuous Energy Core response.
+- [ ] Phone verify Pause → Play.
+- [ ] Phone smoke Neon Emblem + one additional Hero theme.

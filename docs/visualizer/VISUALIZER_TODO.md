@@ -128,8 +128,8 @@ Phone acceptance must include:
 - [x] Create common PlaybackTheme contract.
 - [x] Add theme registry and picker.
 - [ ] Prototype Portrait Halo.
-- [ ] Prototype Vinyl.
-- [ ] Prototype Cassette.
+- [x] Prototype Vinyl.
+- [x] Prototype Cassette.
 - [ ] Prototype Glass Core / Crystal Pulse.
 - [ ] Prototype Neon Emblem / Energy Crown.
 - [ ] Support user image / album cover / logo / background video inputs.
@@ -179,3 +179,19 @@ Phone acceptance must include:
 - [ ] Phone visual review for five Hero Themes.
 - [ ] Phone verify no playback restart when switching themes.
 - [ ] Next: deterministic theme frame-state contract for export parity.
+
+
+## v0.6.2 — Retro themes + measured projectM latency
+
+- [x] Add standalone Vinyl playback theme.
+- [x] Add standalone Cassette playback theme.
+- [x] Render current track title inside retro themes.
+- [x] Stop vinyl/reel rotation on pause.
+- [x] Record native projectM preset load latency.
+- [x] Persist smoothed per-preset load time.
+- [x] Mark presets >=1200ms as HEAVY.
+- [x] Exclude learned HEAVY presets from FAST/TOP while keeping ALL intact.
+- [ ] Android CI PASS for v0.6.2.
+- [ ] Phone review Vinyl/Cassette.
+- [ ] Collect real LOAD distribution and tune heavy threshold.
+- [ ] Next: deterministic export proof.

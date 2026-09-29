@@ -224,3 +224,14 @@ Current v0.3.0 source commits:
 - [ ] Phone Hero Pack 1 visual review.
 - [ ] Next: standalone Neon Emblem theme + theme picker.
 - [ ] Next: deterministic export spike using Media3 Transformer/effect pipeline.
+
+
+## v0.6.1 — Standalone Hero Themes
+
+- [x] Playback Theme picker is reachable from Scene Lab and Now Playing.
+- [x] Selected theme persists across restarts.
+- [x] Five standalone Hero Themes render from live SceneSignal without projectM.
+- [x] Visualizer remains selectable as legacy/reactive mode.
+- [ ] Android CI PASS.
+- [ ] Phone review: visual quality, response, heat, switching latency.
+- [ ] Next: export-parity deterministic renderer contract.

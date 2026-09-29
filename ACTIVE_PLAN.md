@@ -235,3 +235,15 @@ Current v0.3.0 source commits:
 - [ ] Android CI PASS.
 - [ ] Phone review: visual quality, response, heat, switching latency.
 - [ ] Next: export-parity deterministic renderer contract.
+
+
+## v0.6.2 — Retro themes + measured projectM latency
+
+- [x] Vinyl theme is selectable and reactive.
+- [x] Cassette theme is selectable and reactive.
+- [x] Current track metadata is passed into standalone themes.
+- [x] projectM native load time is measured and shown in LAB.
+- [x] Heavy presets are learned and skipped from FAST/TOP.
+- [ ] Android CI PASS.
+- [ ] Phone test retro themes and projectM LOAD timings.
+- [ ] Next: export MVP architecture and first MP4 proof.

@@ -147,6 +147,9 @@ class HeroThemeView(context: Context) : View(context) {
             PlaybackThemeId.VINYL ->
                 drawVinyl(canvas, cx, cy, minSide)
 
+            PlaybackThemeId.CASSETTE ->
+                drawCassette(canvas, cx, cy, minSide)
+
             else ->
                 drawNeonEmblem(canvas, cx, cy, minSide, time)
         }
@@ -627,6 +630,278 @@ class HeroThemeView(context: Context) : View(context) {
                 stroke,
             )
         }
+    }
+
+    private fun drawCassette(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        minSide: Float,
+    ) {
+        val bodyWidth =
+            minSide * (
+                0.62f +
+                    beat * 0.012f
+                )
+
+        val bodyHeight =
+            minSide * (
+                0.34f +
+                    bass * 0.012f
+                )
+
+        val left = cx - bodyWidth / 2f
+        val top = cy - bodyHeight / 2f
+        val right = cx + bodyWidth / 2f
+        val bottom = cy + bodyHeight / 2f
+        val corner = minSide * 0.035f
+
+        drawGlow(
+            canvas,
+            cx,
+            cy,
+            bodyWidth * 0.70f,
+            Color.rgb(255, 128, 36),
+            0.05f + bass * 0.08f + beat * 0.10f,
+        )
+
+        fill.color = Color.rgb(219, 210, 185)
+        fill.alpha = 250
+        canvas.drawRoundRect(
+            left,
+            top,
+            right,
+            bottom,
+            corner,
+            corner,
+            fill,
+        )
+
+        stroke.color = Color.rgb(84, 69, 54)
+        stroke.alpha = 220
+        stroke.strokeWidth = minSide * 0.004f
+        canvas.drawRoundRect(
+            left,
+            top,
+            right,
+            bottom,
+            corner,
+            corner,
+            stroke,
+        )
+
+        val labelInset = minSide * 0.045f
+        val labelTop = top + minSide * 0.035f
+        val labelBottom = cy + minSide * 0.035f
+
+        fill.color = Color.rgb(245, 137, 45)
+        fill.alpha = 245
+        canvas.drawRoundRect(
+            left + labelInset,
+            labelTop,
+            right - labelInset,
+            labelBottom,
+            minSide * 0.018f,
+            minSide * 0.018f,
+            fill,
+        )
+
+        val reelY = cy + bodyHeight * 0.10f
+        val reelOffset = bodyWidth * 0.205f
+        val reelRadius =
+            minSide * (
+                0.070f +
+                    bass * 0.008f
+                )
+
+        drawCassetteReel(
+            canvas,
+            cx - reelOffset,
+            reelY,
+            reelRadius,
+            vinylRotation,
+            minSide,
+        )
+        drawCassetteReel(
+            canvas,
+            cx + reelOffset,
+            reelY,
+            reelRadius,
+            -vinylRotation * 1.07f,
+            minSide,
+        )
+
+        val windowLeft = cx - bodyWidth * 0.13f
+        val windowRight = cx + bodyWidth * 0.13f
+        val windowTop = reelY - reelRadius * 0.62f
+        val windowBottom = reelY + reelRadius * 0.62f
+
+        fill.color = Color.rgb(35, 33, 29)
+        fill.alpha = 240
+        canvas.drawRoundRect(
+            windowLeft,
+            windowTop,
+            windowRight,
+            windowBottom,
+            minSide * 0.012f,
+            minSide * 0.012f,
+            fill,
+        )
+
+        stroke.color = Color.rgb(105, 75, 45)
+        stroke.alpha = 180
+        stroke.strokeWidth = minSide * 0.003f
+        canvas.drawLine(
+            cx - reelOffset + reelRadius * 0.72f,
+            reelY,
+            windowLeft,
+            reelY,
+            stroke,
+        )
+        canvas.drawLine(
+            windowRight,
+            reelY,
+            cx + reelOffset - reelRadius * 0.72f,
+            reelY,
+            stroke,
+        )
+
+        val lowerPlateTop =
+            cy + bodyHeight * 0.27f
+
+        path.reset()
+        path.moveTo(
+            cx - bodyWidth * 0.25f,
+            lowerPlateTop,
+        )
+        path.lineTo(
+            cx + bodyWidth * 0.25f,
+            lowerPlateTop,
+        )
+        path.lineTo(
+            cx + bodyWidth * 0.18f,
+            bottom - minSide * 0.035f,
+        )
+        path.lineTo(
+            cx - bodyWidth * 0.18f,
+            bottom - minSide * 0.035f,
+        )
+        path.close()
+
+        fill.color = Color.rgb(84, 77, 66)
+        fill.alpha = 220
+        canvas.drawPath(path, fill)
+
+        val title =
+            trackTitle
+                .replace('_', ' ')
+                .take(28)
+
+        textPaint.color = Color.rgb(44, 28, 17)
+        textPaint.alpha = 245
+        textPaint.textSize = minSide * 0.030f
+
+        canvas.drawText(
+            title,
+            cx,
+            labelTop + minSide * 0.045f,
+            textPaint,
+        )
+
+        textPaint.textSize = minSide * 0.020f
+        textPaint.alpha = 205
+
+        canvas.drawText(
+            if (artistName.isBlank()) {
+                "FARIC MIX"
+            } else {
+                artistName.take(30)
+            },
+            cx,
+            labelTop + minSide * 0.080f,
+            textPaint,
+        )
+
+        val beatMarker =
+            minSide * (
+                0.010f +
+                    beat * 0.020f
+                )
+
+        fill.color = Color.rgb(255, 62, 37)
+        fill.alpha =
+            (120 + beat * 120f).toInt().coerceIn(0, 255)
+
+        canvas.drawCircle(
+            right - labelInset * 1.45f,
+            labelTop + labelInset * 0.55f,
+            beatMarker,
+            fill,
+        )
+    }
+
+    private fun drawCassetteReel(
+        canvas: Canvas,
+        x: Float,
+        y: Float,
+        radius: Float,
+        rotationDegrees: Float,
+        minSide: Float,
+    ) {
+        fill.color = Color.rgb(48, 44, 39)
+        fill.alpha = 255
+        canvas.drawCircle(
+            x,
+            y,
+            radius,
+            fill,
+        )
+
+        stroke.color = Color.rgb(230, 220, 194)
+        stroke.alpha = 230
+        stroke.strokeWidth = minSide * 0.003f
+        canvas.drawCircle(
+            x,
+            y,
+            radius * 0.68f,
+            stroke,
+        )
+
+        val rotation =
+            rotationDegrees /
+                180f *
+                PI.toFloat()
+
+        repeat(6) { i ->
+            val angle =
+                rotation +
+                    i / 6f *
+                    (2f * PI.toFloat())
+
+            val inner = radius * 0.20f
+            val outer = radius * 0.58f
+
+            stroke.color = Color.rgb(230, 220, 194)
+            stroke.alpha = 215
+            stroke.strokeWidth = minSide * 0.005f
+
+            canvas.drawLine(
+                x + cosF(angle) * inner,
+                y + sinF(angle) * inner,
+                x + cosF(angle) * outer,
+                y + sinF(angle) * outer,
+                stroke,
+            )
+        }
+
+        fill.color = Color.rgb(219, 210, 185)
+        fill.alpha = 255
+        canvas.drawCircle(
+            x,
+            y,
+            radius * 0.18f,
+            fill,
+        )
     }
 
     private fun drawVinyl(

@@ -18,6 +18,7 @@ import com.saney.musicvisualizer.board.BoardAudioState
 import com.saney.musicvisualizer.board.BoardLayerMotion
 import com.saney.musicvisualizer.board.BoardLayerMotionEvaluator
 import com.saney.musicvisualizer.board.BoardLayerReaction
+import com.saney.musicvisualizer.board.BoardTransform
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.max
@@ -55,6 +56,7 @@ class HeroBoardView(context: Context) : View(context) {
         decodeSafely(R.drawable.cyber_shark_wordmark)
 
     private var renderErrorLogged = false
+    private var groupTransform = BoardTransform.default()
 
     private val frameReaction =
         BoardLayerReaction(
@@ -120,6 +122,11 @@ class HeroBoardView(context: Context) : View(context) {
         postInvalidateOnAnimation()
     }
 
+    fun setGroupTransform(value: BoardTransform) {
+        groupTransform = value.sanitized()
+        postInvalidateOnAnimation()
+    }
+
     fun updateSignal(signal: SceneSignal) {
         targetAmplitude = signal.amplitude
         targetBass = signal.bass
@@ -161,10 +168,11 @@ class HeroBoardView(context: Context) : View(context) {
         if (w <= 0f || h <= 0f) return
 
         val minSide = min(w, h)
-        val cx = w * 0.5f
-        val cy = h * 0.275f
+        val transform = groupTransform
+        val cx = w * transform.xFraction
+        val cy = h * transform.yFraction
         val timeSeconds = now / 1000f
-        val baseSize = minSide * 0.66f
+        val baseSize = minSide * transform.sizeFraction
 
         drawBoardBackground(
             canvas = canvas,
@@ -197,6 +205,7 @@ class HeroBoardView(context: Context) : View(context) {
             cx,
             cy,
             baseSize,
+            transform,
         )
 
         val fxMotion =
@@ -212,6 +221,7 @@ class HeroBoardView(context: Context) : View(context) {
             cy,
             baseSize,
             timeSeconds,
+            transform,
         )
 
         val creatureMotion =
@@ -227,6 +237,7 @@ class HeroBoardView(context: Context) : View(context) {
             cx,
             cy,
             baseSize,
+            transform,
         )
 
         val wordmarkMotion =
@@ -242,6 +253,7 @@ class HeroBoardView(context: Context) : View(context) {
             cx,
             cy,
             baseSize,
+            transform,
         )
 
         bitmapPaint.alpha = 255
@@ -255,6 +267,7 @@ class HeroBoardView(context: Context) : View(context) {
         cx: Float,
         cy: Float,
         baseSize: Float,
+        transform: BoardTransform,
     ) {
         if (bitmap == null) {
             drawMissingLayerFallback(
@@ -263,12 +276,13 @@ class HeroBoardView(context: Context) : View(context) {
                 cy = cy,
                 baseSize = baseSize,
                 motion = motion,
+                transform = transform,
             )
             return
         }
 
         bitmapPaint.alpha =
-            (motion.alpha * 255f)
+            (motion.alpha * transform.opacity * 255f)
                 .toInt()
                 .coerceIn(0, 255)
 
@@ -280,7 +294,7 @@ class HeroBoardView(context: Context) : View(context) {
 
         canvas.save()
         canvas.rotate(
-            motion.rotationDegrees,
+            transform.rotationDegrees + motion.rotationDegrees,
             cx,
             layerCy,
         )
@@ -305,13 +319,14 @@ class HeroBoardView(context: Context) : View(context) {
         cy: Float,
         baseSize: Float,
         timeSeconds: Float,
+        transform: BoardTransform,
     ) {
         val size = baseSize * motion.scale
         val radius = size * 0.43f
 
         canvas.save()
         canvas.rotate(
-            motion.rotationDegrees,
+            transform.rotationDegrees + motion.rotationDegrees,
             cx,
             cy,
         )
@@ -405,7 +420,7 @@ class HeroBoardView(context: Context) : View(context) {
 
             fill.color =
                 Color.argb(
-                    (motion.alpha * (80 + high * 130f))
+                    (motion.alpha * transform.opacity * (80 + high * 130f))
                         .toInt()
                         .coerceIn(0, 210),
                     80,
@@ -496,6 +511,7 @@ class HeroBoardView(context: Context) : View(context) {
         cy: Float,
         baseSize: Float,
         motion: BoardLayerMotion,
+        transform: BoardTransform,
     ) {
         if (!renderErrorLogged) {
             android.util.Log.e(
@@ -507,7 +523,7 @@ class HeroBoardView(context: Context) : View(context) {
 
         fill.color =
             Color.argb(
-                (motion.alpha * 120f)
+                (motion.alpha * transform.opacity * 120f)
                     .toInt()
                     .coerceIn(0, 180),
                 0,

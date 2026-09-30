@@ -322,3 +322,21 @@ Target UI direction:
 - [ ] UI to return individual layer override to inherited/group value.
 - [ ] Serialize transforms into saved MusicVideoProject.
 - [ ] Use the same transforms in deterministic export.
+
+
+## Board gesture editing and group audio motion
+
+- [x] One-finger drag for whole-GF X/Y.
+- [x] Pinch for whole-GF size.
+- [x] Two-finger twist for whole-GF base rotation.
+- [x] Persist gesture changes with slider changes.
+- [x] Group rotation sway setting.
+- [x] Group stereo L/R movement setting.
+- [x] Group bass up/down float setting.
+- [x] Live stereo balance from PCM playback chain.
+- [ ] Phone tune gesture feel.
+- [ ] Phone tune default rotation sway amplitude.
+- [ ] Phone tune default stereo travel amplitude.
+- [ ] Phone tune default bass float amplitude.
+- [ ] Add offline stereo balance to export analysis.
+- [ ] Advanced per-layer gesture selection/locking.

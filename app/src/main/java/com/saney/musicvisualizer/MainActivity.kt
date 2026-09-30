@@ -820,6 +820,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 selectedThemeId,
             )
 
+        val selectedLayer =
+            boardEditorLayer
+
+        var selectedLayerTransform =
+            selectedLayer?.let { layerId ->
+                boardLayerTransformStore.load(
+                    selectedThemeId,
+                    layerId,
+                )
+            }
+
         val root =
             FrameLayout(this).apply {
                 setBackgroundColor(COLOR_BG)
@@ -830,6 +841,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             HeroBoardView(this).also { view ->
                 view.setGroupTransform(transform)
                 view.setGroupReaction(groupReaction)
+                view.setLayerTransforms(
+                    boardLayerTransformStore.loadAll(
+                        selectedThemeId,
+                    ),
+                )
                 view.setPlaying(latestSnapshot.isPlaying)
                 view.updateSignal(latestSignal)
             }
@@ -843,6 +859,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
+
+        fun layerTitle(
+            layerId: BoardLayerId?,
+        ): String =
+            when (layerId) {
+                null -> "Усе GF"
+                BoardLayerId.FRAME -> "Frame"
+                BoardLayerId.FX -> "FX"
+                BoardLayerId.CREATURE -> "Shark"
+                BoardLayerId.WORDMARK -> "FARIC"
+            }
 
         val header =
             LinearLayout(this).apply {
@@ -875,7 +902,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
         header.addView(
             label(
-                "Board Transform",
+                "Board · ${layerTitle(selectedLayer)}",
                 18f,
                 Color.WHITE,
                 true,
@@ -940,16 +967,87 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         panelContent.addView(
             label(
-                "Cyber Shark · Board",
-                16f,
+                "Редагувати",
+                14f,
                 Color.WHITE,
                 true,
             ),
         )
 
+        val selectorScroll =
+            HorizontalScrollView(this).apply {
+                isHorizontalScrollBarEnabled = false
+                overScrollMode = View.OVER_SCROLL_NEVER
+            }
+
+        val selectorRow =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                setPadding(
+                    0,
+                    dp(6),
+                    0,
+                    dp(8),
+                )
+            }
+
+        val selectorItems =
+            listOf(
+                null to "Усе",
+                BoardLayerId.FRAME to "Frame",
+                BoardLayerId.CREATURE to "Shark",
+                BoardLayerId.WORDMARK to "FARIC",
+                BoardLayerId.FX to "FX",
+            )
+
+        selectorItems.forEach { (layerId, title) ->
+            val active =
+                selectedLayer == layerId
+
+            selectorRow.addView(
+                actionPill(
+                    text = title,
+                    accent = active,
+                ) {
+                    pendingRestoreScrollY =
+                        activeVerticalScroll
+                            ?.scrollY
+                    pendingRestoreScrollX =
+                        activeHorizontalScroll
+                            ?.scrollX
+
+                    boardEditorLayer =
+                        layerId
+
+                    showBoardTransform()
+                },
+                LinearLayout.LayoutParams(
+                    dp(84),
+                    dp(42),
+                ).apply {
+                    marginEnd = dp(6)
+                },
+            )
+        }
+
+        selectorScroll.addView(selectorRow)
+        activeHorizontalScroll =
+            selectorScroll
+        panelContent.addView(
+            selectorScroll,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(58),
+            ),
+        )
+
         panelContent.addView(
             label(
-                "Жести: 1 палець — рухати · pinch — розмір · 2 пальці — поворот. Слайдери нижче роблять те саме точно.",
+                if (selectedLayer == null) {
+                    "Жести: 1 палець — рухати весь GF · pinch — розмір · 2 пальці — поворот."
+                } else {
+                    "Жести зараз редагують тільки ${layerTitle(selectedLayer)}. Реакція на музику при цьому залишається."
+                },
                 11f,
                 COLOR_MUTED,
                 false,
@@ -994,11 +1092,27 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         }
 
-        var xSeek: SeekBar? = null
-        var ySeek: SeekBar? = null
-        var sizeSeek: SeekBar? = null
-        var rotationSeek: SeekBar? = null
-        var opacitySeek: SeekBar? = null
+        fun persistLayerTransform(
+            layerId: BoardLayerId,
+            value: BoardLayerTransform,
+        ) {
+            val safe =
+                value.sanitized()
+
+            selectedLayerTransform =
+                safe
+
+            boardLayerTransformStore.save(
+                selectedThemeId,
+                layerId,
+                safe,
+            )
+
+            boardView.setLayerTransform(
+                layerId,
+                safe,
+            )
+        }
 
         fun addSlider(
             title: String,
@@ -1077,327 +1191,614 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             return seek
         }
 
-        xSeek = addSlider(
-            title = "X",
-            max = 100,
-            initial =
-                (
-                    transform.xFraction *
-                        100f
-                    )
-                    .toInt(),
-            valueText = {
-                "$it%"
-            },
-        ) { progress ->
-            persistTransform(
-                transform.copy(
-                    xFraction =
-                        progress /
-                            100f,
+        if (selectedLayer == null) {
+            panelContent.addView(
+                label(
+                    "Положення всього GF",
+                    14f,
+                    COLOR_ACCENT_CYAN,
+                    true,
                 ),
             )
-        }
 
-        ySeek = addSlider(
-            title = "Y",
-            max = 100,
-            initial =
-                (
-                    transform.yFraction *
-                        100f
-                    )
-                    .toInt(),
-            valueText = {
-                "$it%"
-            },
-        ) { progress ->
-            persistTransform(
-                transform.copy(
-                    yFraction =
-                        progress /
-                            100f,
-                ),
-            )
-        }
+            var xSeek: SeekBar? = null
+            var ySeek: SeekBar? = null
+            var sizeSeek: SeekBar? = null
+            var rotationSeek: SeekBar? = null
+            var opacitySeek: SeekBar? = null
 
-        sizeSeek = addSlider(
-            title = "Розмір",
-            max = 80,
-            initial =
-                (
-                    transform.sizeFraction *
-                        100f -
-                        30f
-                    )
-                    .toInt(),
-            valueText = {
-                "${it + 30}%"
-            },
-        ) { progress ->
-            persistTransform(
-                transform.copy(
-                    sizeFraction =
+            xSeek =
+                addSlider(
+                    title = "X",
+                    max = 100,
+                    initial =
                         (
-                            progress +
-                                30
-                            ) /
-                            100f,
-                ),
-            )
-        }
-
-        rotationSeek = addSlider(
-            title = "Поворот",
-            max = 90,
-            initial =
-                (
-                    transform
-                        .rotationDegrees +
-                        45f
-                    )
-                    .toInt(),
-            valueText = {
-                "${it - 45}°"
-            },
-        ) { progress ->
-            persistTransform(
-                transform.copy(
-                    rotationDegrees =
-                        (
-                            progress -
-                                45
+                            transform.xFraction *
+                                100f
                             )
-                            .toFloat(),
-                ),
-            )
-        }
-
-        opacitySeek = addSlider(
-            title = "Прозорість",
-            max = 80,
-            initial =
-                (
-                    transform.opacity *
-                        100f -
-                        20f
+                            .toInt(),
+                    valueText = {
+                        "$it%"
+                    },
+                ) { progress ->
+                    persistTransform(
+                        transform.copy(
+                            xFraction =
+                                progress /
+                                    100f,
+                        ),
                     )
-                    .toInt(),
-            valueText = {
-                "${it + 20}%"
-            },
-        ) { progress ->
-            persistTransform(
-                transform.copy(
-                    opacity =
+                }
+
+            ySeek =
+                addSlider(
+                    title = "Y",
+                    max = 100,
+                    initial =
                         (
-                            progress +
-                                20
-                            ) /
-                            100f,
-                ),
+                            transform.yFraction *
+                                100f
+                            )
+                            .toInt(),
+                    valueText = {
+                        "$it%"
+                    },
+                ) { progress ->
+                    persistTransform(
+                        transform.copy(
+                            yFraction =
+                                progress /
+                                    100f,
+                        ),
+                    )
+                }
+
+            sizeSeek =
+                addSlider(
+                    title = "Розмір",
+                    max = 80,
+                    initial =
+                        (
+                            transform.sizeFraction *
+                                100f -
+                                30f
+                            )
+                            .toInt(),
+                    valueText = {
+                        "${it + 30}%"
+                    },
+                ) { progress ->
+                    persistTransform(
+                        transform.copy(
+                            sizeFraction =
+                                (
+                                    progress +
+                                        30
+                                    ) /
+                                    100f,
+                        ),
+                    )
+                }
+
+            rotationSeek =
+                addSlider(
+                    title = "Поворот",
+                    max = 90,
+                    initial =
+                        (
+                            transform
+                                .rotationDegrees +
+                                45f
+                            )
+                            .toInt(),
+                    valueText = {
+                        "${it - 45}°"
+                    },
+                ) { progress ->
+                    persistTransform(
+                        transform.copy(
+                            rotationDegrees =
+                                (
+                                    progress -
+                                        45
+                                    )
+                                    .toFloat(),
+                        ),
+                    )
+                }
+
+            opacitySeek =
+                addSlider(
+                    title = "Прозорість",
+                    max = 80,
+                    initial =
+                        (
+                            transform.opacity *
+                                100f -
+                                20f
+                            )
+                            .toInt(),
+                    valueText = {
+                        "${it + 20}%"
+                    },
+                ) { progress ->
+                    persistTransform(
+                        transform.copy(
+                            opacity =
+                                (
+                                    progress +
+                                        20
+                                    ) /
+                                    100f,
+                        ),
+                    )
+                }
+
+            boardView.setGestureEditing(
+                enabled = true,
+                layerId = null,
+                onTransformChanged = { value ->
+                    persistTransform(value)
+
+                    xSeek?.progress =
+                        (
+                            transform.xFraction *
+                                100f
+                            )
+                            .toInt()
+                    ySeek?.progress =
+                        (
+                            transform.yFraction *
+                                100f
+                            )
+                            .toInt()
+                    sizeSeek?.progress =
+                        (
+                            transform.sizeFraction *
+                                100f -
+                                30f
+                            )
+                            .toInt()
+                    rotationSeek?.progress =
+                        (
+                            transform.rotationDegrees +
+                                45f
+                            )
+                            .toInt()
+                    opacitySeek?.progress =
+                        (
+                            transform.opacity *
+                                100f -
+                                20f
+                            )
+                            .toInt()
+                },
             )
-        }
 
-        boardView.setGestureEditing(
-            enabled = true,
-        ) { value ->
-            persistTransform(value)
+            panelContent.addView(
+                label(
+                    "Реакція всього GF на музику",
+                    14f,
+                    COLOR_ACCENT_CYAN,
+                    true,
+                ),
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    topMargin = dp(8)
+                    bottomMargin = dp(4)
+                },
+            )
 
-            xSeek?.progress =
-                (
-                    transform.xFraction *
-                        100f
+            addSlider(
+                title = "Плавний поворот",
+                max = 60,
+                initial =
+                    (
+                        groupReaction
+                            .rotationSwayDegrees *
+                            10f
+                        )
+                        .toInt(),
+                valueText = {
+                    String.format(
+                        Locale.US,
+                        "%.1f°",
+                        it / 10f,
                     )
-                    .toInt()
-
-            ySeek?.progress =
-                (
-                    transform.yFraction *
-                        100f
-                    )
-                    .toInt()
-
-            sizeSeek?.progress =
-                (
-                    transform.sizeFraction *
-                        100f -
-                        30f
-                    )
-                    .toInt()
-
-            rotationSeek?.progress =
-                (
-                    transform.rotationDegrees +
-                        45f
-                    )
-                    .toInt()
-
-            opacitySeek?.progress =
-                (
-                    transform.opacity *
-                        100f -
-                        20f
-                    )
-                    .toInt()
-        }
-
-        panelContent.addView(
-            label(
-                "Реакція всього GF на музику",
-                14f,
-                COLOR_ACCENT_CYAN,
-                true,
-            ),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply {
-                topMargin = dp(8)
-                bottomMargin = dp(4)
-            },
-        )
-
-        addSlider(
-            title = "Плавний поворот",
-            max = 60,
-            initial =
-                (
-                    groupReaction
-                        .rotationSwayDegrees *
-                        10f
-                    )
-                    .toInt(),
-            valueText = {
-                String.format(
-                    Locale.US,
-                    "%.1f°",
-                    it / 10f,
+                },
+            ) { progress ->
+                persistReaction(
+                    groupReaction.copy(
+                        rotationSwayDegrees =
+                            progress /
+                                10f,
+                    ),
                 )
-            },
-        ) { progress ->
-            persistReaction(
-                groupReaction.copy(
-                    rotationSwayDegrees =
-                        progress /
-                            10f,
-                ),
-            )
-        }
-
-        addSlider(
-            title = "Stereo L/R",
-            max = 100,
-            initial =
-                (
-                    groupReaction
-                        .stereoShiftFraction *
-                        1000f
-                    )
-                    .toInt(),
-            valueText = {
-                String.format(
-                    Locale.US,
-                    "%.1f%%",
-                    it / 10f,
-                )
-            },
-        ) { progress ->
-            persistReaction(
-                groupReaction.copy(
-                    stereoShiftFraction =
-                        progress /
-                            1000f,
-                ),
-            )
-        }
-
-        addSlider(
-            title = "Bass ↑↓",
-            max = 60,
-            initial =
-                (
-                    groupReaction
-                        .bassFloatFraction *
-                        1000f
-                    )
-                    .toInt(),
-            valueText = {
-                String.format(
-                    Locale.US,
-                    "%.1f%%",
-                    it / 10f,
-                )
-            },
-        ) { progress ->
-            persistReaction(
-                groupReaction.copy(
-                    bassFloatFraction =
-                        progress /
-                            1000f,
-                ),
-            )
-        }
-
-        val presetRow =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-                gravity = Gravity.CENTER
             }
 
-        presetRow.addView(
-            actionPill(
-                text = "Fit Safe Area",
-                accent = false,
-            ) {
-                boardTransformStore
-                    .fitSafeArea(
+            addSlider(
+                title = "Stereo L/R",
+                max = 100,
+                initial =
+                    (
+                        groupReaction
+                            .stereoShiftFraction *
+                            1000f
+                        )
+                        .toInt(),
+                valueText = {
+                    String.format(
+                        Locale.US,
+                        "%.1f%%",
+                        it / 10f,
+                    )
+                },
+            ) { progress ->
+                persistReaction(
+                    groupReaction.copy(
+                        stereoShiftFraction =
+                            progress /
+                                1000f,
+                    ),
+                )
+            }
+
+            addSlider(
+                title = "Bass ↑↓",
+                max = 60,
+                initial =
+                    (
+                        groupReaction
+                            .bassFloatFraction *
+                            1000f
+                        )
+                        .toInt(),
+                valueText = {
+                    String.format(
+                        Locale.US,
+                        "%.1f%%",
+                        it / 10f,
+                    )
+                },
+            ) { progress ->
+                persistReaction(
+                    groupReaction.copy(
+                        bassFloatFraction =
+                            progress /
+                                1000f,
+                    ),
+                )
+            }
+
+            val presetRow =
+                LinearLayout(this).apply {
+                    orientation =
+                        LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER
+                }
+
+            presetRow.addView(
+                actionPill(
+                    text = "Fit Safe Area",
+                    accent = false,
+                ) {
+                    boardTransformStore
+                        .fitSafeArea(
+                            selectedThemeId,
+                        )
+
+                    showBoardTransform()
+                },
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(48),
+                    1f,
+                ).apply {
+                    marginEnd = dp(5)
+                },
+            )
+
+            presetRow.addView(
+                actionPill(
+                    text = "Reset усе",
+                    accent = false,
+                ) {
+                    boardTransformStore.reset(
                         selectedThemeId,
                     )
+                    boardGroupReactionStore.reset(
+                        selectedThemeId,
+                    )
+                    boardLayerTransformStore
+                        .resetAll(
+                            selectedThemeId,
+                        )
+                    showBoardTransform()
+                },
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(48),
+                    1f,
+                ).apply {
+                    marginStart = dp(5)
+                },
+            )
 
-                showBoardTransform()
-            },
-            LinearLayout.LayoutParams(
-                0,
-                dp(48),
-                1f,
-            ).apply {
-                marginEnd = dp(5)
-            },
-        )
+            panelContent.addView(
+                presetRow,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    topMargin = dp(7)
+                },
+            )
+        } else {
+            val layerId =
+                selectedLayer
 
-        presetRow.addView(
-            actionPill(
-                text = "Reset усе",
-                accent = false,
-            ) {
-                boardTransformStore.reset(
-                    selectedThemeId,
-                )
-                boardGroupReactionStore.reset(
-                    selectedThemeId,
-                )
-                showBoardTransform()
-            },
-            LinearLayout.LayoutParams(
-                0,
-                dp(48),
-                1f,
-            ).apply {
-                marginStart = dp(5)
-            },
-        )
+            var layerValue =
+                selectedLayerTransform
+                    ?: BoardLayerTransform.default()
 
-        panelContent.addView(
-            presetRow,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply {
-                topMargin = dp(7)
-            },
-        )
+            panelContent.addView(
+                label(
+                    "${layerTitle(layerId)} · окремий шар",
+                    14f,
+                    COLOR_ACCENT_CYAN,
+                    true,
+                ),
+            )
+
+            var xSeek: SeekBar? = null
+            var ySeek: SeekBar? = null
+            var sizeSeek: SeekBar? = null
+            var rotationSeek: SeekBar? = null
+            var opacitySeek: SeekBar? = null
+
+            xSeek =
+                addSlider(
+                    title = "Зсув X",
+                    max = 70,
+                    initial =
+                        (
+                            layerValue
+                                .offsetXFraction *
+                                100f +
+                                35f
+                            )
+                            .toInt(),
+                    valueText = {
+                        "${it - 35}%"
+                    },
+                ) { progress ->
+                    layerValue =
+                        layerValue.copy(
+                            offsetXFraction =
+                                (
+                                    progress -
+                                        35
+                                    ) /
+                                    100f,
+                        )
+
+                    persistLayerTransform(
+                        layerId,
+                        layerValue,
+                    )
+                }
+
+            ySeek =
+                addSlider(
+                    title = "Зсув Y",
+                    max = 70,
+                    initial =
+                        (
+                            layerValue
+                                .offsetYFraction *
+                                100f +
+                                35f
+                            )
+                            .toInt(),
+                    valueText = {
+                        "${it - 35}%"
+                    },
+                ) { progress ->
+                    layerValue =
+                        layerValue.copy(
+                            offsetYFraction =
+                                (
+                                    progress -
+                                        35
+                                    ) /
+                                    100f,
+                        )
+
+                    persistLayerTransform(
+                        layerId,
+                        layerValue,
+                    )
+                }
+
+            sizeSeek =
+                addSlider(
+                    title = "Розмір шару",
+                    max = 140,
+                    initial =
+                        (
+                            layerValue.scale *
+                                100f -
+                                40f
+                            )
+                            .toInt(),
+                    valueText = {
+                        "${it + 40}%"
+                    },
+                ) { progress ->
+                    layerValue =
+                        layerValue.copy(
+                            scale =
+                                (
+                                    progress +
+                                        40
+                                    ) /
+                                    100f,
+                        )
+
+                    persistLayerTransform(
+                        layerId,
+                        layerValue,
+                    )
+                }
+
+            rotationSeek =
+                addSlider(
+                    title = "Поворот шару",
+                    max = 180,
+                    initial =
+                        (
+                            layerValue
+                                .rotationDegrees +
+                                90f
+                            )
+                            .toInt(),
+                    valueText = {
+                        "${it - 90}°"
+                    },
+                ) { progress ->
+                    layerValue =
+                        layerValue.copy(
+                            rotationDegrees =
+                                (
+                                    progress -
+                                        90
+                                    )
+                                    .toFloat(),
+                        )
+
+                    persistLayerTransform(
+                        layerId,
+                        layerValue,
+                    )
+                }
+
+            opacitySeek =
+                addSlider(
+                    title = "Прозорість шару",
+                    max = 100,
+                    initial =
+                        (
+                            layerValue.opacity *
+                                100f
+                            )
+                            .toInt(),
+                    valueText = {
+                        "$it%"
+                    },
+                ) { progress ->
+                    layerValue =
+                        layerValue.copy(
+                            opacity =
+                                progress /
+                                    100f,
+                        )
+
+                    persistLayerTransform(
+                        layerId,
+                        layerValue,
+                    )
+                }
+
+            boardView.setGestureEditing(
+                enabled = true,
+                layerId = layerId,
+                onLayerTransformChanged = {
+                        changedLayer,
+                        value,
+                    ->
+                    if (changedLayer == layerId) {
+                        layerValue = value
+                        persistLayerTransform(
+                            layerId,
+                            value,
+                        )
+
+                        xSeek?.progress =
+                            (
+                                value
+                                    .offsetXFraction *
+                                    100f +
+                                    35f
+                                )
+                                .toInt()
+                        ySeek?.progress =
+                            (
+                                value
+                                    .offsetYFraction *
+                                    100f +
+                                    35f
+                                )
+                                .toInt()
+                        sizeSeek?.progress =
+                            (
+                                value.scale *
+                                    100f -
+                                    40f
+                                )
+                                .toInt()
+                        rotationSeek?.progress =
+                            (
+                                value
+                                    .rotationDegrees +
+                                    90f
+                                )
+                                .toInt()
+                        opacitySeek?.progress =
+                            (
+                                value.opacity *
+                                    100f
+                                )
+                                .toInt()
+                    }
+                },
+            )
+
+            panelContent.addView(
+                label(
+                    "Значення шару накладаються поверх налаштувань усього GF. Аудіореакція шару лишається активною.",
+                    11f,
+                    COLOR_MUTED,
+                    false,
+                ),
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    topMargin = dp(7)
+                },
+            )
+
+            panelContent.addView(
+                actionPill(
+                    text = "Скинути ${layerTitle(layerId)}",
+                    accent = false,
+                ) {
+                    boardLayerTransformStore.reset(
+                        selectedThemeId,
+                        layerId,
+                    )
+                    showBoardTransform()
+                },
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    dp(48),
+                ).apply {
+                    topMargin = dp(8)
+                },
+            )
+        }
 
         panelContent.addView(
             actionPill(
@@ -1427,7 +1828,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             panelScroll,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(560),
+                dp(580),
                 Gravity.BOTTOM,
             ).apply {
                 leftMargin = dp(10)

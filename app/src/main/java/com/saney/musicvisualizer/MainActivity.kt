@@ -33,6 +33,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.util.UnstableApi
 import com.saney.musicvisualizer.analysis.SceneSignal
+import com.saney.musicvisualizer.board.BoardTransform
+import com.saney.musicvisualizer.board.BoardTransformStore
 import com.saney.musicvisualizer.export.ExportFrameProof
 import com.saney.musicvisualizer.export.OfflineAnalysisResult
 import com.saney.musicvisualizer.export.OfflineAudioAnalyzer
@@ -61,6 +63,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         LIBRARY,
         NOW_PLAYING,
         THEME_PICKER,
+        BOARD_TRANSFORM,
         EXPORT_LAB,
     }
 
@@ -68,6 +71,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private lateinit var sceneOrchestrator: SceneOrchestrator
     private lateinit var currentScene: SceneSpec
     private lateinit var themeStore: PlaybackThemeStore
+    private lateinit var boardTransformStore: BoardTransformStore
     private var selectedThemeId = PlaybackThemeId.VISUALIZER
     private var screen = Screen.LIBRARY
     private var latestSnapshot = PlaybackSnapshot()
@@ -140,6 +144,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         controller.setAnalysisPermissionGranted(hasAnalysisPermission())
 
         themeStore = PlaybackThemeStore(this)
+        boardTransformStore = BoardTransformStore(this)
         selectedThemeId = themeStore.selectedThemeId
 
         sceneOrchestrator = SceneOrchestrator { spec ->
@@ -152,6 +157,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             when (screen) {
                 Screen.NOW_PLAYING -> showLibrary()
                 Screen.THEME_PICKER,
+                Screen.BOARD_TRANSFORM,
                 Screen.EXPORT_LAB,
                 -> {
                     if (latestSnapshot.trackName != null) {
@@ -438,6 +444,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }.getOrNull()
 
             if (boardView != null) {
+                boardView.setGroupTransform(
+                    boardTransformStore.load(selectedThemeId),
+                )
                 heroBoardView = boardView
                 root.addView(
                     boardView,

@@ -11,15 +11,19 @@ import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
 import android.os.SystemClock
+import android.view.MotionEvent
+import android.view.ScaleGestureDetector
 import android.view.View
 import com.saney.musicvisualizer.R
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardAudioState
+import com.saney.musicvisualizer.board.BoardGroupReaction
 import com.saney.musicvisualizer.board.BoardLayerMotion
 import com.saney.musicvisualizer.board.BoardLayerMotionEvaluator
 import com.saney.musicvisualizer.board.BoardLayerReaction
 import com.saney.musicvisualizer.board.BoardTransform
 import kotlin.math.PI
+import kotlin.math.atan2
 import kotlin.math.cos
 import kotlin.math.max
 import kotlin.math.min
@@ -31,9 +35,9 @@ import kotlin.math.sin
  * Cyber Shark uses four independently reactive layers:
  * frame -> FX -> creature -> wordmark.
  *
- * Frame / creature / wordmark use optimized transparent image resources.
- * FX is procedural in this first app proof so it can react strongly without
- * growing the APK; the full master FX remains in the companion asset repository.
+ * Manual Board transforms establish the base pose. Audio reactions are then
+ * added on top of that pose, so layout editing never replaces the existing
+ * per-layer music response.
  */
 class HeroBoardView(context: Context) : View(context) {
     private val bitmapPaint =
@@ -56,7 +60,45 @@ class HeroBoardView(context: Context) : View(context) {
         decodeSafely(R.drawable.cyber_shark_wordmark)
 
     private var renderErrorLogged = false
-    private var groupTransform = BoardTransform.default()
+
+    private var groupTransform =
+        BoardTransform.default()
+
+    private var groupReaction =
+        BoardGroupReaction.default()
+
+    private var gesturesEnabled = false
+    private var gestureTransformListener:
+        ((BoardTransform) -> Unit)? = null
+
+    private var lastTouchX = 0f
+    private var lastTouchY = 0f
+    private var lastRotationAngle = 0f
+    private var rotatingGesture = false
+
+    private val scaleGestureDetector =
+        ScaleGestureDetector(
+            context,
+            object :
+                ScaleGestureDetector.SimpleOnScaleGestureListener() {
+                override fun onScale(
+                    detector: ScaleGestureDetector,
+                ): Boolean {
+                    if (!gesturesEnabled) {
+                        return false
+                    }
+
+                    updateTransformFromGesture(
+                        groupTransform.copy(
+                            sizeFraction =
+                                groupTransform.sizeFraction *
+                                    detector.scaleFactor,
+                        ),
+                    )
+                    return true
+                }
+            },
+        )
 
     private val frameReaction =
         BoardLayerReaction(
@@ -107,24 +149,52 @@ class HeroBoardView(context: Context) : View(context) {
     private var targetBass = 0f
     private var targetMid = 0f
     private var targetHigh = 0f
+    private var targetStereoPan = 0f
 
     private var amplitude = 0f
     private var bass = 0f
     private var mid = 0f
     private var high = 0f
     private var beat = 0f
+    private var stereoPan = 0f
 
     private var playing = false
-    private var lastFrameMs = SystemClock.elapsedRealtime()
+    private var lastFrameMs =
+        SystemClock.elapsedRealtime()
 
     fun setPlaying(value: Boolean) {
         playing = value
         postInvalidateOnAnimation()
     }
 
-    fun setGroupTransform(value: BoardTransform) {
+    fun setGroupTransform(
+        value: BoardTransform,
+    ) {
         groupTransform = value.sanitized()
         postInvalidateOnAnimation()
+    }
+
+    fun setGroupReaction(
+        value: BoardGroupReaction,
+    ) {
+        groupReaction = value.sanitized()
+        postInvalidateOnAnimation()
+    }
+
+    fun setGestureEditing(
+        enabled: Boolean,
+        onTransformChanged:
+            ((BoardTransform) -> Unit)? = null,
+    ) {
+        gesturesEnabled = enabled
+        gestureTransformListener =
+            if (enabled) {
+                onTransformChanged
+            } else {
+                null
+            }
+
+        isClickable = enabled
     }
 
     fun updateSignal(signal: SceneSignal) {
@@ -132,47 +202,335 @@ class HeroBoardView(context: Context) : View(context) {
         targetBass = signal.bass
         targetMid = signal.mid
         targetHigh = signal.high
+        targetStereoPan =
+            signal.stereoPan.coerceIn(
+                -1f,
+                1f,
+            )
 
-        amplitude = max(amplitude, signal.amplitude * 0.96f)
-        bass = max(bass, signal.bass * 0.98f)
-        mid = max(mid, signal.mid * 0.96f)
-        high = max(high, signal.high * 0.96f)
-        beat = max(beat, signal.beatStrength)
+        amplitude =
+            max(
+                amplitude,
+                signal.amplitude * 0.96f,
+            )
+        bass =
+            max(
+                bass,
+                signal.bass * 0.98f,
+            )
+        mid =
+            max(
+                mid,
+                signal.mid * 0.96f,
+            )
+        high =
+            max(
+                high,
+                signal.high * 0.96f,
+            )
+        beat =
+            max(
+                beat,
+                signal.beatStrength,
+            )
 
         postInvalidateOnAnimation()
+    }
+
+    override fun onTouchEvent(
+        event: MotionEvent,
+    ): Boolean {
+        if (!gesturesEnabled) {
+            return super.onTouchEvent(event)
+        }
+
+        parent?.requestDisallowInterceptTouchEvent(
+            true,
+        )
+
+        scaleGestureDetector.onTouchEvent(
+            event,
+        )
+
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                lastTouchX = event.x
+                lastTouchY = event.y
+                rotatingGesture = false
+                return true
+            }
+
+            MotionEvent.ACTION_POINTER_DOWN -> {
+                if (event.pointerCount >= 2) {
+                    lastRotationAngle =
+                        pointerAngle(event)
+                    rotatingGesture = true
+                }
+                return true
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (
+                    event.pointerCount >= 2 &&
+                    rotatingGesture
+                ) {
+                    val angle =
+                        pointerAngle(event)
+
+                    val delta =
+                        normalizeDegrees(
+                            angle -
+                                lastRotationAngle,
+                        )
+
+                    lastRotationAngle = angle
+
+                    updateTransformFromGesture(
+                        groupTransform.copy(
+                            rotationDegrees =
+                                groupTransform
+                                    .rotationDegrees +
+                                    delta,
+                        ),
+                    )
+                } else if (
+                    event.pointerCount == 1 &&
+                    !scaleGestureDetector
+                        .isInProgress
+                ) {
+                    val dx =
+                        event.x -
+                            lastTouchX
+                    val dy =
+                        event.y -
+                            lastTouchY
+
+                    lastTouchX = event.x
+                    lastTouchY = event.y
+
+                    if (
+                        width > 0 &&
+                        height > 0
+                    ) {
+                        updateTransformFromGesture(
+                            groupTransform.copy(
+                                xFraction =
+                                    groupTransform
+                                        .xFraction +
+                                        dx /
+                                        width,
+                                yFraction =
+                                    groupTransform
+                                        .yFraction +
+                                        dy /
+                                        height,
+                            ),
+                        )
+                    }
+                }
+
+                return true
+            }
+
+            MotionEvent.ACTION_POINTER_UP -> {
+                rotatingGesture = false
+                if (event.pointerCount >= 2) {
+                    lastTouchX =
+                        event.getX(0)
+                    lastTouchY =
+                        event.getY(0)
+                }
+                return true
+            }
+
+            MotionEvent.ACTION_UP -> {
+                rotatingGesture = false
+                parent?.requestDisallowInterceptTouchEvent(
+                    false,
+                )
+                performClick()
+                return true
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                rotatingGesture = false
+                parent?.requestDisallowInterceptTouchEvent(
+                    false,
+                )
+                return true
+            }
+        }
+
+        return true
+    }
+
+    override fun performClick(): Boolean {
+        super.performClick()
+        return true
     }
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        val now = SystemClock.elapsedRealtime()
+        val now =
+            SystemClock.elapsedRealtime()
         val dt =
-            ((now - lastFrameMs).coerceIn(1L, 50L) / 1000f)
+            (
+                (now - lastFrameMs)
+                    .coerceIn(
+                        1L,
+                        50L,
+                    ) /
+                    1000f
+                )
         lastFrameMs = now
 
-        amplitude = follow(amplitude, targetAmplitude, dt, 58f, 12f)
-        bass = follow(bass, targetBass, dt, 74f, 15f)
-        mid = follow(mid, targetMid, dt, 54f, 13f)
-        high = follow(high, targetHigh, dt, 62f, 14f)
-        beat = (beat - dt * 3.4f).coerceAtLeast(0f)
+        amplitude =
+            follow(
+                amplitude,
+                targetAmplitude,
+                dt,
+                58f,
+                12f,
+            )
+        bass =
+            follow(
+                bass,
+                targetBass,
+                dt,
+                74f,
+                15f,
+            )
+        mid =
+            follow(
+                mid,
+                targetMid,
+                dt,
+                54f,
+                13f,
+            )
+        high =
+            follow(
+                high,
+                targetHigh,
+                dt,
+                62f,
+                14f,
+            )
+        stereoPan =
+            follow(
+                stereoPan,
+                targetStereoPan,
+                dt,
+                18f,
+                8f,
+            )
+
+        beat =
+            (
+                beat -
+                    dt * 3.4f
+                )
+                .coerceAtLeast(
+                    0f,
+                )
 
         if (!playing) {
             targetAmplitude *= 0.90f
             targetBass *= 0.90f
             targetMid *= 0.90f
             targetHigh *= 0.90f
+            targetStereoPan *= 0.88f
         }
 
         val w = width.toFloat()
         val h = height.toFloat()
-        if (w <= 0f || h <= 0f) return
+        if (
+            w <= 0f ||
+            h <= 0f
+        ) {
+            return
+        }
 
-        val minSide = min(w, h)
-        val transform = groupTransform
-        val cx = w * transform.xFraction
-        val cy = h * transform.yFraction
-        val timeSeconds = now / 1000f
-        val baseSize = minSide * transform.sizeFraction
+        val minSide =
+            min(w, h)
+
+        val transform =
+            groupTransform
+
+        val reaction =
+            groupReaction
+
+        val timeSeconds =
+            now / 1000f
+
+        val stereoOffsetX =
+            w *
+                stereoPan *
+                reaction
+                    .stereoShiftFraction
+
+        val bassFloatPhase =
+            timeSeconds *
+                (
+                    2.0f +
+                        bass * 2.2f
+                    )
+
+        val bassFloatY =
+            minSide *
+                reaction
+                    .bassFloatFraction *
+                bass *
+                sin(
+                    bassFloatPhase
+                        .toDouble(),
+                )
+                    .toFloat()
+
+        val rotationSwayPhase =
+            timeSeconds *
+                (
+                    1.15f +
+                        mid * 1.35f
+                    ) +
+                stereoPan * 0.75f
+
+        val rotationSway =
+            reaction
+                .rotationSwayDegrees *
+                (
+                    0.20f +
+                        mid * 0.55f +
+                        bass * 0.25f
+                    )
+                    .coerceIn(
+                        0f,
+                        1f,
+                    ) *
+                sin(
+                    rotationSwayPhase
+                        .toDouble(),
+                )
+                    .toFloat()
+
+        val cx =
+            w *
+                transform.xFraction +
+                stereoOffsetX
+
+        val cy =
+            h *
+                transform.yFraction +
+                bassFloatY
+
+        val groupRotationDegrees =
+            transform.rotationDegrees +
+                rotationSway
+
+        val baseSize =
+            minSide *
+                transform.sizeFraction
 
         drawBoardBackground(
             canvas = canvas,
@@ -199,13 +557,15 @@ class HeroBoardView(context: Context) : View(context) {
                 timeSeconds,
             )
         drawBitmapLayer(
-            canvas,
-            frameBitmap,
-            frameMotion,
-            cx,
-            cy,
-            baseSize,
-            transform,
+            canvas = canvas,
+            bitmap = frameBitmap,
+            motion = frameMotion,
+            cx = cx,
+            cy = cy,
+            baseSize = baseSize,
+            transform = transform,
+            groupRotationDegrees =
+                groupRotationDegrees,
         )
 
         val fxMotion =
@@ -215,13 +575,15 @@ class HeroBoardView(context: Context) : View(context) {
                 timeSeconds,
             )
         drawFxLayer(
-            canvas,
-            fxMotion,
-            cx,
-            cy,
-            baseSize,
-            timeSeconds,
-            transform,
+            canvas = canvas,
+            motion = fxMotion,
+            cx = cx,
+            cy = cy,
+            baseSize = baseSize,
+            timeSeconds = timeSeconds,
+            transform = transform,
+            groupRotationDegrees =
+                groupRotationDegrees,
         )
 
         val creatureMotion =
@@ -231,13 +593,15 @@ class HeroBoardView(context: Context) : View(context) {
                 timeSeconds,
             )
         drawBitmapLayer(
-            canvas,
-            creatureBitmap,
-            creatureMotion,
-            cx,
-            cy,
-            baseSize,
-            transform,
+            canvas = canvas,
+            bitmap = creatureBitmap,
+            motion = creatureMotion,
+            cx = cx,
+            cy = cy,
+            baseSize = baseSize,
+            transform = transform,
+            groupRotationDegrees =
+                groupRotationDegrees,
         )
 
         val wordmarkMotion =
@@ -247,13 +611,15 @@ class HeroBoardView(context: Context) : View(context) {
                 timeSeconds,
             )
         drawBitmapLayer(
-            canvas,
-            wordmarkBitmap,
-            wordmarkMotion,
-            cx,
-            cy,
-            baseSize,
-            transform,
+            canvas = canvas,
+            bitmap = wordmarkBitmap,
+            motion = wordmarkMotion,
+            cx = cx,
+            cy = cy,
+            baseSize = baseSize,
+            transform = transform,
+            groupRotationDegrees =
+                groupRotationDegrees,
         )
 
         bitmapPaint.alpha = 255
@@ -268,6 +634,7 @@ class HeroBoardView(context: Context) : View(context) {
         cy: Float,
         baseSize: Float,
         transform: BoardTransform,
+        groupRotationDegrees: Float,
     ) {
         if (bitmap == null) {
             drawMissingLayerFallback(
@@ -282,11 +649,21 @@ class HeroBoardView(context: Context) : View(context) {
         }
 
         bitmapPaint.alpha =
-            (motion.alpha * transform.opacity * 255f)
+            (
+                motion.alpha *
+                    transform.opacity *
+                    255f
+                )
                 .toInt()
-                .coerceIn(0, 255)
+                .coerceIn(
+                    0,
+                    255,
+                )
 
-        val size = baseSize * motion.scale
+        val size =
+            baseSize *
+                motion.scale
+
         val layerCy =
             cy +
                 baseSize *
@@ -294,10 +671,12 @@ class HeroBoardView(context: Context) : View(context) {
 
         canvas.save()
         canvas.rotate(
-            transform.rotationDegrees + motion.rotationDegrees,
+            groupRotationDegrees +
+                motion.rotationDegrees,
             cx,
             layerCy,
         )
+
         canvas.drawBitmap(
             bitmap,
             null,
@@ -320,13 +699,18 @@ class HeroBoardView(context: Context) : View(context) {
         baseSize: Float,
         timeSeconds: Float,
         transform: BoardTransform,
+        groupRotationDegrees: Float,
     ) {
-        val size = baseSize * motion.scale
-        val radius = size * 0.43f
+        val size =
+            baseSize *
+                motion.scale
+        val radius =
+            size * 0.43f
 
         canvas.save()
         canvas.rotate(
-            transform.rotationDegrees + motion.rotationDegrees,
+            groupRotationDegrees +
+                motion.rotationDegrees,
             cx,
             cy,
         )
@@ -334,7 +718,10 @@ class HeroBoardView(context: Context) : View(context) {
         repeat(3) { ring ->
             val phase =
                 timeSeconds *
-                    (0.8f + ring * 0.16f)
+                    (
+                        0.8f +
+                            ring * 0.16f
+                        )
 
             fxPath.reset()
             val points = 96
@@ -343,65 +730,106 @@ class HeroBoardView(context: Context) : View(context) {
                 val a =
                     i.toFloat() /
                         points *
-                        (PI * 2.0)
+                        (
+                            PI *
+                                2.0
+                            )
 
                 val wave =
                     1f +
                         0.035f *
                         sin(
-                            a * (5 + ring) +
+                            a *
+                                (5 + ring) +
                                 phase,
-                        ).toFloat() +
-                        high * 0.025f *
+                        )
+                            .toFloat() +
+                        high *
+                        0.025f *
                         sin(
                             a * 13.0 -
                                 phase * 1.8,
-                        ).toFloat()
+                        )
+                            .toFloat()
 
                 val r =
                     radius *
-                        (0.78f + ring * 0.095f) *
+                        (
+                            0.78f +
+                                ring *
+                                0.095f
+                            ) *
                         wave
 
                 val x =
                     cx +
-                        cos(a).toFloat() *
+                        cos(a)
+                            .toFloat() *
                         r
 
                 val y =
                     cy +
-                        sin(a).toFloat() *
+                        sin(a)
+                            .toFloat() *
                         r *
                         0.88f
 
                 if (i == 0) {
-                    fxPath.moveTo(x, y)
+                    fxPath.moveTo(
+                        x,
+                        y,
+                    )
                 } else {
-                    fxPath.lineTo(x, y)
+                    fxPath.lineTo(
+                        x,
+                        y,
+                    )
                 }
             }
 
             stroke.color =
                 if (ring == 1) {
-                    Color.rgb(122, 224, 255)
+                    Color.rgb(
+                        122,
+                        224,
+                        255,
+                    )
                 } else {
-                    Color.rgb(0, 207, 255)
+                    Color.rgb(
+                        0,
+                        207,
+                        255,
+                    )
                 }
 
             stroke.alpha =
                 (
                     motion.alpha *
                         transform.opacity *
-                        (165 - ring * 28)
+                        (
+                            165 -
+                                ring *
+                                28
+                            )
                     )
                     .toInt()
-                    .coerceIn(0, 230)
+                    .coerceIn(
+                        0,
+                        230,
+                    )
 
             stroke.strokeWidth =
-                min(width, height) *
-                    (0.0032f +
-                        high * 0.0035f +
-                        beat * 0.0045f)
+                min(
+                    width,
+                    height,
+                ) *
+                    (
+                        0.0032f +
+                            high *
+                            0.0035f +
+                            beat *
+                            0.0045f
+                        )
 
             canvas.drawPath(
                 fxPath,
@@ -412,35 +840,80 @@ class HeroBoardView(context: Context) : View(context) {
         repeat(18) { i ->
             val a =
                 i / 18f *
-                    (PI * 2.0) +
+                    (
+                        PI *
+                            2.0
+                        ) +
                     timeSeconds *
-                    (0.09 + (i % 3) * 0.018)
+                    (
+                        0.09 +
+                            (
+                                i %
+                                    3
+                                ) *
+                            0.018
+                        )
 
             val r =
                 radius *
-                    (0.68f +
-                        (i % 5) * 0.065f +
-                        beat * 0.04f)
+                    (
+                        0.68f +
+                            (
+                                i %
+                                    5
+                                ) *
+                            0.065f +
+                            beat *
+                            0.04f
+                        )
 
             fill.color =
                 Color.argb(
-                    (motion.alpha * transform.opacity * (80 + high * 130f))
+                    (
+                        motion.alpha *
+                            transform.opacity *
+                            (
+                                80 +
+                                    high *
+                                    130f
+                                )
+                        )
                         .toInt()
-                        .coerceIn(0, 210),
+                        .coerceIn(
+                            0,
+                            210,
+                        ),
                     80,
                     223,
                     255,
                 )
 
             val dot =
-                min(width, height) *
-                    (0.0025f +
-                        (i % 4) * 0.0011f +
-                        high * 0.0025f)
+                min(
+                    width,
+                    height,
+                ) *
+                    (
+                        0.0025f +
+                            (
+                                i %
+                                    4
+                                ) *
+                            0.0011f +
+                            high *
+                            0.0025f
+                        )
 
             canvas.drawCircle(
-                cx + cos(a).toFloat() * r,
-                cy + sin(a).toFloat() * r * 0.88f,
+                cx +
+                    cos(a)
+                        .toFloat() *
+                    r,
+                cy +
+                    sin(a)
+                        .toFloat() *
+                    r *
+                    0.88f,
                 dot,
                 fill,
             )
@@ -457,34 +930,70 @@ class HeroBoardView(context: Context) : View(context) {
         cy: Float,
         minSide: Float,
     ) {
-        fill.color = Color.rgb(1, 5, 10)
-        canvas.drawRect(0f, 0f, w, h, fill)
+        fill.color =
+            Color.rgb(
+                1,
+                5,
+                10,
+            )
+        canvas.drawRect(
+            0f,
+            0f,
+            w,
+            h,
+            fill,
+        )
 
         fill.shader =
             RadialGradient(
                 cx,
                 cy,
-                minSide * (0.62f + bass * 0.07f),
+                minSide *
+                    (
+                        0.62f +
+                            bass *
+                            0.07f
+                        ),
                 intArrayOf(
                     Color.argb(
-                        (75 + bass * 70f + beat * 45f)
+                        (
+                            75 +
+                                bass *
+                                70f +
+                                beat *
+                                45f
+                            )
                             .toInt()
-                            .coerceIn(0, 190),
+                            .coerceIn(
+                                0,
+                                190,
+                            ),
                         0,
                         136,
                         255,
                     ),
                     Color.argb(
-                        (28 + high * 35f)
+                        (
+                            28 +
+                                high *
+                                35f
+                            )
                             .toInt()
-                            .coerceIn(0, 100),
+                            .coerceIn(
+                                0,
+                                100,
+                            ),
                         0,
                         229,
                         255,
                     ),
                     Color.TRANSPARENT,
                 ),
-                floatArrayOf(0f, 0.46f, 1f),
+                floatArrayOf(
+                    0f,
+                    0.46f,
+                    1f,
+                ),
                 Shader.TileMode.CLAMP,
             )
 
@@ -497,14 +1006,17 @@ class HeroBoardView(context: Context) : View(context) {
         fill.shader = null
     }
 
-    private fun decodeSafely(drawable: Int): Bitmap? =
+    private fun decodeSafely(
+        drawable: Int,
+    ): Bitmap? =
         runCatching {
             BitmapFactory.decodeResource(
                 resources,
                 drawable,
                 BitmapFactory.Options().apply {
                     inScaled = false
-                    inPreferredConfig = Bitmap.Config.ARGB_8888
+                    inPreferredConfig =
+                        Bitmap.Config.ARGB_8888
                 },
             )
         }.getOrNull()
@@ -527,9 +1039,16 @@ class HeroBoardView(context: Context) : View(context) {
 
         fill.color =
             Color.argb(
-                (motion.alpha * transform.opacity * 120f)
+                (
+                    motion.alpha *
+                        transform.opacity *
+                        120f
+                    )
                     .toInt()
-                    .coerceIn(0, 180),
+                    .coerceIn(
+                        0,
+                        180,
+                    ),
                 0,
                 190,
                 255,
@@ -542,10 +1061,64 @@ class HeroBoardView(context: Context) : View(context) {
 
         canvas.drawCircle(
             cx,
-            cy + baseSize * motion.translateYFraction,
+            cy +
+                baseSize *
+                motion.translateYFraction,
             r,
             fill,
         )
+    }
+
+    private fun updateTransformFromGesture(
+        value: BoardTransform,
+    ) {
+        groupTransform =
+            value.sanitized()
+
+        gestureTransformListener
+            ?.invoke(
+                groupTransform,
+            )
+
+        postInvalidateOnAnimation()
+    }
+
+    private fun pointerAngle(
+        event: MotionEvent,
+    ): Float {
+        if (event.pointerCount < 2) {
+            return 0f
+        }
+
+        val dx =
+            event.getX(1) -
+                event.getX(0)
+        val dy =
+            event.getY(1) -
+                event.getY(0)
+
+        return Math.toDegrees(
+            atan2(
+                dy.toDouble(),
+                dx.toDouble(),
+            ),
+        ).toFloat()
+    }
+
+    private fun normalizeDegrees(
+        value: Float,
+    ): Float {
+        var result = value
+
+        while (result > 180f) {
+            result -= 360f
+        }
+
+        while (result < -180f) {
+            result += 360f
+        }
+
+        return result
     }
 
     private fun follow(
@@ -556,13 +1129,27 @@ class HeroBoardView(context: Context) : View(context) {
         releaseHz: Float,
     ): Float {
         val rate =
-            if (target > current) attackHz
-            else releaseHz
+            if (target > current) {
+                attackHz
+            } else {
+                releaseHz
+            }
 
         val factor =
-            (dt * rate).coerceIn(0f, 1f)
+            (
+                dt *
+                    rate
+                )
+                .coerceIn(
+                    0f,
+                    1f,
+                )
 
         return current +
-            (target - current) * factor
+            (
+                target -
+                    current
+                ) *
+            factor
     }
 }

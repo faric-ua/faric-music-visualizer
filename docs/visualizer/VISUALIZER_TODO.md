@@ -415,3 +415,15 @@ Target UI direction:
 - [ ] Add per-block skin/background selection including fully transparent mode.
 - [ ] Decide whether header is part of the same hideable block system or remains persistent.
 - [ ] Add lifecycle-safe settings UI for floating block configuration.
+
+
+### v0.8.1 approved-main-screen implementation
+- [x] Implement approved concept direction in the actual app.
+- [x] Replace generic transport glyphs with custom-drawn FARIC icons.
+- [x] Use approved transport order and size hierarchy.
+- [x] Convert lower quick actions to icon-only controls.
+- [x] Add matching neon rail treatment.
+- [x] Save approved reference image in repository.
+- [ ] Phone compare layout proportions with `docs/design/pulsedeck-main-screen-reference.jpg`.
+- [ ] Tune icon sizes and rail heights after phone screenshot.
+- [ ] Add per-block hide/opacity/position/size settings later.

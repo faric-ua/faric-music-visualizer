@@ -1,6 +1,7 @@
 package com.saney.musicvisualizer.playback
 
 import android.app.Application
+import android.content.Context
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
@@ -10,9 +11,13 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultRenderersFactory
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.audio.AudioSink
+import androidx.media3.exoplayer.audio.DefaultAudioSink
 import com.saney.musicvisualizer.analysis.AudioCaptureAnalyzer
 import com.saney.musicvisualizer.analysis.SceneSignal
+import com.saney.musicvisualizer.analysis.StereoBalanceAudioProcessor
 import com.saney.musicvisualizer.projectm.ProjectMBridge
 
 data class PlaybackSnapshot(
@@ -32,7 +37,42 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
     }
 
     private val mainHandler = Handler(Looper.getMainLooper())
-    private val player = ExoPlayer.Builder(application).build()
+
+    @Volatile
+    private var latestStereoPan = 0f
+
+    private val stereoBalanceProcessor =
+        StereoBalanceAudioProcessor { pan ->
+            latestStereoPan = pan
+        }
+
+    private val renderersFactory =
+        object : DefaultRenderersFactory(application) {
+            override fun buildAudioSink(
+                context: Context,
+                enableFloatOutput: Boolean,
+                enableAudioOutputPlaybackParams: Boolean,
+            ): AudioSink =
+                DefaultAudioSink.Builder(context)
+                    .setEnableFloatOutput(
+                        enableFloatOutput,
+                    )
+                    .setEnableAudioOutputPlaybackParameters(
+                        enableAudioOutputPlaybackParams,
+                    )
+                    .setAudioProcessors(
+                        arrayOf(
+                            stereoBalanceProcessor,
+                        ),
+                    )
+                    .build()
+        }
+
+    private val player =
+        ExoPlayer.Builder(
+            application,
+            renderersFactory,
+        ).build()
     private var analyzer: AudioCaptureAnalyzer? = null
     private var currentSessionId = C.AUDIO_SESSION_ID_UNSET
     private var analysisPermissionGranted = false
@@ -154,8 +194,20 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
             analyzer = AudioCaptureAnalyzer(
                 audioSessionId = currentSessionId,
                 onSignal = { signal ->
-                    ProjectMBridge.pushSignalIfActive(signal)
-                    mainHandler.post { listener?.onSceneSignal(signal) }
+                    val enriched =
+                        signal.copy(
+                            stereoPan =
+                                latestStereoPan,
+                        )
+
+                    ProjectMBridge.pushSignalIfActive(
+                        enriched,
+                    )
+                    mainHandler.post {
+                        listener?.onSceneSignal(
+                            enriched,
+                        )
+                    }
                 },
                 onPcm = { pcm ->
                     ProjectMBridge.pushPcmIfActive(pcm)

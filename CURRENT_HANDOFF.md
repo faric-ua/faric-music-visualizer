@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.8.1 concept-style PulseDeck main screen;
+- v0.8.2 reference-fidelity PulseDeck main screen;
 - Cyber Shark is the first live multi-layer Board theme;
 - phone visual check confirms the resized/repositioned Cyber Shark is clearly better and usable as a temporary default;
 - further transform controls and floating-control PulseDeck redesign remain TODO;
@@ -878,3 +878,43 @@ Phone acceptance:
 4. confirm Cyber Shark remains the swappable Hero/GF while controls stay in place;
 5. wait for auto-hide, then double-tap to restore controls;
 6. rotate and confirm control visibility state survives.
+
+
+## v0.8.2 — reference-fidelity pass
+
+Phone screenshot comparison against the approved reference showed that v0.8.1 had the right architecture but weak visual fidelity:
+- Hero/GF was too small and too high;
+- there was too much dead space between Hero and metadata;
+- waveform looked like coarse dots instead of many fine bars;
+- transport hierarchy was too small;
+- lower quick-action rail was too flat/small;
+- approved reference included track-level favorite/more controls and richer cyan/orange energy around the Hero.
+
+Implemented:
+- added presentation-only Hero tuning for Now Playing: larger Hero slot without mutating persisted Board transforms;
+- shifted Hero presentation slightly downward;
+- added subtle procedural cyan/orange HUD arcs and energy particles around the Hero;
+- replaced 9 coarse waveform bars with 56 narrow reactive bars;
+- raised metadata/progress stack and tightened vertical spacing;
+- enlarged transport hierarchy:
+  - shuffle/repeat 58dp;
+  - previous/next 68dp;
+  - play/pause 94dp;
+- enlarged transport rail to 116dp;
+- enlarged quick actions to 64dp and rail to 82dp;
+- added track-level favorite and more buttons using the same custom FARIC icon renderer;
+- preserved auto-hide, double tap, rotation visibility state, and swappable Hero/GF architecture.
+
+Release:
+- v0.8.2
+- versionCode 36
+
+Phone acceptance:
+1. compare directly with docs/design/pulsedeck-main-screen-reference.jpg;
+2. Hero should occupy substantially more of the upper screen;
+3. dead zone between Hero and title should be much smaller;
+4. waveform should read as many thin vertical bars;
+5. large central play/pause should dominate transport;
+6. lower icon rail should be larger and more like the reference;
+7. favorite + track-more controls should appear around metadata;
+8. verify auto-hide/double-tap/rotation still work.

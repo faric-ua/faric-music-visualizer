@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.8.3 hero-footprint correction;
+- v0.9.0 permanent PulseDeck HUD main-page skin;
 - Cyber Shark is the first live multi-layer Board theme;
 - phone visual check confirms the resized/repositioned Cyber Shark is clearly better and usable as a temporary default;
 - further transform controls and floating-control PulseDeck redesign remain TODO;
@@ -939,3 +939,56 @@ Changes:
 Release:
 - v0.8.3
 - versionCode 37
+
+
+## v0.9.0 — permanent PulseDeck HUD main-page skin
+
+User clarified the architecture:
+- Cyber Shark or any other GF/visualizer is NOT the main page itself.
+- The approved cyan/orange HUD is the permanent Android player skin.
+- Existing visualizers, GF heroes, video and future effects will later be mounted as configurable layers either behind or above this permanent shell.
+- Do not generate another mockup for this stage; implement the UI in Android code.
+
+Reference blocks supplied by the user:
+- 5-button transport HUD: shuffle / previous / large center play-pause / next / repeat;
+- large cyan/orange circular F reactor;
+- orange/cyan energy ribbons and particles;
+- fine waveform + scrubber;
+- top back / overflow / favorite / track-more circular controls;
+- 4-button lower rail: palette / board / visualizer / export;
+- empty transport/action HUD rail frames.
+
+Implemented in code:
+- new `PulseDeckMainSkinView` draws the permanent reactive main background;
+- main skin uses cyan/orange energy ribbons, particles, concentric HUD rings, radial equalizer bars and central F core;
+- Hero/GF/theme drawing is no longer used as the main-page background;
+- playback metadata, waveform, seek/time, transport and quick actions remain real Android controls above the permanent skin;
+- header back/menu now use the same custom `PulseDeckIconButton` family;
+- transport layout matches the reference hierarchy: small shuffle/repeat, medium previous/next, dominant center play-pause;
+- `PulseDeckControlRail` was upgraded with reference-style socket housings, cyan/orange traces and center emphasis;
+- lower actions remain icon-only;
+- favorite / track-more remain separate circular controls around metadata;
+- auto-hide, double-tap show/hide and rotation visibility state remain;
+- playback signal now feeds both the fine waveform and permanent HUD reactor.
+
+Layering contract for the next stages:
+1. BACKGROUND_CONTENT — video / projectM / scene / optional background visual.
+2. MAIN_SKIN_BACKGROUND — permanent PulseDeck energy + reactor field.
+3. HERO_CONTENT — optional GF / creature / artwork / logo.
+4. PLAYER_CHROME — metadata, waveform, transport, quick actions.
+5. FOREGROUND_FX — optional particles/lightning/overlays.
+
+Current v0.9.0 implements the permanent skin/chrome foundation. Existing content-layer selection remains in the project and will be connected to explicit front/back layer placement next.
+
+Release:
+- v0.9.0
+- versionCode 38
+
+Phone acceptance:
+1. main page should show the F reactor / cyan-orange HUD regardless of the previously selected GF;
+2. no Cyber Shark should be required for the main page;
+3. transport rail should visually resemble the supplied 5-button block;
+4. lower four icon-only actions should remain consistent;
+5. waveform and reactor should react to audio;
+6. auto-hide and double-tap restore should still work;
+7. rotation must preserve control visibility state.

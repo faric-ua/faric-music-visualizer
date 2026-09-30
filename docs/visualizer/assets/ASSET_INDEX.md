@@ -16,6 +16,19 @@ Current committed visual catalogs:
 
 The logical source list below is the stable index. Full-resolution production masters should be exported individually only when a concept is promoted into an app-ready asset.
 
+
+## Master originals
+
+The individual master JPG/PNG files are **not all committed to Git yet**. The repository currently stores lightweight preview/contact-sheet copies for browsing and documentation.
+
+The current chat/session master set has been inventoried separately:
+- `MASTER_ASSET_MANIFEST.md` — exact filenames, byte sizes and SHA-256 hashes;
+- `MASTER_ASSET_STORAGE.md` — long-term storage and phone-sync policy.
+
+Current inventoried master set: **34 files / 61.82 MiB**.
+
+The long-term goal is that master files live in a persistent Git-accessible asset archive (preferably a separate asset repository or Git LFS-backed storage), so they can be pulled to the phone and never depend on chat-session storage.
+
 ## User reference source set
 
 Recorded source IDs:

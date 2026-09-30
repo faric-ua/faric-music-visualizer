@@ -391,12 +391,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     },
                 )
             }
-            append(" · ")
-            append(
-                PlaybackThemeRegistry
-                    .byId(selectedThemeId)
-                    .title,
-            )
+            append(" · PulseDeck HUD")
         }
         nowElapsed?.text = formatTime(snapshot.positionMs)
         nowTotal?.text = formatTime(snapshot.durationMs)

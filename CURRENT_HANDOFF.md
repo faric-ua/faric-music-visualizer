@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.7.0 first layered Board Hero/GF proof;
+- v0.7.1 Cyber Shark selection crash hotfix;
 - Cyber Shark is the first live multi-layer Board theme;
 - Android CI / phone acceptance are pending;
 - package remains `com.saney.musicvisualizer`.
@@ -440,3 +440,31 @@ Phone acceptance:
 3. choose Scene Lab / Playback Themes → Cyber Shark;
 4. verify the four visual responsibilities remain visually separable while music plays;
 5. report whether bass/beat/high response is too weak, too strong, or visually colliding.
+
+
+## v0.7.1 — Cyber Shark selection crash hotfix
+
+Phone finding:
+- v0.7.0 launches normally;
+- selecting the new `Cyber Shark` layered GF causes the app to terminate immediately;
+- existing themes are not implicated by this report.
+
+Diagnosis boundary:
+- CI compile/unit tests for v0.7.0 passed, so this is a runtime-only failure;
+- the crash occurs at layered Board selection/creation;
+- without phone logcat the exact exception is not yet proven;
+- the highest-risk point was synchronous bitmap resource decoding during `HeroBoardView` construction.
+
+Hotfix:
+- bitmap decoding is now nullable/crash-safe instead of `requireNotNull`;
+- decode uses explicit non-scaled ARGB_8888 options;
+- a missing/failed layer falls back to a simple procedural marker instead of terminating the Activity;
+- `MainActivity` now guards `HeroBoardView` construction and falls back to Neon Emblem with a toast if Board creation itself fails;
+- version bumped to `0.7.1` / versionCode `26`.
+
+Phone acceptance:
+1. install exact signed v0.7.1 APK;
+2. open Playback Themes / Scene Lab;
+3. select Cyber Shark;
+4. confirm app remains open;
+5. report whether the actual shark/frame/FARIC assets render or whether fallback is shown.

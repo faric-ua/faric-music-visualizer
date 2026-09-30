@@ -670,6 +670,31 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     view.setTheme(
                         selectedThemeId,
                     )
+                    val heroScale =
+                        when (selectedThemeId) {
+                            PlaybackThemeId.NEON_EMBLEM ->
+                                2.08f
+                            PlaybackThemeId.ENERGY_CORE ->
+                                1.82f
+                            PlaybackThemeId.ORBITAL_CROWN ->
+                                1.58f
+                            PlaybackThemeId.STAR_SEED ->
+                                1.68f
+                            PlaybackThemeId.WAVE_IDOL ->
+                                1.58f
+                            PlaybackThemeId.VINYL ->
+                                1.16f
+                            PlaybackThemeId.CASSETTE ->
+                                1.10f
+                            else ->
+                                1f
+                        }
+
+                    view.setPresentationTuning(
+                        scale = heroScale,
+                        centerYFraction = 0.275f,
+                    )
+
                     root.addView(
                         view,
                         FrameLayout.LayoutParams(
@@ -836,7 +861,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ).apply {
                 leftMargin = dp(24)
                 rightMargin = dp(24)
-                bottomMargin = dp(326)
+                bottomMargin = dp(344)
             },
         )
 
@@ -991,7 +1016,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ).apply {
                 leftMargin = dp(20)
                 rightMargin = dp(20)
-                bottomMargin = dp(228)
+                bottomMargin = dp(244)
             },
         )
 
@@ -1088,7 +1113,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.PREVIOUS,
-                sizeDp = 68,
+                sizeDp = 74,
             ) {
                 toast(
                     "Previous запрацює з чергою",
@@ -1103,7 +1128,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     } else {
                         PulseDeckIconButton.Icon.PLAY
                     },
-                sizeDp = 94,
+                sizeDp = 106,
                 primary = true,
             ) {
                 controller.togglePlayPause()
@@ -1113,7 +1138,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.NEXT,
-                sizeDp = 68,
+                sizeDp = 74,
             ) {
                 toast(
                     "Next запрацює з чергою",
@@ -1167,7 +1192,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
         addTransportButton(
             previous,
-            68,
+            74,
         )
         transport.addView(
             Space(this),
@@ -1179,7 +1204,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
         addTransportButton(
             nowPlay!!,
-            94,
+            106,
         )
         transport.addView(
             Space(this),
@@ -1191,7 +1216,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
         addTransportButton(
             next,
-            68,
+            74,
         )
         transport.addView(
             Space(this),
@@ -1210,12 +1235,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             transport,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(116),
+                dp(132),
                 Gravity.BOTTOM,
             ).apply {
-                leftMargin = dp(10)
-                rightMargin = dp(10)
-                bottomMargin = dp(98)
+                leftMargin = dp(8)
+                rightMargin = dp(8)
+                bottomMargin = dp(112)
             },
         )
 
@@ -1237,7 +1262,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.THEME,
-                sizeDp = 64,
+                sizeDp = 72,
                 primary = true,
             ) {
                 showThemePicker()
@@ -1247,7 +1272,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.BOARD,
-                sizeDp = 64,
+                sizeDp = 72,
             ) {
                 if (
                     isLayeredBoardTheme(
@@ -1285,7 +1310,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.VISUALIZER,
-                sizeDp = 64,
+                sizeDp = 72,
             ) {
                 startActivity(
                     Intent(
@@ -1301,7 +1326,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.EXPORT,
-                sizeDp = 64,
+                sizeDp = 72,
             ) {
                 showExportLab()
             }
@@ -1329,8 +1354,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             actions.addView(
                 button,
                 LinearLayout.LayoutParams(
-                    dp(64),
-                    dp(64),
+                    dp(72),
+                    dp(72),
                 ),
             )
         }
@@ -1339,11 +1364,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             actions,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(82),
+                dp(98),
                 Gravity.BOTTOM,
             ).apply {
-                leftMargin = dp(14)
-                rightMargin = dp(14)
+                leftMargin = dp(12)
+                rightMargin = dp(12)
                 bottomMargin = dp(8)
             },
         )

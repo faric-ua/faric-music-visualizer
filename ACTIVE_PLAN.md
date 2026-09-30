@@ -393,3 +393,23 @@ User clarification after 333058.mp4:
 - [ ] Phone verify live transform controls.
 - [ ] Phone verify persistence after leaving/reopening Board editor.
 - [ ] Next: advanced per-layer transform overrides for frame / creature / wordmark / FX.
+
+
+## v0.7.5 — Gestures + extended audio motion
+
+- [x] Keep existing frame / creature / wordmark / FX reactions unchanged.
+- [x] Add one-finger X/Y drag in Board editor.
+- [x] Add pinch-to-scale in Board editor.
+- [x] Add two-finger rotation gesture.
+- [x] Persist gesture edits through `BoardTransformStore`.
+- [x] Add pass-through stereo PCM balance analyzer.
+- [x] Extend live `SceneSignal` with `stereoPan`.
+- [x] Add configurable whole-GF stereo left/right travel.
+- [x] Add configurable whole-GF bass vertical float.
+- [x] Add configurable whole-GF back/forth rotation sway.
+- [x] Add all three motion controls to existing Board menu.
+- [ ] Android CI PASS for v0.7.5.
+- [ ] Phone verify gesture editing.
+- [ ] Phone verify real stereo travel with stereo-heavy music.
+- [ ] Tune defaults from phone video if needed.
+- [ ] Later: add stereoPan to offline analysis for deterministic export parity.

@@ -427,3 +427,14 @@ Target UI direction:
 - [ ] Phone compare layout proportions with `docs/design/pulsedeck-main-screen-reference.jpg`.
 - [ ] Tune icon sizes and rail heights after phone screenshot.
 - [ ] Add per-block hide/opacity/position/size settings later.
+
+
+### v0.8.2 reference-fidelity acceptance
+- [ ] Hero/GF fills upper composition more like approved reference.
+- [ ] No large dead space between Hero and metadata.
+- [ ] Fine multi-bar waveform matches reference direction.
+- [ ] Central play/pause is visually dominant.
+- [ ] Previous/next and shuffle/repeat have correct hierarchy.
+- [ ] Bottom four icon-only actions are large and evenly distributed.
+- [ ] Favorite and track-more controls are present around metadata.
+- [ ] Auto-hide / double-tap / rotation behavior remains correct.

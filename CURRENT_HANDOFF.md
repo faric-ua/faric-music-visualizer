@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.7.3 Cyber Shark layout tuning + Board transform requirement;
+- v0.7.4 live Board transform controls;
 - Cyber Shark is the first live multi-layer Board theme;
 - phone visual check confirms the resized/repositioned Cyber Shark is clearly better and usable as a temporary default;
 - further transform controls and floating-control PulseDeck redesign remain TODO;
@@ -545,3 +545,55 @@ Next continuation point:
 5. after live layout control is stable, continue toward deterministic preview/export parity for layered Board themes.
 
 Do not reopen the earlier bitmap-decode diagnosis unless a new regression appears; the current phone evidence shows the real Cyber Shark layers are rendering.
+
+
+## v0.7.4 — live Board transform controls
+
+Implemented the first user-facing transform editor for layered Hero/GF themes.
+
+Cyber Shark now has a context-sensitive `Board` action on Now Playing. It opens a live preview editor with:
+- X position;
+- Y position;
+- size;
+- rotation;
+- opacity;
+- Reset;
+- Fit Safe Area;
+- Done.
+
+Persistence:
+- transforms are stored per `PlaybackThemeId` in `BoardTransformStore`;
+- returning to Now Playing restores the saved values;
+- values are sanitized to safe ranges.
+
+Renderer contract:
+- transform moves/scales/rotates the whole GF group;
+- layer-specific audio motion remains independent and is evaluated on top of the saved transform;
+- opacity multiplies frame / FX / creature / wordmark together;
+- background glow follows the Hero anchor position but is not faded with Hero opacity.
+
+Current Cyber Shark defaults remain the v0.7.3 improved phone defaults:
+- X 50%;
+- Y 27.5%;
+- size 66%;
+- rotation 0°;
+- opacity 100%.
+
+Fit Safe Area v1 preset:
+- X 50%;
+- Y 25.5%;
+- size 60%.
+
+Release:
+- v0.7.4;
+- versionCode 29.
+
+Phone acceptance:
+1. install exact signed v0.7.4 APK;
+2. choose Cyber Shark;
+3. tap `Board`;
+4. move X/Y while music continues;
+5. change size, rotation and opacity;
+6. press Done and confirm values survive return to Now Playing;
+7. reopen Board and confirm values persisted;
+8. test Reset and Fit Safe Area.

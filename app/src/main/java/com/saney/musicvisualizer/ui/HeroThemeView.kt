@@ -31,6 +31,9 @@ class HeroThemeView(context: Context) : View(context) {
 
     private var themeId = PlaybackThemeId.NEON_EMBLEM
 
+    private var presentationScale = 1f
+    private var presentationCenterYFraction = 0.40f
+
     private var targetAmplitude = 0f
     private var targetBass = 0f
     private var targetMid = 0f
@@ -50,6 +53,23 @@ class HeroThemeView(context: Context) : View(context) {
 
     fun setTheme(theme: PlaybackThemeId) {
         themeId = theme
+        postInvalidateOnAnimation()
+    }
+
+    fun setPresentationTuning(
+        scale: Float = 1f,
+        centerYFraction: Float = 0.40f,
+    ) {
+        presentationScale =
+            scale.coerceIn(
+                0.80f,
+                2.40f,
+            )
+        presentationCenterYFraction =
+            centerYFraction.coerceIn(
+                0.18f,
+                0.50f,
+            )
         postInvalidateOnAnimation()
     }
 
@@ -121,12 +141,38 @@ class HeroThemeView(context: Context) : View(context) {
         if (w <= 0f || h <= 0f) return
 
         val cx = w * 0.5f
-        val cy = h * 0.40f
+        val cy =
+            h *
+                presentationCenterYFraction
         val minSide = min(w, h)
         val time = now / 1000f
 
-        drawBackground(canvas, w, h, cx, cy, minSide, time)
-        drawParticles(canvas, w, h, cx, cy, minSide, time)
+        drawBackground(
+            canvas,
+            w,
+            h,
+            cx,
+            cy,
+            minSide,
+            time,
+        )
+        drawParticles(
+            canvas,
+            w,
+            h,
+            cx,
+            cy,
+            minSide,
+            time,
+        )
+
+        canvas.save()
+        canvas.scale(
+            presentationScale,
+            presentationScale,
+            cx,
+            cy,
+        )
 
         when (themeId) {
             PlaybackThemeId.NEON_EMBLEM ->
@@ -154,7 +200,14 @@ class HeroThemeView(context: Context) : View(context) {
                 drawNeonEmblem(canvas, cx, cy, minSide, time)
         }
 
-        drawBeatShockwave(canvas, cx, cy, minSide)
+        drawBeatShockwave(
+            canvas,
+            cx,
+            cy,
+            minSide,
+        )
+        canvas.restore()
+
         postInvalidateOnAnimation()
     }
 

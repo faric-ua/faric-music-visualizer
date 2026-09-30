@@ -386,3 +386,16 @@ Target UI direction:
 - [ ] Add an explicit × close button to the Board settings panel.
 - [ ] Closing by outside tap or × must behave exactly like a non-destructive close: keep all already-saved Board/layer settings and never trigger Reset/Fit/Done side effects.
 - [ ] Rotation/lifecycle restore must preserve whether the Board editor was open; closing it remains an explicit user action only.
+
+
+## Per-control session revert
+
+- [ ] Add a small red revert/reset icon at the end of every adjustable Board setting row (for example each slider).
+- [ ] The icon must revert only that one control, not the whole Board, layer, or theme.
+- [ ] Revert target is the value that specific control had when the current Board settings session was opened.
+- [ ] If the user changes a slider multiple times during the same open settings session, pressing its revert icon restores the original entry value from the moment the menu was opened.
+- [ ] Reverting one control must not change any other slider or setting.
+- [ ] The revert icon is session-scoped, not a factory-default reset.
+- [ ] Closing the Board settings panel ends the session; the next time the panel is opened, the new entry values become the new per-control revert baseline.
+- [ ] Gesture-driven edits must participate in the same rule: if a gesture changes X/Y/size/rotation for the currently edited target, the related per-control revert icon restores that control to its value at menu entry.
+- [ ] Rotation must preserve the current session baseline for every control, so rotating the device does not redefine the revert target.

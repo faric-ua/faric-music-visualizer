@@ -138,6 +138,7 @@ while true; do
   echo "14 — Статус FARIC assets"
   echo "15 — Відкрити shell у FARIC assets"
   echo "16 — Імпортувати production-pack з Downloads"
+  echo "17 — Синхронізувати Cyber Shark production у app"
   echo
   echo "0 — Вийти"
   echo
@@ -161,6 +162,7 @@ while true; do
     14) run_tool "$REPO/tools/termux/assets-status.sh" ;;
     15) open_assets ;;
     16) run_tool "$REPO/tools/termux/assets-import-production-pack.sh" ;;
+    17) run_tool "$REPO/tools/termux/sync-cyber-shark-production-to-app.sh" ;;
     0) clear; exit 0 ;;
     *) echo "Невідомий пункт."; sleep 1 ;;
   esac

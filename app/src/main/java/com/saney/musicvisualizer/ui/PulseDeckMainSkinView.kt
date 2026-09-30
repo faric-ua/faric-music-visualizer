@@ -730,19 +730,22 @@ class PulseDeckMainSkinView(
                 cx +
                     cos(
                         angle,
-                    ) *
+                    )
+                        .toFloat() *
                     inner
             val y1 =
                 cy +
                     sin(
                         angle,
-                    ) *
+                    )
+                        .toFloat() *
                     inner
             val x2 =
                 cx +
                     cos(
                         angle,
-                    ) *
+                    )
+                        .toFloat() *
                     (
                         inner +
                             length
@@ -751,7 +754,8 @@ class PulseDeckMainSkinView(
                 cy +
                     sin(
                         angle,
-                    ) *
+                    )
+                        .toFloat() *
                     (
                         inner +
                             length

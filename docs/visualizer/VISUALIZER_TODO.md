@@ -290,15 +290,15 @@ Phone acceptance must include:
 Current Now Playing player card is **temporary scaffolding**.
 
 Target UI direction:
-- [ ] Remove the large monolithic Now Playing card that currently covers the lower part of the Board.
-- [ ] Keep playback controls visually floating over the scene instead of placing them inside one opaque/outlined container.
-- [ ] Transport controls, seek/progress, quick actions and metadata may remain as separate configurable blocks.
+- [x] Remove the large monolithic Now Playing card that currently covers the lower part of the Board.
+- [x] Keep playback controls visually floating over the scene instead of placing them inside one opaque/outlined container.
+- [x] Transport controls, seek/progress, quick actions and metadata are split into separate floating blocks.
 - [ ] Each block can have its own skin/background, including fully transparent / no-card mode.
 - [ ] Preserve touch targets and readability even when the block background is hidden.
-- [ ] Let the Board visually continue behind and between floating controls.
+- [x] Let the Board visually continue behind and between floating controls.
 - [ ] Recalculate Hero/GF safe area for the floating-control layout instead of treating the current card boundary as permanent.
 - [ ] Allow PulseDeck blocks to be individually hidden, repositioned, resized, recolored/skinned and have opacity adjusted.
-- [ ] Provide a clean visualizer-first mode with minimal controls over the Board.
+- [x] Add visualizer-first auto-hide for player blocks; double tap on empty Board toggles them.
 - [ ] Keep full-control mode available for normal player use.
 - [ ] Persist the selected PulseDeck layout/skin configuration.
 - [ ] Keep live UI controls separate from exported Board content by default.
@@ -399,3 +399,19 @@ Target UI direction:
 - [ ] Closing the Board settings panel ends the session; the next time the panel is opened, the new entry values become the new per-control revert baseline.
 - [ ] Gesture-driven edits must participate in the same rule: if a gesture changes X/Y/size/rotation for the currently edited target, the related per-control revert icon restores that control to its value at menu entry.
 - [ ] Rotation must preserve the current session baseline for every control, so rotating the device does not redefine the revert target.
+
+
+### v0.8.0 floating controls foundation
+- [x] Replace the old monolithic Now Playing card with separate metadata, progress, transport and quick-action blocks.
+- [x] Keep transport buttons individually floating.
+- [x] Remove the bottom navigation bar from Now Playing to reclaim Board area.
+- [x] Auto-hide floating player blocks after 6 seconds of inactivity.
+- [x] Double tap empty Board space to show/hide the floating player blocks.
+- [x] Preserve hidden/visible state across rotation.
+- [ ] Phone-tune vertical spacing between floating blocks.
+- [ ] Add per-block visibility controls.
+- [ ] Add per-block opacity controls.
+- [ ] Add per-block position/size controls.
+- [ ] Add per-block skin/background selection including fully transparent mode.
+- [ ] Decide whether header is part of the same hideable block system or remains persistent.
+- [ ] Add lifecycle-safe settings UI for floating block configuration.

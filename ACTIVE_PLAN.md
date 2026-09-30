@@ -342,3 +342,15 @@ User clarification after 333058.mp4:
 - [ ] Phone: obvious beats trigger the ring much more consistently.
 - [ ] Phone: desired inward/reset jump remains visible.
 - [ ] Phone: no excessive false rings between beats.
+
+
+## Persistent master assets
+
+- [x] Create private companion repository `faric-ua/faric-music-visualizer-assets`.
+- [x] Configure image binaries for Git LFS.
+- [x] Archive 34 master originals with manifest/provenance.
+- [x] Add FARIC assets actions to the main Termux menu.
+- [x] Phone clone/materialization PASS at `~/faric-music-visualizer-assets`.
+- [x] Verify `Master-файлів: 34`.
+- [x] Verify `LFS materialization: PASS`.
+- [ ] Next: promote first selected Hero/GF concept into a real production set: full / frame / creature / wordmark / fx / manifest.

@@ -69,6 +69,9 @@ class HeroBoardView(context: Context) : View(context) {
     private var groupReaction =
         BoardGroupReaction.default()
 
+    private var presentationScale = 1f
+    private var presentationYOffsetFraction = 0f
+
     private val layerTransforms =
         BoardLayerId.entries
             .associateWith {
@@ -208,6 +211,30 @@ class HeroBoardView(context: Context) : View(context) {
         value: BoardGroupReaction,
     ) {
         groupReaction = value.sanitized()
+        postInvalidateOnAnimation()
+    }
+
+    /**
+     * Visual-only shell tuning for Now Playing.
+     *
+     * This never mutates the persisted Board transform. It lets the permanent
+     * PulseDeck shell give the swappable Hero/GF a larger standardized slot,
+     * while the Board editor continues to work with the user's real values.
+     */
+    fun setPresentationTuning(
+        scale: Float = 1f,
+        yOffsetFraction: Float = 0f,
+    ) {
+        presentationScale =
+            scale.coerceIn(
+                0.80f,
+                1.35f,
+            )
+        presentationYOffsetFraction =
+            yOffsetFraction.coerceIn(
+                -0.10f,
+                0.10f,
+            )
         postInvalidateOnAnimation()
     }
 
@@ -639,7 +666,10 @@ class HeroBoardView(context: Context) : View(context) {
 
         val cy =
             h *
-                transform.yFraction +
+                (
+                    transform.yFraction +
+                        presentationYOffsetFraction
+                    ) +
                 bassFloatY
 
         val groupRotationDegrees =
@@ -648,7 +678,8 @@ class HeroBoardView(context: Context) : View(context) {
 
         val baseSize =
             minSide *
-                transform.sizeFraction
+                transform.sizeFraction *
+                presentationScale
 
         drawBoardBackground(
             canvas = canvas,
@@ -1164,10 +1195,205 @@ class HeroBoardView(context: Context) : View(context) {
         canvas.drawCircle(
             cx,
             cy,
-            minSide * 0.69f,
+            minSide *
+                0.69f *
+                presentationScale,
             fill,
         )
         fill.shader = null
+
+        // Lightweight HUD energy around the hero. This gives the real app
+        // some of the reference's cyan/orange activity without baking the
+        // decoration into the swappable Hero/GF artwork.
+        val timeSeconds =
+            SystemClock.elapsedRealtime() /
+                1000f
+
+        stroke.style = Paint.Style.STROKE
+        stroke.strokeCap = Paint.Cap.ROUND
+
+        val arcRadius =
+            minSide *
+                0.49f *
+                presentationScale
+
+        repeat(3) { index ->
+            val inset =
+                arcRadius +
+                    minSide *
+                    index *
+                    0.035f
+
+            val arcRect =
+                RectF(
+                    cx - inset,
+                    cy - inset,
+                    cx + inset,
+                    cy + inset,
+                )
+
+            stroke.strokeWidth =
+                minSide *
+                    (
+                        0.004f +
+                            index * 0.0012f
+                        )
+
+            stroke.color =
+                if (index == 1) {
+                    Color.argb(
+                        (
+                            70 +
+                                bass *
+                                70f
+                            )
+                            .toInt()
+                            .coerceIn(
+                                45,
+                                150,
+                            ),
+                        255,
+                        139,
+                        18,
+                    )
+                } else {
+                    Color.argb(
+                        (
+                            70 +
+                                high *
+                                90f +
+                                beat *
+                                35f
+                            )
+                            .toInt()
+                            .coerceIn(
+                                45,
+                                175,
+                            ),
+                        16,
+                        207,
+                        245,
+                    )
+                }
+
+            canvas.drawArc(
+                arcRect,
+                (
+                    timeSeconds *
+                        (
+                            12f +
+                                index * 5f
+                            ) +
+                        index * 73f
+                    ) %
+                    360f,
+                42f +
+                    index * 18f,
+                false,
+                stroke,
+            )
+
+            canvas.drawArc(
+                arcRect,
+                (
+                    190f -
+                        timeSeconds *
+                        (
+                            8f +
+                                index * 4f
+                            ) +
+                        index * 41f
+                    ) %
+                    360f,
+                28f +
+                    index * 14f,
+                false,
+                stroke,
+            )
+        }
+
+        fill.shader = null
+
+        repeat(34) { index ->
+            val angle =
+                (
+                    index *
+                        2.3999632f +
+                        timeSeconds *
+                        (
+                            0.055f +
+                                (index % 5) *
+                                0.008f
+                            )
+                    )
+
+            val radius =
+                minSide *
+                    (
+                        0.31f +
+                            (index % 9) *
+                            0.036f
+                        ) *
+                    presentationScale
+
+            val px =
+                cx +
+                    cos(
+                        angle.toDouble(),
+                    )
+                        .toFloat() *
+                    radius
+
+            val py =
+                cy +
+                    sin(
+                        angle.toDouble(),
+                    )
+                        .toFloat() *
+                    radius *
+                    0.82f
+
+            val orange =
+                index % 7 == 0
+
+            fill.color =
+                if (orange) {
+                    Color.argb(
+                        65,
+                        255,
+                        139,
+                        18,
+                    )
+                } else {
+                    Color.argb(
+                        (
+                            35 +
+                                high *
+                                55f
+                            )
+                            .toInt()
+                            .coerceIn(
+                                28,
+                                95,
+                            ),
+                        17,
+                        201,
+                        245,
+                    )
+                }
+
+            canvas.drawCircle(
+                px,
+                py,
+                minSide *
+                    (
+                        0.0025f +
+                            (index % 3) *
+                            0.0014f
+                        ),
+                fill,
+            )
+        }
     }
 
     private fun decodeSafely(

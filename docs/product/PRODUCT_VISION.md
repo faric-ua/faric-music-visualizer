@@ -56,3 +56,21 @@ Phase 3:
 - music streaming service integration;
 - full video editor;
 - on-device generative video model.
+
+## 2026-09-30 — expanded product direction
+
+The original MVP remains historical foundation, but the product direction now explicitly expands into three connected capabilities:
+
+1. **Media player** — play music and video.
+2. **Layered visual Board** — compose backgrounds, themes, Hero/GF elements, reactive FX and metadata as independent configurable layers.
+3. **Music-video export** — render the same Board/project deterministically to video instead of screen-recording the live Android UI.
+
+Above the Board, the live app uses a separate **PulseDeck Skin** for playback and editing controls. The Skin itself is configurable at block level, beginning with:
+- show/hide block;
+- block opacity;
+- replaceable block skin/variant.
+
+The Board and Skin are intentionally separate concepts so the user can have a rich control surface while exporting a clean visual composition.
+
+Canonical detailed capture:
+`docs/architecture/FARIC_LAYERED_BOARD_VISION.md`

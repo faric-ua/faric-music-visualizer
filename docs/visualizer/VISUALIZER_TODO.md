@@ -315,10 +315,10 @@ Target UI direction:
 - [x] Reset preset.
 - [x] Fit Safe Area v1 preset.
 - [ ] Phone acceptance for v0.7.4 controls.
-- [ ] Per-layer transform override: frame.
-- [ ] Per-layer transform override: creature.
-- [ ] Per-layer transform override: wordmark.
-- [ ] Per-layer transform override: FX.
+- [x] Per-layer transform override: frame.
+- [x] Per-layer transform override: creature.
+- [x] Per-layer transform override: wordmark.
+- [x] Per-layer transform override: FX.
 - [ ] UI to return individual layer override to inherited/group value.
 - [ ] Serialize transforms into saved MusicVideoProject.
 - [ ] Use the same transforms in deterministic export.
@@ -339,7 +339,8 @@ Target UI direction:
 - [ ] Phone tune default stereo travel amplitude.
 - [ ] Phone tune default bass float amplitude.
 - [ ] Add offline stereo balance to export analysis.
-- [ ] Advanced per-layer gesture selection/locking.
+- [x] Advanced per-layer gesture selection.
+- [ ] Per-layer locking / inherit toggle.
 
 
 ## Global UI lifecycle / rotation
@@ -358,3 +359,13 @@ Target UI direction:
 - [ ] Move offline-analysis state/work out of Activity-local ownership.
 - [ ] Audit projectM install/index/queue against duplicate work on rotation.
 - [ ] Require lifecycle acceptance for every new modal/editor/floating block.
+
+
+### v0.7.7 phone acceptance
+- [ ] Independently move Frame.
+- [ ] Independently move Shark.
+- [ ] Independently move FARIC.
+- [ ] Independently transform FX.
+- [ ] Verify layer opacity can fully hide a layer.
+- [ ] Verify whole-GF transform still composes with layer overrides.
+- [ ] Verify selected layer + scroll survive rotation.

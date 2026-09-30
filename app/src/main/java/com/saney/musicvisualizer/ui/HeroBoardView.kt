@@ -847,20 +847,34 @@ class HeroBoardView(context: Context) : View(context) {
         baseSize: Float,
         timeSeconds: Float,
         transform: BoardTransform,
+        layerTransform: BoardLayerTransform,
         groupRotationDegrees: Float,
     ) {
         val size =
             baseSize *
-                motion.scale
+                motion.scale *
+                layerTransform.scale
         val radius =
             size * 0.43f
+
+        val layerCx =
+            cx +
+                width *
+                layerTransform
+                    .offsetXFraction
+        val layerCy =
+            cy +
+                height *
+                layerTransform
+                    .offsetYFraction
 
         canvas.save()
         canvas.rotate(
             groupRotationDegrees +
+                layerTransform.rotationDegrees +
                 motion.rotationDegrees,
-            cx,
-            cy,
+            layerCx,
+            layerCy,
         )
 
         repeat(3) { ring ->
@@ -910,13 +924,13 @@ class HeroBoardView(context: Context) : View(context) {
                         wave
 
                 val x =
-                    cx +
+                    layerCx +
                         cos(a)
                             .toFloat() *
                         r
 
                 val y =
-                    cy +
+                    layerCy +
                         sin(a)
                             .toFloat() *
                         r *
@@ -954,6 +968,7 @@ class HeroBoardView(context: Context) : View(context) {
                 (
                     motion.alpha *
                         transform.opacity *
+                        layerTransform.opacity *
                         (
                             165 -
                                 ring *
@@ -1020,6 +1035,7 @@ class HeroBoardView(context: Context) : View(context) {
                     (
                         motion.alpha *
                             transform.opacity *
+                        layerTransform.opacity *
                             (
                                 80 +
                                     high *
@@ -1176,6 +1192,7 @@ class HeroBoardView(context: Context) : View(context) {
         baseSize: Float,
         motion: BoardLayerMotion,
         transform: BoardTransform,
+        layerTransform: BoardLayerTransform,
     ) {
         if (!renderErrorLogged) {
             android.util.Log.e(
@@ -1190,6 +1207,7 @@ class HeroBoardView(context: Context) : View(context) {
                 (
                     motion.alpha *
                         transform.opacity *
+                        layerTransform.opacity *
                         120f
                     )
                     .toInt()
@@ -1205,16 +1223,47 @@ class HeroBoardView(context: Context) : View(context) {
         val r =
             baseSize *
                 0.16f *
-                motion.scale
+                motion.scale *
+                layerTransform.scale
 
         canvas.drawCircle(
-            cx,
+            cx +
+                width *
+                layerTransform
+                    .offsetXFraction,
             cy +
+                height *
+                layerTransform
+                    .offsetYFraction +
                 baseSize *
                 motion.translateYFraction,
             r,
             fill,
         )
+    }
+
+    private fun layerTransform(
+        layerId: BoardLayerId,
+    ): BoardLayerTransform =
+        layerTransforms[layerId]
+            ?: BoardLayerTransform.default()
+
+    private fun updateLayerTransformFromGesture(
+        layerId: BoardLayerId,
+        value: BoardLayerTransform,
+    ) {
+        val safe =
+            value.sanitized()
+
+        layerTransforms[layerId] = safe
+
+        gestureLayerTransformListener
+            ?.invoke(
+                layerId,
+                safe,
+            )
+
+        postInvalidateOnAnimation()
     }
 
     private fun updateTransformFromGesture(

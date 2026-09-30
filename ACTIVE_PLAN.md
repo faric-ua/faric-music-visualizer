@@ -374,3 +374,22 @@ User clarification after 333058.mp4:
 - [ ] Redesign Now Playing into floating PulseDeck control blocks.
 - [ ] Revisit safe-area defaults after the floating-control layout exists.
 - [ ] Continue deterministic preview/export parity for layered Board themes after live transform controls are stable.
+
+
+## v0.7.4 — Live Board transform editor
+
+- [x] Add reusable `BoardTransform` model.
+- [x] Persist transforms per playback theme.
+- [x] Add live X / Y controls.
+- [x] Add live size control.
+- [x] Add live rotation control.
+- [x] Add live opacity control.
+- [x] Keep manual transform separate from audio-reactive layer motion.
+- [x] Add Reset.
+- [x] Add Fit Safe Area v1.
+- [x] Add contextual Board action for layered GF themes.
+- [x] Add unit coverage for transform bounds.
+- [ ] Android CI PASS for v0.7.4.
+- [ ] Phone verify live transform controls.
+- [ ] Phone verify persistence after leaving/reopening Board editor.
+- [ ] Next: advanced per-layer transform overrides for frame / creature / wordmark / FX.

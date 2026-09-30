@@ -2,6 +2,7 @@
 set -u
 
 REPO="$(CDPATH= cd -- "$(dirname -- "$0")/.." && pwd)"
+ASSET_REPO="$HOME/faric-music-visualizer-assets"
 
 pause_menu() {
   echo
@@ -80,6 +81,30 @@ open_code() {
   "${SHELL:-$PREFIX/bin/bash}" -i
 }
 
+open_assets() {
+  clear
+
+  if [ ! -d "$ASSET_REPO/.git" ]; then
+    echo "FARIC assets ще не підключені."
+    echo
+    echo "Спочатку вибери:"
+    echo "11 — Підключити / відновити FARIC assets"
+    pause_menu
+    return
+  fi
+
+  cd "$ASSET_REPO" || exit 1
+  echo "Shell у FARIC assets:"
+  pwd
+  echo
+  echo "masters/    — оригінали"
+  echo "production/ — підготовлені набори для програми"
+  echo
+  echo "Для повернення в меню: exit"
+  echo
+  "${SHELL:-$PREFIX/bin/bash}" -i
+}
+
 run_tool() {
   clear
   cd "$REPO" || exit 1
@@ -93,16 +118,27 @@ while true; do
   echo "      FARIC Music Visualizer"
   echo "========================================"
   echo
+  echo "ПРОЄКТ"
   echo "1 — Відкрити shell у коді"
   echo "2 — Git status"
   echo "3 — Оновити репозиторій з GitHub"
   echo "4 — Показати ACTIVE_PLAN"
+  echo
+  echo "BUILD / SIGNING"
   echo "5 — Створити окремий development signer"
   echo "6 — Передати signer secrets у GitHub"
   echo "7 — Backup development signer"
   echo "8 — Завантажити APK і відкрити папку"
   echo "9 — Запустити Android build"
   echo "10 — Статус Android build"
+  echo
+  echo "MASTER ASSETS"
+  echo "11 — Підключити / відновити FARIC assets"
+  echo "12 — Оновити FARIC assets з GitHub"
+  echo "13 — Зберегти FARIC assets у GitHub"
+  echo "14 — Статус FARIC assets"
+  echo "15 — Відкрити shell у FARIC assets"
+  echo
   echo "0 — Вийти"
   echo
   printf "Вибір: "
@@ -119,6 +155,11 @@ while true; do
     8) run_tool "$REPO/tools/termux/download-current-apk.sh" ;;
     9) run_tool "$REPO/tools/termux/run-android-build.sh" ;;
     10) run_tool "$REPO/tools/termux/android-build-status.sh" ;;
+    11) run_tool "$REPO/tools/termux/assets-bootstrap.sh" ;;
+    12) run_tool "$REPO/tools/termux/assets-update.sh" ;;
+    13) run_tool "$REPO/tools/termux/assets-push.sh" ;;
+    14) run_tool "$REPO/tools/termux/assets-status.sh" ;;
+    15) open_assets ;;
     0) clear; exit 0 ;;
     *) echo "Невідомий пункт."; sleep 1 ;;
   esac

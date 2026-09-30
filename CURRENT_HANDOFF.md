@@ -825,3 +825,14 @@ Phone acceptance:
 6. double tap again to hide;
 7. rotate while hidden and while visible;
 8. confirm playback continues and the Board remains much less obstructed.
+
+
+## Assistant response / Termux handoff format
+
+Standing project rule:
+- future assistants should read `docs/workflow/ASSISTANT_RESPONSE_FORMAT.md`;
+- when the user is expected to test/install something, finish the response with a short visible `TERMUX:` block and a short `ТЕСТ:` checklist;
+- normal install flow: `3 → 10 → PASS → 8 → встановити APK`;
+- manual build flow: `3 → 9 → 10 → PASS → 8 → встановити APK`;
+- on FAIL: stop, do not install, ask for the result from menu item 10;
+- do not hide required user actions inside long prose.

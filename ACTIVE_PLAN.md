@@ -463,3 +463,21 @@ User clarification after 333058.mp4:
 - [x] Make the 40% rule orientation-adaptive.
 - [ ] Android CI PASS for v0.7.8.
 - [ ] Phone verify portrait/landscape usability.
+
+
+## v0.8.0 — Floating PulseDeck controls
+
+- [x] Remove monolithic Now Playing player card.
+- [x] Split metadata into its own floating block.
+- [x] Split progress/seek into its own floating block.
+- [x] Keep previous/play-next/repeat/shuffle as floating transport buttons.
+- [x] Split theme/Board/projectM/export into a separate quick-actions block.
+- [x] Remove Now Playing bottom navigation to reclaim scene space.
+- [x] Add 6-second auto-hide.
+- [x] Add double-tap show/hide on empty Board.
+- [x] Preserve overlay hidden/visible state through rotation.
+- [ ] Android CI PASS for v0.8.0.
+- [ ] Phone verify all buttons remain reachable and readable.
+- [ ] Phone verify double tap does not interfere with Board/visualizer gestures.
+- [ ] Phone tune positions/spacing.
+- [ ] Next: persistent per-block visibility / opacity / transform / skin settings.

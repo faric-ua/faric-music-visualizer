@@ -61,6 +61,7 @@ import com.saney.musicvisualizer.ui.HeroThemeView
 import com.saney.musicvisualizer.ui.PulseMiniView
 import com.saney.musicvisualizer.ui.PulseDeckControlRail
 import com.saney.musicvisualizer.ui.PulseDeckIconButton
+import com.saney.musicvisualizer.ui.PulseDeckMainSkinView
 import com.saney.musicvisualizer.ui.ReactiveSceneView
 import java.util.Locale
 import kotlin.concurrent.thread
@@ -110,6 +111,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var sceneView: ReactiveSceneView? = null
     private var heroBoardView: HeroBoardView? = null
     private var heroThemeView: HeroThemeView? = null
+    private var pulseDeckMainSkinView: PulseDeckMainSkinView? = null
     private var miniPulseView: PulseMiniView? = null
     private var dock: View? = null
     private var dockTitle: TextView? = null
@@ -408,6 +410,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         sceneView?.setPlaying(snapshot.isPlaying)
         heroBoardView?.setPlaying(snapshot.isPlaying)
         heroThemeView?.setPlaying(snapshot.isPlaying)
+        pulseDeckMainSkinView?.setPlaying(snapshot.isPlaying)
         heroThemeView?.setMetadata(
             title = snapshot.trackName,
             artist = if (snapshot.trackName == null) null else "Невідомий виконавець",
@@ -436,6 +439,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         sceneView?.updateSignal(signal)
         heroBoardView?.updateSignal(signal)
         heroThemeView?.updateSignal(signal)
+        pulseDeckMainSkinView?.updateSignal(signal)
         miniPulseView?.updateSignal(signal)
     }
 
@@ -598,124 +602,41 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         applySafeArea(root)
 
-        if (isLayeredBoardTheme(selectedThemeId)) {
-            val boardView =
-                runCatching {
-                    HeroBoardView(this)
-                }.onFailure { error ->
-                    Log.e(
-                        "MainActivity",
-                        "Failed to create layered Board theme: $selectedThemeId",
-                        error,
-                    )
-                }.getOrNull()
-
-            if (boardView != null) {
-                boardView.setGroupTransform(
-                    boardTransformStore.load(
-                        selectedThemeId,
-                    ),
-                )
-                boardView.setPresentationTuning(
-                    scale = 1.32f,
-                    yOffsetFraction = 0.005f,
-                )
-                boardView.setGroupReaction(
-                    boardGroupReactionStore.load(
-                        selectedThemeId,
-                    ),
-                )
-                boardView.setLayerTransforms(
-                    boardLayerTransformStore.loadAll(
-                        selectedThemeId,
-                    ),
-                )
-                heroBoardView = boardView
-
-                root.addView(
-                    boardView,
-                    FrameLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                    ),
-                )
-            } else {
-                Toast.makeText(
-                    this,
-                    "Cyber Shark не вдалося відкрити. Показую безпечний fallback.",
-                    Toast.LENGTH_LONG,
-                ).show()
-
-                heroThemeView =
-                    HeroThemeView(this).also { view ->
-                        view.setTheme(
-                            PlaybackThemeId.NEON_EMBLEM,
-                        )
-                        root.addView(
-                            view,
-                            FrameLayout.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                            ),
-                        )
-                    }
+        // Permanent main-page skin. Visualizers/GF/video will later be mounted
+        // into explicit back/front layer slots around this shell.
+        val skinView =
+            PulseDeckMainSkinView(this).also { view ->
+                view.updateSignal(latestSignal)
+                view.setPlaying(latestSnapshot.isPlaying)
             }
-        } else if (
-            isStandaloneHeroTheme(
-                selectedThemeId,
-            )
-        ) {
-            heroThemeView =
-                HeroThemeView(this).also { view ->
-                    view.setTheme(
-                        selectedThemeId,
-                    )
-                    val heroScale =
-                        when (selectedThemeId) {
-                            PlaybackThemeId.NEON_EMBLEM ->
-                                2.28f
-                            PlaybackThemeId.ENERGY_CORE ->
-                                1.82f
-                            PlaybackThemeId.ORBITAL_CROWN ->
-                                1.58f
-                            PlaybackThemeId.STAR_SEED ->
-                                1.68f
-                            PlaybackThemeId.WAVE_IDOL ->
-                                1.58f
-                            PlaybackThemeId.VINYL ->
-                                1.16f
-                            PlaybackThemeId.CASSETTE ->
-                                1.10f
-                            else ->
-                                1f
-                        }
 
-                    view.setPresentationTuning(
-                        scale = heroScale,
-                        centerYFraction = 0.275f,
-                    )
+        pulseDeckMainSkinView =
+            skinView
 
-                    root.addView(
-                        view,
-                        FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                        ),
-                    )
+        root.addView(
+            skinView,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+
+        fun pulseButton(
+            icon: PulseDeckIconButton.Icon,
+            sizeDp: Int,
+            primary: Boolean = false,
+            action: () -> Unit,
+        ): PulseDeckIconButton =
+            PulseDeckIconButton(this).apply {
+                setIcon(icon)
+                setPrimary(primary)
+                setOnClickListener {
+                    action()
+                    scheduleNowControlsAutoHide()
                 }
-        } else {
-            sceneView =
-                ReactiveSceneView(this).also { view ->
-                    view.setScene(currentScene)
-                    root.addView(
-                        view,
-                        FrameLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                        ),
-                    )
-                }
-        }
+                contentDescription =
+                    icon.name
+            }
 
         val header =
             LinearLayout(this).apply {
@@ -724,34 +645,31 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 gravity =
                     Gravity.CENTER_VERTICAL
                 setPadding(
-                    dp(12),
-                    dp(7),
-                    dp(12),
-                    dp(7),
+                    dp(8),
+                    dp(4),
+                    dp(8),
+                    dp(4),
                 )
-                background =
-                    panelDrawable(
-                        Color.argb(
-                            72,
-                            1,
-                            7,
-                            12,
-                        ),
-                        28,
-                        Color.TRANSPARENT,
-                        0,
-                    )
             }
 
         header.addView(
-            iconButton("‹") {
+            pulseButton(
+                icon =
+                    PulseDeckIconButton.Icon.BACK,
+                sizeDp = 58,
+            ) {
                 showLibrary()
             },
+            LinearLayout.LayoutParams(
+                dp(58),
+                dp(58),
+            ),
         )
+
         header.addView(
             label(
                 "FARIC  PulseDeck",
-                22f,
+                23f,
                 Color.WHITE,
                 true,
             ),
@@ -763,12 +681,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 marginStart = dp(10)
             },
         )
+
         header.addView(
-            iconButton("⋮") {
+            pulseButton(
+                icon =
+                    PulseDeckIconButton.Icon.MORE,
+                sizeDp = 58,
+            ) {
                 toast(
                     "Налаштування головного скіна — наступний етап",
                 )
             },
+            LinearLayout.LayoutParams(
+                dp(58),
+                dp(58),
+            ),
         )
 
         root.addView(
@@ -778,9 +705,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 dp(66),
                 Gravity.TOP,
             ).apply {
-                leftMargin = dp(12)
-                rightMargin = dp(12)
-                topMargin = dp(8)
+                leftMargin = dp(10)
+                rightMargin = dp(10)
+                topMargin = dp(6)
             },
         )
 
@@ -793,8 +720,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowControlsLayer =
             controlsLayer
 
-        // Metadata stays part of the permanent main shell while the Hero/GF
-        // behind it can be swapped by the selected skin/theme.
         val metadataBlock =
             LinearLayout(this).apply {
                 orientation =
@@ -803,16 +728,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     Gravity.CENTER_HORIZONTAL
                 setPadding(
                     dp(12),
-                    dp(6),
+                    dp(2),
                     dp(12),
-                    dp(6),
+                    dp(2),
                 )
             }
 
         nowTitle =
             label(
                 "FARIC PulseDeck",
-                23f,
+                24f,
                 Color.WHITE,
                 true,
             ).apply {
@@ -838,7 +763,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowStatus =
             label(
                 "Готово",
-                11f,
+                12f,
                 COLOR_MUTED,
                 false,
             ).apply {
@@ -859,9 +784,56 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM,
             ).apply {
-                leftMargin = dp(24)
-                rightMargin = dp(24)
-                bottomMargin = dp(344)
+                leftMargin = dp(64)
+                rightMargin = dp(64)
+                bottomMargin = dp(350)
+            },
+        )
+
+        val favorite =
+            pulseButton(
+                icon =
+                    PulseDeckIconButton.Icon.FAVORITE,
+                sizeDp = 54,
+                primary = true,
+            ) {
+                toast(
+                    "Обране — наступний етап",
+                )
+            }
+
+        controlsLayer.addView(
+            favorite,
+            FrameLayout.LayoutParams(
+                dp(54),
+                dp(54),
+                Gravity.BOTTOM or Gravity.START,
+            ).apply {
+                leftMargin = dp(14)
+                bottomMargin = dp(347)
+            },
+        )
+
+        val trackMore =
+            pulseButton(
+                icon =
+                    PulseDeckIconButton.Icon.MORE,
+                sizeDp = 54,
+            ) {
+                toast(
+                    "Дії треку — наступний етап",
+                )
+            }
+
+        controlsLayer.addView(
+            trackMore,
+            FrameLayout.LayoutParams(
+                dp(54),
+                dp(54),
+                Gravity.BOTTOM or Gravity.END,
+            ).apply {
+                rightMargin = dp(14)
+                bottomMargin = dp(347)
             },
         )
 
@@ -870,9 +842,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 orientation =
                     LinearLayout.VERTICAL
                 setPadding(
-                    dp(12),
+                    dp(10),
                     0,
-                    dp(12),
+                    dp(10),
                     0,
                 )
             }
@@ -882,11 +854,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 pulse.updateSignal(
                     latestSignal,
                 )
+
                 progressBlock.addView(
                     pulse,
                     LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        dp(36),
+                        dp(48),
                     ),
                 )
             }
@@ -894,23 +867,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowSeek =
             SeekBar(this).apply {
                 max = 1000
+
                 progressTintList =
                     android.content.res
                         .ColorStateList
                         .valueOf(
                             COLOR_ACCENT_CYAN,
                         )
+
                 progressBackgroundTintList =
                     android.content.res
                         .ColorStateList
                         .valueOf(
                             Color.argb(
-                                115,
-                                138,
-                                151,
-                                163,
+                                120,
+                                57,
+                                78,
+                                89,
                             ),
                         )
+
                 thumbTintList =
                     android.content.res
                         .ColorStateList
@@ -960,7 +936,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             nowSeek,
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(30),
+                dp(32),
             ),
         )
 
@@ -973,7 +949,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowElapsed =
             label(
                 "0:00",
-                13f,
+                14f,
                 Color.WHITE,
                 true,
             )
@@ -981,7 +957,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowTotal =
             label(
                 "0:00",
-                13f,
+                14f,
                 Color.WHITE,
                 true,
             ).apply {
@@ -996,6 +972,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 1f,
             ),
         )
+
         times.addView(
             nowTotal,
             LinearLayout.LayoutParams(
@@ -1014,73 +991,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM,
             ).apply {
-                leftMargin = dp(20)
-                rightMargin = dp(20)
-                bottomMargin = dp(244)
-            },
-        )
-
-        fun pulseButton(
-            icon: PulseDeckIconButton.Icon,
-            sizeDp: Int,
-            primary: Boolean = false,
-            action: () -> Unit,
-        ): PulseDeckIconButton =
-            PulseDeckIconButton(this).apply {
-                setIcon(icon)
-                setPrimary(primary)
-                setOnClickListener {
-                    action()
-                    scheduleNowControlsAutoHide()
-                }
-                contentDescription =
-                    icon.name
-            }
-
-        val favorite =
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.FAVORITE,
-                sizeDp = 46,
-                primary = true,
-            ) {
-                toast(
-                    "Обране — наступний етап",
-                )
-            }
-
-        controlsLayer.addView(
-            favorite,
-            FrameLayout.LayoutParams(
-                dp(46),
-                dp(46),
-                Gravity.BOTTOM or Gravity.START,
-            ).apply {
                 leftMargin = dp(18)
-                bottomMargin = dp(344)
-            },
-        )
-
-        val trackMore =
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.MORE,
-                sizeDp = 46,
-            ) {
-                toast(
-                    "Дії треку — наступний етап",
-                )
-            }
-
-        controlsLayer.addView(
-            trackMore,
-            FrameLayout.LayoutParams(
-                dp(46),
-                dp(46),
-                Gravity.BOTTOM or Gravity.END,
-            ).apply {
                 rightMargin = dp(18)
-                bottomMargin = dp(344)
+                bottomMargin = dp(244)
             },
         )
 
@@ -1092,9 +1005,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 gravity = Gravity.CENTER
                 setPadding(
                     dp(6),
-                    dp(5),
+                    dp(4),
                     dp(6),
-                    dp(5),
+                    dp(4),
                 )
             }
 
@@ -1102,7 +1015,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.SHUFFLE,
-                sizeDp = 58,
+                sizeDp = 62,
             ) {
                 toast(
                     "Shuffle запрацює з чергою",
@@ -1113,7 +1026,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.PREVIOUS,
-                sizeDp = 74,
+                sizeDp = 78,
             ) {
                 toast(
                     "Previous запрацює з чергою",
@@ -1128,7 +1041,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     } else {
                         PulseDeckIconButton.Icon.PLAY
                     },
-                sizeDp = 106,
+                sizeDp = 112,
                 primary = true,
             ) {
                 controller.togglePlayPause()
@@ -1138,7 +1051,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.NEXT,
-                sizeDp = 74,
+                sizeDp = 78,
             ) {
                 toast(
                     "Next запрацює з чергою",
@@ -1149,7 +1062,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.REPEAT,
-                sizeDp = 58,
+                sizeDp = 62,
             ) {
                 toast(
                     "Repeat запрацює з чергою",
@@ -1159,88 +1072,90 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         fun addTransportButton(
             button: PulseDeckIconButton,
             sizeDp: Int,
-            weight: Float = 0f,
         ) {
             transport.addView(
                 button,
                 LinearLayout.LayoutParams(
-                    if (weight > 0f) {
-                        0
-                    } else {
-                        dp(sizeDp)
-                    },
                     dp(sizeDp),
-                    weight,
+                    dp(sizeDp),
                 ).apply {
-                    marginStart = dp(3)
-                    marginEnd = dp(3)
+                    marginStart = dp(2)
+                    marginEnd = dp(2)
                 },
             )
         }
 
         addTransportButton(
             shuffle,
-            58,
+            62,
         )
+
         transport.addView(
             Space(this),
             LinearLayout.LayoutParams(
                 0,
                 1,
-                0.32f,
+                0.28f,
             ),
         )
+
         addTransportButton(
             previous,
-            74,
+            78,
         )
+
         transport.addView(
             Space(this),
             LinearLayout.LayoutParams(
                 0,
                 1,
-                0.18f,
+                0.14f,
             ),
         )
+
         addTransportButton(
             nowPlay!!,
-            106,
+            112,
         )
+
         transport.addView(
             Space(this),
             LinearLayout.LayoutParams(
                 0,
                 1,
-                0.18f,
+                0.14f,
             ),
         )
+
         addTransportButton(
             next,
-            74,
+            78,
         )
+
         transport.addView(
             Space(this),
             LinearLayout.LayoutParams(
                 0,
                 1,
-                0.32f,
+                0.28f,
             ),
         )
+
         addTransportButton(
             repeat,
-            58,
+            62,
         )
 
         controlsLayer.addView(
             transport,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(132),
+                dp(140),
                 Gravity.BOTTOM,
             ).apply {
                 leftMargin = dp(8)
                 rightMargin = dp(8)
-                bottomMargin = dp(112)
+                bottomMargin = dp(106)
             },
         )
 
@@ -1251,9 +1166,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 )
                 gravity = Gravity.CENTER
                 setPadding(
-                    dp(10),
+                    dp(12),
                     dp(5),
-                    dp(10),
+                    dp(12),
                     dp(5),
                 )
             }
@@ -1262,7 +1177,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.THEME,
-                sizeDp = 72,
+                sizeDp = 76,
                 primary = true,
             ) {
                 showThemePicker()
@@ -1272,7 +1187,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.BOARD,
-                sizeDp = 72,
+                sizeDp = 76,
             ) {
                 if (
                     isLayeredBoardTheme(
@@ -1301,7 +1216,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     )
                 } else {
                     toast(
-                        "Board для цього скіна — наступний етап",
+                        "Board для цього шару — наступний етап",
                     )
                 }
             }
@@ -1310,7 +1225,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.VISUALIZER,
-                sizeDp = 72,
+                sizeDp = 76,
             ) {
                 startActivity(
                     Intent(
@@ -1326,7 +1241,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseButton(
                 icon =
                     PulseDeckIconButton.Icon.EXPORT,
-                sizeDp = 72,
+                sizeDp = 76,
             ) {
                 showExportLab()
             }
@@ -1354,8 +1269,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             actions.addView(
                 button,
                 LinearLayout.LayoutParams(
-                    dp(72),
-                    dp(72),
+                    dp(76),
+                    dp(76),
                 ),
             )
         }
@@ -1364,12 +1279,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             actions,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(98),
+                dp(102),
                 Gravity.BOTTOM,
             ).apply {
-                leftMargin = dp(12)
-                rightMargin = dp(12)
-                bottomMargin = dp(8)
+                leftMargin = dp(10)
+                rightMargin = dp(10)
+                bottomMargin = dp(4)
             },
         )
 
@@ -3565,6 +3480,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         sceneView = null
         heroBoardView = null
         heroThemeView = null
+        pulseDeckMainSkinView = null
         miniPulseView = null
         dock = null
         dockTitle = null

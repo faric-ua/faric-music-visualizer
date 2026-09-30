@@ -35,6 +35,7 @@ class PulseDeckIconButton(
         EXPORT,
         FAVORITE,
         MORE,
+        BACK,
     }
 
     private val paint =
@@ -376,6 +377,14 @@ class PulseDeckIconButton(
 
             Icon.MORE ->
                 drawMore(
+                    canvas,
+                    cx,
+                    cy,
+                    side,
+                )
+
+            Icon.BACK ->
+                drawBack(
                     canvas,
                     cx,
                     cy,
@@ -980,6 +989,45 @@ class PulseDeckIconButton(
 
         paint.style =
             Paint.Style.STROKE
+    }
+
+    private fun drawBack(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        side: Float,
+    ) {
+        val oldWidth =
+            paint.strokeWidth
+
+        paint.strokeWidth =
+            side * 0.070f
+        paint.strokeCap =
+            Paint.Cap.ROUND
+        paint.strokeJoin =
+            Paint.Join.ROUND
+
+        path.reset()
+        path.moveTo(
+            cx + side * 0.11f,
+            cy - side * 0.20f,
+        )
+        path.lineTo(
+            cx - side * 0.10f,
+            cy,
+        )
+        path.lineTo(
+            cx + side * 0.11f,
+            cy + side * 0.20f,
+        )
+
+        canvas.drawPath(
+            path,
+            paint,
+        )
+
+        paint.strokeWidth =
+            oldWidth
     }
 
     private fun drawArrowHead(

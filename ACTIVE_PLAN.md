@@ -526,3 +526,20 @@ User clarification after 333058.mp4:
 - [x] Re-align track favorite/more with metadata.
 - [ ] Android CI PASS for v0.8.3.
 - [ ] Phone compare both Cyber Shark and Neon Emblem against the same shell layout.
+
+
+## v0.9.0 — Permanent HUD main skin
+
+- [x] Separate permanent main-player skin from Cyber Shark / GF / visualizer content.
+- [x] Implement code-only cyan/orange HUD background from supplied block references.
+- [x] Add reactive F reactor with concentric rings and radial bars.
+- [x] Add reactive cyan/orange energy ribbons and particles.
+- [x] Use matching custom back/menu/favorite/track-more controls.
+- [x] Match transport hierarchy to supplied 5-button block.
+- [x] Upgrade transport/action rails to supplied HUD-panel language.
+- [x] Keep lower action row icon-only.
+- [x] Preserve auto-hide + double-tap + rotation visibility state.
+- [x] Document the future layer stack (background content / skin / hero / chrome / foreground FX).
+- [ ] Android CI PASS for final v0.9.0.
+- [ ] Phone visual acceptance.
+- [ ] Next: explicit layer-placement settings for existing visualizers/GF/video (behind/above skin).

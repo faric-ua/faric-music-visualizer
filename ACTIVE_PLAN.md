@@ -353,4 +353,10 @@ User clarification after 333058.mp4:
 - [x] Phone clone/materialization PASS at `~/faric-music-visualizer-assets`.
 - [x] Verify `Master-файлів: 34`.
 - [x] Verify `LFS materialization: PASS`.
-- [ ] Next: promote first selected Hero/GF concept into a real production set: full / frame / creature / wordmark / fx / manifest.
+- [x] Promote first selected Hero/GF concept into a production candidate: Cyber Shark v1 · full / frame / creature / wordmark / fx / manifest.
+- [x] Add first reusable Board layer reaction model and unit tests.
+- [x] Connect Cyber Shark as the first live layered Board theme.
+- [ ] Android CI PASS for v0.7.0.
+- [ ] Phone: select Cyber Shark and verify frame / FX / creature / wordmark react independently.
+- [ ] Phone: tune layer strengths after visual review.
+- [ ] Next: deterministic export parity for bitmap/layered Board themes.

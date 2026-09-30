@@ -13,7 +13,8 @@ Verified:
 Current release candidate:
 - v0.7.3 Cyber Shark layout tuning + Board transform requirement;
 - Cyber Shark is the first live multi-layer Board theme;
-- Android CI / phone acceptance are pending;
+- phone visual check confirms the resized/repositioned Cyber Shark is clearly better and usable as a temporary default;
+- further transform controls and floating-control PulseDeck redesign remain TODO;
 - package remains `com.saney.musicvisualizer`.
 
 v0.2.0 implementation:
@@ -521,3 +522,26 @@ Target:
 - Board remains visually continuous behind controls;
 - block visibility / opacity / skin / transform remain configurable;
 - Hero/GF safe-area logic must eventually follow active floating blocks, not the current card rectangle.
+
+
+## v0.7.3 phone check — improved default fit
+
+Evidence:
+- phone recording `376668.mp4` reviewed on 2026-09-30;
+- Cyber Shark now renders at a much more usable size and sits clearly above the temporary Now Playing card;
+- the real frame / creature / FARIC wordmark are visible together;
+- user assessment: "Уже краще".
+
+Important product interpretation:
+- this is only a better temporary default;
+- the current large Now Playing card is temporary scaffolding and will later be removed/reworked into floating controls;
+- therefore Hero/GF sizing must not be permanently tuned around the current card boundary.
+
+Next continuation point:
+1. add persistent Board transform controls for whole Hero/GF: X / Y / size / rotation / opacity / reset / Fit Safe Area;
+2. add advanced per-layer overrides for frame / creature / wordmark / FX;
+3. keep transform state separate from audio-reactive motion;
+4. later replace the monolithic player card with configurable floating PulseDeck blocks;
+5. after live layout control is stable, continue toward deterministic preview/export parity for layered Board themes.
+
+Do not reopen the earlier bitmap-decode diagnosis unless a new regression appears; the current phone evidence shows the real Cyber Shark layers are rendering.

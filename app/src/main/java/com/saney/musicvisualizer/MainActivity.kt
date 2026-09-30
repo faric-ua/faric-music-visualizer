@@ -35,6 +35,9 @@ import androidx.media3.common.util.UnstableApi
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardGroupReaction
 import com.saney.musicvisualizer.board.BoardGroupReactionStore
+import com.saney.musicvisualizer.board.BoardLayerId
+import com.saney.musicvisualizer.board.BoardLayerTransform
+import com.saney.musicvisualizer.board.BoardLayerTransformStore
 import com.saney.musicvisualizer.board.BoardTransform
 import com.saney.musicvisualizer.board.BoardTransformStore
 import com.saney.musicvisualizer.export.ExportFrameProof
@@ -75,11 +78,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private lateinit var themeStore: PlaybackThemeStore
     private lateinit var boardTransformStore: BoardTransformStore
     private lateinit var boardGroupReactionStore: BoardGroupReactionStore
+    private lateinit var boardLayerTransformStore: BoardLayerTransformStore
 
     private var activeVerticalScroll: ScrollView? = null
     private var activeHorizontalScroll: HorizontalScrollView? = null
     private var pendingRestoreScrollY: Int? = null
     private var pendingRestoreScrollX: Int? = null
+    private var boardEditorLayer: BoardLayerId? = null
     private var selectedThemeId = PlaybackThemeId.VISUALIZER
     private var screen = Screen.LIBRARY
     private var latestSnapshot = PlaybackSnapshot()
@@ -154,6 +159,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         themeStore = PlaybackThemeStore(this)
         boardTransformStore = BoardTransformStore(this)
         boardGroupReactionStore = BoardGroupReactionStore(this)
+        boardLayerTransformStore =
+            BoardLayerTransformStore(this)
         selectedThemeId =
             savedInstanceState
                 ?.getString(KEY_SELECTED_THEME)
@@ -199,6 +206,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     KEY_HORIZONTAL_SCROLL_X,
                     0,
                 )
+
+        boardEditorLayer =
+            savedInstanceState
+                ?.getString(
+                    KEY_BOARD_EDITOR_LAYER,
+                )
+                ?.let { name ->
+                    runCatching {
+                        BoardLayerId.valueOf(name)
+                    }.getOrNull()
+                }
 
         sceneOrchestrator = SceneOrchestrator { spec ->
             currentScene = spec
@@ -251,6 +269,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             KEY_EXPORT_ASPECT_RATIO,
             exportAspectRatio.name,
         )
+        boardEditorLayer?.let { layerId ->
+            outState.putString(
+                KEY_BOARD_EDITOR_LAYER,
+                layerId.name,
+            )
+        }
 
         activeVerticalScroll?.let { scroll ->
             outState.putBoolean(
@@ -2540,6 +2564,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             "faric.selected_theme"
         private const val KEY_EXPORT_ASPECT_RATIO =
             "faric.export_aspect_ratio"
+        private const val KEY_BOARD_EDITOR_LAYER =
+            "faric.board_editor_layer"
         private const val KEY_HAS_VERTICAL_SCROLL =
             "faric.has_vertical_scroll"
         private const val KEY_VERTICAL_SCROLL_Y =

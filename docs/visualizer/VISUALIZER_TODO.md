@@ -369,3 +369,12 @@ Target UI direction:
 - [ ] Verify layer opacity can fully hide a layer.
 - [ ] Verify whole-GF transform still composes with layer overrides.
 - [ ] Verify selected layer + scroll survive rotation.
+
+
+## Board settings panel dismissal
+
+- [ ] Tap on empty live-preview area outside the Board settings panel to close/dismiss the panel.
+- [ ] Add an explicit × close button to the Board settings panel/header.
+- [ ] Closing the panel must not reset Board transforms, selected layer, reaction settings, or playback state.
+- [ ] After dismissal, remain on the same Cyber Shark / layered GF playback screen.
+- [ ] Rotation lifecycle must preserve whether the Board settings panel is open or closed.

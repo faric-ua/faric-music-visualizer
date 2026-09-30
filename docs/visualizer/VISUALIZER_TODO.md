@@ -340,3 +340,21 @@ Target UI direction:
 - [ ] Phone tune default bass float amplitude.
 - [ ] Add offline stereo balance to export analysis.
 - [ ] Advanced per-layer gesture selection/locking.
+
+
+## Global UI lifecycle / rotation
+
+- [x] Add a shared lifecycle/rotation contract for all current/future UI windows.
+- [x] MainActivity restores the active screen after rotation.
+- [x] Restore vertical/horizontal scroll position where applicable.
+- [x] Preserve selected playback theme.
+- [x] Preserve Board transform/reaction settings.
+- [x] Preserve Export Lab aspect ratio.
+- [ ] Phone-audit Library rotation.
+- [ ] Phone-audit Now Playing rotation while playing.
+- [ ] Phone-audit Playback Themes rotation and scroll position.
+- [ ] Phone-audit Board Transform rotation, content and scroll position.
+- [ ] Phone-audit Export Lab rotation, selected format and scroll position.
+- [ ] Move offline-analysis state/work out of Activity-local ownership.
+- [ ] Audit projectM install/index/queue against duplicate work on rotation.
+- [ ] Require lifecycle acceptance for every new modal/editor/floating block.

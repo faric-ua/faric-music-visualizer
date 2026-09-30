@@ -499,3 +499,19 @@ User clarification after 333058.mp4:
 - [ ] Android CI PASS for final v0.8.1 version bump.
 - [ ] Phone visual acceptance against approved reference.
 - [ ] Phone tune spacing/sizes/glow intensity after screenshot review.
+
+
+## v0.8.2 — Reference-fidelity pass
+
+- [x] Compare phone screenshot against approved main-screen reference.
+- [x] Increase Hero/GF presentation scale without changing persisted Board transform.
+- [x] Shift Hero presentation down slightly.
+- [x] Add subtle cyan/orange Hero energy decoration.
+- [x] Replace coarse waveform dots with 56 narrow bars.
+- [x] Tighten metadata/progress/transport vertical stack.
+- [x] Increase transport size hierarchy.
+- [x] Increase lower action rail/icon sizes.
+- [x] Add favorite and track-more controls.
+- [ ] Android CI PASS for v0.8.2.
+- [ ] Phone visual comparison with approved reference.
+- [ ] Tune one more pass only from real phone screenshot if proportions still differ.

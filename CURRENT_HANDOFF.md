@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.8.2 reference-fidelity PulseDeck main screen;
+- v0.8.3 hero-footprint correction;
 - Cyber Shark is the first live multi-layer Board theme;
 - phone visual check confirms the resized/repositioned Cyber Shark is clearly better and usable as a temporary default;
 - further transform controls and floating-control PulseDeck redesign remain TODO;
@@ -918,3 +918,24 @@ Phone acceptance:
 6. lower icon rail should be larger and more like the reference;
 7. favorite + track-more controls should appear around metadata;
 8. verify auto-hide/double-tap/rotation still work.
+
+
+## v0.8.3 — hero-footprint correction
+
+Reason:
+- phone comparison still looked far from the approved concept;
+- the latest screenshot was using Neon Emblem, not Cyber Shark, so the swappable Hero slot itself needed normalization;
+- compact standalone skins occupied too little of the upper visual area;
+- transport/action rails still needed more visual weight.
+
+Changes:
+- standalone Hero themes now support presentation tuning independent of their internal drawing model;
+- Neon Emblem main-screen footprint increased to 2.28x and moved into the same upper Hero zone used by the reference;
+- other standalone themes get theme-specific presentation scales;
+- Cyber Shark main-screen presentation increased to 1.32x without mutating saved Board transforms;
+- favorite / track-more controls aligned with the metadata row after the vertical-stack adjustment;
+- v0.8.2 enlarged transport/action sizing remains in place.
+
+Release:
+- v0.8.3
+- versionCode 37

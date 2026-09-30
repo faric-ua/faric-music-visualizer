@@ -333,3 +333,35 @@ Phone acceptance:
 2. count visible missed rings on clear beats;
 3. confirm the reset/jump remains;
 4. confirm the detector is not firing rings continuously between beats.
+
+
+## 2026-09-30 — persistent master-asset repository
+
+Created private companion repository:
+- `faric-ua/faric-music-visualizer-assets`
+
+Purpose:
+- preserve user-supplied image originals;
+- preserve generated PNG masters;
+- keep large image files under Git LFS;
+- keep app/code repository lightweight;
+- provide a stable phone path: `~/faric-music-visualizer-assets`.
+
+Initial asset repository commit:
+- `3ff67312193dcfef995bfee5d799d5fd27661f4d`
+- message: `assets: initialize FARIC master asset archive`
+
+The asset repository currently contains 34 LFS-tracked master entries plus manifest and production placeholders.
+
+Main Termux menu now includes:
+- 11 — connect / restore FARIC assets;
+- 12 — update FARIC assets from GitHub;
+- 13 — save FARIC assets to GitHub;
+- 14 — FARIC assets status;
+- 15 — open shell in FARIC assets.
+
+Phone acceptance step:
+1. update the main project using menu item 3;
+2. menu auto-restarts with items 11–15;
+3. run item 11;
+4. run item 14 and confirm LFS materialization PASS and 34 master files.

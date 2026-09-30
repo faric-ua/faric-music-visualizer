@@ -509,3 +509,15 @@ Product requirement added:
 - whole Hero/GF group controls: X / Y / scale / rotation / opacity / reset / Fit Safe Area;
 - advanced per-layer overrides: frame / creature / wordmark / FX;
 - settings persist and must be shared by preview and deterministic export.
+
+
+## 2026-09-30 — floating-controls direction
+
+User clarified that the current large Now Playing card is temporary.
+
+Target:
+- remove the enclosing card later;
+- playback/seek/action controls float over the Board as separate configurable blocks;
+- Board remains visually continuous behind controls;
+- block visibility / opacity / skin / transform remain configurable;
+- Hero/GF safe-area logic must eventually follow active floating blocks, not the current card rectangle.

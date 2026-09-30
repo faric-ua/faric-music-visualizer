@@ -1824,11 +1824,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         activeVerticalScroll =
             panelScroll
 
+        val boardPanelHeight =
+            (
+                resources.displayMetrics.heightPixels *
+                    0.40f
+                )
+                .toInt()
+
         root.addView(
             panelScroll,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(580),
+                boardPanelHeight,
                 Gravity.BOTTOM,
             ).apply {
                 leftMargin = dp(10)

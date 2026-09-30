@@ -389,7 +389,11 @@ class HeroBoardView(context: Context) : View(context) {
                 }
 
             stroke.alpha =
-                (motion.alpha * (165 - ring * 28))
+                (
+                    motion.alpha *
+                        transform.opacity *
+                        (165 - ring * 28)
+                    )
                     .toInt()
                     .coerceIn(0, 230)
 

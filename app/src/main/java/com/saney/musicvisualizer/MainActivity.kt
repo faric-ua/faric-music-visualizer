@@ -589,22 +589,39 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 1f,
             ),
         )
-        actions.addView(
-            actionTile("⤨", "Shuffle") {
-                if (selectedThemeId == PlaybackThemeId.VISUALIZER) {
-                    val next = sceneOrchestrator.shuffleNow()
-                    toast(
-                        "Сцена: " +
-                            next.visualizerType.name
-                                .lowercase()
-                                .replace('_', ' '),
-                    )
-                } else {
-                    toast("Shuffle для Hero Themes — наступним кроком")
-                }
-            },
-            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
-        )
+        if (isLayeredBoardTheme(selectedThemeId)) {
+            actions.addView(
+                actionTile("✣", "Board") {
+                    showBoardTransform()
+                },
+                LinearLayout.LayoutParams(
+                    0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    1f,
+                ),
+            )
+        } else {
+            actions.addView(
+                actionTile("⤨", "Shuffle") {
+                    if (selectedThemeId == PlaybackThemeId.VISUALIZER) {
+                        val next = sceneOrchestrator.shuffleNow()
+                        toast(
+                            "Сцена: " +
+                                next.visualizerType.name
+                                    .lowercase()
+                                    .replace('_', ' '),
+                        )
+                    } else {
+                        toast("Shuffle для Hero Themes — наступним кроком")
+                    }
+                },
+                LinearLayout.LayoutParams(
+                    0,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                    1f,
+                ),
+            )
+        }
         actions.addView(
             actionTile("M", "projectM") {
                 startActivity(Intent(this, com.saney.musicvisualizer.projectm.ProjectMActivity::class.java))
@@ -643,6 +660,409 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         setContentView(root)
         enableImmersiveFullscreen()
         onPlaybackSnapshot(latestSnapshot)
+    }
+
+    private fun showBoardTransform() {
+        if (!isLayeredBoardTheme(selectedThemeId)) {
+            toast("Board Transform доступний для layered GF")
+            return
+        }
+
+        screen = Screen.BOARD_TRANSFORM
+        sceneOrchestrator.stop()
+        clearScreenRefs()
+
+        var transform =
+            boardTransformStore.load(selectedThemeId)
+
+        val root =
+            FrameLayout(this).apply {
+                setBackgroundColor(COLOR_BG)
+            }
+        applySafeArea(root)
+
+        val boardView =
+            HeroBoardView(this).also { view ->
+                view.setGroupTransform(transform)
+                view.setPlaying(latestSnapshot.isPlaying)
+                view.updateSignal(latestSignal)
+            }
+        heroBoardView = boardView
+        root.addView(
+            boardView,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+
+        val header =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(dp(14), dp(8), dp(14), dp(8))
+                background =
+                    panelDrawable(
+                        Color.argb(150, 4, 8, 12),
+                        24,
+                        Color.TRANSPARENT,
+                        0,
+                    )
+            }
+
+        header.addView(
+            iconButton("‹") {
+                showNowPlaying()
+            },
+        )
+        header.addView(
+            label(
+                "Board Transform",
+                18f,
+                Color.WHITE,
+                true,
+            ),
+            LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f,
+            ).apply {
+                marginStart = dp(8)
+            },
+        )
+        header.addView(
+            label(
+                "LIVE",
+                11f,
+                COLOR_ACCENT_CYAN,
+                true,
+            ),
+        )
+
+        root.addView(
+            header,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(64),
+                Gravity.TOP,
+            ).apply {
+                leftMargin = dp(12)
+                rightMargin = dp(12)
+                topMargin = dp(8)
+            },
+        )
+
+        val panelContent =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(
+                    dp(16),
+                    dp(12),
+                    dp(16),
+                    dp(14),
+                )
+                background =
+                    panelDrawable(
+                        Color.argb(235, 6, 10, 15),
+                        28,
+                        Color.argb(
+                            110,
+                            54,
+                            202,
+                            255,
+                        ),
+                        1,
+                    )
+            }
+
+        panelContent.addView(
+            label(
+                "Cyber Shark · положення та розмір",
+                16f,
+                Color.WHITE,
+                true,
+            ),
+        )
+        panelContent.addView(
+            label(
+                "Ці параметри рухають весь GF. Аудіореакція шарів залишається окремою.",
+                11f,
+                COLOR_MUTED,
+                false,
+            ),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                bottomMargin = dp(6)
+            },
+        )
+
+        fun persist(value: BoardTransform) {
+            transform = value.sanitized()
+            boardTransformStore.save(
+                selectedThemeId,
+                transform,
+            )
+            boardView.setGroupTransform(transform)
+        }
+
+        fun addSlider(
+            title: String,
+            max: Int,
+            initial: Int,
+            valueText: (Int) -> String,
+            onChanged: (Int) -> Unit,
+        ) {
+            val valueLabel =
+                label(
+                    "$title · ${valueText(initial)}",
+                    12f,
+                    Color.WHITE,
+                    true,
+                )
+
+            val seek =
+                SeekBar(this).apply {
+                    this.max = max
+                    progress =
+                        initial.coerceIn(
+                            0,
+                            max,
+                        )
+                    progressTintList =
+                        android.content.res.ColorStateList.valueOf(
+                            COLOR_ACCENT_CYAN,
+                        )
+                    thumbTintList =
+                        android.content.res.ColorStateList.valueOf(
+                            COLOR_ACCENT_ORANGE,
+                        )
+
+                    setOnSeekBarChangeListener(
+                        object :
+                            SeekBar.OnSeekBarChangeListener {
+                            override fun onProgressChanged(
+                                seekBar: SeekBar?,
+                                progress: Int,
+                                fromUser: Boolean,
+                            ) {
+                                valueLabel.text =
+                                    "$title · ${valueText(progress)}"
+
+                                if (fromUser) {
+                                    onChanged(progress)
+                                }
+                            }
+
+                            override fun onStartTrackingTouch(
+                                seekBar: SeekBar?,
+                            ) = Unit
+
+                            override fun onStopTrackingTouch(
+                                seekBar: SeekBar?,
+                            ) = Unit
+                        },
+                    )
+                }
+
+            panelContent.addView(valueLabel)
+            panelContent.addView(
+                seek,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    dp(36),
+                ),
+            )
+        }
+
+        addSlider(
+            title = "X",
+            max = 100,
+            initial =
+                (transform.xFraction * 100f)
+                    .toInt(),
+            valueText = { "$it%" },
+        ) { progress ->
+            persist(
+                transform.copy(
+                    xFraction =
+                        progress / 100f,
+                ),
+            )
+        }
+
+        addSlider(
+            title = "Y",
+            max = 100,
+            initial =
+                (transform.yFraction * 100f)
+                    .toInt(),
+            valueText = { "$it%" },
+        ) { progress ->
+            persist(
+                transform.copy(
+                    yFraction =
+                        progress / 100f,
+                ),
+            )
+        }
+
+        addSlider(
+            title = "Розмір",
+            max = 80,
+            initial =
+                (
+                    transform.sizeFraction *
+                        100f -
+                        30f
+                    ).toInt(),
+            valueText = {
+                "${it + 30}%"
+            },
+        ) { progress ->
+            persist(
+                transform.copy(
+                    sizeFraction =
+                        (progress + 30) /
+                            100f,
+                ),
+            )
+        }
+
+        addSlider(
+            title = "Поворот",
+            max = 90,
+            initial =
+                (
+                    transform.rotationDegrees +
+                        45f
+                    ).toInt(),
+            valueText = {
+                "${it - 45}°"
+            },
+        ) { progress ->
+            persist(
+                transform.copy(
+                    rotationDegrees =
+                        (progress - 45)
+                            .toFloat(),
+                ),
+            )
+        }
+
+        addSlider(
+            title = "Прозорість",
+            max = 80,
+            initial =
+                (
+                    transform.opacity *
+                        100f -
+                        20f
+                    ).toInt(),
+            valueText = {
+                "${it + 20}%"
+            },
+        ) { progress ->
+            persist(
+                transform.copy(
+                    opacity =
+                        (progress + 20) /
+                            100f,
+                ),
+            )
+        }
+
+        val presetRow =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+            }
+
+        presetRow.addView(
+            actionPill(
+                text = "Fit Safe Area",
+                accent = false,
+            ) {
+                boardTransformStore.fitSafeArea(
+                    selectedThemeId,
+                )
+                showBoardTransform()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                dp(48),
+                1f,
+            ).apply {
+                marginEnd = dp(5)
+            },
+        )
+
+        presetRow.addView(
+            actionPill(
+                text = "Reset",
+                accent = false,
+            ) {
+                boardTransformStore.reset(
+                    selectedThemeId,
+                )
+                showBoardTransform()
+            },
+            LinearLayout.LayoutParams(
+                0,
+                dp(48),
+                1f,
+            ).apply {
+                marginStart = dp(5)
+            },
+        )
+
+        panelContent.addView(
+            presetRow,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(5)
+            },
+        )
+
+        panelContent.addView(
+            actionPill(
+                text = "Готово",
+                accent = true,
+            ) {
+                showNowPlaying()
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(52),
+            ).apply {
+                topMargin = dp(8)
+            },
+        )
+
+        val panelScroll =
+            ScrollView(this).apply {
+                isFillViewport = true
+                addView(panelContent)
+            }
+
+        root.addView(
+            panelScroll,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(390),
+                Gravity.BOTTOM,
+            ).apply {
+                leftMargin = dp(10)
+                rightMargin = dp(10)
+                bottomMargin = dp(8)
+            },
+        )
+
+        setContentView(root)
+        enableImmersiveFullscreen()
     }
 
     private fun showExportLab() {

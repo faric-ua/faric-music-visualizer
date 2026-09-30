@@ -481,3 +481,21 @@ User clarification after 333058.mp4:
 - [ ] Phone verify double tap does not interfere with Board/visualizer gestures.
 - [ ] Phone tune positions/spacing.
 - [ ] Next: persistent per-block visibility / opacity / transform / skin settings.
+
+
+## v0.8.1 — Concept-style main screen
+
+- [x] Stop mockup iteration and implement the approved visual direction in real Android UI.
+- [x] Keep Hero/GF as the swappable visual layer.
+- [x] Add custom Canvas-drawn transport icon family.
+- [x] Arrange transport as shuffle / previous / large play-pause / next / repeat.
+- [x] Add translucent cyber-neon transport rail.
+- [x] Add icon-only bottom action rail.
+- [x] Add custom Theme / Board / Visualizer / Export icons.
+- [x] Restore reactive waveform above progress.
+- [x] Preserve auto-hide + double-tap visibility behavior.
+- [x] Save approved concept reference under docs/design.
+- [x] Android CI PASS for implementation commit before version bump.
+- [ ] Android CI PASS for final v0.8.1 version bump.
+- [ ] Phone visual acceptance against approved reference.
+- [ ] Phone tune spacing/sizes/glow intensity after screenshot review.

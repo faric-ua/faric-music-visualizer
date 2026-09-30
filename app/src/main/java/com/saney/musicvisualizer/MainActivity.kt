@@ -33,6 +33,8 @@ import androidx.core.view.WindowInsetsControllerCompat
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.util.UnstableApi
 import com.saney.musicvisualizer.analysis.SceneSignal
+import com.saney.musicvisualizer.board.BoardGroupReaction
+import com.saney.musicvisualizer.board.BoardGroupReactionStore
 import com.saney.musicvisualizer.board.BoardTransform
 import com.saney.musicvisualizer.board.BoardTransformStore
 import com.saney.musicvisualizer.export.ExportFrameProof
@@ -72,6 +74,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private lateinit var currentScene: SceneSpec
     private lateinit var themeStore: PlaybackThemeStore
     private lateinit var boardTransformStore: BoardTransformStore
+    private lateinit var boardGroupReactionStore: BoardGroupReactionStore
     private var selectedThemeId = PlaybackThemeId.VISUALIZER
     private var screen = Screen.LIBRARY
     private var latestSnapshot = PlaybackSnapshot()
@@ -145,6 +148,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         themeStore = PlaybackThemeStore(this)
         boardTransformStore = BoardTransformStore(this)
+        boardGroupReactionStore = BoardGroupReactionStore(this)
         selectedThemeId = themeStore.selectedThemeId
 
         sceneOrchestrator = SceneOrchestrator { spec ->
@@ -447,6 +451,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 boardView.setGroupTransform(
                     boardTransformStore.load(selectedThemeId),
                 )
+                boardView.setGroupReaction(
+                    boardGroupReactionStore.load(selectedThemeId),
+                )
                 heroBoardView = boardView
                 root.addView(
                     boardView,
@@ -675,6 +682,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         var transform =
             boardTransformStore.load(selectedThemeId)
 
+        var groupReaction =
+            boardGroupReactionStore.load(
+                selectedThemeId,
+            )
+
         val root =
             FrameLayout(this).apply {
                 setBackgroundColor(COLOR_BG)
@@ -684,10 +696,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val boardView =
             HeroBoardView(this).also { view ->
                 view.setGroupTransform(transform)
+                view.setGroupReaction(groupReaction)
                 view.setPlaying(latestSnapshot.isPlaying)
                 view.updateSignal(latestSignal)
             }
+
         heroBoardView = boardView
+
         root.addView(
             boardView,
             FrameLayout.LayoutParams(
@@ -700,10 +715,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER_VERTICAL
-                setPadding(dp(14), dp(8), dp(14), dp(8))
+                setPadding(
+                    dp(14),
+                    dp(8),
+                    dp(14),
+                    dp(8),
+                )
                 background =
                     panelDrawable(
-                        Color.argb(150, 4, 8, 12),
+                        Color.argb(
+                            150,
+                            4,
+                            8,
+                            12,
+                        ),
                         24,
                         Color.TRANSPARENT,
                         0,
@@ -763,7 +788,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 )
                 background =
                     panelDrawable(
-                        Color.argb(235, 6, 10, 15),
+                        Color.argb(
+                            235,
+                            6,
+                            10,
+                            15,
+                        ),
                         28,
                         Color.argb(
                             110,
@@ -777,15 +807,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         panelContent.addView(
             label(
-                "Cyber Shark · положення та розмір",
+                "Cyber Shark · Board",
                 16f,
                 Color.WHITE,
                 true,
             ),
         )
+
         panelContent.addView(
             label(
-                "Ці параметри рухають весь GF. Аудіореакція шарів залишається окремою.",
+                "Жести: 1 палець — рухати · pinch — розмір · 2 пальці — поворот. Слайдери нижче роблять те саме точно.",
                 11f,
                 COLOR_MUTED,
                 false,
@@ -794,17 +825,46 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply {
-                bottomMargin = dp(6)
+                bottomMargin = dp(7)
             },
         )
 
-        fun persist(value: BoardTransform) {
-            transform = value.sanitized()
+        fun persistTransform(
+            value: BoardTransform,
+        ) {
+            transform =
+                value.sanitized()
+
             boardTransformStore.save(
                 selectedThemeId,
                 transform,
             )
-            boardView.setGroupTransform(transform)
+
+            boardView.setGroupTransform(
+                transform,
+            )
+        }
+
+        fun persistReaction(
+            value: BoardGroupReaction,
+        ) {
+            groupReaction =
+                value.sanitized()
+
+            boardGroupReactionStore.save(
+                selectedThemeId,
+                groupReaction,
+            )
+
+            boardView.setGroupReaction(
+                groupReaction,
+            )
+        }
+
+        boardView.setGestureEditing(
+            enabled = true,
+        ) { value ->
+            persistTransform(value)
         }
 
         fun addSlider(
@@ -830,14 +890,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             0,
                             max,
                         )
+
                     progressTintList =
-                        android.content.res.ColorStateList.valueOf(
-                            COLOR_ACCENT_CYAN,
-                        )
+                        android.content.res
+                            .ColorStateList
+                            .valueOf(
+                                COLOR_ACCENT_CYAN,
+                            )
+
                     thumbTintList =
-                        android.content.res.ColorStateList.valueOf(
-                            COLOR_ACCENT_ORANGE,
-                        )
+                        android.content.res
+                            .ColorStateList
+                            .valueOf(
+                                COLOR_ACCENT_ORANGE,
+                            )
 
                     setOnSeekBarChangeListener(
                         object :
@@ -880,14 +946,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             title = "X",
             max = 100,
             initial =
-                (transform.xFraction * 100f)
+                (
+                    transform.xFraction *
+                        100f
+                    )
                     .toInt(),
-            valueText = { "$it%" },
+            valueText = {
+                "$it%"
+            },
         ) { progress ->
-            persist(
+            persistTransform(
                 transform.copy(
                     xFraction =
-                        progress / 100f,
+                        progress /
+                            100f,
                 ),
             )
         }
@@ -896,14 +968,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             title = "Y",
             max = 100,
             initial =
-                (transform.yFraction * 100f)
+                (
+                    transform.yFraction *
+                        100f
+                    )
                     .toInt(),
-            valueText = { "$it%" },
+            valueText = {
+                "$it%"
+            },
         ) { progress ->
-            persist(
+            persistTransform(
                 transform.copy(
                     yFraction =
-                        progress / 100f,
+                        progress /
+                            100f,
                 ),
             )
         }
@@ -916,15 +994,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     transform.sizeFraction *
                         100f -
                         30f
-                    ).toInt(),
+                    )
+                    .toInt(),
             valueText = {
                 "${it + 30}%"
             },
         ) { progress ->
-            persist(
+            persistTransform(
                 transform.copy(
                     sizeFraction =
-                        (progress + 30) /
+                        (
+                            progress +
+                                30
+                            ) /
                             100f,
                 ),
             )
@@ -935,17 +1017,22 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             max = 90,
             initial =
                 (
-                    transform.rotationDegrees +
+                    transform
+                        .rotationDegrees +
                         45f
-                    ).toInt(),
+                    )
+                    .toInt(),
             valueText = {
                 "${it - 45}°"
             },
         ) { progress ->
-            persist(
+            persistTransform(
                 transform.copy(
                     rotationDegrees =
-                        (progress - 45)
+                        (
+                            progress -
+                                45
+                            )
                             .toFloat(),
                 ),
             )
@@ -959,23 +1046,125 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     transform.opacity *
                         100f -
                         20f
-                    ).toInt(),
+                    )
+                    .toInt(),
             valueText = {
                 "${it + 20}%"
             },
         ) { progress ->
-            persist(
+            persistTransform(
                 transform.copy(
                     opacity =
-                        (progress + 20) /
+                        (
+                            progress +
+                                20
+                            ) /
                             100f,
+                ),
+            )
+        }
+
+        panelContent.addView(
+            label(
+                "Реакція всього GF на музику",
+                14f,
+                COLOR_ACCENT_CYAN,
+                true,
+            ),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(8)
+                bottomMargin = dp(4)
+            },
+        )
+
+        addSlider(
+            title = "Плавний поворот",
+            max = 60,
+            initial =
+                (
+                    groupReaction
+                        .rotationSwayDegrees *
+                        10f
+                    )
+                    .toInt(),
+            valueText = {
+                String.format(
+                    Locale.US,
+                    "%.1f°",
+                    it / 10f,
+                )
+            },
+        ) { progress ->
+            persistReaction(
+                groupReaction.copy(
+                    rotationSwayDegrees =
+                        progress /
+                            10f,
+                ),
+            )
+        }
+
+        addSlider(
+            title = "Stereo L/R",
+            max = 100,
+            initial =
+                (
+                    groupReaction
+                        .stereoShiftFraction *
+                        1000f
+                    )
+                    .toInt(),
+            valueText = {
+                String.format(
+                    Locale.US,
+                    "%.1f%%",
+                    it / 10f,
+                )
+            },
+        ) { progress ->
+            persistReaction(
+                groupReaction.copy(
+                    stereoShiftFraction =
+                        progress /
+                            1000f,
+                ),
+            )
+        }
+
+        addSlider(
+            title = "Bass ↑↓",
+            max = 60,
+            initial =
+                (
+                    groupReaction
+                        .bassFloatFraction *
+                        1000f
+                    )
+                    .toInt(),
+            valueText = {
+                String.format(
+                    Locale.US,
+                    "%.1f%%",
+                    it / 10f,
+                )
+            },
+        ) { progress ->
+            persistReaction(
+                groupReaction.copy(
+                    bassFloatFraction =
+                        progress /
+                            1000f,
                 ),
             )
         }
 
         val presetRow =
             LinearLayout(this).apply {
-                orientation = LinearLayout.HORIZONTAL
+                orientation =
+                    LinearLayout.HORIZONTAL
                 gravity = Gravity.CENTER
             }
 
@@ -984,9 +1173,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 text = "Fit Safe Area",
                 accent = false,
             ) {
-                boardTransformStore.fitSafeArea(
-                    selectedThemeId,
-                )
+                boardTransformStore
+                    .fitSafeArea(
+                        selectedThemeId,
+                    )
+
                 showBoardTransform()
             },
             LinearLayout.LayoutParams(
@@ -1000,10 +1191,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         presetRow.addView(
             actionPill(
-                text = "Reset",
+                text = "Reset усе",
                 accent = false,
             ) {
                 boardTransformStore.reset(
+                    selectedThemeId,
+                )
+                boardGroupReactionStore.reset(
                     selectedThemeId,
                 )
                 showBoardTransform()
@@ -1023,7 +1217,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply {
-                topMargin = dp(5)
+                topMargin = dp(7)
             },
         )
 
@@ -1044,7 +1238,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         val panelScroll =
             ScrollView(this).apply {
-                isFillViewport = true
+                isFillViewport = false
                 addView(panelContent)
             }
 
@@ -1052,7 +1246,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             panelScroll,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(390),
+                dp(560),
                 Gravity.BOTTOM,
             ).apply {
                 leftMargin = dp(10)

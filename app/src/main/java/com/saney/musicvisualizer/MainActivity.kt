@@ -10,6 +10,7 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -425,14 +426,43 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         applySafeArea(root)
 
         if (isLayeredBoardTheme(selectedThemeId)) {
-            heroBoardView = HeroBoardView(this).also { view ->
+            val boardView =
+                runCatching {
+                    HeroBoardView(this)
+                }.onFailure { error ->
+                    Log.e(
+                        "MainActivity",
+                        "Failed to create layered Board theme: $selectedThemeId",
+                        error,
+                    )
+                }.getOrNull()
+
+            if (boardView != null) {
+                heroBoardView = boardView
                 root.addView(
-                    view,
+                    boardView,
                     FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.MATCH_PARENT,
                     ),
                 )
+            } else {
+                Toast.makeText(
+                    this,
+                    "Cyber Shark не вдалося відкрити. Показую безпечний fallback.",
+                    Toast.LENGTH_LONG,
+                ).show()
+
+                heroThemeView = HeroThemeView(this).also { view ->
+                    view.setTheme(PlaybackThemeId.NEON_EMBLEM)
+                    root.addView(
+                        view,
+                        FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                        ),
+                    )
+                }
             }
         } else if (isStandaloneHeroTheme(selectedThemeId)) {
             heroThemeView = HeroThemeView(this).also { view ->

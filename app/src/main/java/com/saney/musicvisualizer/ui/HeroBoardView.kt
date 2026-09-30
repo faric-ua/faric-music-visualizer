@@ -768,6 +768,7 @@ class HeroBoardView(context: Context) : View(context) {
         cy: Float,
         baseSize: Float,
         transform: BoardTransform,
+        layerTransform: BoardLayerTransform,
         groupRotationDegrees: Float,
     ) {
         if (bitmap == null) {
@@ -778,6 +779,7 @@ class HeroBoardView(context: Context) : View(context) {
                 baseSize = baseSize,
                 motion = motion,
                 transform = transform,
+                layerTransform = layerTransform,
             )
             return
         }
@@ -786,6 +788,7 @@ class HeroBoardView(context: Context) : View(context) {
             (
                 motion.alpha *
                     transform.opacity *
+                    layerTransform.opacity *
                     255f
                 )
                 .toInt()
@@ -796,18 +799,29 @@ class HeroBoardView(context: Context) : View(context) {
 
         val size =
             baseSize *
-                motion.scale
+                motion.scale *
+                layerTransform.scale
+
+        val layerCx =
+            cx +
+                width *
+                layerTransform
+                    .offsetXFraction
 
         val layerCy =
             cy +
+                height *
+                layerTransform
+                    .offsetYFraction +
                 baseSize *
                 motion.translateYFraction
 
         canvas.save()
         canvas.rotate(
             groupRotationDegrees +
+                layerTransform.rotationDegrees +
                 motion.rotationDegrees,
-            cx,
+            layerCx,
             layerCy,
         )
 
@@ -815,9 +829,9 @@ class HeroBoardView(context: Context) : View(context) {
             bitmap,
             null,
             RectF(
-                cx - size * 0.5f,
+                layerCx - size * 0.5f,
                 layerCy - size * 0.5f,
-                cx + size * 0.5f,
+                layerCx + size * 0.5f,
                 layerCy + size * 0.5f,
             ),
             bitmapPaint,

@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.8.0 floating PulseDeck controls foundation;
+- v0.8.1 concept-style PulseDeck main screen;
 - Cyber Shark is the first live multi-layer Board theme;
 - phone visual check confirms the resized/repositioned Cyber Shark is clearly better and usable as a temporary default;
 - further transform controls and floating-control PulseDeck redesign remain TODO;
@@ -836,3 +836,45 @@ Standing project rule:
 - manual build flow: `3 → 9 → 10 → PASS → 8 → встановити APK`;
 - on FAIL: stop, do not install, ask for the result from menu item 10;
 - do not hide required user actions inside long prose.
+
+
+## v0.8.1 — concept-style PulseDeck main screen
+
+User approved the generated visual direction and asked to stop iterating on mockups and implement the real app to match it.
+
+Implemented:
+- kept the current Hero/GF system as the swappable central visual layer;
+- rebuilt the Now Playing shell around the approved concept;
+- metadata stays centered and lightweight over the scene;
+- restored a reactive waveform strip above seek/progress;
+- transport controls now use custom Canvas-drawn FARIC icons instead of text/emoji glyphs;
+- transport order is now: shuffle / previous / large play-pause / next / repeat;
+- added translucent cyber-neon rails behind transport and quick actions;
+- bottom quick actions are now icon-only with no labels;
+- quick-action icon mapping:
+  - palette = themes/skins;
+  - node/board = Board/layout;
+  - bars = projectM/visualizer;
+  - export arrow = Export Lab;
+- central play/pause remains the primary orange accent, surrounding controls use cyan with orange secondary details;
+- existing auto-hide and double-tap show/hide behavior remains;
+- current selected Hero/GF can still change independently of the permanent main shell.
+
+New custom UI code:
+- `ui/PulseDeckIconButton.kt`
+- `ui/PulseDeckControlRail.kt`
+
+Approved visual reference saved in repository:
+- `docs/design/pulsedeck-main-screen-reference.jpg`
+
+Release:
+- v0.8.1
+- versionCode 35
+
+Phone acceptance:
+1. confirm icon-only lower rail;
+2. confirm transport order and large central play/pause;
+3. verify custom icons are crisp and not font glyphs;
+4. confirm Cyber Shark remains the swappable Hero/GF while controls stay in place;
+5. wait for auto-hide, then double-tap to restore controls;
+6. rotate and confirm control visibility state survives.

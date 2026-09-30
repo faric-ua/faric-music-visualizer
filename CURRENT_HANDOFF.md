@@ -360,8 +360,9 @@ Main Termux menu now includes:
 - 14 — FARIC assets status;
 - 15 — open shell in FARIC assets.
 
-Phone acceptance step:
-1. update the main project using menu item 3;
-2. menu auto-restarts with items 11–15;
-3. run item 11;
-4. run item 14 and confirm LFS materialization PASS and 34 master files.
+Phone acceptance: **PASS**.
+- main menu updated with items 11–15;
+- asset repository connected on phone at `~/faric-music-visualizer-assets`;
+- `Master-файлів: 34`;
+- `LFS materialization: PASS`;
+- phone now holds real LFS materialized master files, not only pointer stubs.

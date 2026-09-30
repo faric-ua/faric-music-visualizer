@@ -50,3 +50,39 @@ Prove timing, lifecycle and thermal behavior on the phone.
 - `background`: image/video/procedural providers;
 - `settings`: persistent user tuning;
 - `export`: future recording/rendering.
+
+## 2026-09-30 — layered Board architecture extension
+
+The current codebase has grown beyond the first linear MVP diagram. The target architecture now separates **media**, **render composition**, **live controls**, and **offline export**:
+
+```text
+Music / Video
+     │
+     ├──────────────► Playback Engine ──────────────┐
+     │                                             │
+     ├──────────────► Audio Analysis ─► SceneSignal│
+     │                                             │
+     └──────────────► Metadata                     │
+                                                   ▼
+                                           ┌───────────────┐
+                                           │ LAYERED BOARD │
+                                           │ background    │
+                                           │ theme         │
+                                           │ Hero / GF     │
+                                           │ reactive FX   │
+                                           │ metadata      │
+                                           └───────┬───────┘
+                                                   │
+                              ┌────────────────────┴───────────────────┐
+                              ▼                                        ▼
+                     Live preview/compositor                  Deterministic export
+                              │                                        │
+                              ▼                                        ▼
+                     PulseDeck Skin overlay                    H.264 + audio mux
+                     (controls only)                                  MP4
+```
+
+The PulseDeck Skin is a UI plane above the Board, not a baked Board layer by default.
+
+Detailed product/architecture contract:
+`docs/architecture/FARIC_LAYERED_BOARD_VISION.md`

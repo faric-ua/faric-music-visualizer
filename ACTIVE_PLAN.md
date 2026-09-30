@@ -434,3 +434,22 @@ User clarification after 333058.mp4:
 - [ ] Move Export Lab offline-analysis ownership to lifecycle-safe state holder.
 - [ ] Explicit projectM rotation/background-work duplication audit.
 - [ ] Add automated instrumentation rotation tests after UI structure stabilizes.
+
+
+## v0.7.7 — Per-layer Board editor
+
+- [x] Add persistent BoardLayerTransform model/store.
+- [x] Add Frame transform overrides.
+- [x] Add Creature/Shark transform overrides.
+- [x] Add FARIC wordmark transform overrides.
+- [x] Add FX transform overrides.
+- [x] Preserve existing per-layer audio reactions.
+- [x] Add layer selector in Board editor.
+- [x] Route drag/pinch/twist gestures to selected layer.
+- [x] Restore layer transforms in Now Playing.
+- [x] Preserve selected editor layer across rotation.
+- [x] Preserve selector/vertical scroll positions across rotation.
+- [ ] Android CI PASS for v0.7.7.
+- [ ] Phone verify independent layer transforms.
+- [ ] Phone verify rotation while a non-group layer is selected.
+- [ ] Next: expose per-layer audio-reaction tuning and/or lock/inherit controls after phone feedback.

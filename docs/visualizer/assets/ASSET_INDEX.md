@@ -4,95 +4,96 @@ Captured: 2026-09-30
 
 This directory preserves the visual direction discussed for FARIC Music Visualizer / PulseDeck.
 
-## Important distinction
+## Repository storage policy
 
-Files committed here are **repository working previews / references**. They are intentionally smaller than the original chat/generation masters so the Git repository stays practical.
+The Git repository keeps **lightweight visual catalogs and canonical design references** so project history remains visible without filling Git with many multi-megabyte generation masters.
 
-Production assets used by the app should later be regenerated/exported at the required resolution with real transparency, common pivots and layer-safe margins.
+Current committed visual catalogs:
+- `catalogs/USER_GF_REFERENCE_CONTACT_SHEET.webp` — real thumbnail contact sheet of the user-supplied GF/logo references;
+- `catalogs/GENERATED_GF_CATALOG.webp` — real thumbnail contact sheet of the generated FARIC/FMV/FVMP concepts;
+- `../../design/pulsedeck/references/PULSEDECK_UI_REFERENCE_332780.webp` — PulseDeck UI reference;
+- `../../diagrams/FARIC_PROJECT_ATLAS_PREVIEW.webp` — compact project/asset overview.
 
-## User reference pack
+The logical source list below is the stable index. Full-resolution production masters should be exported individually only when a concept is promoted into an app-ready asset.
 
-Location: `references/user/`
+## User reference source set
 
-Captured files:
-- `333062.webp`
-- `333063.webp`
-- `333064.webp`
-- `333065.webp`
-- `333066.webp`
-- `333069.webp`
-- `333070.webp`
-- `333071.webp`
-- `333072.webp`
-- `333074.webp`
-- `333075.webp`
-- `333076.webp`
-- `333077.webp`
-- `333096.webp`
+Recorded source IDs:
+- `333062`
+- `333063`
+- `333064`
+- `333065`
+- `333066`
+- `333069`
+- `333070`
+- `333071`
+- `333072`
+- `333074`
+- `333075`
+- `333076`
+- `333077`
+- `333096`
 
-These define the preferred visual family:
-- gaming/emblem composition;
-- metallic beveled wordmarks;
-- creature mascot;
-- shield/ring/portal frame;
-- cyan/electric-blue glow;
+Shared visual DNA:
+- gaming / emblem composition;
+- metallic beveled wordmark;
+- creature / mascot;
+- shield / ring / portal frame;
+- cyan / electric-blue glow;
 - purple and orange/gold variants;
 - whole-GF and modular-GF construction.
 
 ## Generated FARIC concepts
 
-Location: `generated/faric/`
-
-- `cyber-shark-v1.webp`
-- `cyber-shark-v2.webp`
-- `cyber-panther-v1.webp`
-- `cyber-panther-v2.webp`
-- `mecha-tiger.webp`
-- `void-dragon-v1.webp`
-- `void-dragon-v2.webp`
-- `modular-set-v1.webp`
+- Cyber Shark v1 / v2
+- Cyber Panther v1 / v2
+- Mecha Tiger
+- Void Dragon v1 / v2
+- modular FARIC serpent/dragon concept
 
 ## Generated FMV concepts
 
-Location: `generated/fmv/`
-
-- `neon-griffin-v1.webp`
-- `neon-griffin-v2.webp`
-- `thunder-wolf.webp`
-- `razor-raven.webp`
-- `inferno-phoenix.webp`
-- `modular-set-v1.webp`
+- Neon Griffin v1 / v2
+- Thunder Wolf
+- Razor Raven
+- Inferno Phoenix
+- modular FMV griffin concept
 
 ## Generated FVMP concepts
 
-Location: `generated/fvmp/`
-
-- `plasma-cobra-v1.webp`
-- `plasma-cobra-v2.webp`
-- `plasma-cobra-alt.webp`
-- `titan-scorpion.webp`
-- `modular-set-v1.webp`
+- Plasma Cobra variants
+- Titan Scorpion
+- modular FVMP void/cosmic serpent concept
 
 ## UI reference
 
-PulseDeck reference screenshot is stored separately under:
+PulseDeck reference:
 `docs/design/pulsedeck/references/PULSEDECK_UI_REFERENCE_332780.webp`
 
-The canonical accepted design source remains:
+Canonical accepted editable baseline:
 `docs/design/pulsedeck/prototypes/PULSEDECK_SKIN_V1.svg`
 
-## Production-ready target structure
+## Promotion path: concept → production Hero/GF
 
-When a concept graduates from reference into an app asset, use a folder like:
+When a concept graduates from visual reference into an app asset, create a dedicated folder:
 
 ```text
 hero-name/
-├── full.webp            # ready-made whole GF
+├── full.webp            # complete whole GF
 ├── frame.webp           # back layer
 ├── creature.webp        # middle layer
 ├── wordmark.webp        # front layer
 ├── fx.webp              # optional fourth layer
-└── manifest.json        # pivots, canvas, audio routing, version
+└── manifest.json        # canvas / pivots / audio routing / version
 ```
 
-A modular set should use matching canvas dimensions and common pivot coordinates so parts can be swapped without visual jumps.
+Recommended contract:
+- same canvas dimensions across modular parts;
+- common pivot/origin;
+- safe transparent margins;
+- stable z-order;
+- explicit audio-reactive routing;
+- source/provenance note;
+- versioned manifest.
+
+This lets the app swap text, creature and frame independently without visual jumps.

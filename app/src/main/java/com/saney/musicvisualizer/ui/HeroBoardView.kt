@@ -362,14 +362,31 @@ class HeroBoardView(context: Context) : View(context) {
 
                     lastRotationAngle = angle
 
-                    updateTransformFromGesture(
-                        groupTransform.copy(
-                            rotationDegrees =
-                                groupTransform
-                                    .rotationDegrees +
-                                    delta,
-                        ),
-                    )
+                    val layerId =
+                        gestureLayerId
+
+                    if (layerId == null) {
+                        updateTransformFromGesture(
+                            groupTransform.copy(
+                                rotationDegrees =
+                                    groupTransform
+                                        .rotationDegrees +
+                                        delta,
+                            ),
+                        )
+                    } else {
+                        val current =
+                            layerTransform(layerId)
+
+                        updateLayerTransformFromGesture(
+                            layerId,
+                            current.copy(
+                                rotationDegrees =
+                                    current.rotationDegrees +
+                                        delta,
+                            ),
+                        )
+                    }
                 } else if (
                     event.pointerCount == 1 &&
                     !scaleGestureDetector
@@ -389,20 +406,44 @@ class HeroBoardView(context: Context) : View(context) {
                         width > 0 &&
                         height > 0
                     ) {
-                        updateTransformFromGesture(
-                            groupTransform.copy(
-                                xFraction =
-                                    groupTransform
-                                        .xFraction +
-                                        dx /
-                                        width,
-                                yFraction =
-                                    groupTransform
-                                        .yFraction +
-                                        dy /
-                                        height,
-                            ),
-                        )
+                        val layerId =
+                            gestureLayerId
+
+                        if (layerId == null) {
+                            updateTransformFromGesture(
+                                groupTransform.copy(
+                                    xFraction =
+                                        groupTransform
+                                            .xFraction +
+                                            dx /
+                                            width,
+                                    yFraction =
+                                        groupTransform
+                                            .yFraction +
+                                            dy /
+                                            height,
+                                ),
+                            )
+                        } else {
+                            val current =
+                                layerTransform(layerId)
+
+                            updateLayerTransformFromGesture(
+                                layerId,
+                                current.copy(
+                                    offsetXFraction =
+                                        current
+                                            .offsetXFraction +
+                                            dx /
+                                            width,
+                                    offsetYFraction =
+                                        current
+                                            .offsetYFraction +
+                                            dy /
+                                            height,
+                                ),
+                            )
+                        }
                     }
                 }
 

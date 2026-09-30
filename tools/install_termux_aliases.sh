@@ -20,11 +20,15 @@ add_alias() {
 add_alias "visualizer-code" "cd \"$REPO\""
 add_alias "visualizer-menu" "bash \"$REPO/scripts/termux-menu.sh\""
 add_alias "vis" "bash \"$REPO/scripts/termux-menu.sh\""
+add_alias "visualizer-assets" "cd \"$HOME/faric-music-visualizer-assets\""
+add_alias "faric-assets" "cd \"$HOME/faric-music-visualizer-assets\""
 
 echo "Configured:"
 echo "  visualizer-code"
 echo "  visualizer-menu"
 echo "  vis"
+echo "  visualizer-assets"
+echo "  faric-assets"
 echo
 echo "Activate now:"
 echo "  source \"$RC_FILE\""

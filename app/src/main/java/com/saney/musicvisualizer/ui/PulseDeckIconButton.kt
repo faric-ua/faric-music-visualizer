@@ -33,6 +33,8 @@ class PulseDeckIconButton(
         BOARD,
         VISUALIZER,
         EXPORT,
+        FAVORITE,
+        MORE,
     }
 
     private val paint =
@@ -358,6 +360,22 @@ class PulseDeckIconButton(
 
             Icon.EXPORT ->
                 drawExport(
+                    canvas,
+                    cx,
+                    cy,
+                    side,
+                )
+
+            Icon.FAVORITE ->
+                drawFavorite(
+                    canvas,
+                    cx,
+                    cy,
+                    side,
+                )
+
+            Icon.MORE ->
+                drawMore(
                     canvas,
                     cx,
                     cy,
@@ -894,6 +912,74 @@ class PulseDeckIconButton(
             path,
             paint,
         )
+    }
+
+    private fun drawFavorite(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        side: Float,
+    ) {
+        path.reset()
+        path.moveTo(
+            cx,
+            cy + side * 0.18f,
+        )
+        path.cubicTo(
+            cx - side * 0.28f,
+            cy - side * 0.02f,
+            cx - side * 0.18f,
+            cy - side * 0.24f,
+            cx,
+            cy - side * 0.10f,
+        )
+        path.cubicTo(
+            cx + side * 0.18f,
+            cy - side * 0.24f,
+            cx + side * 0.28f,
+            cy - side * 0.02f,
+            cx,
+            cy + side * 0.18f,
+        )
+        canvas.drawPath(
+            path,
+            paint,
+        )
+    }
+
+    private fun drawMore(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        side: Float,
+    ) {
+        paint.style =
+            Paint.Style.FILL
+
+        val r =
+            side * 0.035f
+
+        canvas.drawCircle(
+            cx,
+            cy - side * 0.12f,
+            r,
+            paint,
+        )
+        canvas.drawCircle(
+            cx,
+            cy,
+            r,
+            paint,
+        )
+        canvas.drawCircle(
+            cx,
+            cy + side * 0.12f,
+            r,
+            paint,
+        )
+
+        paint.style =
+            Paint.Style.STROKE
     }
 
     private fun drawArrowHead(

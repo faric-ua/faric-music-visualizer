@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.7.5 gesture editing + expanded group music motion;
+- v0.7.6 rotation/lifecycle hardening for all current MainActivity screens;
 - Cyber Shark is the first live multi-layer Board theme;
 - phone visual check confirms the resized/repositioned Cyber Shark is clearly better and usable as a temporary default;
 - further transform controls and floating-control PulseDeck redesign remain TODO;
@@ -653,3 +653,54 @@ Phone acceptance:
 7. play a strongly stereo track and verify whole GF follows L/R without large jumps;
 8. verify slight rotation sway and bass vertical float are visible but not dominant;
 9. set each of the three new reaction sliders to 0 and confirm only the previous layer reactions remain.
+
+
+## v0.7.6 — rotation/lifecycle hardening
+
+User finding:
+- Board settings/editor did not survive screen rotation correctly;
+- requirement expanded from Board only to a global rule for every current and future UI surface.
+
+Implemented in MainActivity:
+- restore the same active screen after Activity recreation;
+- preserve selected PlaybackThemeId;
+- preserve ExportAspectRatio;
+- preserve active vertical ScrollView position;
+- preserve active horizontal HorizontalScrollView position;
+- Board Transform reopens over the same layered theme;
+- Board transform values already survive via BoardTransformStore;
+- Board group audio-motion values already survive via BoardGroupReactionStore;
+- rotation does not invoke Reset / Fit Safe Area / Done / export actions.
+
+Current MainActivity surfaces covered:
+- Library;
+- Now Playing;
+- Playback Themes;
+- Board Transform;
+- Export Lab.
+
+Global lifecycle audit document added:
+- `docs/architecture/UI_LIFECYCLE_ROTATION_AUDIT.md`.
+
+Audit contract:
+- same parent screen;
+- same selected content/settings;
+- same scroll/list position where applicable;
+- playback continues;
+- no automatic action or duplicated work caused by rotation.
+
+Known follow-up findings from the audit:
+- Export Lab offline-analysis result/running ownership is still Activity-local and needs lifecycle-safe ownership;
+- projectM persistent mode/FG/auto/last preset exist, but install/index/queue background work still needs explicit duplicate-start rotation audit.
+
+Release:
+- v0.7.6;
+- versionCode 31.
+
+Phone acceptance:
+1. rotate Library after scrolling;
+2. rotate Now Playing while music plays;
+3. rotate Playback Themes after scrolling;
+4. open Cyber Shark → Board, change values, scroll inside settings, rotate, confirm same editor/value/scroll position;
+5. rotate Export Lab after selecting a format and scrolling;
+6. confirm no button/action runs by itself after any rotation.

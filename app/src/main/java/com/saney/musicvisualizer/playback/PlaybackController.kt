@@ -7,6 +7,7 @@ import android.os.Handler
 import android.os.Looper
 import androidx.lifecycle.AndroidViewModel
 import androidx.media3.common.C
+import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.MediaItem
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
@@ -61,7 +62,7 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
                         enableAudioOutputPlaybackParams,
                     )
                     .setAudioProcessors(
-                        arrayOf(
+                        arrayOf<AudioProcessor>(
                             stereoBalanceProcessor,
                         ),
                     )

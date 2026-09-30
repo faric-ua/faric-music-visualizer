@@ -48,11 +48,13 @@ class HeroBoardView(context: Context) : View(context) {
     private val fxPath = Path()
 
     private val frameBitmap =
-        decode(R.drawable.cyber_shark_frame)
+        decodeSafely(R.drawable.cyber_shark_frame)
     private val creatureBitmap =
-        decode(R.drawable.cyber_shark_creature)
+        decodeSafely(R.drawable.cyber_shark_creature)
     private val wordmarkBitmap =
-        decode(R.drawable.cyber_shark_wordmark)
+        decodeSafely(R.drawable.cyber_shark_wordmark)
+
+    private var renderErrorLogged = false
 
     private val frameReaction =
         BoardLayerReaction(
@@ -248,12 +250,23 @@ class HeroBoardView(context: Context) : View(context) {
 
     private fun drawBitmapLayer(
         canvas: Canvas,
-        bitmap: Bitmap,
+        bitmap: Bitmap?,
         motion: BoardLayerMotion,
         cx: Float,
         cy: Float,
         baseSize: Float,
     ) {
+        if (bitmap == null) {
+            drawMissingLayerFallback(
+                canvas = canvas,
+                cx = cx,
+                cy = cy,
+                baseSize = baseSize,
+                motion = motion,
+            )
+            return
+        }
+
         bitmapPaint.alpha =
             (motion.alpha * 255f)
                 .toInt()
@@ -465,13 +478,55 @@ class HeroBoardView(context: Context) : View(context) {
         fill.shader = null
     }
 
-    private fun decode(drawable: Int): Bitmap =
-        requireNotNull(
+    private fun decodeSafely(drawable: Int): Bitmap? =
+        runCatching {
             BitmapFactory.decodeResource(
                 resources,
                 drawable,
-            ),
+                BitmapFactory.Options().apply {
+                    inScaled = false
+                    inPreferredConfig = Bitmap.Config.ARGB_8888
+                },
+            )
+        }.getOrNull()
+
+    private fun drawMissingLayerFallback(
+        canvas: Canvas,
+        cx: Float,
+        cy: Float,
+        baseSize: Float,
+        motion: BoardLayerMotion,
+    ) {
+        if (!renderErrorLogged) {
+            android.util.Log.e(
+                "HeroBoardView",
+                "Cyber Shark bitmap resource could not be decoded; using fallback rendering.",
+            )
+            renderErrorLogged = true
+        }
+
+        fill.color =
+            Color.argb(
+                (motion.alpha * 120f)
+                    .toInt()
+                    .coerceIn(0, 180),
+                0,
+                190,
+                255,
+            )
+
+        val r =
+            baseSize *
+                0.16f *
+                motion.scale
+
+        canvas.drawCircle(
+            cx,
+            cy + baseSize * motion.translateYFraction,
+            r,
+            fill,
         )
+    }
 
     private fun follow(
         current: Float,

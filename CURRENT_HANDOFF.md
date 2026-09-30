@@ -389,3 +389,19 @@ Phone import flow:
 2. update main repo with menu item 3;
 3. run menu item 16;
 4. run menu item 13 to commit/push the imported production set to the private asset repository.
+
+
+## 2026-09-30 — Termux menu production-pack import
+
+Fixed the main FARIC Termux menu:
+- item 16 is now present: `Імпортувати production-pack з Downloads`;
+- item 3 now always re-execs `scripts/termux-menu.sh` after a successful GitHub update check, even when HEAD was already current;
+- this guarantees the displayed menu is refreshed from the current checked-out script without requiring the user to close/reopen Termux manually.
+
+Production-pack importer:
+- `tools/termux/assets-import-production-pack.sh`
+- imports the newest `FARIC_PRODUCTION_PACK_*.zip` from `~/storage/downloads`;
+- validates ZIP paths;
+- refuses to overwrite an existing production version;
+- target is copied into `~/faric-music-visualizer-assets/production/.../`;
+- next step after import is menu item 13 to push assets to GitHub.

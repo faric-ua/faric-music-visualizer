@@ -297,8 +297,28 @@ Target UI direction:
 - [ ] Preserve touch targets and readability even when the block background is hidden.
 - [ ] Let the Board visually continue behind and between floating controls.
 - [ ] Recalculate Hero/GF safe area for the floating-control layout instead of treating the current card boundary as permanent.
-- [ ] Allow blocks to be individually hidden, repositioned, resized, recolored/skinned and have opacity adjusted.
+- [ ] Allow PulseDeck blocks to be individually hidden, repositioned, resized, recolored/skinned and have opacity adjusted.
 - [ ] Provide a clean visualizer-first mode with minimal controls over the Board.
 - [ ] Keep full-control mode available for normal player use.
 - [ ] Persist the selected PulseDeck layout/skin configuration.
 - [ ] Keep live UI controls separate from exported Board content by default.
+
+
+## Layered Board / Hero-GF transforms
+
+- [x] Whole-GF live X position.
+- [x] Whole-GF live Y position.
+- [x] Whole-GF live size.
+- [x] Whole-GF live rotation.
+- [x] Whole-GF live opacity.
+- [x] Persist whole-GF transform per playback theme.
+- [x] Reset preset.
+- [x] Fit Safe Area v1 preset.
+- [ ] Phone acceptance for v0.7.4 controls.
+- [ ] Per-layer transform override: frame.
+- [ ] Per-layer transform override: creature.
+- [ ] Per-layer transform override: wordmark.
+- [ ] Per-layer transform override: FX.
+- [ ] UI to return individual layer override to inherited/group value.
+- [ ] Serialize transforms into saved MusicVideoProject.
+- [ ] Use the same transforms in deterministic export.

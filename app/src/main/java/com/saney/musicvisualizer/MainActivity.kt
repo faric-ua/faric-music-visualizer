@@ -861,11 +861,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         }
 
-        boardView.setGestureEditing(
-            enabled = true,
-        ) { value ->
-            persistTransform(value)
-        }
+        var xSeek: SeekBar? = null
+        var ySeek: SeekBar? = null
+        var sizeSeek: SeekBar? = null
+        var rotationSeek: SeekBar? = null
+        var opacitySeek: SeekBar? = null
 
         fun addSlider(
             title: String,
@@ -873,7 +873,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             initial: Int,
             valueText: (Int) -> String,
             onChanged: (Int) -> Unit,
-        ) {
+        ): SeekBar {
             val valueLabel =
                 label(
                     "$title · ${valueText(initial)}",
@@ -940,9 +940,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     dp(36),
                 ),
             )
+
+            return seek
         }
 
-        addSlider(
+        xSeek = addSlider(
             title = "X",
             max = 100,
             initial =
@@ -964,7 +966,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         }
 
-        addSlider(
+        ySeek = addSlider(
             title = "Y",
             max = 100,
             initial =
@@ -986,7 +988,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         }
 
-        addSlider(
+        sizeSeek = addSlider(
             title = "Розмір",
             max = 80,
             initial =
@@ -1012,7 +1014,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         }
 
-        addSlider(
+        rotationSeek = addSlider(
             title = "Поворот",
             max = 90,
             initial =
@@ -1038,7 +1040,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         }
 
-        addSlider(
+        opacitySeek = addSlider(
             title = "Прозорість",
             max = 80,
             initial =
@@ -1062,6 +1064,49 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             100f,
                 ),
             )
+        }
+
+        boardView.setGestureEditing(
+            enabled = true,
+        ) { value ->
+            persistTransform(value)
+
+            xSeek?.progress =
+                (
+                    transform.xFraction *
+                        100f
+                    )
+                    .toInt()
+
+            ySeek?.progress =
+                (
+                    transform.yFraction *
+                        100f
+                    )
+                    .toInt()
+
+            sizeSeek?.progress =
+                (
+                    transform.sizeFraction *
+                        100f -
+                        30f
+                    )
+                    .toInt()
+
+            rotationSeek?.progress =
+                (
+                    transform.rotationDegrees +
+                        45f
+                    )
+                    .toInt()
+
+            opacitySeek?.progress =
+                (
+                    transform.opacity *
+                        100f -
+                        20f
+                    )
+                    .toInt()
         }
 
         panelContent.addView(

@@ -162,9 +162,9 @@ class HeroBoardView(context: Context) : View(context) {
 
         val minSide = min(w, h)
         val cx = w * 0.5f
-        val cy = h * 0.39f
+        val cy = h * 0.275f
         val timeSeconds = now / 1000f
-        val baseSize = minSide * 0.92f
+        val baseSize = minSide * 0.66f
 
         drawBoardBackground(
             canvas = canvas,

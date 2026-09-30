@@ -360,3 +360,17 @@ User clarification after 333058.mp4:
 - [ ] Phone: select Cyber Shark and verify frame / FX / creature / wordmark react independently.
 - [ ] Phone: tune layer strengths after visual review.
 - [ ] Next: deterministic export parity for bitmap/layered Board themes.
+
+
+## v0.7.3 — Cyber Shark layout phone check
+
+- [x] Real Cyber Shark layered assets render on phone.
+- [x] Reduce default Hero/GF size and move it upward.
+- [x] Phone evidence `376668.mp4`: layout is visibly improved and no longer dominated by the temporary player card.
+- [x] Record that the current Now Playing card is temporary scaffolding.
+- [ ] Add whole-Hero Board transform controls: X / Y / size / rotation / opacity / reset / Fit Safe Area.
+- [ ] Persist Board transform values.
+- [ ] Add advanced per-layer transform overrides.
+- [ ] Redesign Now Playing into floating PulseDeck control blocks.
+- [ ] Revisit safe-area defaults after the floating-control layout exists.
+- [ ] Continue deterministic preview/export parity for layered Board themes after live transform controls are stable.

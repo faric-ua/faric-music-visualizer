@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.7.7 advanced per-layer Board editor;
+- v0.7.8 compact Board settings panel;
 - Cyber Shark is the first live multi-layer Board theme;
 - phone visual check confirms the resized/repositioned Cyber Shark is clearly better and usable as a temporary default;
 - further transform controls and floating-control PulseDeck redesign remain TODO;
@@ -766,3 +766,19 @@ Phone acceptance:
 6. return to "Усе" and confirm whole-GF controls still move all layers together;
 7. rotate while editing a non-group layer and confirm same layer + scroll + values restore;
 8. press Done and reopen Board to confirm persistence.
+
+
+## v0.7.8 — compact Board panel
+
+Phone UX feedback:
+- Board settings panel occupied too much vertical space and hid too much of the live GF preview.
+
+Change:
+- Board settings panel height is now 40% of the current screen height instead of a fixed 580 dp.
+- The panel remains scrollable, so all existing controls are still available.
+- The live Hero/GF preview gets roughly 60% of the screen for visual editing.
+- Rotation keeps using the same percentage-based rule, so portrait and landscape adapt automatically.
+
+Release:
+- v0.7.8;
+- versionCode 33.

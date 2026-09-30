@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.7.4 live Board transform controls;
+- v0.7.5 gesture editing + expanded group music motion;
 - Cyber Shark is the first live multi-layer Board theme;
 - phone visual check confirms the resized/repositioned Cyber Shark is clearly better and usable as a temporary default;
 - further transform controls and floating-control PulseDeck redesign remain TODO;
@@ -597,3 +597,59 @@ Phone acceptance:
 6. press Done and confirm values survive return to Now Playing;
 7. reopen Board and confirm values persisted;
 8. test Reset and Fit Safe Area.
+
+
+## v0.7.5 — gestures + stereo/bass/sway group motion
+
+User request:
+- keep all existing Cyber Shark audio reactions;
+- add direct manipulation gestures to the Board editor;
+- add a small whole-GF left/right stereo movement;
+- add a small whole-GF up/down bass float;
+- add a small back/forth whole-GF rotation;
+- expose these new motion strengths in the existing Board settings.
+
+Implemented:
+- one-finger drag changes X/Y;
+- pinch changes whole-GF size;
+- two-finger twist changes base rotation;
+- gesture results persist through the same `BoardTransformStore` used by sliders;
+- existing layer reactions remain unchanged and continue to run on top of the manual base transform.
+
+New group music motion:
+- `rotationSwayDegrees` — gentle signed back/forth rotation driven by current mid/bass energy;
+- `stereoShiftFraction` — horizontal whole-GF displacement driven by true stereo left/right energy balance;
+- `bassFloatFraction` — small vertical oscillation whose amplitude follows bass energy.
+
+Stereo source:
+- added `StereoBalanceAudioProcessor` to the Media3 PCM chain;
+- it is pass-through: playback samples are copied unchanged;
+- for stereo PCM16 it measures left/right RMS and produces a smoothed `stereoPan` in [-1, +1];
+- `SceneSignal` now carries `stereoPan`;
+- mono/non-PCM16 paths safely fall back to centered pan (0).
+
+Board menu additions:
+- "Плавний поворот";
+- "Stereo L/R";
+- "Bass ↑↓";
+- Reset now resets both base transform and group-reaction settings.
+
+Default subtle values:
+- rotation sway: 2.4°;
+- stereo travel: 3.5% of screen width at full pan;
+- bass float: 1.8% of minimum screen side at full bass.
+
+Release:
+- v0.7.5;
+- versionCode 30.
+
+Phone acceptance:
+1. install exact signed v0.7.5;
+2. open Cyber Shark → Board;
+3. drag with one finger;
+4. pinch to resize;
+5. twist with two fingers;
+6. verify values persist after Done/reopen;
+7. play a strongly stereo track and verify whole GF follows L/R without large jumps;
+8. verify slight rotation sway and bass vertical float are visible but not dominant;
+9. set each of the three new reaction sliders to 0 and confirm only the previous layer reactions remain.

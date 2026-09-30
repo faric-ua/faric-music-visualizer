@@ -10,9 +10,10 @@ Verified:
 - reference screenshots analyzed as interaction patterns;
 - original FARIC PulseDeck design accepted by user.
 
-Current release:
-- v0.6.8 continuous Layer-1 live reactivity hotfix;
-- source candidate is being built/tested;
+Current release candidate:
+- v0.7.0 first layered Board Hero/GF proof;
+- Cyber Shark is the first live multi-layer Board theme;
+- Android CI / phone acceptance are pending;
 - package remains `com.saney.musicvisualizer`.
 
 v0.2.0 implementation:

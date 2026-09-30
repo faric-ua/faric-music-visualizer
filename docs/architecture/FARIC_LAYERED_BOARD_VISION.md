@@ -306,3 +306,69 @@ Repository preview copies are reference assets, not necessarily final production
 6. Add block-level PulseDeck skin settings: visible / opacity / skinId.
 7. Make live preview use the same Board description as deterministic export.
 8. Add project save/load only after the Board contract is stable enough to version.
+
+
+## 14. Board transform controls
+
+Phone evidence from the first Cyber Shark layered Board proof showed that a valid Hero/GF can still be unusable if its default scale or position collides with the live PulseDeck controls.
+
+Therefore transform controls are a required part of the Board contract, not optional polish.
+
+### Group-level transform
+
+Every visual group, especially Hero/GF, should expose at minimum:
+
+```text
+enabled
+x
+y
+scale
+rotation
+opacity
+```
+
+The common case is moving/resizing the whole Hero/GF while preserving internal layer registration.
+
+Recommended user-facing controls:
+- horizontal position;
+- vertical position;
+- size;
+- rotation;
+- opacity;
+- reset;
+- Fit Safe Area.
+
+### Layer-level transform
+
+Advanced mode should allow independent overrides for:
+- frame;
+- creature;
+- wordmark;
+- FX.
+
+Each layer can override:
+
+```text
+offsetX
+offsetY
+scale
+rotation
+opacity
+```
+
+These manual transforms are applied before/around the audio-reactive motion envelope, so user layout and music reaction remain separate concepts.
+
+### Safe-area rule
+
+The Board renderer must know the currently occupied PulseDeck overlay region. A default Hero/GF preset should fit within the available visual area and must not assume the entire physical screen is free.
+
+The first Cyber Shark phone proof established this requirement after the emblem and wordmark visibly collided with the player card.
+
+### Persistence
+
+Transforms belong to the saved project/theme state and should survive:
+- theme switches;
+- app restart;
+- preview/export handoff.
+
+Preview and export must use the same saved transform values.

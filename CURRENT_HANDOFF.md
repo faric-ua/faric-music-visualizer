@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.7.8 compact Board settings panel;
+- v0.8.0 floating PulseDeck controls foundation;
 - Cyber Shark is the first live multi-layer Board theme;
 - phone visual check confirms the resized/repositioned Cyber Shark is clearly better and usable as a temporary default;
 - further transform controls and floating-control PulseDeck redesign remain TODO;
@@ -782,3 +782,46 @@ Change:
 Release:
 - v0.7.8;
 - versionCode 33.
+
+
+## v0.8.0 — floating PulseDeck controls
+
+User direction:
+- remove the large Now Playing control card that covers the Board;
+- split player UI into independent floating blocks;
+- let controls visually hover over the scene;
+- support a visualizer-first state where the scene is mostly unobstructed;
+- later allow each block to be hidden, moved, resized, recolored/skinned and have opacity adjusted.
+
+Implemented foundation:
+- monolithic Now Playing card removed;
+- metadata is now a compact floating block;
+- seek/progress + time is a separate floating block;
+- transport buttons are individual floating round controls;
+- quick actions are a separate row of floating chips;
+- old bottom navigation is removed from Now Playing;
+- Board remains visible behind/between controls;
+- floating player controls auto-hide after 6 seconds;
+- double tap on empty Board space toggles controls visible/hidden;
+- hidden/visible state is saved across Activity recreation/rotation.
+
+Still intentionally deferred:
+- per-block visibility configuration;
+- per-block opacity;
+- per-block X/Y/size;
+- individual block skins / fully transparent block mode;
+- a dedicated settings UI for those block options.
+
+Release:
+- v0.8.0;
+- versionCode 34.
+
+Phone acceptance:
+1. install v0.8.0;
+2. confirm the old large card is gone;
+3. verify metadata, progress, transport and quick actions are visually separate;
+4. wait 6+ seconds and verify controls disappear;
+5. double tap empty Board to bring them back;
+6. double tap again to hide;
+7. rotate while hidden and while visible;
+8. confirm playback continues and the Board remains much less obstructed.

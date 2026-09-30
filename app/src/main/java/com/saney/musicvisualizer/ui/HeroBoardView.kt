@@ -228,7 +228,7 @@ class HeroBoardView(context: Context) : View(context) {
         presentationScale =
             scale.coerceIn(
                 0.80f,
-                1.35f,
+                1.45f,
             )
         presentationYOffsetFraction =
             yOffsetFraction.coerceIn(

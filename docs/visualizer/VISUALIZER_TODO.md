@@ -283,3 +283,22 @@ Phone acceptance must include:
 - [x] Add repeated-hit and broadband-hit tests.
 - [ ] Phone verify fewer missed rings on obvious beats.
 - [ ] Phone verify no excessive false positives.
+
+
+## PulseDeck floating-control redesign
+
+Current Now Playing player card is **temporary scaffolding**.
+
+Target UI direction:
+- [ ] Remove the large monolithic Now Playing card that currently covers the lower part of the Board.
+- [ ] Keep playback controls visually floating over the scene instead of placing them inside one opaque/outlined container.
+- [ ] Transport controls, seek/progress, quick actions and metadata may remain as separate configurable blocks.
+- [ ] Each block can have its own skin/background, including fully transparent / no-card mode.
+- [ ] Preserve touch targets and readability even when the block background is hidden.
+- [ ] Let the Board visually continue behind and between floating controls.
+- [ ] Recalculate Hero/GF safe area for the floating-control layout instead of treating the current card boundary as permanent.
+- [ ] Allow blocks to be individually hidden, repositioned, resized, recolored/skinned and have opacity adjusted.
+- [ ] Provide a clean visualizer-first mode with minimal controls over the Board.
+- [ ] Keep full-control mode available for normal player use.
+- [ ] Persist the selected PulseDeck layout/skin configuration.
+- [ ] Keep live UI controls separate from exported Board content by default.

@@ -582,6 +582,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 boardView.setGroupReaction(
                     boardGroupReactionStore.load(selectedThemeId),
                 )
+                boardView.setLayerTransforms(
+                    boardLayerTransformStore.loadAll(
+                        selectedThemeId,
+                    ),
+                )
                 heroBoardView = boardView
                 root.addView(
                     boardView,

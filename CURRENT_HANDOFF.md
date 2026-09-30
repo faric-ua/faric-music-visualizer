@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.7.1 Cyber Shark selection crash hotfix;
+- v0.7.3 Cyber Shark layout tuning + Board transform requirement;
 - Cyber Shark is the first live multi-layer Board theme;
 - Android CI / phone acceptance are pending;
 - package remains `com.saney.musicvisualizer`.
@@ -490,3 +490,22 @@ Fix path:
 - do not hand-create/transport the production WebP blobs through the GitHub connector;
 - copy the already verified production WebPs directly from the phone's companion asset repository into the main app repo;
 - Termux menu item 17 performs this sync, validates RIFF/WEBP headers, bumps to v0.7.2 / versionCode 27, commits and pushes.
+
+
+## v0.7.2 phone finding — real Cyber Shark renders but is oversized
+
+Phone video `376665.mp4` confirms:
+- real Cyber Shark frame / creature / FARIC assets now render;
+- layered Board path is alive;
+- the Hero/GF is too large and too low for the current PulseDeck overlay;
+- the FARIC wordmark visibly collides with / disappears behind the player card.
+
+Immediate tuning candidate:
+- v0.7.3;
+- default Hero/GF center Y moved from 39% to 27.5% of screen height;
+- default base size reduced from 92% to 66% of the minimum screen side.
+
+Product requirement added:
+- whole Hero/GF group controls: X / Y / scale / rotation / opacity / reset / Fit Safe Area;
+- advanced per-layer overrides: frame / creature / wordmark / FX;
+- settings persist and must be shared by preview and deterministic export.

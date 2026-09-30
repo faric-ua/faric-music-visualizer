@@ -617,8 +617,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ),
                 )
                 boardView.setPresentationTuning(
-                    scale = 1.16f,
-                    yOffsetFraction = 0.018f,
+                    scale = 1.32f,
+                    yOffsetFraction = 0.005f,
                 )
                 boardView.setGroupReaction(
                     boardGroupReactionStore.load(
@@ -673,7 +673,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     val heroScale =
                         when (selectedThemeId) {
                             PlaybackThemeId.NEON_EMBLEM ->
-                                2.08f
+                                2.28f
                             PlaybackThemeId.ENERGY_CORE ->
                                 1.82f
                             PlaybackThemeId.ORBITAL_CROWN ->
@@ -1057,7 +1057,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 Gravity.BOTTOM or Gravity.START,
             ).apply {
                 leftMargin = dp(18)
-                bottomMargin = dp(326)
+                bottomMargin = dp(344)
             },
         )
 
@@ -1080,7 +1080,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 Gravity.BOTTOM or Gravity.END,
             ).apply {
                 rightMargin = dp(18)
-                bottomMargin = dp(326)
+                bottomMargin = dp(344)
             },
         )
 

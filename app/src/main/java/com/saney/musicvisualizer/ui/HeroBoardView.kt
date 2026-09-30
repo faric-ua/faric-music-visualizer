@@ -18,9 +18,11 @@ import com.saney.musicvisualizer.R
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardAudioState
 import com.saney.musicvisualizer.board.BoardGroupReaction
+import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerMotion
 import com.saney.musicvisualizer.board.BoardLayerMotionEvaluator
 import com.saney.musicvisualizer.board.BoardLayerReaction
+import com.saney.musicvisualizer.board.BoardLayerTransform
 import com.saney.musicvisualizer.board.BoardTransform
 import kotlin.math.PI
 import kotlin.math.atan2
@@ -67,9 +69,20 @@ class HeroBoardView(context: Context) : View(context) {
     private var groupReaction =
         BoardGroupReaction.default()
 
+    private val layerTransforms =
+        BoardLayerId.entries
+            .associateWith {
+                BoardLayerTransform.default()
+            }
+            .toMutableMap()
+
     private var gesturesEnabled = false
+    private var gestureLayerId:
+        BoardLayerId? = null
     private var gestureTransformListener:
         ((BoardTransform) -> Unit)? = null
+    private var gestureLayerTransformListener:
+        ((BoardLayerId, BoardLayerTransform) -> Unit)? = null
 
     private var lastTouchX = 0f
     private var lastTouchY = 0f
@@ -88,13 +101,30 @@ class HeroBoardView(context: Context) : View(context) {
                         return false
                     }
 
-                    updateTransformFromGesture(
-                        groupTransform.copy(
-                            sizeFraction =
-                                groupTransform.sizeFraction *
-                                    detector.scaleFactor,
-                        ),
-                    )
+                    val layerId =
+                        gestureLayerId
+
+                    if (layerId == null) {
+                        updateTransformFromGesture(
+                            groupTransform.copy(
+                                sizeFraction =
+                                    groupTransform.sizeFraction *
+                                        detector.scaleFactor,
+                            ),
+                        )
+                    } else {
+                        val current =
+                            layerTransform(layerId)
+
+                        updateLayerTransformFromGesture(
+                            layerId,
+                            current.copy(
+                                scale =
+                                    current.scale *
+                                        detector.scaleFactor,
+                            ),
+                        )
+                    }
                     return true
                 }
             },
@@ -181,15 +211,62 @@ class HeroBoardView(context: Context) : View(context) {
         postInvalidateOnAnimation()
     }
 
+    fun setLayerTransforms(
+        values:
+            Map<
+                BoardLayerId,
+                BoardLayerTransform,
+            >,
+    ) {
+        BoardLayerId.entries
+            .forEach { layerId ->
+                layerTransforms[layerId] =
+                    (
+                        values[layerId]
+                            ?: BoardLayerTransform.default()
+                        )
+                        .sanitized()
+            }
+
+        postInvalidateOnAnimation()
+    }
+
+    fun setLayerTransform(
+        layerId: BoardLayerId,
+        value: BoardLayerTransform,
+    ) {
+        layerTransforms[layerId] =
+            value.sanitized()
+        postInvalidateOnAnimation()
+    }
+
     fun setGestureEditing(
         enabled: Boolean,
+        layerId: BoardLayerId? = null,
         onTransformChanged:
             ((BoardTransform) -> Unit)? = null,
+        onLayerTransformChanged:
+            ((
+                BoardLayerId,
+                BoardLayerTransform,
+            ) -> Unit)? = null,
     ) {
         gesturesEnabled = enabled
+        gestureLayerId =
+            if (enabled) {
+                layerId
+            } else {
+                null
+            }
         gestureTransformListener =
             if (enabled) {
                 onTransformChanged
+            } else {
+                null
+            }
+        gestureLayerTransformListener =
+            if (enabled) {
+                onLayerTransformChanged
             } else {
                 null
             }

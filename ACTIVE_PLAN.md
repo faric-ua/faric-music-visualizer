@@ -453,3 +453,13 @@ User clarification after 333058.mp4:
 - [ ] Phone verify independent layer transforms.
 - [ ] Phone verify rotation while a non-group layer is selected.
 - [ ] Next: expose per-layer audio-reaction tuning and/or lock/inherit controls after phone feedback.
+
+
+## v0.7.8 — Compact Board panel
+
+- [x] Limit Board settings panel to 40% of screen height.
+- [x] Keep panel vertically scrollable.
+- [x] Preserve live preview above the panel.
+- [x] Make the 40% rule orientation-adaptive.
+- [ ] Android CI PASS for v0.7.8.
+- [ ] Phone verify portrait/landscape usability.

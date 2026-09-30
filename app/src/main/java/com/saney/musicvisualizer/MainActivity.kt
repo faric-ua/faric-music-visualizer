@@ -46,6 +46,7 @@ import com.saney.musicvisualizer.theme.PlaybackThemeId
 import com.saney.musicvisualizer.theme.PlaybackThemeRegistry
 import com.saney.musicvisualizer.theme.PlaybackThemeStore
 import com.saney.musicvisualizer.theme.ThemeInput
+import com.saney.musicvisualizer.ui.HeroBoardView
 import com.saney.musicvisualizer.ui.HeroThemeView
 import com.saney.musicvisualizer.ui.PulseMiniView
 import com.saney.musicvisualizer.ui.ReactiveSceneView
@@ -85,6 +86,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var offlineAnalysisRunning = false
 
     private var sceneView: ReactiveSceneView? = null
+    private var heroBoardView: HeroBoardView? = null
     private var heroThemeView: HeroThemeView? = null
     private var miniPulseView: PulseMiniView? = null
     private var dock: View? = null
@@ -234,6 +236,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowTotal?.text = formatTime(snapshot.durationMs)
         nowPlay?.text = if (snapshot.isPlaying) "Ⅱ" else "▶"
         sceneView?.setPlaying(snapshot.isPlaying)
+        heroBoardView?.setPlaying(snapshot.isPlaying)
         heroThemeView?.setPlaying(snapshot.isPlaying)
         heroThemeView?.setMetadata(
             title = snapshot.trackName,
@@ -261,6 +264,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     override fun onSceneSignal(signal: SceneSignal) {
         latestSignal = signal
         sceneView?.updateSignal(signal)
+        heroBoardView?.updateSignal(signal)
         heroThemeView?.updateSignal(signal)
         miniPulseView?.updateSignal(signal)
     }
@@ -420,7 +424,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         applySafeArea(root)
 
-        if (isStandaloneHeroTheme(selectedThemeId)) {
+        if (isLayeredBoardTheme(selectedThemeId)) {
+            heroBoardView = HeroBoardView(this).also { view ->
+                root.addView(
+                    view,
+                    FrameLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                    ),
+                )
+            }
+        } else if (isStandaloneHeroTheme(selectedThemeId)) {
             heroThemeView = HeroThemeView(this).also { view ->
                 view.setTheme(selectedThemeId)
                 root.addView(
@@ -1199,6 +1213,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         PlaybackThemeRegistry.all.forEach { spec ->
             val implemented =
                 spec.id == PlaybackThemeId.VISUALIZER ||
+                    isLayeredBoardTheme(spec.id) ||
                     isStandaloneHeroTheme(spec.id)
 
             val selected =
@@ -1270,6 +1285,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             spec.id == PlaybackThemeId.VISUALIZER ->
                                 "FARIC / projectM layered visualizer"
 
+                            isLayeredBoardTheme(spec.id) ->
+                                "Layered Board · frame / FX / creature / wordmark"
+
                             implemented ->
                                 "Standalone · bass / mid / high / beat reactive"
 
@@ -1326,6 +1344,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         setContentView(root)
         enableImmersiveFullscreen()
     }
+
+    private fun isLayeredBoardTheme(
+        id: PlaybackThemeId,
+    ): Boolean =
+        id == PlaybackThemeId.CYBER_SHARK
 
     private fun isStandaloneHeroTheme(
         id: PlaybackThemeId,
@@ -1577,6 +1600,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun clearScreenRefs() {
         sceneView = null
+        heroBoardView = null
         heroThemeView = null
         miniPulseView = null
         dock = null

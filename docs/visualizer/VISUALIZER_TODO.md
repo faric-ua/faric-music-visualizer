@@ -438,3 +438,15 @@ Target UI direction:
 - [ ] Bottom four icon-only actions are large and evenly distributed.
 - [ ] Favorite and track-more controls are present around metadata.
 - [ ] Auto-hide / double-tap / rotation behavior remains correct.
+
+
+### Main-page layer stack
+- [x] Permanent PulseDeck HUD skin is independent from Cyber Shark/GF themes.
+- [x] Main skin reactor/energy is drawn in code and audio-reactive.
+- [ ] Add explicit BACKGROUND_CONTENT slot for video/projectM/scenes.
+- [ ] Add explicit HERO_CONTENT slot for GF/creature/logo.
+- [ ] Add explicit FOREGROUND_FX slot for lightning/particles/effects.
+- [ ] Per content layer: Above / Below main skin selector.
+- [ ] Per content layer: visibility, opacity, X/Y, size, rotation.
+- [ ] Per content layer: audio-reaction routing/strength.
+- [ ] Persist complete layer stack as a main-page skin preset.

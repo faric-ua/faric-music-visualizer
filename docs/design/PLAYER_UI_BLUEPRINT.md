@@ -176,3 +176,23 @@ The implementation may adapt spacing, typography and density for real Android co
 - luminous spectrum/waves;
 - PulseDock;
 - rounded glass-like surfaces.
+
+
+## 11. Floating Now Playing controls
+
+The current large rounded Now Playing card is an implementation scaffold, not the final visual design.
+
+Final direction:
+- the Board remains visually continuous across the full screen;
+- controls float over the Board as separate UI blocks;
+- there is no requirement for one large enclosing card behind title, seek, transport, quick actions and bottom navigation;
+- each block may independently use:
+  - no background;
+  - translucent glass;
+  - compact capsule/pill;
+  - replaceable skin;
+  - configurable opacity.
+
+The user should be able to hide or show blocks and later adjust their position/size.
+
+This also means Hero/GF composition should not permanently reserve the current card rectangle. Safe placement must be derived from the active floating blocks and selected PulseDeck layout.

@@ -2,6 +2,7 @@ package com.saney.musicvisualizer.theme
 
 enum class PlaybackThemeId {
     VISUALIZER,
+    CYBER_SHARK,
     PORTRAIT_HALO,
     VINYL,
     CASSETTE,
@@ -57,6 +58,20 @@ data class ThemeInput(
 object PlaybackThemeRegistry {
     val all: List<PlaybackThemeSpec> =
         listOf(
+            PlaybackThemeSpec(
+                id = PlaybackThemeId.CYBER_SHARK,
+                title = "Cyber Shark",
+                subtitle = "Layered Board · frame / FX / creature / FARIC",
+                family = ThemeFamily.HERO,
+                capabilities = setOf(
+                    ThemeCapability.CUSTOM_LOGO,
+                    ThemeCapability.BACKGROUND_IMAGE,
+                    ThemeCapability.BACKGROUND_VIDEO,
+                    ThemeCapability.PROJECTM_BACKGROUND,
+                    ThemeCapability.REACTIVE_BANDS,
+                ),
+                previewOrder = 5,
+            ),
             PlaybackThemeSpec(
                 id = PlaybackThemeId.NEON_EMBLEM,
                 title = "Neon Emblem",

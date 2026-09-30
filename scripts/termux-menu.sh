@@ -57,15 +57,14 @@ update_project() {
   echo
   if [ "$before" = "$after" ]; then
     echo "PASS: репозиторій уже актуальний."
-    pause_menu
-    return
+  else
+    echo "PASS: репозиторій оновлено."
+    echo "Було:  $(printf '%.10s' "$before")"
+    echo "Стало: $(printf '%.10s' "$after")"
   fi
 
-  echo "PASS: репозиторій оновлено."
-  echo "Було:  $(printf '%.10s' "$before")"
-  echo "Стало: $(printf '%.10s' "$after")"
   echo
-  echo "Перезапускаю меню з нової версії…"
+  echo "Оновлюю саме меню…"
   sleep 1
 
   exec bash "$REPO/scripts/termux-menu.sh"
@@ -138,6 +137,7 @@ while true; do
   echo "13 — Зберегти FARIC assets у GitHub"
   echo "14 — Статус FARIC assets"
   echo "15 — Відкрити shell у FARIC assets"
+  echo "16 — Імпортувати production-pack з Downloads"
   echo
   echo "0 — Вийти"
   echo
@@ -160,6 +160,7 @@ while true; do
     13) run_tool "$REPO/tools/termux/assets-push.sh" ;;
     14) run_tool "$REPO/tools/termux/assets-status.sh" ;;
     15) open_assets ;;
+    16) run_tool "$REPO/tools/termux/assets-import-production-pack.sh" ;;
     0) clear; exit 0 ;;
     *) echo "Невідомий пункт."; sleep 1 ;;
   esac

@@ -405,3 +405,37 @@ Production-pack importer:
 - refuses to overwrite an existing production version;
 - target is copied into `~/faric-music-visualizer-assets/production/.../`;
 - next step after import is menu item 13 to push assets to GitHub.
+
+
+## v0.7.0 — first layered Board Hero/GF
+
+Implementation candidate:
+- first live Board Hero/GF is `Cyber Shark`;
+- `PlaybackThemeId.CYBER_SHARK` is selectable from Playback Themes / Scene Lab;
+- `HeroBoardView` renders four logical layers in order:
+  `frame → FX → creature → wordmark`;
+- optimized app copies of frame / creature / wordmark are bundled under `drawable-nodpi`;
+- FX is procedural in this first APK proof so it can react strongly without duplicating the full master FX asset in the app repository;
+- full-resolution production masters remain in the private companion asset repository.
+
+Current audio routing:
+- frame: bass-dominant scale + slow rotation;
+- FX: highs + beat control alpha/scale and reverse drift;
+- creature: strongest beat punch, with small bass/mid support and vertical punch;
+- wordmark: shorter beat punch with light high-frequency response.
+
+Architecture:
+- reusable `BoardLayerReaction` / `BoardLayerMotionEvaluator` added under `board/`;
+- live `SceneSignal` fans out into `HeroBoardView` exactly like existing visualizers;
+- Cyber Shark is intentionally NOT marked deterministic-export-ready yet. Export parity remains a separate acceptance step.
+
+Release candidate:
+- version `0.7.0`;
+- versionCode `25`.
+
+Phone acceptance:
+1. update source from the Termux menu;
+2. build/install exact signed v0.7.0 APK;
+3. choose Scene Lab / Playback Themes → Cyber Shark;
+4. verify the four visual responsibilities remain visually separable while music plays;
+5. report whether bass/beat/high response is too weak, too strong, or visually colliding.

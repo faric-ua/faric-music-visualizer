@@ -515,3 +515,14 @@ User clarification after 333058.mp4:
 - [ ] Android CI PASS for v0.8.2.
 - [ ] Phone visual comparison with approved reference.
 - [ ] Tune one more pass only from real phone screenshot if proportions still differ.
+
+
+## v0.8.3 — Hero footprint correction
+
+- [x] Normalize standalone Hero themes into the same main-screen visual slot.
+- [x] Enlarge Neon Emblem specifically.
+- [x] Enlarge Cyber Shark presentation without changing Board persistence.
+- [x] Keep approved transport/action sizing from v0.8.2.
+- [x] Re-align track favorite/more with metadata.
+- [ ] Android CI PASS for v0.8.3.
+- [ ] Phone compare both Cyber Shark and Neon Emblem against the same shell layout.

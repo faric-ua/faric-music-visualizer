@@ -468,3 +468,25 @@ Phone acceptance:
 3. select Cyber Shark;
 4. confirm app remains open;
 5. report whether the actual shark/frame/FARIC assets render or whether fallback is shown.
+
+
+## v0.7.1 phone finding — fallback-only Cyber Shark
+
+Phone screenshot confirms the crash guard works, but the real image layers do not decode/render.
+
+Observed:
+- app stays open;
+- theme label is `Cyber Shark`;
+- center shows the cyan procedural fallback circle;
+- procedural FX rings are visible;
+- real frame / shark creature / FARIC wordmark are absent.
+
+Interpretation:
+- all three bundled bitmap resources are failing decode;
+- this is not a Board routing problem;
+- the fallback path is working exactly as designed and localizes the issue to the app-packaged WebP bytes.
+
+Fix path:
+- do not hand-create/transport the production WebP blobs through the GitHub connector;
+- copy the already verified production WebPs directly from the phone's companion asset repository into the main app repo;
+- Termux menu item 17 performs this sync, validates RIFF/WEBP headers, bumps to v0.7.2 / versionCode 27, commits and pushes.

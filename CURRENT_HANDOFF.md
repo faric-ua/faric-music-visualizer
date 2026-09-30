@@ -366,3 +366,26 @@ Phone acceptance: **PASS**.
 - `Master-файлів: 34`;
 - `LFS materialization: PASS`;
 - phone now holds real LFS materialized master files, not only pointer stubs.
+
+
+## 2026-09-30 — Cyber Shark production candidate
+
+First modular Hero/GF production candidate prepared:
+- id: `faric.cyber-shark.v1`;
+- shared canvas: 1254 × 1254;
+- layers: frame / fx / creature / wordmark;
+- whole-GF fallback included;
+- lossless WebP app copies included;
+- manifest defines initial z-order and audio-reactive routing.
+
+Default modular z-order:
+`frame → fx → creature → wordmark`
+
+Main Termux menu now also contains:
+- `16 — Імпортувати production-pack з Downloads`
+
+Phone import flow:
+1. download `FARIC_PRODUCTION_PACK_CYBER_SHARK_V1.zip` to Downloads;
+2. update main repo with menu item 3;
+3. run menu item 16;
+4. run menu item 13 to commit/push the imported production set to the private asset repository.

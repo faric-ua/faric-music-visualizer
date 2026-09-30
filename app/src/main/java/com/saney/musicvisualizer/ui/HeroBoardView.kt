@@ -682,6 +682,10 @@ class HeroBoardView(context: Context) : View(context) {
             cy = cy,
             baseSize = baseSize,
             transform = transform,
+            layerTransform =
+                layerTransform(
+                    BoardLayerId.FRAME,
+                ),
             groupRotationDegrees =
                 groupRotationDegrees,
         )
@@ -700,6 +704,10 @@ class HeroBoardView(context: Context) : View(context) {
             baseSize = baseSize,
             timeSeconds = timeSeconds,
             transform = transform,
+            layerTransform =
+                layerTransform(
+                    BoardLayerId.FX,
+                ),
             groupRotationDegrees =
                 groupRotationDegrees,
         )
@@ -718,6 +726,10 @@ class HeroBoardView(context: Context) : View(context) {
             cy = cy,
             baseSize = baseSize,
             transform = transform,
+            layerTransform =
+                layerTransform(
+                    BoardLayerId.CREATURE,
+                ),
             groupRotationDegrees =
                 groupRotationDegrees,
         )
@@ -736,6 +748,10 @@ class HeroBoardView(context: Context) : View(context) {
             cy = cy,
             baseSize = baseSize,
             transform = transform,
+            layerTransform =
+                layerTransform(
+                    BoardLayerId.WORDMARK,
+                ),
             groupRotationDegrees =
                 groupRotationDegrees,
         )

@@ -75,6 +75,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private lateinit var themeStore: PlaybackThemeStore
     private lateinit var boardTransformStore: BoardTransformStore
     private lateinit var boardGroupReactionStore: BoardGroupReactionStore
+
+    private var activeVerticalScroll: ScrollView? = null
+    private var activeHorizontalScroll: HorizontalScrollView? = null
+    private var pendingRestoreScrollY: Int? = null
+    private var pendingRestoreScrollX: Int? = null
     private var selectedThemeId = PlaybackThemeId.VISUALIZER
     private var screen = Screen.LIBRARY
     private var latestSnapshot = PlaybackSnapshot()
@@ -149,7 +154,51 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         themeStore = PlaybackThemeStore(this)
         boardTransformStore = BoardTransformStore(this)
         boardGroupReactionStore = BoardGroupReactionStore(this)
-        selectedThemeId = themeStore.selectedThemeId
+        selectedThemeId =
+            savedInstanceState
+                ?.getString(KEY_SELECTED_THEME)
+                ?.let { name ->
+                    runCatching {
+                        PlaybackThemeId.valueOf(name)
+                    }.getOrNull()
+                }
+                ?: themeStore.selectedThemeId
+
+        exportAspectRatio =
+            savedInstanceState
+                ?.getString(KEY_EXPORT_ASPECT_RATIO)
+                ?.let { name ->
+                    runCatching {
+                        ExportAspectRatio.valueOf(name)
+                    }.getOrNull()
+                }
+                ?: exportAspectRatio
+
+        pendingRestoreScrollY =
+            savedInstanceState
+                ?.takeIf {
+                    it.getBoolean(
+                        KEY_HAS_VERTICAL_SCROLL,
+                        false,
+                    )
+                }
+                ?.getInt(
+                    KEY_VERTICAL_SCROLL_Y,
+                    0,
+                )
+
+        pendingRestoreScrollX =
+            savedInstanceState
+                ?.takeIf {
+                    it.getBoolean(
+                        KEY_HAS_HORIZONTAL_SCROLL,
+                        false,
+                    )
+                }
+                ?.getInt(
+                    KEY_HORIZONTAL_SCROLL_X,
+                    0,
+                )
 
         sceneOrchestrator = SceneOrchestrator { spec ->
             currentScene = spec
@@ -174,7 +223,60 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         }
 
-        showLibrary()
+        val restoredScreen =
+            savedInstanceState
+                ?.getString(KEY_SCREEN)
+                ?.let { name ->
+                    runCatching {
+                        Screen.valueOf(name)
+                    }.getOrNull()
+                }
+                ?: Screen.LIBRARY
+
+        restoreScreen(restoredScreen)
+    }
+
+    override fun onSaveInstanceState(
+        outState: Bundle,
+    ) {
+        outState.putString(
+            KEY_SCREEN,
+            screen.name,
+        )
+        outState.putString(
+            KEY_SELECTED_THEME,
+            selectedThemeId.name,
+        )
+        outState.putString(
+            KEY_EXPORT_ASPECT_RATIO,
+            exportAspectRatio.name,
+        )
+
+        activeVerticalScroll?.let { scroll ->
+            outState.putBoolean(
+                KEY_HAS_VERTICAL_SCROLL,
+                true,
+            )
+            outState.putInt(
+                KEY_VERTICAL_SCROLL_Y,
+                scroll.scrollY,
+            )
+        }
+
+        activeHorizontalScroll?.let { scroll ->
+            outState.putBoolean(
+                KEY_HAS_HORIZONTAL_SCROLL,
+                true,
+            )
+            outState.putInt(
+                KEY_HORIZONTAL_SCROLL_X,
+                scroll.scrollX,
+            )
+        }
+
+        super.onSaveInstanceState(
+            outState,
+        )
     }
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
@@ -294,6 +396,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             clipToPadding = false
             setPadding(dp(18), dp(10), dp(18), dp(24))
         }
+        activeVerticalScroll = scroll
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -314,8 +417,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val modeScroller = HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
             overScrollMode = View.OVER_SCROLL_NEVER
-            post { scrollTo(0, 0) }
         }
+        activeHorizontalScroll = modeScroller
         val modes = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             setPadding(0, dp(18), 0, dp(8))
@@ -422,6 +525,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         setContentView(root)
+        restorePendingScrollPositions()
         enableImmersiveFullscreen()
         onPlaybackSnapshot(latestSnapshot)
     }
@@ -1287,6 +1391,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 addView(panelContent)
             }
 
+        activeVerticalScroll =
+            panelScroll
+
         root.addView(
             panelScroll,
             FrameLayout.LayoutParams(
@@ -1301,6 +1408,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         setContentView(root)
+        restorePendingScrollPositions()
         enableImmersiveFullscreen()
     }
 
@@ -1318,6 +1426,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             clipToPadding = false
             setPadding(dp(16), dp(10), dp(16), dp(30))
         }
+
+        activeVerticalScroll =
+            scroll
 
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
@@ -1583,6 +1694,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         scroll.addView(content)
         root.addView(scroll)
         setContentView(root)
+        restorePendingScrollPositions()
         enableImmersiveFullscreen()
     }
 
@@ -1855,6 +1967,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         }
 
+        activeVerticalScroll =
+            scroll
+
         val content = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
@@ -2040,6 +2155,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         root.addView(scroll)
 
         setContentView(root)
+        restorePendingScrollPositions()
         enableImmersiveFullscreen()
     }
 
@@ -2313,6 +2429,71 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowTotal = null
         nowSeek = null
         nowPlay = null
+        activeVerticalScroll = null
+        activeHorizontalScroll = null
+    }
+
+    private fun restoreScreen(
+        target: Screen,
+    ) {
+        when (target) {
+            Screen.LIBRARY ->
+                showLibrary()
+
+            Screen.NOW_PLAYING ->
+                showNowPlaying()
+
+            Screen.THEME_PICKER ->
+                showThemePicker()
+
+            Screen.BOARD_TRANSFORM ->
+                if (
+                    isLayeredBoardTheme(
+                        selectedThemeId,
+                    )
+                ) {
+                    showBoardTransform()
+                } else {
+                    showNowPlaying()
+                }
+
+            Screen.EXPORT_LAB ->
+                showExportLab()
+        }
+    }
+
+    private fun restorePendingScrollPositions() {
+        val vertical =
+            pendingRestoreScrollY
+
+        if (
+            vertical != null &&
+            activeVerticalScroll != null
+        ) {
+            activeVerticalScroll?.post {
+                activeVerticalScroll?.scrollTo(
+                    0,
+                    vertical,
+                )
+            }
+            pendingRestoreScrollY = null
+        }
+
+        val horizontal =
+            pendingRestoreScrollX
+
+        if (
+            horizontal != null &&
+            activeHorizontalScroll != null
+        ) {
+            activeHorizontalScroll?.post {
+                activeHorizontalScroll?.scrollTo(
+                    horizontal,
+                    0,
+                )
+            }
+            pendingRestoreScrollX = null
+        }
     }
 
     private fun enableImmersiveFullscreen() {
@@ -2353,6 +2534,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         (value * resources.displayMetrics.density).toInt()
 
     companion object {
+        private const val KEY_SCREEN =
+            "faric.screen"
+        private const val KEY_SELECTED_THEME =
+            "faric.selected_theme"
+        private const val KEY_EXPORT_ASPECT_RATIO =
+            "faric.export_aspect_ratio"
+        private const val KEY_HAS_VERTICAL_SCROLL =
+            "faric.has_vertical_scroll"
+        private const val KEY_VERTICAL_SCROLL_Y =
+            "faric.vertical_scroll_y"
+        private const val KEY_HAS_HORIZONTAL_SCROLL =
+            "faric.has_horizontal_scroll"
+        private const val KEY_HORIZONTAL_SCROLL_X =
+            "faric.horizontal_scroll_x"
+
         private val COLOR_BG = Color.rgb(2, 6, 10)
         private val COLOR_PANEL = Color.rgb(13, 20, 27)
         private val COLOR_PANEL_2 = Color.rgb(22, 28, 35)

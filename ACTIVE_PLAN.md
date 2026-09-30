@@ -413,3 +413,24 @@ User clarification after 333058.mp4:
 - [ ] Phone verify real stereo travel with stereo-heavy music.
 - [ ] Tune defaults from phone video if needed.
 - [ ] Later: add stereoPan to offline analysis for deterministic export parity.
+
+
+## v0.7.6 — Rotation/lifecycle audit
+
+- [x] Define one lifecycle/rotation contract for every current and future UI surface.
+- [x] Restore Library after rotation.
+- [x] Restore Now Playing after rotation.
+- [x] Restore Playback Themes after rotation.
+- [x] Restore Board Transform after rotation.
+- [x] Restore Export Lab after rotation.
+- [x] Preserve vertical scroll position.
+- [x] Preserve horizontal scroll position.
+- [x] Preserve selected theme.
+- [x] Preserve export aspect ratio.
+- [x] Keep Board transform/reaction values through their persistent stores.
+- [x] Ensure rotation does not automatically trigger UI actions.
+- [ ] Android CI PASS for v0.7.6.
+- [ ] Phone lifecycle acceptance across all five MainActivity screens.
+- [ ] Move Export Lab offline-analysis ownership to lifecycle-safe state holder.
+- [ ] Explicit projectM rotation/background-work duplication audit.
+- [ ] Add automated instrumentation rotation tests after UI structure stabilizes.

@@ -378,3 +378,11 @@ Target UI direction:
 - [ ] Closing the panel must not reset Board transforms, selected layer, reaction settings, or playback state.
 - [ ] After dismissal, remain on the same Cyber Shark / layered GF playback screen.
 - [ ] Rotation lifecycle must preserve whether the Board settings panel is open or closed.
+
+
+## Board settings panel dismissal UX
+
+- [ ] Tap on empty space outside the Board settings panel to close the panel and return to the live visualizer.
+- [ ] Add an explicit × close button to the Board settings panel.
+- [ ] Closing by outside tap or × must behave exactly like a non-destructive close: keep all already-saved Board/layer settings and never trigger Reset/Fit/Done side effects.
+- [ ] Rotation/lifecycle restore must preserve whether the Board editor was open; closing it remains an explicit user action only.

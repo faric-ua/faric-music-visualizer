@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.7.6 rotation/lifecycle hardening for all current MainActivity screens;
+- v0.7.7 advanced per-layer Board editor;
 - Cyber Shark is the first live multi-layer Board theme;
 - phone visual check confirms the resized/repositioned Cyber Shark is clearly better and usable as a temporary default;
 - further transform controls and floating-control PulseDeck redesign remain TODO;
@@ -704,3 +704,65 @@ Phone acceptance:
 4. open Cyber Shark → Board, change values, scroll inside settings, rotate, confirm same editor/value/scroll position;
 5. rotate Export Lab after selecting a format and scrolling;
 6. confirm no button/action runs by itself after any rotation.
+
+
+## v0.7.7 — per-layer Board editor
+
+Next layered-Board stage implemented after the v0.7.6 lifecycle contract.
+
+Editor targets:
+- whole GF;
+- frame;
+- shark / creature;
+- FARIC wordmark;
+- FX.
+
+Whole-GF mode keeps the existing controls and reactions:
+- X / Y;
+- size;
+- base rotation;
+- opacity;
+- music rotation sway;
+- stereo L/R travel;
+- bass up/down float;
+- Fit Safe Area;
+- Reset all.
+
+Each individual layer now has persistent overrides:
+- X offset;
+- Y offset;
+- scale;
+- rotation;
+- opacity.
+
+Layer transforms are additive/multiplicative on top of whole-GF transform and existing audio reaction. Existing frame / creature / wordmark / FX music reactions remain active.
+
+Gesture editing:
+- selector chooses the current edit target;
+- one-finger drag edits only the selected target;
+- pinch edits selected target scale;
+- two-finger twist edits selected target rotation;
+- gesture-driven values are written back to the same persistent stores as sliders.
+
+Lifecycle:
+- selected layer editor target is saved/restored across rotation;
+- vertical settings scroll and horizontal layer-selector scroll are also preserved;
+- rotation must reopen the same Board target without triggering Reset/Fit/Done.
+
+Persistence:
+- BoardLayerTransformStore stores values per PlaybackThemeId + BoardLayerId;
+- live Now Playing restores all per-layer overrides whenever Cyber Shark is opened.
+
+Release:
+- v0.7.7;
+- versionCode 32.
+
+Phone acceptance:
+1. open Cyber Shark → Board;
+2. choose Frame and move/resize/rotate it;
+3. choose Shark and move it independently;
+4. choose FARIC and change its position/size;
+5. set FX opacity to 0 and back to 100%;
+6. return to "Усе" and confirm whole-GF controls still move all layers together;
+7. rotate while editing a non-group layer and confirm same layer + scroll + values restore;
+8. press Done and reopen Board to confirm persistence.

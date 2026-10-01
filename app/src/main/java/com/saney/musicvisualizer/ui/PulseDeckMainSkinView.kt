@@ -1,74 +1,171 @@
 package com.saney.musicvisualizer.ui
 
+import android.animation.ValueAnimator
 import android.content.Context
-import android.graphics.BlurMaskFilter
+import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
-import android.graphics.LinearGradient
 import android.graphics.Paint
-import android.graphics.Path
-import android.graphics.RadialGradient
 import android.graphics.RectF
-import android.graphics.Shader
-import android.os.SystemClock
+import android.graphics.Typeface
+import android.view.GestureDetector
+import android.view.MotionEvent
 import android.view.View
 import com.saney.musicvisualizer.analysis.SceneSignal
-import kotlin.math.PI
-import kotlin.math.abs
-import kotlin.math.cos
+import org.json.JSONObject
 import kotlin.math.max
-import kotlin.math.min
-import kotlin.math.sin
 
 /**
- * Permanent FARIC PulseDeck main-screen skin.
+ * Skin Engine v1 for the permanent PulseDeck main page.
  *
- * This is deliberately independent from visualizer/theme content. Existing
- * visualizers, GF heroes and video layers can later be inserted above or
- * below this shell without forcing the player controls to change style.
+ * The visual shell is assembled from the modular PNG pack in:
+ *   skin/pulsedeck_hud/
  *
- * The visual language follows the approved cyan/orange HUD reference:
- * - dark navy/black field;
- * - orange energy on the left, cyan energy on the right;
- * - large reactive circular F reactor;
- * - fine HUD rings, radial bars, sparks and flowing stereo ribbons.
+ * Android code owns behavior, text and audio state. The PNG pack owns the
+ * visual language, geometry and z-order through manifest.json.
  */
 class PulseDeckMainSkinView(
     context: Context,
 ) : View(context) {
 
-    private val fill =
-        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.FILL
-        }
+    private data class SkinLayer(
+        val id: String,
+        val asset: String,
+        val assetPlaying: String?,
+        val x: Float,
+        val y: Float,
+        val width: Float,
+        val z: Int,
+        val action: String?,
+        val reactive: String?,
+    )
 
-    private val stroke =
-        Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            style = Paint.Style.STROKE
-            strokeCap = Paint.Cap.ROUND
-            strokeJoin = Paint.Join.ROUND
-        }
+    private data class HitTarget(
+        val action: String,
+        val z: Int,
+        val rect: RectF,
+    )
 
-    private val text =
+    private val bitmapPaint =
+        Paint(
+            Paint.ANTI_ALIAS_FLAG or
+                Paint.FILTER_BITMAP_FLAG,
+        )
+
+    private val textPaint =
         Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
             typeface =
-                android.graphics.Typeface.create(
-                    android.graphics.Typeface.DEFAULT,
-                    android.graphics.Typeface.BOLD,
+                Typeface.create(
+                    Typeface.DEFAULT,
+                    Typeface.BOLD,
                 )
         }
 
-    private val path = Path()
-    private val arc = RectF()
+    private val layers =
+        loadManifest()
 
-    private var amplitude = 0.10f
+    private val bitmaps =
+        mutableMapOf<String, Bitmap>()
+
+    private val hitTargets =
+        mutableListOf<HitTarget>()
+
+    private val progressThumb =
+        loadBitmap(
+            "progress/progress_thumb.png",
+        )
+
+    private var playing = false
+    private var amplitude = 0f
     private var bass = 0f
     private var mid = 0f
     private var high = 0f
     private var beat = 0f
-    private var playing = false
+
+    private var title =
+        "FARIC PulseDeck"
+    private var artist =
+        "Оберіть музику"
+    private var status =
+        "Готово · PulseDeck HUD"
+    private var elapsed =
+        "0:00"
+    private var total =
+        "0:00"
+    private var progressFraction = 0f
+
+    private var controlsVisible = true
+    private var controlsAlpha = 1f
+    private var controlsAnimator: ValueAnimator? = null
+
+    private var pressedAction: String? = null
+    private var scrubbing = false
+
+    private var actionListener:
+        ((String) -> Unit)? = null
+
+    private var seekListener:
+        ((Float) -> Unit)? = null
+
+    private var interactionListener:
+        (() -> Unit)? = null
+
+    private var doubleTapListener:
+        (() -> Unit)? = null
+
+    private val gestureDetector =
+        GestureDetector(
+            context,
+            object :
+                GestureDetector
+                    .SimpleOnGestureListener() {
+
+                override fun onDown(
+                    event: MotionEvent,
+                ): Boolean =
+                    true
+
+                override fun onDoubleTap(
+                    event: MotionEvent,
+                ): Boolean {
+                    if (
+                        findTarget(
+                            event.x,
+                            event.y,
+                        ) == null
+                    ) {
+                        doubleTapListener
+                            ?.invoke()
+                        return true
+                    }
+
+                    return false
+                }
+            },
+        )
+
+    init {
+        isClickable = true
+        isFocusable = true
+        contentDescription =
+            "PulseDeck HUD"
+
+        layers
+            .flatMap { layer ->
+                buildList {
+                    add(layer.asset)
+                    layer.assetPlaying
+                        ?.let(::add)
+                }
+            }
+            .distinct()
+            .forEach { asset ->
+                loadBitmap(asset)
+            }
+    }
 
     fun updateSignal(
         signal: SceneSignal,
@@ -96,19 +193,123 @@ class PulseDeckMainSkinView(
         beat =
             max(
                 beat,
-                signal.beatStrength.coerceIn(
-                    0f,
-                    1f,
-                ),
+                signal.beatStrength
+                    .coerceIn(
+                        0f,
+                        1f,
+                    ),
             )
+
         postInvalidateOnAnimation()
     }
 
     fun setPlaying(
         value: Boolean,
     ) {
+        if (playing == value) {
+            return
+        }
+
         playing = value
         postInvalidateOnAnimation()
+    }
+
+    fun setPlaybackContent(
+        title: String,
+        artist: String,
+        status: String,
+        elapsed: String,
+        total: String,
+        progressFraction: Float,
+    ) {
+        this.title = title
+        this.artist = artist
+        this.status = status
+        this.elapsed = elapsed
+        this.total = total
+        this.progressFraction =
+            progressFraction.coerceIn(
+                0f,
+                1f,
+            )
+
+        postInvalidateOnAnimation()
+    }
+
+    fun setActionListener(
+        listener: (String) -> Unit,
+    ) {
+        actionListener = listener
+    }
+
+    fun setSeekListener(
+        listener: (Float) -> Unit,
+    ) {
+        seekListener = listener
+    }
+
+    fun setInteractionListener(
+        listener: () -> Unit,
+    ) {
+        interactionListener = listener
+    }
+
+    fun setDoubleTapListener(
+        listener: () -> Unit,
+    ) {
+        doubleTapListener = listener
+    }
+
+    fun setControlsVisible(
+        visible: Boolean,
+        animate: Boolean,
+    ) {
+        controlsVisible = visible
+
+        val target =
+            if (visible) {
+                1f
+            } else {
+                0f
+            }
+
+        controlsAnimator?.cancel()
+
+        if (!animate) {
+            controlsAlpha = target
+            invalidate()
+            return
+        }
+
+        controlsAnimator =
+            ValueAnimator
+                .ofFloat(
+                    controlsAlpha,
+                    target,
+                )
+                .apply {
+                    duration =
+                        if (visible) {
+                            150L
+                        } else {
+                            180L
+                        }
+
+                    addUpdateListener { animator ->
+                        controlsAlpha =
+                            animator.animatedValue
+                                as Float
+                        invalidate()
+                    }
+
+                    start()
+                }
+    }
+
+    override fun onDetachedFromWindow() {
+        controlsAnimator?.cancel()
+        controlsAnimator = null
+        super.onDetachedFromWindow()
     }
 
     override fun onDraw(
@@ -116,8 +317,10 @@ class PulseDeckMainSkinView(
     ) {
         super.onDraw(canvas)
 
-        val w = width.toFloat()
-        val h = height.toFloat()
+        val w =
+            width.toFloat()
+        val h =
+            height.toFloat()
 
         if (
             w <= 0f ||
@@ -133,809 +336,697 @@ class PulseDeckMainSkinView(
                 0.82f
             }
 
-        val t =
-            SystemClock.elapsedRealtime() /
-                1000f
+        canvas.drawColor(
+            Color.rgb(
+                0,
+                4,
+                8,
+            ),
+        )
 
-        drawBackground(
-            canvas,
-            w,
-            h,
-        )
-        drawEnergyField(
-            canvas,
-            w,
-            h,
-            t,
-        )
-        drawReactor(
-            canvas,
-            w,
-            h,
-            t,
-        )
+        hitTargets.clear()
+
+        layers
+            .sortedBy {
+                it.z
+            }
+            .forEach { layer ->
+                drawLayer(
+                    canvas = canvas,
+                    layer = layer,
+                    w = w,
+                    h = h,
+                )
+            }
+
+        if (controlsAlpha > 0.01f) {
+            drawDynamicText(
+                canvas = canvas,
+                w = w,
+                h = h,
+            )
+            drawProgressThumb(
+                canvas = canvas,
+                w = w,
+                h = h,
+            )
+        }
 
         if (
             playing ||
-            amplitude > 0.015f
+            amplitude > 0.01f ||
+            beat > 0.01f ||
+            controlsAnimator?.isRunning == true
         ) {
             postInvalidateOnAnimation()
         }
     }
 
-    private fun drawBackground(
+    private fun drawLayer(
         canvas: Canvas,
+        layer: SkinLayer,
         w: Float,
         h: Float,
     ) {
-        fill.shader =
-            LinearGradient(
-                0f,
-                0f,
-                0f,
-                h,
-                intArrayOf(
-                    Color.rgb(
-                        0,
-                        4,
-                        8,
-                    ),
-                    Color.rgb(
-                        0,
-                        10,
-                        17,
-                    ),
-                    Color.rgb(
-                        0,
-                        4,
-                        8,
-                    ),
-                ),
-                null,
-                Shader.TileMode.CLAMP,
-            )
+        val isChrome =
+            layer.z >=
+                CONTROL_Z_MIN
 
-        canvas.drawRect(
-            0f,
-            0f,
-            w,
-            h,
-            fill,
-        )
-        fill.shader = null
+        val chromeAlpha =
+            if (isChrome) {
+                controlsAlpha
+            } else {
+                1f
+            }
 
-        val cx = w * 0.5f
-        val cy = h * 0.29f
-        val radius = min(w, h) * 0.58f
+        if (chromeAlpha <= 0.01f) {
+            return
+        }
 
-        fill.shader =
-            RadialGradient(
-                cx,
-                cy,
-                radius,
-                intArrayOf(
-                    Color.argb(
-                        90,
-                        0,
-                        83,
-                        116,
-                    ),
-                    Color.argb(
-                        36,
-                        0,
-                        34,
-                        51,
-                    ),
-                    Color.TRANSPARENT,
-                ),
-                floatArrayOf(
-                    0f,
-                    0.58f,
-                    1f,
-                ),
-                Shader.TileMode.CLAMP,
-            )
+        val asset =
+            if (
+                layer.id ==
+                    "play_pause" &&
+                playing &&
+                layer.assetPlaying != null
+            ) {
+                layer.assetPlaying
+            } else {
+                layer.asset
+            }
 
-        canvas.drawCircle(
-            cx,
-            cy,
-            radius,
-            fill,
-        )
-        fill.shader = null
-    }
+        val bitmap =
+            bitmaps[asset]
+                ?: return
 
-    private fun drawEnergyField(
-        canvas: Canvas,
-        w: Float,
-        h: Float,
-        t: Float,
-    ) {
-        val centerY =
-            h * 0.285f
-        val orange =
-            Color.rgb(
-                255,
-                139,
-                18,
-            )
-        val cyan =
-            Color.rgb(
-                20,
-                211,
-                248,
-            )
+        val reactiveScale =
+            when (layer.reactive) {
+                "ambient" ->
+                    1f +
+                        amplitude *
+                        0.018f
 
-        setLayerType(
-            LAYER_TYPE_SOFTWARE,
-            null,
-        )
+                "bass" ->
+                    1f +
+                        bass *
+                        0.035f
 
-        repeat(4) { layer ->
-            val isOrange =
-                layer % 2 == 0
+                "beat" ->
+                    1f +
+                        beat *
+                        0.070f
 
-            stroke.color =
-                if (isOrange) {
-                    orange
-                } else {
-                    cyan
-                }
-
-            stroke.alpha =
-                118 -
-                    layer * 13
-            stroke.strokeWidth =
-                resources.displayMetrics.density *
-                    (
-                        1.0f +
-                            layer * 0.34f
-                        )
-            stroke.maskFilter =
-                BlurMaskFilter(
-                    resources.displayMetrics.density *
+                "spectrum" ->
+                    1f +
                         (
-                            2.2f +
-                                layer
-                            ),
-                    BlurMaskFilter.Blur.NORMAL,
-                )
+                            mid *
+                                0.012f +
+                                high *
+                                0.018f
+                            )
 
-            path.reset()
+                else ->
+                    1f
+            }
 
-            val phase =
-                t *
+        val targetWidth =
+            w *
+                layer.width *
+                reactiveScale
+
+        val aspect =
+            bitmap.height.toFloat() /
+                bitmap.width.toFloat()
+
+        val targetHeight =
+            targetWidth *
+                aspect
+
+        val centerX =
+            w *
+                layer.x
+        val centerY =
+            h *
+                layer.y
+
+        val rect =
+            RectF(
+                centerX -
+                    targetWidth *
+                    0.5f,
+                centerY -
+                    targetHeight *
+                    0.5f,
+                centerX +
+                    targetWidth *
+                    0.5f,
+                centerY +
+                    targetHeight *
+                    0.5f,
+            )
+
+        val reactiveAlpha =
+            when (layer.reactive) {
+                "ambient" ->
                     (
-                        0.7f +
-                            layer * 0.12f
-                        ) +
-                    layer *
-                    1.17f
-
-            val baseAmp =
-                h *
-                    (
-                        0.026f +
-                            layer * 0.008f
-                        ) *
-                    (
-                        0.76f +
-                            amplitude * 0.44f
-                        )
-
-            val steps = 84
-
-            repeat(
-                steps + 1,
-            ) { index ->
-                val x =
-                    w *
-                        index /
-                        steps.toFloat()
-
-                val normalized =
-                    x /
-                        w
-
-                val leftWeight =
-                    (
-                        1f -
-                            normalized
+                        0.78f +
+                            amplitude *
+                            0.22f
                         )
                         .coerceIn(
                             0f,
                             1f,
                         )
 
-                val rightWeight =
-                    normalized.coerceIn(
-                        0f,
-                        1f,
-                    )
-
-                val stereoWeight =
-                    if (isOrange) {
-                        0.68f +
-                            leftWeight *
-                            0.32f
-                    } else {
-                        0.68f +
-                            rightWeight *
-                            0.32f
-                    }
-
-                val y =
-                    centerY +
-                        sin(
-                            (
-                                normalized *
-                                    (
-                                        3.1f +
-                                            layer * 0.23f
-                                        ) *
-                                    PI *
-                                    2f +
-                                    phase
-                                )
-                                .toDouble(),
+                "spectrum" ->
+                    (
+                        0.82f +
+                            high *
+                            0.18f
                         )
-                            .toFloat() *
-                        baseAmp *
-                        stereoWeight +
-                        sin(
-                            (
-                                normalized *
-                                    PI *
-                                    6f -
-                                    phase *
-                                    0.72f
-                                )
-                                .toDouble(),
+                        .coerceIn(
+                            0f,
+                            1f,
                         )
-                            .toFloat() *
-                        baseAmp *
-                        0.22f
 
-                if (index == 0) {
-                    path.moveTo(
-                        x,
-                        y,
-                    )
-                } else {
-                    path.lineTo(
-                        x,
-                        y,
-                    )
-                }
+                else ->
+                    1f
             }
 
-            canvas.drawPath(
-                path,
-                stroke,
-            )
-        }
-
-        stroke.maskFilter = null
-
-        repeat(92) { index ->
-            val f =
-                (
-                    index *
-                        0.61803398875f
-                    ) %
-                    1f
-            val x =
-                w *
-                    f
-
-            val wave =
-                sin(
-                    (
-                        f *
-                            PI *
-                            5.2 +
-                            index *
-                            0.47 +
-                            t *
-                            0.42
-                        )
-                        .toDouble(),
+        bitmapPaint.alpha =
+            (
+                255f *
+                    chromeAlpha *
+                    reactiveAlpha
                 )
-                    .toFloat()
+                .toInt()
+                .coerceIn(
+                    0,
+                    255,
+                )
 
-            val y =
-                centerY +
-                    wave *
-                    h *
-                    0.10f +
-                    (
-                        (index % 7) -
-                            3
-                        ) *
-                    h *
-                    0.008f
+        canvas.drawBitmap(
+            bitmap,
+            null,
+            rect,
+            bitmapPaint,
+        )
 
-            val orangeParticle =
-                index % 3 == 0
+        val action =
+            layer.action
 
-            fill.color =
-                if (orangeParticle) {
-                    Color.argb(
-                        (
-                            70 +
-                                bass *
-                                80f +
-                                beat *
-                                65f
-                            )
-                            .toInt()
-                            .coerceIn(
-                                50,
-                                205,
-                            ),
-                        255,
-                        139,
-                        18,
+        if (
+            action != null &&
+            controlsVisible &&
+            controlsAlpha >= 0.35f
+        ) {
+            val touchRect =
+                if (action == "seek") {
+                    val extra =
+                        resources.displayMetrics
+                            .density *
+                            18f
+
+                    RectF(
+                        rect.left,
+                        rect.top -
+                            extra,
+                        rect.right,
+                        rect.bottom +
+                            extra,
                     )
                 } else {
-                    Color.argb(
-                        (
-                            58 +
-                                high *
-                                95f +
-                                beat *
-                                45f
-                            )
-                            .toInt()
-                            .coerceIn(
-                                45,
-                                205,
-                            ),
-                        20,
-                        211,
-                        248,
-                    )
+                    rect
                 }
 
-            val radius =
-                resources.displayMetrics.density *
-                    (
-                        0.7f +
-                            (index % 4) *
-                            0.36f +
-                            beat *
-                            0.9f
-                        )
-
-            canvas.drawCircle(
-                x,
-                y,
-                radius,
-                fill,
+            hitTargets.add(
+                HitTarget(
+                    action = action,
+                    z = layer.z,
+                    rect =
+                        RectF(touchRect),
+                ),
             )
         }
     }
 
-    private fun drawReactor(
+    private fun drawDynamicText(
         canvas: Canvas,
         w: Float,
         h: Float,
-        t: Float,
     ) {
-        val cx =
-            w *
-                0.5f
-        val cy =
-            h *
-                0.29f
-        val base =
-            min(
-                w,
-                h,
-            )
-        val beatPulse =
-            1f +
-                beat *
-                0.035f
-        val outerRadius =
-            base *
-                0.315f *
-                beatPulse
+        val alpha =
+            (
+                controlsAlpha *
+                    255f
+                )
+                .toInt()
+                .coerceIn(
+                    0,
+                    255,
+                )
 
-        val orange =
-            Color.rgb(
-                255,
-                139,
-                18,
-            )
-        val cyan =
-            Color.rgb(
-                20,
-                211,
-                248,
-            )
+        textPaint.alpha = alpha
 
-        fill.shader =
-            RadialGradient(
-                cx,
-                cy,
-                outerRadius,
-                intArrayOf(
-                    Color.argb(
-                        20,
-                        20,
-                        211,
-                        248,
-                    ),
-                    Color.argb(
-                        16,
-                        255,
-                        139,
-                        18,
-                    ),
-                    Color.TRANSPARENT,
+        drawCenteredText(
+            canvas = canvas,
+            text = "FARIC PulseDeck",
+            x = w * 0.5f,
+            y = h * 0.069f,
+            size = w * 0.052f,
+            color = Color.WHITE,
+            bold = true,
+        )
+
+        drawCenteredText(
+            canvas = canvas,
+            text = title,
+            x = w * 0.5f,
+            y = h * 0.485f,
+            size = w * 0.052f,
+            color = Color.WHITE,
+            bold = true,
+        )
+
+        drawCenteredText(
+            canvas = canvas,
+            text = artist,
+            x = w * 0.5f,
+            y = h * 0.515f,
+            size = w * 0.037f,
+            color =
+                Color.rgb(
+                    190,
+                    202,
+                    212,
                 ),
-                floatArrayOf(
-                    0.36f,
-                    0.72f,
-                    1f,
+            bold = false,
+        )
+
+        drawCenteredText(
+            canvas = canvas,
+            text = status,
+            x = w * 0.5f,
+            y = h * 0.538f,
+            size = w * 0.026f,
+            color =
+                Color.rgb(
+                    164,
+                    182,
+                    194,
                 ),
-                Shader.TileMode.CLAMP,
-            )
-
-        canvas.drawCircle(
-            cx,
-            cy,
-            outerRadius * 1.10f,
-            fill,
+            bold = false,
         )
-        fill.shader = null
 
-        repeat(7) { index ->
-            val r =
-                outerRadius *
-                    (
-                        0.58f +
-                            index *
-                            0.065f
-                        )
+        drawCenteredText(
+            canvas = canvas,
+            text = elapsed,
+            x = w * 0.085f,
+            y = h * 0.625f,
+            size = w * 0.031f,
+            color = Color.WHITE,
+            bold = true,
+        )
 
-            arc.set(
-                cx - r,
-                cy - r,
-                cx + r,
-                cy + r,
-            )
+        drawCenteredText(
+            canvas = canvas,
+            text = total,
+            x = w * 0.915f,
+            y = h * 0.625f,
+            size = w * 0.031f,
+            color = Color.WHITE,
+            bold = true,
+        )
 
-            stroke.strokeWidth =
-                resources.displayMetrics.density *
-                    (
-                        0.8f +
-                            index *
-                            0.14f
-                        )
+        textPaint.alpha = 255
+    }
 
-            stroke.color =
-                if (index % 2 == 0) {
-                    cyan
+    private fun drawCenteredText(
+        canvas: Canvas,
+        text: String,
+        x: Float,
+        y: Float,
+        size: Float,
+        color: Int,
+        bold: Boolean,
+    ) {
+        textPaint.textSize = size
+        textPaint.color = color
+        textPaint.typeface =
+            Typeface.create(
+                Typeface.DEFAULT,
+                if (bold) {
+                    Typeface.BOLD
                 } else {
-                    orange
-                }
-
-            stroke.alpha =
-                72 +
-                    index *
-                    14
-
-            canvas.drawArc(
-                arc,
-                (
-                    t *
-                        (
-                            7f +
-                                index * 1.7f
-                            ) +
-                        index * 37f
-                    ) %
-                    360f,
-                66f +
-                    index * 7f,
-                false,
-                stroke,
+                    Typeface.NORMAL
+                },
             )
-
-            canvas.drawArc(
-                arc,
-                (
-                    182f -
-                        t *
-                        (
-                            5f +
-                                index * 1.25f
-                            ) +
-                        index * 29f
-                    ) %
-                    360f,
-                42f +
-                    index * 5f,
-                false,
-                stroke,
-            )
-        }
-
-        val bars = 72
-        val inner =
-            outerRadius *
-                0.54f
-        val maxBar =
-            outerRadius *
-                0.25f
-
-        repeat(bars) { index ->
-            val ratio =
-                index /
-                    bars.toFloat()
-
-            val angle =
-                ratio *
-                    PI *
-                    2f -
-                    PI /
-                    2f
-
-            val orangeSide =
-                cos(
-                    angle,
-                ) <
-                    0f
-
-            val band =
-                if (orangeSide) {
-                    bass
-                } else {
-                    high
-                }
-
-            val animation =
-                (
-                    sin(
-                        (
-                            t *
-                                3.3f +
-                                index *
-                                0.41f
-                            )
-                            .toDouble(),
-                    ) +
-                        1.0
-                    )
-                    .toFloat() *
-                    0.5f
-
-            val length =
-                maxBar *
-                    (
-                        0.32f +
-                            amplitude * 0.32f +
-                            band * 0.24f +
-                            animation * 0.16f +
-                            beat * 0.20f
-                        )
-                        .coerceIn(
-                            0.24f,
-                            1f,
-                        )
-
-            val x1 =
-                cx +
-                    cos(
-                        angle,
-                    )
-                        .toFloat() *
-                    inner
-            val y1 =
-                cy +
-                    sin(
-                        angle,
-                    )
-                        .toFloat() *
-                    inner
-            val x2 =
-                cx +
-                    cos(
-                        angle,
-                    )
-                        .toFloat() *
-                    (
-                        inner +
-                            length
-                        )
-            val y2 =
-                cy +
-                    sin(
-                        angle,
-                    )
-                        .toFloat() *
-                    (
-                        inner +
-                            length
-                        )
-
-            stroke.color =
-                if (orangeSide) {
-                    orange
-                } else {
-                    cyan
-                }
-
-            stroke.alpha =
-                170
-            stroke.strokeWidth =
-                resources.displayMetrics.density *
-                    2.0f
-
-            canvas.drawLine(
-                x1,
-                y1,
-                x2,
-                y2,
-                stroke,
-            )
-        }
-
-        val coreRadius =
-            outerRadius *
-                0.37f
-
-        fill.shader =
-            RadialGradient(
-                cx,
-                cy,
-                coreRadius,
-                intArrayOf(
-                    Color.rgb(
-                        8,
-                        17,
-                        25,
-                    ),
-                    Color.rgb(
-                        2,
-                        7,
-                        12,
-                    ),
-                ),
-                null,
-                Shader.TileMode.CLAMP,
-            )
-
-        canvas.drawCircle(
-            cx,
-            cy,
-            coreRadius,
-            fill,
-        )
-        fill.shader = null
-
-        stroke.strokeWidth =
-            resources.displayMetrics.density *
-                2.2f
-        stroke.alpha = 235
-
-        arc.set(
-            cx - coreRadius,
-            cy - coreRadius,
-            cx + coreRadius,
-            cy + coreRadius,
-        )
-
-        stroke.color = orange
-        canvas.drawArc(
-            arc,
-            104f,
-            152f,
-            false,
-            stroke,
-        )
-
-        stroke.color = cyan
-        canvas.drawArc(
-            arc,
-            -76f,
-            152f,
-            false,
-            stroke,
-        )
-
-        text.textSize =
-            base *
-                0.105f
-        text.color =
-            Color.rgb(
-                224,
-                247,
-                255,
-            )
-        text.setShadowLayer(
-            resources.displayMetrics.density *
-                9f,
-            0f,
-            0f,
-            cyan,
-        )
-
-        val fm =
-            text.fontMetrics
-        val baseline =
-            cy -
-                (
-                    fm.ascent +
-                        fm.descent
-                    ) /
-                2f
 
         canvas.drawText(
-            "F",
-            cx,
-            baseline,
             text,
+            x,
+            y,
+            textPaint,
         )
+    }
 
-        text.clearShadowLayer()
+    private fun drawProgressThumb(
+        canvas: Canvas,
+        w: Float,
+        h: Float,
+    ) {
+        val bitmap =
+            progressThumb
+                ?: return
 
-        repeat(8) { index ->
-            val angle =
-                PI *
-                    2.0 *
-                    index /
-                    8.0
+        val left =
+            w *
+                0.055f
+        val right =
+            w *
+                0.945f
+        val cx =
+            left +
+                (
+                    right -
+                        left
+                    ) *
+                progressFraction
+        val cy =
+            h *
+                0.595f
+        val targetWidth =
+            w *
+                0.046f
+        val targetHeight =
+            targetWidth *
+                bitmap.height.toFloat() /
+                bitmap.width.toFloat()
 
-            val r =
-                outerRadius *
-                    0.98f
+        bitmapPaint.alpha =
+            (
+                controlsAlpha *
+                    255f
+                )
+                .toInt()
+                .coerceIn(
+                    0,
+                    255,
+                )
 
-            val x =
+        canvas.drawBitmap(
+            bitmap,
+            null,
+            RectF(
+                cx -
+                    targetWidth *
+                    0.5f,
+                cy -
+                    targetHeight *
+                    0.5f,
                 cx +
-                    cos(
-                        angle,
-                    )
-                        .toFloat() *
-                    r
-            val y =
+                    targetWidth *
+                    0.5f,
                 cy +
-                    sin(
-                        angle,
-                    )
-                        .toFloat() *
-                    r
+                    targetHeight *
+                    0.5f,
+            ),
+            bitmapPaint,
+        )
+    }
 
-            fill.color =
-                if (index % 2 == 0) {
-                    Color.argb(
-                        210,
-                        20,
-                        211,
-                        248,
+    override fun onTouchEvent(
+        event: MotionEvent,
+    ): Boolean {
+        gestureDetector
+            .onTouchEvent(event)
+
+        when (event.actionMasked) {
+            MotionEvent.ACTION_DOWN -> {
+                val target =
+                    findTarget(
+                        event.x,
+                        event.y,
                     )
-                } else {
-                    Color.argb(
-                        210,
-                        255,
-                        139,
-                        18,
+
+                pressedAction =
+                    target?.action
+
+                scrubbing =
+                    target?.action ==
+                    "seek"
+
+                if (
+                    target != null &&
+                    target.action !=
+                    "seek"
+                ) {
+                    interactionListener
+                        ?.invoke()
+                }
+
+                if (scrubbing) {
+                    updateSeek(
+                        event.x,
+                        commit = false,
                     )
                 }
 
-            canvas.drawCircle(
-                x,
-                y,
-                resources.displayMetrics.density *
-                    (
-                        1.25f +
-                            beat *
-                            1.6f
-                        ),
-                fill,
-            )
+                return true
+            }
+
+            MotionEvent.ACTION_MOVE -> {
+                if (scrubbing) {
+                    updateSeek(
+                        event.x,
+                        commit = false,
+                    )
+                    interactionListener
+                        ?.invoke()
+                }
+
+                return true
+            }
+
+            MotionEvent.ACTION_UP -> {
+                if (scrubbing) {
+                    updateSeek(
+                        event.x,
+                        commit = true,
+                    )
+                    interactionListener
+                        ?.invoke()
+                } else {
+                    val target =
+                        findTarget(
+                            event.x,
+                            event.y,
+                        )
+
+                    if (
+                        pressedAction != null &&
+                        target?.action ==
+                        pressedAction
+                    ) {
+                        performClick()
+                        actionListener
+                            ?.invoke(
+                                target.action,
+                            )
+                    }
+                }
+
+                pressedAction = null
+                scrubbing = false
+                return true
+            }
+
+            MotionEvent.ACTION_CANCEL -> {
+                pressedAction = null
+                scrubbing = false
+                return true
+            }
         }
+
+        return true
+    }
+
+    override fun performClick(): Boolean {
+        super.performClick()
+        return true
+    }
+
+    private fun updateSeek(
+        x: Float,
+        commit: Boolean,
+    ) {
+        val target =
+            hitTargets
+                .filter {
+                    it.action ==
+                        "seek"
+                }
+                .maxByOrNull {
+                    it.z
+                }
+                ?: return
+
+        val fraction =
+            (
+                (x -
+                    target.rect.left) /
+                    target.rect.width()
+                )
+                .coerceIn(
+                    0f,
+                    1f,
+                )
+
+        progressFraction = fraction
+        invalidate()
+
+        if (commit) {
+            seekListener
+                ?.invoke(
+                    fraction,
+                )
+        }
+    }
+
+    private fun findTarget(
+        x: Float,
+        y: Float,
+    ): HitTarget? =
+        hitTargets
+            .asSequence()
+            .filter {
+                it.rect.contains(
+                    x,
+                    y,
+                )
+            }
+            .maxByOrNull {
+                it.z
+            }
+
+    private fun loadManifest(): List<SkinLayer> =
+        runCatching {
+            val raw =
+                context.assets
+                    .open(
+                        "$SKIN_ROOT/manifest.json",
+                    )
+                    .bufferedReader()
+                    .use {
+                        it.readText()
+                    }
+
+            val json =
+                JSONObject(raw)
+            val array =
+                json.getJSONArray(
+                    "layers",
+                )
+
+            buildList {
+                repeat(
+                    array.length(),
+                ) { index ->
+                    val item =
+                        array.getJSONObject(
+                            index,
+                        )
+
+                    add(
+                        SkinLayer(
+                            id =
+                                item.getString(
+                                    "id",
+                                ),
+                            asset =
+                                item.getString(
+                                    "asset",
+                                ),
+                            assetPlaying =
+                                item.optString(
+                                    "assetPlaying",
+                                )
+                                    .takeIf {
+                                        it.isNotBlank()
+                                    },
+                            x =
+                                item.getDouble(
+                                    "x",
+                                )
+                                    .toFloat(),
+                            y =
+                                item.getDouble(
+                                    "y",
+                                )
+                                    .toFloat(),
+                            width =
+                                item.getDouble(
+                                    "width",
+                                )
+                                    .toFloat(),
+                            z =
+                                item.optInt(
+                                    "z",
+                                    0,
+                                ),
+                            action =
+                                item.optString(
+                                    "action",
+                                )
+                                    .takeIf {
+                                        it.isNotBlank()
+                                    },
+                            reactive =
+                                item.optString(
+                                    "reactive",
+                                )
+                                    .takeIf {
+                                        it.isNotBlank()
+                                    },
+                        ),
+                    )
+                }
+            }
+        }.getOrElse {
+            emptyList()
+        }
+
+    private fun loadBitmap(
+        relativePath: String,
+    ): Bitmap? {
+        bitmaps[relativePath]
+            ?.let {
+                return it
+            }
+
+        val bitmap =
+            runCatching {
+                context.assets
+                    .open(
+                        "$SKIN_ROOT/$relativePath",
+                    )
+                    .use(
+                        BitmapFactory::decodeStream,
+                    )
+            }.getOrNull()
+                ?: return null
+
+        bitmaps[relativePath] =
+            bitmap
+
+        return bitmap
+    }
+
+    companion object {
+        private const val SKIN_ROOT =
+            "pulsedeck_hud"
+
+        private const val CONTROL_Z_MIN =
+            40
     }
 }

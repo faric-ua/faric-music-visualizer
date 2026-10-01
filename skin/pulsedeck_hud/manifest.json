@@ -1,7 +1,7 @@
 {
   "id": "pulsedeck_hud",
   "name": "PulseDeck HUD",
-  "version": 1,
+  "version": 2,
   "coordinateSystem": "normalized",
   "referenceSize": {
     "width": 941,
@@ -12,37 +12,89 @@
       "id": "energy_waves",
       "asset": "background/energy_waves.png",
       "x": 0.5,
-      "y": 0.29,
+      "y": 0.31,
       "width": 1.18,
       "z": 5,
-      "reactive": "ambient"
+      "reactive": "ambient",
+      "blend": "screen",
+      "opacity": 0.96,
+      "cropTop": 0.16
+    },
+    {
+      "id": "particles_orange_left",
+      "asset": "background/particles_orange_left.png",
+      "x": 0.18,
+      "y": 0.22,
+      "width": 0.46,
+      "z": 6,
+      "reactive": "spectrum",
+      "blend": "screen",
+      "opacity": 0.6
+    },
+    {
+      "id": "particles_blue_left",
+      "asset": "background/particles_blue_left.png",
+      "x": 0.21,
+      "y": 0.39,
+      "width": 0.48,
+      "z": 7,
+      "reactive": "spectrum",
+      "blend": "screen",
+      "opacity": 0.48
+    },
+    {
+      "id": "particles_blue_right",
+      "asset": "background/particles_blue_right.png",
+      "x": 0.8,
+      "y": 0.23,
+      "width": 0.45,
+      "z": 8,
+      "reactive": "spectrum",
+      "blend": "screen",
+      "opacity": 0.54
+    },
+    {
+      "id": "particles_orange_right",
+      "asset": "background/particles_orange_right.png",
+      "x": 0.82,
+      "y": 0.4,
+      "width": 0.43,
+      "z": 9,
+      "reactive": "spectrum",
+      "blend": "screen",
+      "opacity": 0.46
     },
     {
       "id": "reactor_energy_ring",
       "asset": "background/reactor_energy_ring.png",
       "x": 0.5,
-      "y": 0.27,
-      "width": 0.78,
+      "y": 0.265,
+      "width": 0.74,
       "z": 10,
-      "reactive": "bass"
+      "reactive": "bass",
+      "blend": "screen",
+      "opacity": 0.58
     },
     {
       "id": "hero_frame",
       "asset": "hero/reactor_frame.png",
       "x": 0.5,
-      "y": 0.285,
-      "width": 0.7,
+      "y": 0.265,
+      "width": 0.68,
       "z": 20,
-      "reactive": "bass"
+      "reactive": "bass",
+      "blend": "screen",
+      "opacity": 0.96
     },
     {
       "id": "hero_core",
       "asset": "hero/F_core.png",
       "x": 0.5,
-      "y": 0.285,
-      "width": 0.26,
+      "y": 0.265,
+      "width": 0.235,
       "z": 25,
-      "reactive": "beat"
+      "reactive": "beat",
+      "opacity": 1
     },
     {
       "id": "favorite",
@@ -69,7 +121,8 @@
       "y": 0.565,
       "width": 0.91,
       "z": 40,
-      "reactive": "spectrum"
+      "reactive": "spectrum",
+      "blend": "screen"
     },
     {
       "id": "progress_line",
@@ -78,13 +131,14 @@
       "y": 0.595,
       "width": 0.89,
       "z": 41,
-      "action": "seek"
+      "action": "seek",
+      "blend": "screen"
     },
     {
       "id": "transport_rail",
       "asset": "transport/rail.png",
       "x": 0.5,
-      "y": 0.7,
+      "y": 0.74,
       "width": 0.96,
       "z": 50
     },
@@ -92,7 +146,7 @@
       "id": "shuffle",
       "asset": "transport/shuffle.png",
       "x": 0.095,
-      "y": 0.7,
+      "y": 0.74,
       "width": 0.14,
       "z": 55,
       "action": "shuffle"
@@ -101,7 +155,7 @@
       "id": "previous",
       "asset": "transport/previous.png",
       "x": 0.275,
-      "y": 0.7,
+      "y": 0.74,
       "width": 0.15,
       "z": 55,
       "action": "previous"
@@ -111,7 +165,7 @@
       "asset": "transport/play.png",
       "assetPlaying": "transport/pause.png",
       "x": 0.5,
-      "y": 0.7,
+      "y": 0.74,
       "width": 0.22,
       "z": 56,
       "action": "play_pause"
@@ -120,7 +174,7 @@
       "id": "next",
       "asset": "transport/next.png",
       "x": 0.725,
-      "y": 0.7,
+      "y": 0.74,
       "width": 0.15,
       "z": 55,
       "action": "next"
@@ -129,7 +183,7 @@
       "id": "repeat",
       "asset": "transport/repeat.png",
       "x": 0.905,
-      "y": 0.7,
+      "y": 0.74,
       "width": 0.14,
       "z": 55,
       "action": "repeat"
@@ -138,7 +192,7 @@
       "id": "quick_rail",
       "asset": "quick_actions/rail.png",
       "x": 0.5,
-      "y": 0.835,
+      "y": 0.9,
       "width": 0.96,
       "z": 50
     },
@@ -146,7 +200,7 @@
       "id": "theme",
       "asset": "quick_actions/theme.png",
       "x": 0.14,
-      "y": 0.835,
+      "y": 0.9,
       "width": 0.16,
       "z": 55,
       "action": "theme"
@@ -155,7 +209,7 @@
       "id": "board",
       "asset": "quick_actions/board.png",
       "x": 0.38,
-      "y": 0.835,
+      "y": 0.9,
       "width": 0.16,
       "z": 55,
       "action": "board"
@@ -164,7 +218,7 @@
       "id": "visualizer",
       "asset": "quick_actions/visualizer.png",
       "x": 0.62,
-      "y": 0.835,
+      "y": 0.9,
       "width": 0.16,
       "z": 55,
       "action": "visualizer"
@@ -173,7 +227,7 @@
       "id": "export",
       "asset": "quick_actions/export.png",
       "x": 0.86,
-      "y": 0.835,
+      "y": 0.9,
       "width": 0.16,
       "z": 55,
       "action": "export"

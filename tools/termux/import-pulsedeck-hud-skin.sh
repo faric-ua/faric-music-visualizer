@@ -202,6 +202,21 @@ echo
 git commit -m "assets: add modular PulseDeck HUD skin pack"
 
 echo
+echo "Синхронізуюсь із origin/$BRANCH перед push..."
+if ! git fetch --prune origin "+refs/heads/$BRANCH:refs/remotes/origin/$BRANCH"; then
+  echo "FAIL: не вдалося отримати актуальний origin/$BRANCH."
+  exit 1
+fi
+
+if ! git rebase "refs/remotes/origin/$BRANCH"; then
+  echo
+  echo "FAIL: rebase зупинився через конфлікт."
+  echo "Нічого не форсую."
+  echo "Скинь цей екран у чат."
+  exit 1
+fi
+
+echo
 echo "Push → origin/$BRANCH"
 git push origin "$BRANCH"
 

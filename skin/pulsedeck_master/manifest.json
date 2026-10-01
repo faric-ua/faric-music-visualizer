@@ -1,12 +1,12 @@
 {
   "id": "pulsedeck_master",
   "name": "PulseDeck Master Plate",
-  "version": 1,
+  "version": 2,
   "nativeWidth": 1080,
   "nativeHeight": 2340,
   "playingAsset": "master_playing.webp",
   "pausedAsset": "master_paused.webp",
-  "fit": "stretch_exact_20x9",
+  "fit": "center_crop_uniform",
   "visualPolicy": "reference_first_master_plate",
   "hitZones": [
     {

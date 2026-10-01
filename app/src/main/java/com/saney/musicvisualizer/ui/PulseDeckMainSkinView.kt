@@ -61,6 +61,20 @@ class PulseDeckMainSkinView(
         val rect: RectF,
     )
 
+    private data class MasterHitZone(
+        val action: String,
+        val x: Float,
+        val y: Float,
+        val width: Float,
+        val height: Float,
+    )
+
+    private data class MasterSkin(
+        val playingAsset: String,
+        val pausedAsset: String,
+        val hitZones: List<MasterHitZone>,
+    )
+
     private val bitmapPaint =
         Paint(
             Paint.ANTI_ALIAS_FLAG or
@@ -83,6 +97,27 @@ class PulseDeckMainSkinView(
 
     private val bitmaps =
         mutableMapOf<String, Bitmap>()
+
+    private val masterSkin =
+        loadMasterSkin()
+
+    private val masterPlayingBitmap =
+        masterSkin
+            ?.let { skin ->
+                loadAssetBitmap(
+                    "pulsedeck_master/" +
+                        skin.playingAsset,
+                )
+            }
+
+    private val masterPausedBitmap =
+        masterSkin
+            ?.let { skin ->
+                loadAssetBitmap(
+                    "pulsedeck_master/" +
+                        skin.pausedAsset,
+                )
+            }
 
     private val hitTargets =
         mutableListOf<HitTarget>()
@@ -184,6 +219,11 @@ class PulseDeckMainSkinView(
             }
     }
 
+    fun isMasterPlateMode(): Boolean =
+        masterSkin != null &&
+            masterPlayingBitmap != null &&
+            masterPausedBitmap != null
+
     fun updateSignal(
         signal: SceneSignal,
     ) {
@@ -281,6 +321,14 @@ class PulseDeckMainSkinView(
         visible: Boolean,
         animate: Boolean,
     ) {
+        if (isMasterPlateMode()) {
+            controlsVisible = true
+            controlsAlpha = 1f
+            controlsAnimator?.cancel()
+            invalidate()
+            return
+        }
+
         controlsVisible = visible
 
         val target =
@@ -346,6 +394,15 @@ class PulseDeckMainSkinView(
             return
         }
 
+        if (isMasterPlateMode()) {
+            drawMasterPlate(
+                canvas = canvas,
+                w = w,
+                h = h,
+            )
+            return
+        }
+
         beat *=
             if (playing) {
                 0.90f
@@ -398,6 +455,79 @@ class PulseDeckMainSkinView(
         ) {
             postInvalidateOnAnimation()
         }
+    }
+
+    private fun drawMasterPlate(
+        canvas: Canvas,
+        w: Float,
+        h: Float,
+    ) {
+        val bitmap =
+            if (playing) {
+                masterPlayingBitmap
+            } else {
+                masterPausedBitmap
+            }
+                ?: return
+
+        bitmapPaint.alpha = 255
+        bitmapPaint.xfermode = null
+
+        canvas.drawBitmap(
+            bitmap,
+            null,
+            RectF(
+                0f,
+                0f,
+                w,
+                h,
+            ),
+            bitmapPaint,
+        )
+
+        hitTargets.clear()
+
+        masterSkin
+            ?.hitZones
+            ?.forEachIndexed { index, zone ->
+                val centerX =
+                    w *
+                        zone.x
+                val centerY =
+                    h *
+                        zone.y
+                val zoneWidth =
+                    w *
+                        zone.width
+                val zoneHeight =
+                    h *
+                        zone.height
+
+                hitTargets.add(
+                    HitTarget(
+                        action =
+                            zone.action,
+                        z =
+                            10_000 +
+                                index,
+                        rect =
+                            RectF(
+                                centerX -
+                                    zoneWidth *
+                                    0.5f,
+                                centerY -
+                                    zoneHeight *
+                                    0.5f,
+                                centerX +
+                                    zoneWidth *
+                                    0.5f,
+                                centerY +
+                                    zoneHeight *
+                                    0.5f,
+                            ),
+                    ),
+                )
+            }
     }
 
     private fun drawLayer(
@@ -1118,6 +1248,77 @@ class PulseDeckMainSkinView(
                 it.z
             }
 
+    private fun loadMasterSkin(): MasterSkin? =
+        runCatching {
+            val raw =
+                context.assets
+                    .open(
+                        "pulsedeck_master/manifest.json",
+                    )
+                    .bufferedReader()
+                    .use {
+                        it.readText()
+                    }
+
+            val json =
+                JSONObject(raw)
+            val zones =
+                json.getJSONArray(
+                    "hitZones",
+                )
+
+            MasterSkin(
+                playingAsset =
+                    json.getString(
+                        "playingAsset",
+                    ),
+                pausedAsset =
+                    json.getString(
+                        "pausedAsset",
+                    ),
+                hitZones =
+                    buildList {
+                        repeat(
+                            zones.length(),
+                        ) { index ->
+                            val item =
+                                zones.getJSONObject(
+                                    index,
+                                )
+
+                            add(
+                                MasterHitZone(
+                                    action =
+                                        item.getString(
+                                            "action",
+                                        ),
+                                    x =
+                                        item.getDouble(
+                                            "x",
+                                        )
+                                            .toFloat(),
+                                    y =
+                                        item.getDouble(
+                                            "y",
+                                        )
+                                            .toFloat(),
+                                    width =
+                                        item.getDouble(
+                                            "w",
+                                        )
+                                            .toFloat(),
+                                    height =
+                                        item.getDouble(
+                                            "h",
+                                        )
+                                            .toFloat(),
+                                ),
+                            )
+                        }
+                    },
+            )
+        }.getOrNull()
+
     private fun loadManifest(): List<SkinLayer> =
         runCatching {
             val raw =
@@ -1300,6 +1501,21 @@ class PulseDeckMainSkinView(
         }.getOrElse {
             emptyList()
         }
+
+    private fun loadAssetBitmap(
+        assetPath: String,
+    ): Bitmap? =
+        runCatching {
+            context.assets
+                .open(
+                    assetPath,
+                )
+                .use { input ->
+                    BitmapFactory.decodeStream(
+                        input,
+                    )
+                }
+        }.getOrNull()
 
     private fun loadBitmap(
         relativePath: String,

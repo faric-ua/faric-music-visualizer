@@ -1067,3 +1067,33 @@ Phone acceptance:
 6. confirm double tap restores chrome;
 7. rotate hidden and visible states and verify persistence;
 8. compare final proportions against the approved PNG reference.
+
+
+## Sleep checkpoint — 2026-10-01
+
+Checkpoint state:
+- release candidate: v0.10.1 / versionCode 40;
+- main branch Android workflow: PASS;
+- main branch Validate workflow: PASS;
+- modular PulseDeck HUD pack is present under `skin/pulsedeck_hud/`;
+- Skin Engine v1 is manifest-driven and uses the modular PNG blocks.
+
+Last phone evidence before v0.10.1:
+- v0.10.0 rendered the PNG skin successfully;
+- controls and reactor were visible and functional;
+- visual defects were obvious: rectangular seams between image layers, reactor composition too heavy, transport/quick-action stack too high, excessive empty space at the bottom.
+
+v0.10.1 correction already committed and CI-passed:
+- manifest-level `blend: screen`, `opacity`, `cropTop`, `cropBottom` support;
+- energy/glow layers use screen compositing;
+- particle layers were added around the reactor;
+- duplicated reactor energy was reduced;
+- reactor was moved slightly upward;
+- transport rail moved lower;
+- quick-actions rail moved lower;
+- build version bumped to v0.10.1 / 40.
+
+Important:
+- v0.10.1 has NOT yet been visually accepted on phone.
+- Next session starts with installing/testing v0.10.1 and sending one fresh main-screen screenshot.
+- Do not redesign the architecture before that screenshot; first judge the actual v0.10.1 composition.

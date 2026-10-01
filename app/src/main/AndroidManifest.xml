@@ -7,6 +7,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FaricMusicVisualizer">
         <activity
+            android:name=".PulseDeckCenterCalibrationActivity"
+            android:exported="false" />
+        <activity
             android:name=".projectm.ProjectMActivity"
             android:exported="false" />
         <activity

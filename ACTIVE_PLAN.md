@@ -543,3 +543,22 @@ User clarification after 333058.mp4:
 - [ ] Android CI PASS for final v0.9.0.
 - [ ] Phone visual acceptance.
 - [ ] Next: explicit layer-placement settings for existing visualizers/GF/video (behind/above skin).
+
+
+## v0.10.0 — Modular PNG Skin Engine v1
+
+- [x] Import modular PNG pack into GitHub.
+- [x] Package repository skin directory as Android assets.
+- [x] Parse `manifest.json` at runtime.
+- [x] Render PNG layers by normalized x/y/width/z.
+- [x] Swap play/pause PNG by playback state.
+- [x] Route manifest actions to Android behavior.
+- [x] Add PNG progress thumb and seek hit area.
+- [x] Feed playback metadata/progress to the skin renderer.
+- [x] Feed audio signal to manifest reactive layers.
+- [x] Hide/show chrome independently from persistent background/reactor layers.
+- [x] Preserve existing auto-hide/double-tap lifecycle contract.
+- [ ] Android CI PASS for final v0.10.0.
+- [ ] Phone visual acceptance against approved reference.
+- [ ] Phone hit-target acceptance for all PNG buttons.
+- [ ] Next: configurable layer placement for projectM/GF/video behind or above permanent skin.

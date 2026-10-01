@@ -90,7 +90,7 @@ if [ -z "$ZIP" ]; then
   echo "1. Відкрий 'Файли' / My Files."
   echo "2. Знайди PulseDeck_MasterPlate_v1.zip."
   echo "3. Перемісти його в: Внутрішня пам'ять/Download"
-  echo "4. Повернись сюди й знову запусти пункт 18."
+  echo "4. Повернись сюди й знову запусти пункт 19."
   echo
   echo "Підказка: поточні ZIP, які Termux бачить у shared storage:"
   find "$SHARED" -maxdepth 4 -type f -iname '*.zip' -print 2>/dev/null | tail -n 20 || true

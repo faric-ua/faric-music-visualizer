@@ -1,0 +1,200 @@
+{
+  "id": "pulsedeck_hud",
+  "name": "PulseDeck HUD",
+  "version": 1,
+  "coordinateSystem": "normalized",
+  "referenceSize": {
+    "width": 941,
+    "height": 1672
+  },
+  "layers": [
+    {
+      "id": "energy_waves",
+      "asset": "background/energy_waves.png",
+      "x": 0.5,
+      "y": 0.29,
+      "width": 1.18,
+      "z": 5,
+      "reactive": "ambient"
+    },
+    {
+      "id": "reactor_energy_ring",
+      "asset": "background/reactor_energy_ring.png",
+      "x": 0.5,
+      "y": 0.27,
+      "width": 0.78,
+      "z": 10,
+      "reactive": "bass"
+    },
+    {
+      "id": "hero_frame",
+      "asset": "hero/reactor_frame.png",
+      "x": 0.5,
+      "y": 0.285,
+      "width": 0.7,
+      "z": 20,
+      "reactive": "bass"
+    },
+    {
+      "id": "hero_core",
+      "asset": "hero/F_core.png",
+      "x": 0.5,
+      "y": 0.285,
+      "width": 0.26,
+      "z": 25,
+      "reactive": "beat"
+    },
+    {
+      "id": "favorite",
+      "asset": "utility/favorite.png",
+      "x": 0.085,
+      "y": 0.48,
+      "width": 0.105,
+      "z": 40,
+      "action": "favorite"
+    },
+    {
+      "id": "track_more",
+      "asset": "utility/track_more.png",
+      "x": 0.91,
+      "y": 0.48,
+      "width": 0.105,
+      "z": 40,
+      "action": "track_more"
+    },
+    {
+      "id": "waveform",
+      "asset": "progress/waveform.png",
+      "x": 0.5,
+      "y": 0.565,
+      "width": 0.91,
+      "z": 40,
+      "reactive": "spectrum"
+    },
+    {
+      "id": "progress_line",
+      "asset": "progress/progress_line.png",
+      "x": 0.5,
+      "y": 0.595,
+      "width": 0.89,
+      "z": 41,
+      "action": "seek"
+    },
+    {
+      "id": "transport_rail",
+      "asset": "transport/rail.png",
+      "x": 0.5,
+      "y": 0.7,
+      "width": 0.96,
+      "z": 50
+    },
+    {
+      "id": "shuffle",
+      "asset": "transport/shuffle.png",
+      "x": 0.095,
+      "y": 0.7,
+      "width": 0.14,
+      "z": 55,
+      "action": "shuffle"
+    },
+    {
+      "id": "previous",
+      "asset": "transport/previous.png",
+      "x": 0.275,
+      "y": 0.7,
+      "width": 0.15,
+      "z": 55,
+      "action": "previous"
+    },
+    {
+      "id": "play_pause",
+      "asset": "transport/play.png",
+      "assetPlaying": "transport/pause.png",
+      "x": 0.5,
+      "y": 0.7,
+      "width": 0.22,
+      "z": 56,
+      "action": "play_pause"
+    },
+    {
+      "id": "next",
+      "asset": "transport/next.png",
+      "x": 0.725,
+      "y": 0.7,
+      "width": 0.15,
+      "z": 55,
+      "action": "next"
+    },
+    {
+      "id": "repeat",
+      "asset": "transport/repeat.png",
+      "x": 0.905,
+      "y": 0.7,
+      "width": 0.14,
+      "z": 55,
+      "action": "repeat"
+    },
+    {
+      "id": "quick_rail",
+      "asset": "quick_actions/rail.png",
+      "x": 0.5,
+      "y": 0.835,
+      "width": 0.96,
+      "z": 50
+    },
+    {
+      "id": "theme",
+      "asset": "quick_actions/theme.png",
+      "x": 0.14,
+      "y": 0.835,
+      "width": 0.16,
+      "z": 55,
+      "action": "theme"
+    },
+    {
+      "id": "board",
+      "asset": "quick_actions/board.png",
+      "x": 0.38,
+      "y": 0.835,
+      "width": 0.16,
+      "z": 55,
+      "action": "board"
+    },
+    {
+      "id": "visualizer",
+      "asset": "quick_actions/visualizer.png",
+      "x": 0.62,
+      "y": 0.835,
+      "width": 0.16,
+      "z": 55,
+      "action": "visualizer"
+    },
+    {
+      "id": "export",
+      "asset": "quick_actions/export.png",
+      "x": 0.86,
+      "y": 0.835,
+      "width": 0.16,
+      "z": 55,
+      "action": "export"
+    },
+    {
+      "id": "back",
+      "asset": "utility/back.png",
+      "x": 0.09,
+      "y": 0.065,
+      "width": 0.105,
+      "z": 80,
+      "action": "back"
+    },
+    {
+      "id": "menu",
+      "asset": "utility/menu.png",
+      "x": 0.91,
+      "y": 0.065,
+      "width": 0.105,
+      "z": 80,
+      "action": "menu"
+    }
+  ]
+}

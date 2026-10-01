@@ -1097,3 +1097,36 @@ Important:
 - v0.10.1 has NOT yet been visually accepted on phone.
 - Next session starts with installing/testing v0.10.1 and sending one fresh main-screen screenshot.
 - Do not redesign the architecture before that screenshot; first judge the actual v0.10.1 composition.
+
+
+## v0.11.0 — reference-first master-plate reset
+
+Reason:
+- repeated runtime composition of tiny PNG rings/buttons produced visibly worse results than the original approved artwork;
+- the user explicitly prioritized visual fidelity over animation/dynamic behavior for the next pass;
+- the new rule is: reproduce the approved page first, then gradually restore dynamic behavior without changing the accepted visual baseline.
+
+Architecture reset:
+- new optional skin: `skin/pulsedeck_master/`;
+- two large precomposed 20:9 master assets: playing + paused;
+- one manifest with invisible normalized hit zones;
+- `PulseDeckMainSkinView` prefers the master plate when present;
+- modular `pulsedeck_hud` remains as fallback only;
+- master-plate mode keeps chrome permanently visible; auto-hide is intentionally bypassed;
+- Android actions still work through invisible hit zones;
+- visual fidelity takes priority over reactive motion for this milestone.
+
+Import workflow:
+- package: `PulseDeck_MasterPlate_v1.zip`;
+- SHA-256: `edf839ad45c09f1bb0b19f14e0a218dac428a21f0793d083c3b7454034a5cb0d`;
+- Termux menu item 19 imports the pack into `skin/pulsedeck_master/`, commits, rebases and pushes.
+
+Release:
+- v0.11.0
+- versionCode 44
+
+Acceptance target:
+- page should visually resemble the original approved reference much more closely than v0.10.x;
+- no runtime recomposition of individual rail/button rings;
+- transport and quick-action artwork should read as one coherent designed block;
+- movement/reactivity/dynamic typography can be reintroduced after visual acceptance.

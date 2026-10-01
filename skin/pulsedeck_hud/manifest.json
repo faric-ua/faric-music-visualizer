@@ -1,7 +1,7 @@
 {
   "id": "pulsedeck_hud",
   "name": "PulseDeck HUD",
-  "version": 3,
+  "version": 4,
   "coordinateSystem": "normalized",
   "referenceSize": {
     "width": 941,
@@ -94,7 +94,15 @@
       "width": 0.235,
       "z": 25,
       "reactive": "beat",
-      "opacity": 1
+      "opacity": 1,
+      "parent": "hero_frame",
+      "localX": 0.5,
+      "localY": 0.5,
+      "localWidth": 0.3,
+      "cropLeft": 0.12,
+      "cropRight": 0.12,
+      "cropTop": 0.12,
+      "cropBottom": 0.12
     },
     {
       "id": "favorite",
@@ -152,7 +160,12 @@
       "action": "shuffle",
       "parent": "transport_rail",
       "localX": 0.102539,
-      "localY": 0.546196
+      "localY": 0.546196,
+      "localWidth": 0.105,
+      "cropLeft": 0.23,
+      "cropRight": 0.23,
+      "cropTop": 0.23,
+      "cropBottom": 0.23
     },
     {
       "id": "previous",
@@ -164,7 +177,12 @@
       "action": "previous",
       "parent": "transport_rail",
       "localX": 0.280273,
-      "localY": 0.559783
+      "localY": 0.559783,
+      "localWidth": 0.108,
+      "cropLeft": 0.22,
+      "cropRight": 0.22,
+      "cropTop": 0.22,
+      "cropBottom": 0.22
     },
     {
       "id": "play_pause",
@@ -177,7 +195,12 @@
       "action": "play_pause",
       "parent": "transport_rail",
       "localX": 0.50293,
-      "localY": 0.532609
+      "localY": 0.532609,
+      "localWidth": 0.178,
+      "cropLeft": 0.24,
+      "cropRight": 0.24,
+      "cropTop": 0.24,
+      "cropBottom": 0.24
     },
     {
       "id": "next",
@@ -189,7 +212,12 @@
       "action": "next",
       "parent": "transport_rail",
       "localX": 0.719727,
-      "localY": 0.548913
+      "localY": 0.548913,
+      "localWidth": 0.108,
+      "cropLeft": 0.22,
+      "cropRight": 0.22,
+      "cropTop": 0.22,
+      "cropBottom": 0.22
     },
     {
       "id": "repeat",
@@ -201,7 +229,12 @@
       "action": "repeat",
       "parent": "transport_rail",
       "localX": 0.894531,
-      "localY": 0.529891
+      "localY": 0.529891,
+      "localWidth": 0.105,
+      "cropLeft": 0.23,
+      "cropRight": 0.23,
+      "cropTop": 0.23,
+      "cropBottom": 0.23
     },
     {
       "id": "quick_rail",
@@ -221,7 +254,12 @@
       "action": "theme",
       "parent": "quick_rail",
       "localX": 0.139648,
-      "localY": 0.487179
+      "localY": 0.487179,
+      "localWidth": 0.128,
+      "cropLeft": 0.22,
+      "cropRight": 0.22,
+      "cropTop": 0.22,
+      "cropBottom": 0.22
     },
     {
       "id": "board",
@@ -233,7 +271,12 @@
       "action": "board",
       "parent": "quick_rail",
       "localX": 0.381836,
-      "localY": 0.498168
+      "localY": 0.498168,
+      "localWidth": 0.128,
+      "cropLeft": 0.22,
+      "cropRight": 0.22,
+      "cropTop": 0.22,
+      "cropBottom": 0.22
     },
     {
       "id": "visualizer",
@@ -245,7 +288,12 @@
       "action": "visualizer",
       "parent": "quick_rail",
       "localX": 0.62207,
-      "localY": 0.490842
+      "localY": 0.490842,
+      "localWidth": 0.128,
+      "cropLeft": 0.22,
+      "cropRight": 0.22,
+      "cropTop": 0.22,
+      "cropBottom": 0.22
     },
     {
       "id": "export",
@@ -257,7 +305,12 @@
       "action": "export",
       "parent": "quick_rail",
       "localX": 0.863281,
-      "localY": 0.490842
+      "localY": 0.490842,
+      "localWidth": 0.128,
+      "cropLeft": 0.22,
+      "cropRight": 0.22,
+      "cropTop": 0.22,
+      "cropBottom": 0.22
     },
     {
       "id": "back",

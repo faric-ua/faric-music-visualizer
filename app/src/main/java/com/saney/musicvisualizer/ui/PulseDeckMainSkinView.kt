@@ -70,6 +70,8 @@ class PulseDeckMainSkinView(
     )
 
     private data class MasterSkin(
+        val nativeWidth: Float,
+        val nativeHeight: Float,
         val playingAsset: String,
         val pausedAsset: String,
         val hitZones: List<MasterHitZone>,
@@ -473,34 +475,84 @@ class PulseDeckMainSkinView(
         bitmapPaint.alpha = 255
         bitmapPaint.xfermode = null
 
+        val skin =
+            masterSkin
+                ?: return
+
+        val nativeWidth =
+            skin.nativeWidth
+                .coerceAtLeast(
+                    1f,
+                )
+        val nativeHeight =
+            skin.nativeHeight
+                .coerceAtLeast(
+                    1f,
+                )
+
+        // Never stretch the approved artwork independently on X/Y.
+        // Scale uniformly and center-crop only the tiny aspect-ratio mismatch.
+        val scale =
+            maxOf(
+                w /
+                    nativeWidth,
+                h /
+                    nativeHeight,
+            )
+
+        val renderedWidth =
+            nativeWidth *
+                scale
+        val renderedHeight =
+            nativeHeight *
+                scale
+        val left =
+            (
+                w -
+                    renderedWidth
+                ) *
+                0.5f
+        val top =
+            (
+                h -
+                    renderedHeight
+                ) *
+                0.5f
+
+        val masterRect =
+            RectF(
+                left,
+                top,
+                left +
+                    renderedWidth,
+                top +
+                    renderedHeight,
+            )
+
         canvas.drawBitmap(
             bitmap,
             null,
-            RectF(
-                0f,
-                0f,
-                w,
-                h,
-            ),
+            masterRect,
             bitmapPaint,
         )
 
         hitTargets.clear()
 
-        masterSkin
-            ?.hitZones
-            ?.forEachIndexed { index, zone ->
+        skin.hitZones
+            .forEachIndexed { index, zone ->
                 val centerX =
-                    w *
+                    masterRect.left +
+                        masterRect.width() *
                         zone.x
                 val centerY =
-                    h *
+                    masterRect.top +
+                        masterRect.height() *
                         zone.y
                 val zoneWidth =
-                    w *
+                    masterRect.width() *
                         zone.width
                 val zoneHeight =
-                    h *
+                    masterRect.height() *
                         zone.height
 
                 hitTargets.add(
@@ -1268,6 +1320,16 @@ class PulseDeckMainSkinView(
                 )
 
             MasterSkin(
+                nativeWidth =
+                    json.getDouble(
+                        "nativeWidth",
+                    )
+                        .toFloat(),
+                nativeHeight =
+                    json.getDouble(
+                        "nativeHeight",
+                    )
+                        .toFloat(),
                 playingAsset =
                     json.getString(
                         "playingAsset",

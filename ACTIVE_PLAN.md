@@ -574,3 +574,18 @@ User clarification after 333058.mp4:
 - [ ] Capture one fresh main-screen screenshot.
 - [ ] Compare seams / reactor balance / vertical spacing / bottom empty area.
 - [ ] Tune only manifest composition values first; avoid another architectural rewrite unless the screenshot proves it necessary.
+
+
+## v0.11.0 — Reference-first master plate
+
+- [x] Stop micro-compositing individual PNG rings/buttons at runtime.
+- [x] Build a 20:9 reference-first master visual from the approved original artwork.
+- [x] Prepare separate playing and paused master plates.
+- [x] Add manifest-driven invisible hit zones for existing actions.
+- [x] Add master-plate runtime mode with modular-skin fallback.
+- [x] Disable auto-hide in master-plate mode for visual-baseline testing.
+- [x] Add Termux menu item 19 for master-plate import.
+- [ ] Import `PulseDeck_MasterPlate_v1.zip` on phone and push assets.
+- [ ] Android CI PASS after asset import.
+- [ ] Install and visually accept the master page.
+- [ ] Only after acceptance: restore dynamic metadata/progress/reactivity one layer at a time without changing the accepted composition.

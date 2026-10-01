@@ -64,6 +64,14 @@ android {
         buildConfig = true
     }
 
+    sourceSets {
+        getByName("main") {
+            // Skin Engine v1 reads the modular PNG pack directly from the
+            // repository-level skin/ directory. No duplicate drawable copies.
+            assets.srcDir("../skin")
+        }
+    }
+
     externalNativeBuild {
         cmake {
             path = file("src/main/cpp/CMakeLists.txt")

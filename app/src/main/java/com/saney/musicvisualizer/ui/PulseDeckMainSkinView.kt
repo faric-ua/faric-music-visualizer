@@ -46,6 +46,9 @@ class PulseDeckMainSkinView(
         val blend: String?,
         val cropTop: Float,
         val cropBottom: Float,
+        val parentId: String?,
+        val localX: Float?,
+        val localY: Float?,
     )
 
     private data class HitTarget(
@@ -79,6 +82,9 @@ class PulseDeckMainSkinView(
 
     private val hitTargets =
         mutableListOf<HitTarget>()
+
+    private val resolvedRects =
+        mutableMapOf<String, RectF>()
 
     private val progressThumb =
         loadBitmap(
@@ -352,6 +358,7 @@ class PulseDeckMainSkinView(
         )
 
         hitTargets.clear()
+        resolvedRects.clear()
 
         layers
             .sortedBy {
@@ -526,12 +533,37 @@ class PulseDeckMainSkinView(
             targetWidth *
                 aspect
 
+        val parentRect =
+            layer.parentId
+                ?.let { parentId ->
+                    resolvedRects[parentId]
+                }
+
         val centerX =
-            w *
-                layer.x
+            if (
+                parentRect != null &&
+                layer.localX != null
+            ) {
+                parentRect.left +
+                    parentRect.width() *
+                    layer.localX
+            } else {
+                w *
+                    layer.x
+            }
+
         val centerY =
-            h *
-                layer.y
+            if (
+                parentRect != null &&
+                layer.localY != null
+            ) {
+                parentRect.top +
+                    parentRect.height() *
+                    layer.localY
+            } else {
+                h *
+                    layer.y
+            }
 
         val rect =
             RectF(
@@ -614,6 +646,9 @@ class PulseDeckMainSkinView(
         )
 
         bitmapPaint.xfermode = null
+
+        resolvedRects[layer.id] =
+            RectF(rect)
 
         val action =
             layer.action
@@ -1100,6 +1135,39 @@ class PulseDeckMainSkinView(
                                     0.0,
                                 )
                                     .toFloat(),
+                            parentId =
+                                item.optString(
+                                    "parent",
+                                )
+                                    .takeIf {
+                                        it.isNotBlank()
+                                    },
+                            localX =
+                                if (
+                                    item.has(
+                                        "localX",
+                                    )
+                                ) {
+                                    item.getDouble(
+                                        "localX",
+                                    )
+                                        .toFloat()
+                                } else {
+                                    null
+                                },
+                            localY =
+                                if (
+                                    item.has(
+                                        "localY",
+                                    )
+                                ) {
+                                    item.getDouble(
+                                        "localY",
+                                    )
+                                        .toFloat()
+                                } else {
+                                    null
+                                },
                         ),
                     )
                 }

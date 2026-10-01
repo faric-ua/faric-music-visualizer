@@ -1130,3 +1130,31 @@ Acceptance target:
 - no runtime recomposition of individual rail/button rings;
 - transport and quick-action artwork should read as one coherent designed block;
 - movement/reactivity/dynamic typography can be reintroduced after visual acceptance.
+
+
+## v0.11.1 — center calibration tool
+
+User center-map review preserved in `docs/design/PULSEDECK_CENTER_CALIBRATION.md`.
+
+Known wrong centers from the user's review:
+- C-01, C-02, C-04;
+- C-11, C-12, C-13, C-14, C-15;
+- C-17, C-18, C-19, C-20.
+
+Centers that seem approximately correct:
+- C-05, C-06, C-07, C-08, C-10.
+
+Not explicitly evaluated yet:
+- C-03, C-09, C-16.
+
+Temporary phone calibration workflow:
+- main-screen Menu opens `PulseDeckCenterCalibrationActivity`;
+- the page renders the real PulseDeck skin as the background;
+- a drafting-style crosshair is shown for one C-number at a time;
+- drag the crosshair to the exact visual center;
+- tap the crosshair to save normalized coordinates and advance;
+- swipe left/right to change C-number without saving;
+- long-press the crosshair to copy all saved coordinates;
+- after C-20, all saved coordinates are copied automatically.
+
+The accepted calibrated coordinates will become the source of truth for the next visual rebuild. Do not overwrite accepted calibrated points with old guessed values.

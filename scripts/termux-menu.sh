@@ -139,6 +139,7 @@ while true; do
   echo "15 — Відкрити shell у FARIC assets"
   echo "16 — Імпортувати production-pack з Downloads"
   echo "17 — Синхронізувати Cyber Shark production у app"
+  echo "18 — Імпортувати PulseDeck HUD skin з Downloads у GitHub"
   echo
   echo "0 — Вийти"
   echo
@@ -163,6 +164,7 @@ while true; do
     15) open_assets ;;
     16) run_tool "$REPO/tools/termux/assets-import-production-pack.sh" ;;
     17) run_tool "$REPO/tools/termux/sync-cyber-shark-production-to-app.sh" ;;
+    18) run_tool "$REPO/tools/termux/import-pulsedeck-hud-skin.sh" ;;
     0) clear; exit 0 ;;
     *) echo "Невідомий пункт."; sleep 1 ;;
   esac

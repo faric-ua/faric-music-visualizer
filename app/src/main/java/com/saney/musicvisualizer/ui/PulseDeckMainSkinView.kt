@@ -823,15 +823,18 @@ class PulseDeckMainSkinView(
                             event.y,
                         )
 
+                    val action =
+                        target?.action
+
                     if (
                         pressedAction != null &&
-                        target?.action ==
+                        action ==
                         pressedAction
                     ) {
                         performClick()
                         actionListener
                             ?.invoke(
-                                target.action,
+                                action,
                             )
                     }
                 }

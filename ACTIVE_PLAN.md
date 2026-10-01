@@ -589,3 +589,18 @@ User clarification after 333058.mp4:
 - [ ] Android CI PASS after asset import.
 - [ ] Install and visually accept the master page.
 - [ ] Only after acceptance: restore dynamic metadata/progress/reactivity one layer at a time without changing the accepted composition.
+
+
+## v0.11.1 — phone center calibration
+
+- [x] Preserve the user's good/wrong center assessment.
+- [x] Add calibration page over the real PulseDeck renderer.
+- [x] Add draggable drafting-style center target.
+- [x] Save points by C-01…C-20 identity.
+- [x] Auto-advance after saving.
+- [x] Add previous/next navigation by horizontal swipe.
+- [x] Add clipboard export of all saved coordinates.
+- [x] Open calibration from the main-screen Menu button.
+- [ ] Android CI PASS for v0.11.1 / build 45.
+- [ ] User calibrates and returns coordinate block.
+- [ ] Rebuild layout from accepted centers only.

@@ -9,6 +9,7 @@ The following feedback is intentionally preserved exactly in meaning and is the 
 ### Incorrect centers
 - C-01
 - C-02
+- C-03
 - C-04
 - C-11
 - C-12
@@ -25,12 +26,12 @@ The following feedback is intentionally preserved exactly in meaning and is the 
 - C-06
 - C-07
 - C-08
+- C-09
 - C-10
+- C-16
 
 ### Not explicitly evaluated yet
-- C-03
-- C-09
-- C-16
+- none
 
 ## Point identity contract
 

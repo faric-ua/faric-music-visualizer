@@ -406,6 +406,42 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         heroBoardView?.setPlaying(snapshot.isPlaying)
         heroThemeView?.setPlaying(snapshot.isPlaying)
         pulseDeckMainSkinView?.setPlaying(snapshot.isPlaying)
+        pulseDeckMainSkinView?.setPlaybackContent(
+            title =
+                snapshot.trackName
+                    ?: "FARIC PulseDeck",
+            artist =
+                if (snapshot.trackName == null) {
+                    "Оберіть музику"
+                } else {
+                    "Невідомий виконавець"
+                },
+            status =
+                buildString {
+                    append(snapshot.status)
+                    if (snapshot.trackName != null) {
+                        append(
+                            if (snapshot.analysisActive) {
+                                " · reactive ON"
+                            } else {
+                                " · reactive OFF"
+                            },
+                        )
+                    }
+                    append(" · PulseDeck HUD")
+                },
+            elapsed =
+                formatTime(
+                    snapshot.positionMs,
+                ),
+            total =
+                formatTime(
+                    snapshot.durationMs,
+                ),
+            progressFraction =
+                ratio /
+                    1000f,
+        )
         heroThemeView?.setMetadata(
             title = snapshot.trackName,
             artist = if (snapshot.trackName == null) null else "Невідомий виконавець",
@@ -2812,65 +2848,38 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         visible: Boolean,
         animate: Boolean,
     ) {
-        val layer =
-            nowControlsLayer
+        val skin =
+            pulseDeckMainSkinView
                 ?: return
 
-        layer.removeCallbacks(
+        skin.removeCallbacks(
             nowControlsAutoHideRunnable,
         )
 
         nowControlsHidden =
             !visible
 
-        layer.animate().cancel()
+        skin.setControlsVisible(
+            visible = visible,
+            animate = animate,
+        )
 
         if (visible) {
-            layer.visibility =
-                View.VISIBLE
-
-            if (animate) {
-                layer.alpha = 0f
-                layer.animate()
-                    .alpha(1f)
-                    .setDuration(150L)
-                    .start()
-            } else {
-                layer.alpha = 1f
-            }
-
             scheduleNowControlsAutoHide()
-        } else {
-            if (animate) {
-                layer.animate()
-                    .alpha(0f)
-                    .setDuration(180L)
-                    .withEndAction {
-                        if (nowControlsHidden) {
-                            layer.visibility =
-                                View.GONE
-                        }
-                    }
-                    .start()
-            } else {
-                layer.alpha = 0f
-                layer.visibility =
-                    View.GONE
-            }
         }
     }
 
     private fun scheduleNowControlsAutoHide() {
-        val layer =
-            nowControlsLayer
+        val skin =
+            pulseDeckMainSkinView
                 ?: return
 
-        layer.removeCallbacks(
+        skin.removeCallbacks(
             nowControlsAutoHideRunnable,
         )
 
         if (!nowControlsHidden) {
-            layer.postDelayed(
+            skin.postDelayed(
                 nowControlsAutoHideRunnable,
                 NOW_CONTROLS_AUTO_HIDE_MS,
             )
@@ -2881,6 +2890,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         nowControlsLayer?.removeCallbacks(
             nowControlsAutoHideRunnable,
         )
+        pulseDeckMainSkinView
+            ?.removeCallbacks(
+                nowControlsAutoHideRunnable,
+            )
         sceneView = null
         heroBoardView = null
         heroThemeView = null

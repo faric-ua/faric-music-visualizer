@@ -1,0 +1,111 @@
+{
+  "id": "pulsedeck_master",
+  "name": "PulseDeck Master Plate",
+  "version": 1,
+  "nativeWidth": 1080,
+  "nativeHeight": 2340,
+  "playingAsset": "master_playing.webp",
+  "pausedAsset": "master_paused.webp",
+  "fit": "stretch_exact_20x9",
+  "visualPolicy": "reference_first_master_plate",
+  "hitZones": [
+    {
+      "action": "back",
+      "x": 0.066,
+      "y": 0.045,
+      "w": 0.11,
+      "h": 0.075
+    },
+    {
+      "action": "menu",
+      "x": 0.93,
+      "y": 0.045,
+      "w": 0.11,
+      "h": 0.075
+    },
+    {
+      "action": "favorite",
+      "x": 0.067,
+      "y": 0.342,
+      "w": 0.115,
+      "h": 0.075
+    },
+    {
+      "action": "track_more",
+      "x": 0.93,
+      "y": 0.342,
+      "w": 0.115,
+      "h": 0.075
+    },
+    {
+      "action": "seek",
+      "x": 0.5,
+      "y": 0.526,
+      "w": 0.9,
+      "h": 0.055
+    },
+    {
+      "action": "shuffle",
+      "x": 0.094,
+      "y": 0.669,
+      "w": 0.16,
+      "h": 0.11
+    },
+    {
+      "action": "previous",
+      "x": 0.276,
+      "y": 0.669,
+      "w": 0.16,
+      "h": 0.11
+    },
+    {
+      "action": "play_pause",
+      "x": 0.5,
+      "y": 0.669,
+      "w": 0.22,
+      "h": 0.135
+    },
+    {
+      "action": "next",
+      "x": 0.724,
+      "y": 0.669,
+      "w": 0.16,
+      "h": 0.11
+    },
+    {
+      "action": "repeat",
+      "x": 0.906,
+      "y": 0.669,
+      "w": 0.16,
+      "h": 0.11
+    },
+    {
+      "action": "theme",
+      "x": 0.14,
+      "y": 0.817,
+      "w": 0.19,
+      "h": 0.115
+    },
+    {
+      "action": "board",
+      "x": 0.38,
+      "y": 0.817,
+      "w": 0.19,
+      "h": 0.115
+    },
+    {
+      "action": "visualizer",
+      "x": 0.62,
+      "y": 0.817,
+      "w": 0.19,
+      "h": 0.115
+    },
+    {
+      "action": "export",
+      "x": 0.86,
+      "y": 0.817,
+      "w": 0.19,
+      "h": 0.115
+    }
+  ]
+}

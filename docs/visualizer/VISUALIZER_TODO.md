@@ -450,3 +450,16 @@ Target UI direction:
 - [ ] Per content layer: visibility, opacity, X/Y, size, rotation.
 - [ ] Per content layer: audio-reaction routing/strength.
 - [ ] Persist complete layer stack as a main-page skin preset.
+
+
+### v0.10.0 modular PNG Skin Engine
+- [x] Use imported PNG blocks instead of Canvas-drawn player chrome.
+- [x] Drive layout/z-order/actions from manifest.json.
+- [x] Keep dynamic text/state in Android while PNG owns appearance.
+- [x] Use separate play and pause PNG states.
+- [x] Use PNG progress line and thumb.
+- [x] Keep background/reactor visible when player chrome auto-hides.
+- [ ] Phone compare PNG composition to approved source image.
+- [ ] Tune manifest x/y/width values from phone screenshot.
+- [ ] Add per-element visibility/opacity/position/scale overrides.
+- [ ] Add explicit BACKGROUND_CONTENT / HERO_CONTENT / FOREGROUND_FX placement controls.

@@ -3,8 +3,10 @@ set -euo pipefail
 
 REPO="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
 DOWNLOADS="$HOME/storage/downloads"
+SHARED="$HOME/storage/shared"
 EXPECTED_SHA256="82988f103fecf34a8d1cc6c72f7b2ed65c3e4c1707ecd12c7101e057912b88f4"
 TARGET_DIR="$REPO/skin/pulsedeck_hud"
+TEMP_PICKED_ZIP=""
 
 clear
 echo "PulseDeck HUD skin import"
@@ -16,24 +18,91 @@ if [ ! -d "$REPO/.git" ]; then
   exit 1
 fi
 
-if [ ! -d "$DOWNLOADS" ]; then
-  echo "FAIL: Termux не бачить Downloads."
+if [ ! -d "$SHARED" ]; then
+  echo "FAIL: Termux не бачить спільне сховище Android."
   echo "Запусти один раз: termux-setup-storage"
   exit 1
 fi
 
-ZIP="$(
-  find "$DOWNLOADS" -maxdepth 1 -type f \
-    \( -name 'PulseDeckHUD_SkinPack_v1.zip' -o -name 'PulseDeckHUD_SkinPack_v1*.zip' \) \
-    -print 2>/dev/null | sort | tail -n 1
-)"
+# ChatGPT/Android Download Manager can place a downloaded file either directly
+# in Download or in a nested app/download folder. Search the shared storage
+# first instead of assuming one exact physical path.
+SEARCH_ROOTS=(
+  "$DOWNLOADS"
+  "$SHARED/Download"
+  "$SHARED/Downloads"
+  "/storage/emulated/0/Download"
+  "/sdcard/Download"
+)
+
+ZIP=""
+
+for root in "${SEARCH_ROOTS[@]}"; do
+  [ -d "$root" ] || continue
+
+  candidate="$(
+    find "$root" -maxdepth 4 -type f \
+      \( -iname 'PulseDeckHUD_SkinPack_v1.zip' -o -iname 'PulseDeckHUD_SkinPack_v1*.zip' \) \
+      -print 2>/dev/null | sort | tail -n 1
+  )"
+
+  if [ -n "$candidate" ]; then
+    ZIP="$candidate"
+    break
+  fi
+done
+
+# Last filesystem fallback: search all shared user storage, but keep the search
+# shallow enough to avoid crawling unrelated app data.
+if [ -z "$ZIP" ]; then
+  ZIP="$(
+    find "$SHARED" -maxdepth 5 -type f \
+      \( -iname 'PulseDeckHUD_SkinPack_v1.zip' -o -iname 'PulseDeckHUD_SkinPack_v1*.zip' \) \
+      -print 2>/dev/null | sort | tail -n 1
+  )"
+fi
+
+# Optional Android picker fallback. If Termux:API is installed, this lets the
+# user select the downloaded ZIP even when Android exposes it only through a
+# document/content provider rather than a normal filesystem path.
+if [ -z "$ZIP" ] && command -v termux-storage-get >/dev/null 2>&1; then
+  echo "ZIP автоматично не знайдено."
+  echo "Відкриваю системний вибір файлу..."
+  echo "Вибери PulseDeckHUD_SkinPack_v1.zip"
+  echo
+
+  TEMP_PICKED_ZIP="$REPO/.tmp-PulseDeckHUD_SkinPack_v1.zip"
+  rm -f "$TEMP_PICKED_ZIP"
+
+  if termux-storage-get "$TEMP_PICKED_ZIP"; then
+    if [ -f "$TEMP_PICKED_ZIP" ]; then
+      ZIP="$TEMP_PICKED_ZIP"
+    fi
+  fi
+fi
 
 if [ -z "$ZIP" ]; then
-  echo "FAIL: у Downloads немає PulseDeckHUD_SkinPack_v1.zip"
+  echo "FAIL: PulseDeckHUD_SkinPack_v1.zip не знайдено."
   echo
-  echo "Спочатку скачай ZIP з чату в Downloads."
+  echo "Файл у Download Manager є, але Android не дав Termux прямий файловий шлях."
+  echo
+  echo "Зроби так:"
+  echo "1. Відкрий 'Файли' / My Files."
+  echo "2. Знайди PulseDeckHUD_SkinPack_v1.zip."
+  echo "3. Перемісти його в: Внутрішня пам'ять/Download"
+  echo "4. Повернись сюди й знову запусти пункт 18."
+  echo
+  echo "Підказка: поточні ZIP, які Termux бачить у shared storage:"
+  find "$SHARED" -maxdepth 4 -type f -iname '*.zip' -print 2>/dev/null | tail -n 20 || true
   exit 1
 fi
+
+cleanup() {
+  if [ -n "$TEMP_PICKED_ZIP" ]; then
+    rm -f "$TEMP_PICKED_ZIP"
+  fi
+}
+trap cleanup EXIT
 
 echo "ZIP:"
 echo "$ZIP"

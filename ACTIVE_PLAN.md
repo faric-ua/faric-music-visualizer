@@ -562,3 +562,15 @@ User clarification after 333058.mp4:
 - [ ] Phone visual acceptance against approved reference.
 - [ ] Phone hit-target acceptance for all PNG buttons.
 - [ ] Next: configurable layer placement for projectM/GF/video behind or above permanent skin.
+
+
+## Resume point — v0.10.1 phone acceptance
+
+- [x] v0.10.1 visual-compositing correction committed.
+- [x] Android workflow PASS.
+- [x] Validate workflow PASS.
+- [ ] Update phone checkout from GitHub.
+- [ ] Install latest v0.10.1 APK.
+- [ ] Capture one fresh main-screen screenshot.
+- [ ] Compare seams / reactor balance / vertical spacing / bottom empty area.
+- [ ] Tune only manifest composition values first; avoid another architectural rewrite unless the screenshot proves it necessary.

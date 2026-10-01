@@ -631,8 +631,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 setBackgroundColor(COLOR_BG)
             }
 
-        applySafeArea(root)
-
         val skinView =
             PulseDeckMainSkinView(this).also { view ->
                 view.updateSignal(
@@ -773,6 +771,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         pulseDeckMainSkinView =
             skinView
+
+        // The master plate is authored for the full physical viewport.
+        // Do not squeeze it into a padded safe-area rectangle.
+        if (!skinView.isMasterPlateMode()) {
+            applySafeArea(root)
+        }
 
         root.addView(
             skinView,

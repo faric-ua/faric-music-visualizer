@@ -992,3 +992,28 @@ Phone acceptance:
 5. waveform and reactor should react to audio;
 6. auto-hide and double-tap restore should still work;
 7. rotation must preserve control visibility state.
+
+
+## PulseDeck HUD modular PNG pack
+
+Prepared from the approved generated HUD sheets:
+- 27 separate alpha PNG assets;
+- transport rail + shuffle/previous/play/pause/next/repeat;
+- quick-actions rail + theme/board/visualizer/export;
+- utility back/menu/favorite/track-more;
+- waveform/progress line/progress thumb;
+- F core/reactor frame;
+- background energy waves/reactor energy ring/particle clusters;
+- manifest.json + README.md.
+
+The binary pack is distributed as `PulseDeckHUD_SkinPack_v1.zip`.
+Expected SHA-256:
+`82988f103fecf34a8d1cc6c72f7b2ed65c3e4c1707ecd12c7101e057912b88f4`
+
+Repo support added:
+- `tools/termux/import-pulsedeck-hud-skin.sh`;
+- Termux menu item 18 imports the ZIP from Downloads, validates checksum/paths/files, commits `skin/pulsedeck_hud/`, and pushes the current branch.
+
+Pending:
+- user downloads the exact ZIP into Android Downloads and runs menu 18;
+- after PASS, verify files on GitHub and start Skin Engine v1 integration.

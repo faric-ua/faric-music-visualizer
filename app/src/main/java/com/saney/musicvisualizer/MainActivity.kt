@@ -593,16 +593,143 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val root =
             FrameLayout(this).apply {
                 setBackgroundColor(COLOR_BG)
-                isClickable = true
             }
+
         applySafeArea(root)
 
-        // Permanent main-page skin. Visualizers/GF/video will later be mounted
-        // into explicit back/front layer slots around this shell.
         val skinView =
             PulseDeckMainSkinView(this).also { view ->
-                view.updateSignal(latestSignal)
-                view.setPlaying(latestSnapshot.isPlaying)
+                view.updateSignal(
+                    latestSignal,
+                )
+                view.setPlaying(
+                    latestSnapshot.isPlaying,
+                )
+
+                view.setInteractionListener {
+                    scheduleNowControlsAutoHide()
+                }
+
+                view.setDoubleTapListener {
+                    setNowControlsVisible(
+                        visible =
+                            nowControlsHidden,
+                        animate = true,
+                    )
+                }
+
+                view.setSeekListener { fraction ->
+                    val duration =
+                        latestSnapshot.durationMs
+
+                    if (duration > 0L) {
+                        controller.seekTo(
+                            (
+                                duration *
+                                    fraction
+                                )
+                                .toLong(),
+                        )
+                    }
+
+                    scheduleNowControlsAutoHide()
+                }
+
+                view.setActionListener { action ->
+                    when (action) {
+                        "back" ->
+                            showLibrary()
+
+                        "menu" ->
+                            toast(
+                                "Налаштування головного скіна — наступний етап",
+                            )
+
+                        "favorite" ->
+                            toast(
+                                "Обране — наступний етап",
+                            )
+
+                        "track_more" ->
+                            toast(
+                                "Дії треку — наступний етап",
+                            )
+
+                        "shuffle" ->
+                            toast(
+                                "Shuffle запрацює з чергою",
+                            )
+
+                        "previous" ->
+                            toast(
+                                "Previous запрацює з чергою",
+                            )
+
+                        "play_pause" ->
+                            controller
+                                .togglePlayPause()
+
+                        "next" ->
+                            toast(
+                                "Next запрацює з чергою",
+                            )
+
+                        "repeat" ->
+                            toast(
+                                "Repeat запрацює з чергою",
+                            )
+
+                        "theme" ->
+                            showThemePicker()
+
+                        "board" ->
+                            if (
+                                isLayeredBoardTheme(
+                                    selectedThemeId,
+                                )
+                            ) {
+                                showBoardTransform()
+                            } else if (
+                                selectedThemeId ==
+                                PlaybackThemeId.VISUALIZER
+                            ) {
+                                val nextScene =
+                                    sceneOrchestrator
+                                        .shuffleNow()
+
+                                toast(
+                                    "Сцена: " +
+                                        nextScene
+                                            .visualizerType
+                                            .name
+                                            .lowercase()
+                                            .replace(
+                                                '_',
+                                                ' ',
+                                            ),
+                                )
+                            } else {
+                                toast(
+                                    "Board для цього шару — наступний етап",
+                                )
+                            }
+
+                        "visualizer" ->
+                            startActivity(
+                                Intent(
+                                    this,
+                                    com.saney.musicvisualizer
+                                        .projectm
+                                        .ProjectMActivity::class.java,
+                                ),
+                            )
+
+                        "export" ->
+                            showExportLab()
+                    }
+
+                    scheduleNowControlsAutoHide()
+                }
             }
 
         pulseDeckMainSkinView =
@@ -616,738 +743,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ),
         )
 
-        fun pulseButton(
-            icon: PulseDeckIconButton.Icon,
-            sizeDp: Int,
-            primary: Boolean = false,
-            action: () -> Unit,
-        ): PulseDeckIconButton =
-            PulseDeckIconButton(this).apply {
-                setIcon(icon)
-                setPrimary(primary)
-                setOnClickListener {
-                    action()
-                    scheduleNowControlsAutoHide()
-                }
-                contentDescription =
-                    icon.name
-            }
-
-        val header =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-                gravity =
-                    Gravity.CENTER_VERTICAL
-                setPadding(
-                    dp(8),
-                    dp(4),
-                    dp(8),
-                    dp(4),
-                )
-            }
-
-        header.addView(
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.BACK,
-                sizeDp = 58,
-            ) {
-                showLibrary()
-            },
-            LinearLayout.LayoutParams(
-                dp(58),
-                dp(58),
-            ),
-        )
-
-        header.addView(
-            label(
-                "FARIC  PulseDeck",
-                23f,
-                Color.WHITE,
-                true,
-            ),
-            LinearLayout.LayoutParams(
-                0,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                1f,
-            ).apply {
-                marginStart = dp(10)
-            },
-        )
-
-        header.addView(
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.MORE,
-                sizeDp = 58,
-            ) {
-                toast(
-                    "Налаштування головного скіна — наступний етап",
-                )
-            },
-            LinearLayout.LayoutParams(
-                dp(58),
-                dp(58),
-            ),
-        )
-
-        root.addView(
-            header,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(66),
-                Gravity.TOP,
-            ).apply {
-                leftMargin = dp(10)
-                rightMargin = dp(10)
-                topMargin = dp(6)
-            },
-        )
-
-        val controlsLayer =
-            FrameLayout(this).apply {
-                tag =
-                    "floating_player_controls"
-            }
-
-        nowControlsLayer =
-            controlsLayer
-
-        val metadataBlock =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-                gravity =
-                    Gravity.CENTER_HORIZONTAL
-                setPadding(
-                    dp(12),
-                    dp(2),
-                    dp(12),
-                    dp(2),
-                )
-            }
-
-        nowTitle =
-            label(
-                "FARIC PulseDeck",
-                24f,
-                Color.WHITE,
-                true,
-            ).apply {
-                gravity = Gravity.CENTER
-                textAlignment =
-                    View.TEXT_ALIGNMENT_CENTER
-                maxLines = 1
-            }
-
-        nowArtist =
-            label(
-                "Оберіть музику",
-                16f,
-                COLOR_MUTED,
-                false,
-            ).apply {
-                gravity = Gravity.CENTER
-                textAlignment =
-                    View.TEXT_ALIGNMENT_CENTER
-                maxLines = 1
-            }
-
-        nowStatus =
-            label(
-                "Готово",
-                12f,
-                COLOR_MUTED,
-                false,
-            ).apply {
-                gravity = Gravity.CENTER
-                textAlignment =
-                    View.TEXT_ALIGNMENT_CENTER
-                maxLines = 1
-            }
-
-        metadataBlock.addView(nowTitle)
-        metadataBlock.addView(nowArtist)
-        metadataBlock.addView(nowStatus)
-
-        controlsLayer.addView(
-            metadataBlock,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM,
-            ).apply {
-                leftMargin = dp(64)
-                rightMargin = dp(64)
-                bottomMargin = dp(350)
-            },
-        )
-
-        val favorite =
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.FAVORITE,
-                sizeDp = 54,
-                primary = true,
-            ) {
-                toast(
-                    "Обране — наступний етап",
-                )
-            }
-
-        controlsLayer.addView(
-            favorite,
-            FrameLayout.LayoutParams(
-                dp(54),
-                dp(54),
-                Gravity.BOTTOM or Gravity.START,
-            ).apply {
-                leftMargin = dp(14)
-                bottomMargin = dp(347)
-            },
-        )
-
-        val trackMore =
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.MORE,
-                sizeDp = 54,
-            ) {
-                toast(
-                    "Дії треку — наступний етап",
-                )
-            }
-
-        controlsLayer.addView(
-            trackMore,
-            FrameLayout.LayoutParams(
-                dp(54),
-                dp(54),
-                Gravity.BOTTOM or Gravity.END,
-            ).apply {
-                rightMargin = dp(14)
-                bottomMargin = dp(347)
-            },
-        )
-
-        val progressBlock =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-                setPadding(
-                    dp(10),
-                    0,
-                    dp(10),
-                    0,
-                )
-            }
-
-        miniPulseView =
-            PulseMiniView(this).also { pulse ->
-                pulse.updateSignal(
-                    latestSignal,
-                )
-
-                progressBlock.addView(
-                    pulse,
-                    LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        dp(48),
-                    ),
-                )
-            }
-
-        nowSeek =
-            SeekBar(this).apply {
-                max = 1000
-
-                progressTintList =
-                    android.content.res
-                        .ColorStateList
-                        .valueOf(
-                            COLOR_ACCENT_CYAN,
-                        )
-
-                progressBackgroundTintList =
-                    android.content.res
-                        .ColorStateList
-                        .valueOf(
-                            Color.argb(
-                                120,
-                                57,
-                                78,
-                                89,
-                            ),
-                        )
-
-                thumbTintList =
-                    android.content.res
-                        .ColorStateList
-                        .valueOf(
-                            COLOR_ACCENT_ORANGE,
-                        )
-
-                setOnSeekBarChangeListener(
-                    object :
-                        SeekBar.OnSeekBarChangeListener {
-                            override fun onProgressChanged(
-                                seekBar: SeekBar?,
-                                progress: Int,
-                                fromUser: Boolean,
-                            ) = Unit
-
-                            override fun onStartTrackingTouch(
-                                seekBar: SeekBar?,
-                            ) {
-                                scheduleNowControlsAutoHide()
-                            }
-
-                            override fun onStopTrackingTouch(
-                                seekBar: SeekBar?,
-                            ) {
-                                val duration =
-                                    latestSnapshot.durationMs
-
-                                if (
-                                    duration > 0L &&
-                                    seekBar != null
-                                ) {
-                                    controller.seekTo(
-                                        duration *
-                                            seekBar.progress /
-                                            1000L,
-                                    )
-                                }
-
-                                scheduleNowControlsAutoHide()
-                            }
-                        },
-                )
-            }
-
-        progressBlock.addView(
-            nowSeek,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(32),
-            ),
-        )
-
-        val times =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-            }
-
-        nowElapsed =
-            label(
-                "0:00",
-                14f,
-                Color.WHITE,
-                true,
-            )
-
-        nowTotal =
-            label(
-                "0:00",
-                14f,
-                Color.WHITE,
-                true,
-            ).apply {
-                gravity = Gravity.END
-            }
-
-        times.addView(
-            nowElapsed,
-            LinearLayout.LayoutParams(
-                0,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                1f,
-            ),
-        )
-
-        times.addView(
-            nowTotal,
-            LinearLayout.LayoutParams(
-                0,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                1f,
-            ),
-        )
-
-        progressBlock.addView(times)
-
-        controlsLayer.addView(
-            progressBlock,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                Gravity.BOTTOM,
-            ).apply {
-                leftMargin = dp(18)
-                rightMargin = dp(18)
-                bottomMargin = dp(244)
-            },
-        )
-
-        val transport =
-            PulseDeckControlRail(this).apply {
-                setStyle(
-                    PulseDeckControlRail.Style.TRANSPORT,
-                )
-                gravity = Gravity.CENTER
-                setPadding(
-                    dp(6),
-                    dp(4),
-                    dp(6),
-                    dp(4),
-                )
-            }
-
-        val shuffle =
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.SHUFFLE,
-                sizeDp = 62,
-            ) {
-                toast(
-                    "Shuffle запрацює з чергою",
-                )
-            }
-
-        val previous =
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.PREVIOUS,
-                sizeDp = 78,
-            ) {
-                toast(
-                    "Previous запрацює з чергою",
-                )
-            }
-
-        nowPlay =
-            pulseButton(
-                icon =
-                    if (latestSnapshot.isPlaying) {
-                        PulseDeckIconButton.Icon.PAUSE
-                    } else {
-                        PulseDeckIconButton.Icon.PLAY
-                    },
-                sizeDp = 112,
-                primary = true,
-            ) {
-                controller.togglePlayPause()
-            }
-
-        val next =
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.NEXT,
-                sizeDp = 78,
-            ) {
-                toast(
-                    "Next запрацює з чергою",
-                )
-            }
-
-        val repeat =
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.REPEAT,
-                sizeDp = 62,
-            ) {
-                toast(
-                    "Repeat запрацює з чергою",
-                )
-            }
-
-        fun addTransportButton(
-            button: PulseDeckIconButton,
-            sizeDp: Int,
-        ) {
-            transport.addView(
-                button,
-                LinearLayout.LayoutParams(
-                    dp(sizeDp),
-                    dp(sizeDp),
-                ).apply {
-                    marginStart = dp(2)
-                    marginEnd = dp(2)
-                },
-            )
-        }
-
-        addTransportButton(
-            shuffle,
-            62,
-        )
-
-        transport.addView(
-            Space(this),
-            LinearLayout.LayoutParams(
-                0,
-                1,
-                0.28f,
-            ),
-        )
-
-        addTransportButton(
-            previous,
-            78,
-        )
-
-        transport.addView(
-            Space(this),
-            LinearLayout.LayoutParams(
-                0,
-                1,
-                0.14f,
-            ),
-        )
-
-        addTransportButton(
-            nowPlay!!,
-            112,
-        )
-
-        transport.addView(
-            Space(this),
-            LinearLayout.LayoutParams(
-                0,
-                1,
-                0.14f,
-            ),
-        )
-
-        addTransportButton(
-            next,
-            78,
-        )
-
-        transport.addView(
-            Space(this),
-            LinearLayout.LayoutParams(
-                0,
-                1,
-                0.28f,
-            ),
-        )
-
-        addTransportButton(
-            repeat,
-            62,
-        )
-
-        controlsLayer.addView(
-            transport,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(140),
-                Gravity.BOTTOM,
-            ).apply {
-                leftMargin = dp(8)
-                rightMargin = dp(8)
-                bottomMargin = dp(106)
-            },
-        )
-
-        val actions =
-            PulseDeckControlRail(this).apply {
-                setStyle(
-                    PulseDeckControlRail.Style.ACTIONS,
-                )
-                gravity = Gravity.CENTER
-                setPadding(
-                    dp(12),
-                    dp(5),
-                    dp(12),
-                    dp(5),
-                )
-            }
-
-        val themeAction =
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.THEME,
-                sizeDp = 76,
-                primary = true,
-            ) {
-                showThemePicker()
-            }
-
-        val boardAction =
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.BOARD,
-                sizeDp = 76,
-            ) {
-                if (
-                    isLayeredBoardTheme(
-                        selectedThemeId,
-                    )
-                ) {
-                    showBoardTransform()
-                } else if (
-                    selectedThemeId ==
-                    PlaybackThemeId.VISUALIZER
-                ) {
-                    val nextScene =
-                        sceneOrchestrator
-                            .shuffleNow()
-
-                    toast(
-                        "Сцена: " +
-                            nextScene
-                                .visualizerType
-                                .name
-                                .lowercase()
-                                .replace(
-                                    '_',
-                                    ' ',
-                                ),
-                    )
-                } else {
-                    toast(
-                        "Board для цього шару — наступний етап",
-                    )
-                }
-            }
-
-        val visualizerAction =
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.VISUALIZER,
-                sizeDp = 76,
-            ) {
-                startActivity(
-                    Intent(
-                        this,
-                        com.saney.musicvisualizer
-                            .projectm
-                            .ProjectMActivity::class.java,
-                    ),
-                )
-            }
-
-        val exportAction =
-            pulseButton(
-                icon =
-                    PulseDeckIconButton.Icon.EXPORT,
-                sizeDp = 76,
-            ) {
-                showExportLab()
-            }
-
-        listOf(
-            themeAction,
-            boardAction,
-            visualizerAction,
-            exportAction,
-        ).forEachIndexed {
-                index,
-                button,
-            ->
-            if (index > 0) {
-                actions.addView(
-                    Space(this),
-                    LinearLayout.LayoutParams(
-                        0,
-                        1,
-                        1f,
-                    ),
-                )
-            }
-
-            actions.addView(
-                button,
-                LinearLayout.LayoutParams(
-                    dp(76),
-                    dp(76),
-                ),
-            )
-        }
-
-        controlsLayer.addView(
-            actions,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(102),
-                Gravity.BOTTOM,
-            ).apply {
-                leftMargin = dp(10)
-                rightMargin = dp(10)
-                bottomMargin = dp(4)
-            },
-        )
-
-        controlsLayer.setOnTouchListener {
-                _,
-                _,
-            ->
-            scheduleNowControlsAutoHide()
-            false
-        }
-
-        root.addView(
-            controlsLayer,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            ),
-        )
-
-        val overlayGestureDetector =
-            GestureDetector(
-                this,
-                object :
-                    GestureDetector
-                        .SimpleOnGestureListener() {
-                    override fun onDown(
-                        event: MotionEvent,
-                    ): Boolean =
-                        true
-
-                    override fun onDoubleTap(
-                        event: MotionEvent,
-                    ): Boolean {
-                        setNowControlsVisible(
-                            visible =
-                                nowControlsHidden,
-                            animate = true,
-                        )
-                        return true
-                    }
-                },
-            )
-
-        root.setOnTouchListener {
-                _,
-                event,
-            ->
-            overlayGestureDetector
-                .onTouchEvent(event)
-            false
-        }
-
         setContentView(root)
         enableImmersiveFullscreen()
+
         onPlaybackSnapshot(
             latestSnapshot,
         )
 
-        if (nowControlsHidden) {
-            setNowControlsVisible(
-                visible = false,
-                animate = false,
-            )
-        } else {
-            setNowControlsVisible(
-                visible = true,
-                animate = false,
-            )
+        setNowControlsVisible(
+            visible =
+                !nowControlsHidden,
+            animate = false,
+        )
+
+        if (!nowControlsHidden) {
             scheduleNowControlsAutoHide()
         }
     }

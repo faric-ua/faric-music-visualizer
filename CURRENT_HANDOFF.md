@@ -11,7 +11,7 @@ Verified:
 - original FARIC PulseDeck design accepted by user.
 
 Current release candidate:
-- v0.9.0 permanent PulseDeck HUD main-page skin;
+- v0.10.0 modular PNG Skin Engine v1;
 - Cyber Shark is the first live multi-layer Board theme;
 - phone visual check confirms the resized/repositioned Cyber Shark is clearly better and usable as a temporary default;
 - further transform controls and floating-control PulseDeck redesign remain TODO;
@@ -1017,3 +1017,53 @@ Repo support added:
 Pending:
 - user downloads the exact ZIP into Android Downloads and runs menu 18;
 - after PASS, verify files on GitHub and start Skin Engine v1 integration.
+
+
+## v0.10.0 — modular PNG Skin Engine v1
+
+The modular PulseDeck HUD pack is now present in GitHub under:
+- `skin/pulsedeck_hud/`
+- 27 PNG assets;
+- `manifest.json`;
+- README and supporting folders.
+
+Skin Engine v1 implementation:
+- Android packages repository-level `skin/` directly as app assets;
+- `PulseDeckMainSkinView` now parses `pulsedeck_hud/manifest.json`;
+- layer x/y/width/z come from the manifest instead of hard-coded control geometry;
+- PNG layers own the visual appearance of reactor, rails, transport, quick actions, utility controls, waveform and progress line;
+- play/pause swaps between `transport/play.png` and `transport/pause.png`;
+- manifest actions are hit-tested by the skin view and routed to existing Android behavior;
+- seek is handled from the manifest progress-line hit area;
+- progress thumb is rendered from its own PNG and follows playback progress;
+- dynamic title/artist/status/time remain code-driven text above the PNG skin;
+- audio-reactive manifest tags currently provide light scale/alpha reaction for ambient/bass/beat/spectrum layers;
+- auto-hide now fades only the chrome layers (z >= 40), leaving the permanent background/reactor visible;
+- double tap on empty skin space restores/hides controls;
+- existing rotation-visible/hidden state remains owned by MainActivity.
+
+Current action mapping:
+- back → Library;
+- menu → future skin settings;
+- favorite / track_more → placeholders;
+- shuffle / previous / next / repeat → existing queue placeholders;
+- play_pause → live PlaybackController;
+- theme → Theme Picker;
+- board → Board / Scene behavior;
+- visualizer → projectM;
+- export → Export Lab;
+- seek → live seek.
+
+Release:
+- v0.10.0
+- versionCode 39
+
+Phone acceptance:
+1. confirm main HUD is visibly built from imported PNG assets;
+2. confirm play/pause image changes correctly;
+3. confirm every visible button hit target works;
+4. confirm seek responds on the PNG progress line;
+5. confirm auto-hide leaves reactor/background visible but hides chrome;
+6. confirm double tap restores chrome;
+7. rotate hidden and visible states and verify persistence;
+8. compare final proportions against the approved PNG reference.

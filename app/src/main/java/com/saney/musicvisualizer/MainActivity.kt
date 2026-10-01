@@ -677,8 +677,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             showLibrary()
 
                         "menu" ->
-                            toast(
-                                "Налаштування головного скіна — наступний етап",
+                            startActivity(
+                                Intent(
+                                    this,
+                                    PulseDeckCenterCalibrationActivity::class.java,
+                                ),
                             )
 
                         "favorite" ->

@@ -828,6 +828,7 @@ class PulseDeckMainSkinView(
 
                     if (
                         pressedAction != null &&
+                        action != null &&
                         action ==
                         pressedAction
                     ) {

@@ -196,7 +196,7 @@ if git diff --cached --quiet -- "$TARGET_DIR"; then
 fi
 
 echo "Файли, які підуть у commit:"
-git diff --cached --stat -- "$TARGET_DIR"
+git --no-pager diff --cached --stat -- "$TARGET_DIR"
 echo
 
 git commit -m "assets: add modular PulseDeck HUD skin pack"

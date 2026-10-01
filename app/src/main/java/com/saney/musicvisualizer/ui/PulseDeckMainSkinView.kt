@@ -7,6 +7,9 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.PorterDuff
+import android.graphics.PorterDuffXfermode
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.view.GestureDetector
@@ -39,6 +42,10 @@ class PulseDeckMainSkinView(
         val z: Int,
         val action: String?,
         val reactive: String?,
+        val opacity: Float,
+        val blend: String?,
+        val cropTop: Float,
+        val cropBottom: Float,
     )
 
     private data class HitTarget(
@@ -449,13 +456,70 @@ class PulseDeckMainSkinView(
                     1f
             }
 
+        val cropTop =
+            layer.cropTop
+                .coerceIn(
+                    0f,
+                    0.90f,
+                )
+        val cropBottom =
+            layer.cropBottom
+                .coerceIn(
+                    0f,
+                    0.90f,
+                )
+        val visibleFraction =
+            (
+                1f -
+                    cropTop -
+                    cropBottom
+                )
+                .coerceAtLeast(
+                    0.05f,
+                )
+
+        val sourceTop =
+            (
+                bitmap.height *
+                    cropTop
+                )
+                .toInt()
+                .coerceIn(
+                    0,
+                    bitmap.height - 1,
+                )
+        val sourceBottom =
+            (
+                bitmap.height *
+                    (
+                        1f -
+                            cropBottom
+                        )
+                )
+                .toInt()
+                .coerceIn(
+                    sourceTop + 1,
+                    bitmap.height,
+                )
+
+        val sourceRect =
+            Rect(
+                0,
+                sourceTop,
+                bitmap.width,
+                sourceBottom,
+            )
+
         val targetWidth =
             w *
                 layer.width *
                 reactiveScale
 
         val aspect =
-            bitmap.height.toFloat() /
+            (
+                bitmap.height.toFloat() *
+                    visibleFraction
+                ) /
                 bitmap.width.toFloat()
 
         val targetHeight =
@@ -517,7 +581,12 @@ class PulseDeckMainSkinView(
             (
                 255f *
                     chromeAlpha *
-                    reactiveAlpha
+                    reactiveAlpha *
+                    layer.opacity
+                        .coerceIn(
+                            0f,
+                            1f,
+                        )
                 )
                 .toInt()
                 .coerceIn(
@@ -525,12 +594,26 @@ class PulseDeckMainSkinView(
                     255,
                 )
 
+        bitmapPaint.xfermode =
+            if (
+                layer.blend ==
+                    "screen"
+            ) {
+                PorterDuffXfermode(
+                    PorterDuff.Mode.SCREEN,
+                )
+            } else {
+                null
+            }
+
         canvas.drawBitmap(
             bitmap,
-            null,
+            sourceRect,
             rect,
             bitmapPaint,
         )
+
+        bitmapPaint.xfermode = null
 
         val action =
             layer.action
@@ -992,6 +1075,31 @@ class PulseDeckMainSkinView(
                                     .takeIf {
                                         it.isNotBlank()
                                     },
+                            opacity =
+                                item.optDouble(
+                                    "opacity",
+                                    1.0,
+                                )
+                                    .toFloat(),
+                            blend =
+                                item.optString(
+                                    "blend",
+                                )
+                                    .takeIf {
+                                        it.isNotBlank()
+                                    },
+                            cropTop =
+                                item.optDouble(
+                                    "cropTop",
+                                    0.0,
+                                )
+                                    .toFloat(),
+                            cropBottom =
+                                item.optDouble(
+                                    "cropBottom",
+                                    0.0,
+                                )
+                                    .toFloat(),
                         ),
                     )
                 }

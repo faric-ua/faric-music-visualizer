@@ -46,9 +46,12 @@ class PulseDeckMainSkinView(
         val blend: String?,
         val cropTop: Float,
         val cropBottom: Float,
+        val cropLeft: Float,
+        val cropRight: Float,
         val parentId: String?,
         val localX: Float?,
         val localY: Float?,
+        val localWidth: Float?,
     )
 
     private data class HitTarget(
@@ -475,7 +478,20 @@ class PulseDeckMainSkinView(
                     0f,
                     0.90f,
                 )
-        val visibleFraction =
+        val cropLeft =
+            layer.cropLeft
+                .coerceIn(
+                    0f,
+                    0.90f,
+                )
+        val cropRight =
+            layer.cropRight
+                .coerceIn(
+                    0f,
+                    0.90f,
+                )
+
+        val visibleHeightFraction =
             (
                 1f -
                     cropTop -
@@ -484,7 +500,39 @@ class PulseDeckMainSkinView(
                 .coerceAtLeast(
                     0.05f,
                 )
+        val visibleWidthFraction =
+            (
+                1f -
+                    cropLeft -
+                    cropRight
+                )
+                .coerceAtLeast(
+                    0.05f,
+                )
 
+        val sourceLeft =
+            (
+                bitmap.width *
+                    cropLeft
+                )
+                .toInt()
+                .coerceIn(
+                    0,
+                    bitmap.width - 1,
+                )
+        val sourceRight =
+            (
+                bitmap.width *
+                    (
+                        1f -
+                            cropRight
+                        )
+                )
+                .toInt()
+                .coerceIn(
+                    sourceLeft + 1,
+                    bitmap.width,
+                )
         val sourceTop =
             (
                 bitmap.height *
@@ -511,33 +559,46 @@ class PulseDeckMainSkinView(
 
         val sourceRect =
             Rect(
-                0,
+                sourceLeft,
                 sourceTop,
-                bitmap.width,
+                sourceRight,
                 sourceBottom,
             )
-
-        val targetWidth =
-            w *
-                layer.width *
-                reactiveScale
-
-        val aspect =
-            (
-                bitmap.height.toFloat() *
-                    visibleFraction
-                ) /
-                bitmap.width.toFloat()
-
-        val targetHeight =
-            targetWidth *
-                aspect
 
         val parentRect =
             layer.parentId
                 ?.let { parentId ->
                     resolvedRects[parentId]
                 }
+
+        val targetWidth =
+            (
+                if (
+                    parentRect != null &&
+                    layer.localWidth != null
+                ) {
+                    parentRect.width() *
+                        layer.localWidth
+                } else {
+                    w *
+                        layer.width
+                }
+            ) *
+                reactiveScale
+
+        val aspect =
+            (
+                bitmap.height.toFloat() *
+                    visibleHeightFraction
+                ) /
+                (
+                    bitmap.width.toFloat() *
+                        visibleWidthFraction
+                    )
+
+        val targetHeight =
+            targetWidth *
+                aspect
 
         val centerX =
             if (
@@ -1135,6 +1196,18 @@ class PulseDeckMainSkinView(
                                     0.0,
                                 )
                                     .toFloat(),
+                            cropLeft =
+                                item.optDouble(
+                                    "cropLeft",
+                                    0.0,
+                                )
+                                    .toFloat(),
+                            cropRight =
+                                item.optDouble(
+                                    "cropRight",
+                                    0.0,
+                                )
+                                    .toFloat(),
                             parentId =
                                 item.optString(
                                     "parent",
@@ -1163,6 +1236,19 @@ class PulseDeckMainSkinView(
                                 ) {
                                     item.getDouble(
                                         "localY",
+                                    )
+                                        .toFloat()
+                                } else {
+                                    null
+                                },
+                            localWidth =
+                                if (
+                                    item.has(
+                                        "localWidth",
+                                    )
+                                ) {
+                                    item.getDouble(
+                                        "localWidth",
                                     )
                                         .toFloat()
                                 } else {

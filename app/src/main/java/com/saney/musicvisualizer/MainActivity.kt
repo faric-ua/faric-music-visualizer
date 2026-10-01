@@ -2856,6 +2856,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             nowControlsAutoHideRunnable,
         )
 
+        if (skin.isMasterPlateMode()) {
+            nowControlsHidden = false
+            skin.setControlsVisible(
+                visible = true,
+                animate = false,
+            )
+            return
+        }
+
         nowControlsHidden =
             !visible
 
@@ -2877,6 +2886,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         skin.removeCallbacks(
             nowControlsAutoHideRunnable,
         )
+
+        if (skin.isMasterPlateMode()) {
+            return
+        }
 
         if (!nowControlsHidden) {
             skin.postDelayed(

@@ -52,6 +52,7 @@ class PulseDeckMainSkinView(
         val localX: Float?,
         val localY: Float?,
         val localWidth: Float?,
+        val hitWidth: Float?,
     )
 
     private data class HitTarget(
@@ -720,22 +721,47 @@ class PulseDeckMainSkinView(
             controlsAlpha >= 0.35f
         ) {
             val touchRect =
-                if (action == "seek") {
-                    val extra =
-                        resources.displayMetrics
-                            .density *
-                            18f
+                when {
+                    action == "seek" -> {
+                        val extra =
+                            resources.displayMetrics
+                                .density *
+                                18f
 
-                    RectF(
-                        rect.left,
-                        rect.top -
-                            extra,
-                        rect.right,
-                        rect.bottom +
-                            extra,
-                    )
-                } else {
-                    rect
+                        RectF(
+                            rect.left,
+                            rect.top -
+                                extra,
+                            rect.right,
+                            rect.bottom +
+                                extra,
+                        )
+                    }
+
+                    parentRect != null &&
+                        layer.hitWidth != null -> {
+                        val size =
+                            parentRect.width() *
+                                layer.hitWidth
+
+                        RectF(
+                            centerX -
+                                size *
+                                0.5f,
+                            centerY -
+                                size *
+                                0.5f,
+                            centerX +
+                                size *
+                                0.5f,
+                            centerY +
+                                size *
+                                0.5f,
+                        )
+                    }
+
+                    else ->
+                        rect
                 }
 
             hitTargets.add(
@@ -1249,6 +1275,19 @@ class PulseDeckMainSkinView(
                                 ) {
                                     item.getDouble(
                                         "localWidth",
+                                    )
+                                        .toFloat()
+                                } else {
+                                    null
+                                },
+                            hitWidth =
+                                if (
+                                    item.has(
+                                        "hitWidth",
+                                    )
+                                ) {
+                                    item.getDouble(
+                                        "hitWidth",
                                     )
                                         .toFloat()
                                 } else {

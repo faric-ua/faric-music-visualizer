@@ -1010,9 +1010,11 @@ class PulseDeckMainSkinView(
                     .open(
                         "$SKIN_ROOT/$relativePath",
                     )
-                    .use(
-                        BitmapFactory::decodeStream,
-                    )
+                    .use { input ->
+                        BitmapFactory.decodeStream(
+                            input,
+                        )
+                    }
             }.getOrNull()
                 ?: return null
 

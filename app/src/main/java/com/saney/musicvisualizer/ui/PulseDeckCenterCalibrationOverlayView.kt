@@ -1078,9 +1078,9 @@ class PulseDeckCenterCalibrationOverlayView(
                 if (
                     guidesExpanded
                 ) {
-                    382f
+                    430f
                 } else {
-                    330f
+                    378f
                 },
             )
 
@@ -1191,26 +1191,26 @@ class PulseDeckCenterCalibrationOverlayView(
             panel.top +
                 dp(36f),
             panel.top +
-                dp(100f),
+                dp(110f),
             "ACTIONS",
         )
         drawGroupTile(
             panel.top +
-                dp(106f),
+                dp(116f),
             panel.top +
-                dp(164f),
+                dp(176f),
             "MAGNIFIER",
         )
         drawGroupTile(
             panel.top +
-                dp(170f),
+                dp(182f),
             panel.top +
-                dp(308f),
+                dp(320f),
             "MOVE",
         )
         drawGroupTile(
             panel.top +
-                dp(314f),
+                dp(326f),
             panel.bottom -
                 dp(8f),
             if (
@@ -1239,7 +1239,7 @@ class PulseDeckCenterCalibrationOverlayView(
                 dp(86f)
         val dpadCy =
             panel.top +
-                dp(246f)
+                dp(258f)
         val button =
             dp(42f)
         val gap =
@@ -1372,11 +1372,11 @@ class PulseDeckCenterCalibrationOverlayView(
                 panel.left +
                     dp(172f),
                 panel.top +
-                    dp(198f),
+                    dp(210f),
                 panel.right -
                     dp(14f),
                 panel.top +
-                    dp(239f),
+                    dp(251f),
             )
         panelActionRects[
             PanelAction.STEP
@@ -1434,7 +1434,7 @@ class PulseDeckCenterCalibrationOverlayView(
             panel.left +
                 dp(172f),
             panel.top +
-                dp(265f),
+                dp(277f),
             smallPaint,
         )
         canvas.drawText(
@@ -1445,13 +1445,13 @@ class PulseDeckCenterCalibrationOverlayView(
             panel.left +
                 dp(172f),
             panel.top +
-                dp(288f),
+                dp(300f),
             savedPaint,
         )
 
         val magRowTop =
             panel.top +
-                dp(122f)
+                dp(132f)
         val magGap =
             dp(5f)
         val magWidth =
@@ -1590,11 +1590,11 @@ class PulseDeckCenterCalibrationOverlayView(
                 panel.left +
                     dp(14f),
                 panel.top +
-                    dp(316f),
+                    dp(330f),
                 panel.right -
                     dp(14f),
                 panel.top +
-                    dp(346f),
+                    dp(368f),
             )
 
         panelActionRects[
@@ -1614,7 +1614,7 @@ class PulseDeckCenterCalibrationOverlayView(
                 3f
         val guideRowTop =
             panel.top +
-                dp(342f)
+                dp(378f)
 
         fun addGuideAction(
             action: PanelAction,
@@ -1712,7 +1712,7 @@ class PulseDeckCenterCalibrationOverlayView(
 
         val actionY =
             panel.top +
-                dp(78f)
+                dp(84f)
         val actionWidth =
             (
                 panel.width() -

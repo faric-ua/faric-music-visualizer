@@ -188,6 +188,7 @@ class PulseDeckCenterCalibrationOverlayView(
         )
 
     private var panelDragging = false
+    private var panelTouchCaptured = false
     private var panelDragOffsetX = 0f
     private var panelDragOffsetY = 0f
     private var activePanelAction =
@@ -618,7 +619,12 @@ class PulseDeckCenterCalibrationOverlayView(
                 )
 
             panelActionRects[action] =
-                rect
+                RectF(
+                    rect.left - dp(6f),
+                    rect.top - dp(6f),
+                    rect.right + dp(6f),
+                    rect.bottom + dp(6f),
+                )
 
             val pressed =
                 activePanelAction ==
@@ -1095,6 +1101,12 @@ class PulseDeckCenterCalibrationOverlayView(
                         PanelAction.NONE
                     ]
 
+                panelTouchCaptured =
+                    panel.contains(
+                        event.x,
+                        event.y,
+                    )
+
                 activePanelAction =
                     findPanelAction(
                         event.x,
@@ -1125,6 +1137,14 @@ class PulseDeckCenterCalibrationOverlayView(
                     panelDragOffsetY =
                         event.y -
                             panel.centerY()
+                    return true
+                }
+
+                // Any touch inside the floating remote belongs to the remote.
+                // Never let a tap on empty panel space relocate the crosshair.
+                if (
+                    panelTouchCaptured
+                ) {
                     return true
                 }
 
@@ -1211,6 +1231,7 @@ class PulseDeckCenterCalibrationOverlayView(
                     panelDragging
                 ) {
                     panelDragging = false
+                    panelTouchCaptured = false
 
                     prefs.edit()
                         .putFloat(
@@ -1235,11 +1256,20 @@ class PulseDeckCenterCalibrationOverlayView(
                         activePanelAction
                     activePanelAction =
                         PanelAction.NONE
+                    panelTouchCaptured = false
 
                     performPanelAction(
                         action,
                     )
 
+                    invalidate()
+                    return true
+                }
+
+                if (
+                    panelTouchCaptured
+                ) {
+                    panelTouchCaptured = false
                     invalidate()
                     return true
                 }
@@ -1312,6 +1342,7 @@ class PulseDeckCenterCalibrationOverlayView(
             MotionEvent.ACTION_CANCEL -> {
                 draggingTarget = false
                 panelDragging = false
+                panelTouchCaptured = false
                 activePanelAction =
                     PanelAction.NONE
                 invalidate()

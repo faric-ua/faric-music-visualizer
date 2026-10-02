@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - "app/**"
+      - "skin/**"
       - "build.gradle.kts"
       - "settings.gradle.kts"
       - "gradle.properties"
@@ -13,6 +14,7 @@ on:
   pull_request:
     paths:
       - "app/**"
+      - "skin/**"
       - "build.gradle.kts"
       - "settings.gradle.kts"
       - "gradle.properties"

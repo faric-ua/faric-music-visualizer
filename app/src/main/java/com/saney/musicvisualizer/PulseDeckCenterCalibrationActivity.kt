@@ -59,7 +59,8 @@ class PulseDeckCenterCalibrationActivity :
 
         root.addView(
             PulseDeckCenterCalibrationOverlayView(
-                this,
+                context = this,
+                sourceView = skin,
             ),
             FrameLayout.LayoutParams(
                 FrameLayout.LayoutParams.MATCH_PARENT,

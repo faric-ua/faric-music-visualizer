@@ -125,5 +125,8 @@
       0.8498273491859436,
       0.8761952519416809
     ]
-  ]
+  ],
+  "status": "REJECTED",
+  "rejectionReason": "User confirmed these saved centers are incorrect. Do not use for layout or centering.",
+  "authoritative": false
 }

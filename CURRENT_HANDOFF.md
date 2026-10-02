@@ -1206,3 +1206,41 @@ Resume point:
 4. calibrate C-01…C-20 using the floating remote;
 5. COPY and paste the resulting coordinate block into chat;
 6. rebuild the main-page geometry from accepted calibrated centers only.
+
+
+## v0.11.6 — stable draft centers + magnifier
+
+Calibration stability:
+- every crosshair move is persisted immediately as a per-point draft;
+- panel interaction no longer resets the unsaved editing position;
+- point load priority is draft -> saved -> baseline;
+- RESET clears only the current point's saved + draft position.
+
+Magnifier:
+- live circular loupe renders the real PulseDeck skin under the target;
+- MAG ON/OFF;
+- ZOOM cycles 2x / 3x / 4x / 6x;
+- SIZE cycles S / M / L = 120 / 180 / 240 dp;
+- FOLLOW keeps the loupe near the target;
+- dragging the loupe disables FOLLOW and stores its screen position;
+- FREEZE stores a snapshot around the current target;
+- loupe position, zoom, size, follow and freeze settings persist.
+
+Remote:
+- existing D-pad + 1/2/5/10/20 px step remains;
+- PREV / SAVE / NEXT / RESET / COPY remain;
+- panel itself remains draggable and touch-isolated from crosshair placement.
+
+Release:
+- v0.11.6
+- versionCode 50
+
+Phone acceptance:
+1. place target roughly;
+2. tap/use remote without the target jumping or reverting;
+3. use 1 px step for fine alignment;
+4. verify magnifier 2x/3x/4x/6x;
+5. verify S/M/L loupe sizes;
+6. drag loupe; target must not move;
+7. FREEZE/UNFREEZE;
+8. rotate and verify draft target + loupe settings survive.

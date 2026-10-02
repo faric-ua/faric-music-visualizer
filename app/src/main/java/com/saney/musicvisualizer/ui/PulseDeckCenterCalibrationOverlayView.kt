@@ -6,6 +6,7 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
@@ -44,6 +45,9 @@ class PulseDeckCenterCalibrationOverlayView(
         SIZE,
         FOLLOW,
         FREEZE,
+        GUIDE_V,
+        GUIDE_H,
+        GUIDE_CLEAR,
         NONE,
     }
 
@@ -102,6 +106,52 @@ class PulseDeckCenterCalibrationOverlayView(
             )
             style = Paint.Style.STROKE
             strokeWidth = dp(1.5f)
+        }
+
+    private val guidePaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color =
+                Color.argb(
+                    225,
+                    255,
+                    166,
+                    0,
+                )
+            style =
+                Paint.Style.STROKE
+            strokeWidth =
+                dp(1.5f)
+            pathEffect =
+                DashPathEffect(
+                    floatArrayOf(
+                        dp(9f),
+                        dp(7f),
+                    ),
+                    0f,
+                )
+        }
+
+    private val loupeAxisPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color =
+                Color.argb(
+                    245,
+                    0,
+                    255,
+                    220,
+                )
+            style =
+                Paint.Style.STROKE
+            strokeWidth =
+                dp(1.5f)
+            pathEffect =
+                DashPathEffect(
+                    floatArrayOf(
+                        dp(8f),
+                        dp(6f),
+                    ),
+                    0f,
+                )
         }
 
     private val labelPaint =
@@ -295,6 +345,27 @@ class PulseDeckCenterCalibrationOverlayView(
     private var frozenTargetX = 0f
     private var frozenTargetY = 0f
 
+    private var verticalGuideEnabled =
+        prefs.getBoolean(
+            KEY_GUIDE_V_ENABLED,
+            false,
+        )
+    private var horizontalGuideEnabled =
+        prefs.getBoolean(
+            KEY_GUIDE_H_ENABLED,
+            false,
+        )
+    private var verticalGuideXNorm =
+        prefs.getFloat(
+            KEY_GUIDE_V_X,
+            0.5f,
+        )
+    private var horizontalGuideYNorm =
+        prefs.getFloat(
+            KEY_GUIDE_H_Y,
+            0.5f,
+        )
+
     init {
         isClickable = true
         isFocusable = true
@@ -320,6 +391,9 @@ class PulseDeckCenterCalibrationOverlayView(
             targetYNorm *
                 height
 
+        drawFixedGuides(
+            canvas,
+        )
         drawMainAxes(
             canvas,
             x,
@@ -341,6 +415,42 @@ class PulseDeckCenterCalibrationOverlayView(
         drawControlPanel(
             canvas,
         )
+    }
+
+    private fun drawFixedGuides(
+        canvas: Canvas,
+    ) {
+        if (
+            verticalGuideEnabled
+        ) {
+            val x =
+                verticalGuideXNorm *
+                    width
+
+            canvas.drawLine(
+                x,
+                0f,
+                x,
+                height.toFloat(),
+                guidePaint,
+            )
+        }
+
+        if (
+            horizontalGuideEnabled
+        ) {
+            val y =
+                horizontalGuideYNorm *
+                    height
+
+            canvas.drawLine(
+                0f,
+                y,
+                width.toFloat(),
+                y,
+                guidePaint,
+            )
+        }
     }
 
     private fun drawMainAxes(
@@ -853,8 +963,33 @@ class PulseDeckCenterCalibrationOverlayView(
             )
         }
 
+        // Draw orientation axes on TOP of magnified content. Because the canvas
+        // is still clipped to the loupe circle, the dashes end exactly at its edge.
         canvas.restoreToCount(
             save,
+        )
+
+        val axisSave =
+            canvas.save()
+        canvas.clipPath(
+            loupePath,
+        )
+        canvas.drawLine(
+            centerX - radius,
+            centerY,
+            centerX + radius,
+            centerY,
+            loupeAxisPaint,
+        )
+        canvas.drawLine(
+            centerX,
+            centerY - radius,
+            centerX,
+            centerY + radius,
+            loupeAxisPaint,
+        )
+        canvas.restoreToCount(
+            axisSave,
         )
 
         canvas.drawCircle(
@@ -1581,6 +1716,60 @@ class PulseDeckCenterCalibrationOverlayView(
 
             PanelAction.COPY ->
                 copyAllSaved()
+
+            PanelAction.GUIDE_V -> {
+                verticalGuideEnabled = true
+                verticalGuideXNorm = targetXNorm
+
+                prefs.edit()
+                    .putBoolean(
+                        KEY_GUIDE_V_ENABLED,
+                        true,
+                    )
+                    .putFloat(
+                        KEY_GUIDE_V_X,
+                        verticalGuideXNorm,
+                    )
+                    .apply()
+
+                invalidate()
+            }
+
+            PanelAction.GUIDE_H -> {
+                horizontalGuideEnabled = true
+                horizontalGuideYNorm = targetYNorm
+
+                prefs.edit()
+                    .putBoolean(
+                        KEY_GUIDE_H_ENABLED,
+                        true,
+                    )
+                    .putFloat(
+                        KEY_GUIDE_H_Y,
+                        horizontalGuideYNorm,
+                    )
+                    .apply()
+
+                invalidate()
+            }
+
+            PanelAction.GUIDE_CLEAR -> {
+                verticalGuideEnabled = false
+                horizontalGuideEnabled = false
+
+                prefs.edit()
+                    .putBoolean(
+                        KEY_GUIDE_V_ENABLED,
+                        false,
+                    )
+                    .putBoolean(
+                        KEY_GUIDE_H_ENABLED,
+                        false,
+                    )
+                    .apply()
+
+                invalidate()
+            }
 
             PanelAction.MAG -> {
                 magnifierEnabled =
@@ -2515,6 +2704,15 @@ class PulseDeckCenterCalibrationOverlayView(
             "mag_x"
         private const val KEY_MAG_Y =
             "mag_y"
+
+        private const val KEY_GUIDE_V_ENABLED =
+            "guide_v_enabled"
+        private const val KEY_GUIDE_H_ENABLED =
+            "guide_h_enabled"
+        private const val KEY_GUIDE_V_X =
+            "guide_v_x"
+        private const val KEY_GUIDE_H_Y =
+            "guide_h_y"
 
         private const val LONG_PRESS_MS =
             650L

@@ -15,12 +15,17 @@ import android.graphics.Typeface
 import android.view.MotionEvent
 import android.view.View
 import android.widget.Toast
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.math.abs
 import kotlin.math.hypot
 
 class PulseDeckCenterCalibrationOverlayView(
     context: Context,
     private val sourceView: View,
+    private val onExportRequested: (String) -> Unit = {},
+    private val onImportRequested: () -> Unit = {},
+    private val onAutoSnapshotRequested: (String) -> Unit = {},
 ) : View(context) {
 
     private enum class ReviewState {
@@ -51,6 +56,8 @@ class PulseDeckCenterCalibrationOverlayView(
         GUIDES_TOGGLE,
         ACTIONS_TOGGLE,
         MAGNIFIER_TOGGLE,
+        EXPORT,
+        IMPORT,
         NONE,
     }
 
@@ -1090,7 +1097,7 @@ class PulseDeckCenterCalibrationOverlayView(
         val panelHeight =
             dp(
                 210f +
-                    (if (actionsExpanded) 58f else 0f) +
+                    (if (actionsExpanded) 98f else 0f) +
                     (if (magnifierExpanded) 58f else 0f) +
                     (if (guidesExpanded) 54f else 0f),
             )
@@ -1225,7 +1232,7 @@ class PulseDeckCenterCalibrationOverlayView(
                     if (
                         actionsExpanded
                     ) {
-                        64f
+                        104f
                     } else {
                         34f
                     },
@@ -1923,6 +1930,95 @@ class PulseDeckCenterCalibrationOverlayView(
             )
         }
 
+        if (
+            actionsExpanded
+        ) {
+            val ioGap =
+                dp(8f)
+            val ioTop =
+                actionsTop +
+                    dp(70f)
+            val ioWidth =
+                (
+                    panel.width() -
+                        dp(28f) -
+                        ioGap
+                    ) /
+                    2f
+
+            fun addIoAction(
+                action: PanelAction,
+                index: Int,
+                label: String,
+            ) {
+                val left =
+                    panel.left +
+                        dp(14f) +
+                        (
+                            ioWidth +
+                                ioGap
+                            ) *
+                            index
+
+                val rect =
+                    RectF(
+                        left,
+                        ioTop,
+                        left +
+                            ioWidth,
+                        ioTop +
+                            dp(28f),
+                    )
+
+                panelActionRects[action] =
+                    rect
+
+                canvas.drawRoundRect(
+                    rect,
+                    dp(8f),
+                    dp(8f),
+                    Paint(
+                        Paint.ANTI_ALIAS_FLAG,
+                    ).apply {
+                        color =
+                            Color.argb(
+                                225,
+                                12,
+                                25,
+                                35,
+                            )
+                    },
+                )
+
+                val oldAlign =
+                    smallPaint.textAlign
+                smallPaint.textAlign =
+                    Paint.Align.CENTER
+
+                canvas.drawText(
+                    label,
+                    rect.centerX(),
+                    rect.centerY() +
+                        dp(5f),
+                    smallPaint,
+                )
+
+                smallPaint.textAlign =
+                    oldAlign
+            }
+
+            addIoAction(
+                PanelAction.EXPORT,
+                0,
+                "EXPORT",
+            )
+            addIoAction(
+                PanelAction.IMPORT,
+                1,
+                "IMPORT",
+            )
+        }
+
         // Header itself is the drag handle; no action rect is needed.
         panelActionRects[
             PanelAction.NONE
@@ -2252,6 +2348,16 @@ class PulseDeckCenterCalibrationOverlayView(
                     .apply()
 
                 invalidate()
+            }
+
+            PanelAction.EXPORT -> {
+                onExportRequested(
+                    buildCalibrationSnapshotJson(),
+                )
+            }
+
+            PanelAction.IMPORT -> {
+                onImportRequested()
             }
 
             PanelAction.NONE ->
@@ -2752,6 +2858,10 @@ class PulseDeckCenterCalibrationOverlayView(
             )
             .apply()
 
+        onAutoSnapshotRequested(
+            buildCalibrationSnapshotJson(),
+        )
+
         val message =
             point.id +
                 " = " +
@@ -2928,6 +3038,324 @@ class PulseDeckCenterCalibrationOverlayView(
         invalidate()
     }
 
+    fun buildCalibrationSnapshotJson(): String {
+        val root =
+            JSONObject()
+
+        root.put(
+            "format",
+            SNAPSHOT_FORMAT,
+        )
+        root.put(
+            "schemaVersion",
+            SNAPSHOT_SCHEMA_VERSION,
+        )
+        root.put(
+            "createdAtEpochMs",
+            System.currentTimeMillis(),
+        )
+        root.put(
+            "currentIndex",
+            currentIndex,
+        )
+
+        val array =
+            JSONArray()
+
+        points.forEach { point ->
+            val item =
+                JSONObject()
+
+            item.put(
+                "id",
+                point.id,
+            )
+            item.put(
+                "name",
+                point.name,
+            )
+
+            val saved =
+                isPointSaved(
+                    point,
+                )
+            item.put(
+                "saved",
+                saved,
+            )
+
+            if (
+                saved
+            ) {
+                item.put(
+                    "x",
+                    prefs.getFloat(
+                        keyX(
+                            point,
+                        ),
+                        point.baselineX,
+                    )
+                        .toDouble(),
+                )
+                item.put(
+                    "y",
+                    prefs.getFloat(
+                        keyY(
+                            point,
+                        ),
+                        point.baselineY,
+                    )
+                        .toDouble(),
+                )
+            }
+
+            val hasDraft =
+                prefs.contains(
+                    keyDraftX(
+                        point,
+                    ),
+                ) &&
+                    prefs.contains(
+                        keyDraftY(
+                            point,
+                        ),
+                    )
+
+            item.put(
+                "hasDraft",
+                hasDraft,
+            )
+
+            if (
+                hasDraft
+            ) {
+                item.put(
+                    "draftX",
+                    prefs.getFloat(
+                        keyDraftX(
+                            point,
+                        ),
+                        point.baselineX,
+                    )
+                        .toDouble(),
+                )
+                item.put(
+                    "draftY",
+                    prefs.getFloat(
+                        keyDraftY(
+                            point,
+                        ),
+                        point.baselineY,
+                    )
+                        .toDouble(),
+                )
+            }
+
+            array.put(
+                item,
+            )
+        }
+
+        root.put(
+            "points",
+            array,
+        )
+
+        return root.toString(
+            2,
+        )
+    }
+
+    fun importCalibrationSnapshotJson(
+        json: String,
+    ): Int {
+        val root =
+            JSONObject(
+                json,
+            )
+
+        require(
+            root.optString(
+                "format",
+            ) ==
+                SNAPSHOT_FORMAT,
+        ) {
+            "Невідомий формат calibration snapshot"
+        }
+
+        val schema =
+            root.optInt(
+                "schemaVersion",
+                -1,
+            )
+
+        require(
+            schema ==
+                SNAPSHOT_SCHEMA_VERSION,
+        ) {
+            "Непідтримувана версія snapshot: " +
+                schema
+        }
+
+        val array =
+            root.getJSONArray(
+                "points",
+            )
+
+        val editor =
+            prefs.edit()
+
+        points.forEach { point ->
+            editor.remove(
+                keyX(
+                    point,
+                ),
+            )
+            editor.remove(
+                keyY(
+                    point,
+                ),
+            )
+            editor.remove(
+                keySaved(
+                    point,
+                ),
+            )
+            editor.remove(
+                keyDraftX(
+                    point,
+                ),
+            )
+            editor.remove(
+                keyDraftY(
+                    point,
+                ),
+            )
+        }
+
+        var imported =
+            0
+
+        for (
+            index in
+            0 until array.length()
+        ) {
+            val item =
+                array.getJSONObject(
+                    index,
+                )
+            val id =
+                item.optString(
+                    "id",
+                )
+            val point =
+                points.firstOrNull {
+                    it.id ==
+                        id
+                }
+                    ?: continue
+
+            val saved =
+                item.optBoolean(
+                    "saved",
+                    false,
+                )
+
+            if (
+                saved &&
+                item.has(
+                    "x",
+                ) &&
+                item.has(
+                    "y",
+                )
+            ) {
+                editor.putFloat(
+                    keyX(
+                        point,
+                    ),
+                    item.getDouble(
+                        "x",
+                    )
+                        .toFloat(),
+                )
+                editor.putFloat(
+                    keyY(
+                        point,
+                    ),
+                    item.getDouble(
+                        "y",
+                    )
+                        .toFloat(),
+                )
+                editor.putBoolean(
+                    keySaved(
+                        point,
+                    ),
+                    true,
+                )
+                imported +=
+                    1
+            }
+
+            val hasDraft =
+                item.optBoolean(
+                    "hasDraft",
+                    false,
+                )
+
+            if (
+                hasDraft &&
+                item.has(
+                    "draftX",
+                ) &&
+                item.has(
+                    "draftY",
+                )
+            ) {
+                editor.putFloat(
+                    keyDraftX(
+                        point,
+                    ),
+                    item.getDouble(
+                        "draftX",
+                    )
+                        .toFloat(),
+                )
+                editor.putFloat(
+                    keyDraftY(
+                        point,
+                    ),
+                    item.getDouble(
+                        "draftY",
+                    )
+                        .toFloat(),
+                )
+            }
+        }
+
+        currentIndex =
+            root.optInt(
+                "currentIndex",
+                0,
+            )
+                .coerceIn(
+                    0,
+                    points.lastIndex,
+                )
+
+        editor.putInt(
+            KEY_CURRENT_INDEX,
+            currentIndex,
+        )
+        editor.apply()
+
+        loadCurrentTarget()
+        invalidate()
+
+        return imported
+    }
+
     private fun copyAllSaved() {
         val lines =
             buildList {
@@ -3101,6 +3529,11 @@ class PulseDeckCenterCalibrationOverlayView(
             "actions_expanded"
         private const val KEY_MAGNIFIER_EXPANDED =
             "magnifier_expanded"
+
+        private const val SNAPSHOT_FORMAT =
+            "FARIC_PULSEDECK_CENTER_CALIBRATION"
+        private const val SNAPSHOT_SCHEMA_VERSION =
+            1
 
         private const val LONG_PRESS_MS =
             650L

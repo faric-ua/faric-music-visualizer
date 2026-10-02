@@ -604,3 +604,22 @@ User clarification after 333058.mp4:
 - [ ] Android CI PASS for v0.11.1 / build 45.
 - [ ] User calibrates and returns coordinate block.
 - [ ] Rebuild layout from accepted centers only.
+
+
+## Resume point — v0.11.4 center calibration
+
+- [x] Clean Blocks v2 visible on phone.
+- [x] Preserve non-stretched uniform-scaling rule.
+- [x] Preserve wrong/good C-point review states.
+- [x] Add draggable center target.
+- [x] Add floating draggable CENTER REMOTE.
+- [x] Add 1/2/5/10/20 px step control.
+- [x] Add PREV / SAVE / NEXT / RESET / COPY.
+- [x] Persist panel position, step, current C-point and saved centers.
+- [x] Validate PASS for v0.11.4.
+- [ ] Android PASS for v0.11.4.
+- [ ] Install v0.11.4 APK.
+- [ ] Calibrate C-01…C-20 on phone.
+- [ ] Paste exported normalized coordinates into chat.
+- [ ] Rebuild final main-page geometry from accepted centers.
+- [ ] After geometry acceptance, tune spacing/background behavior across aspect ratios without deforming the HUD.

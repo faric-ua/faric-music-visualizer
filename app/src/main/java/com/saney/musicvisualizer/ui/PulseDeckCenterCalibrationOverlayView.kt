@@ -8,6 +8,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.view.MotionEvent
@@ -772,21 +773,55 @@ class PulseDeckCenterCalibrationOverlayView(
                 radius /
                     magnifierZoom
 
-            val src =
-                RectF(
+            val srcLeft =
+                (
                     sourceTargetX -
-                        srcHalf,
+                        srcHalf
+                    )
+                    .toInt()
+                    .coerceIn(
+                        0,
+                        bitmap.width - 1,
+                    )
+            val srcTop =
+                (
                     sourceTargetY -
-                        srcHalf,
+                        srcHalf
+                    )
+                    .toInt()
+                    .coerceIn(
+                        0,
+                        bitmap.height - 1,
+                    )
+            val srcRight =
+                (
                     sourceTargetX +
-                        srcHalf,
+                        srcHalf
+                    )
+                    .toInt()
+                    .coerceIn(
+                        srcLeft + 1,
+                        bitmap.width,
+                    )
+            val srcBottom =
+                (
                     sourceTargetY +
-                        srcHalf,
-                )
+                        srcHalf
+                    )
+                    .toInt()
+                    .coerceIn(
+                        srcTop + 1,
+                        bitmap.height,
+                    )
 
             canvas.drawBitmap(
                 bitmap,
-                null,
+                Rect(
+                    srcLeft,
+                    srcTop,
+                    srcRight,
+                    srcBottom,
+                ),
                 RectF(
                     centerX -
                         radius,
@@ -897,7 +932,7 @@ class PulseDeckCenterCalibrationOverlayView(
                 dp(360f),
             )
         val panelHeight =
-            dp(225f)
+            dp(300f)
 
         val centerX =
             (
@@ -1182,6 +1217,142 @@ class PulseDeckCenterCalibrationOverlayView(
             savedPaint,
         )
 
+        val magRowTop =
+            panel.top +
+                dp(178f)
+        val magGap =
+            dp(5f)
+        val magWidth =
+            (
+                panel.width() -
+                    dp(28f) -
+                    magGap *
+                    4f
+                ) /
+                5f
+
+        fun addMagAction(
+            action: PanelAction,
+            index: Int,
+            label: String,
+        ) {
+            val left =
+                panel.left +
+                    dp(14f) +
+                    (
+                        magWidth +
+                            magGap
+                        ) *
+                    index
+
+            val rect =
+                RectF(
+                    left,
+                    magRowTop,
+                    left +
+                        magWidth,
+                    magRowTop +
+                        dp(38f),
+                )
+
+            panelActionRects[action] =
+                rect
+
+            val active =
+                when (action) {
+                    PanelAction.MAG ->
+                        magnifierEnabled
+                    PanelAction.FOLLOW ->
+                        magnifierFollow
+                    PanelAction.FREEZE ->
+                        magnifierFreeze
+                    else ->
+                        false
+                }
+
+            canvas.drawRoundRect(
+                rect,
+                dp(8f),
+                dp(8f),
+                Paint(
+                    Paint.ANTI_ALIAS_FLAG,
+                ).apply {
+                    color =
+                        if (active) {
+                            Color.argb(
+                                235,
+                                15,
+                                92,
+                                112,
+                            )
+                        } else {
+                            Color.argb(
+                                225,
+                                12,
+                                25,
+                                35,
+                            )
+                        }
+                },
+            )
+
+            val oldAlign =
+                smallPaint.textAlign
+            smallPaint.textAlign =
+                Paint.Align.CENTER
+
+            canvas.drawText(
+                label,
+                rect.centerX(),
+                rect.centerY() +
+                    dp(5f),
+                smallPaint,
+            )
+
+            smallPaint.textAlign =
+                oldAlign
+        }
+
+        addMagAction(
+            PanelAction.MAG,
+            0,
+            if (magnifierEnabled) {
+                "MAG ON"
+            } else {
+                "MAG OFF"
+            },
+        )
+        addMagAction(
+            PanelAction.ZOOM,
+            1,
+            "ZOOM " +
+                magnifierZoom
+                    .toInt() +
+                "x",
+        )
+        addMagAction(
+            PanelAction.SIZE,
+            2,
+            when (magnifierSizeDp) {
+                120 ->
+                    "SIZE S"
+                180 ->
+                    "SIZE M"
+                else ->
+                    "SIZE L"
+            },
+        )
+        addMagAction(
+            PanelAction.FOLLOW,
+            3,
+            "FOLLOW",
+        )
+        addMagAction(
+            PanelAction.FREEZE,
+            4,
+            "FREEZE",
+        )
+
         val actionY =
             panel.bottom -
                 dp(31f)
@@ -1411,6 +1582,107 @@ class PulseDeckCenterCalibrationOverlayView(
             PanelAction.COPY ->
                 copyAllSaved()
 
+            PanelAction.MAG -> {
+                magnifierEnabled =
+                    !magnifierEnabled
+
+                prefs.edit()
+                    .putBoolean(
+                        KEY_MAG_ENABLED,
+                        magnifierEnabled,
+                    )
+                    .apply()
+
+                invalidate()
+            }
+
+            PanelAction.ZOOM -> {
+                magnifierZoom =
+                    when (
+                        magnifierZoom
+                            .toInt()
+                    ) {
+                        2 ->
+                            3f
+                        3 ->
+                            4f
+                        4 ->
+                            6f
+                        else ->
+                            2f
+                    }
+
+                prefs.edit()
+                    .putFloat(
+                        KEY_MAG_ZOOM,
+                        magnifierZoom,
+                    )
+                    .apply()
+
+                invalidate()
+            }
+
+            PanelAction.SIZE -> {
+                magnifierSizeDp =
+                    when (
+                        magnifierSizeDp
+                    ) {
+                        120 ->
+                            180
+                        180 ->
+                            240
+                        else ->
+                            120
+                    }
+
+                prefs.edit()
+                    .putInt(
+                        KEY_MAG_SIZE_DP,
+                        magnifierSizeDp,
+                    )
+                    .apply()
+
+                invalidate()
+            }
+
+            PanelAction.FOLLOW -> {
+                magnifierFollow =
+                    !magnifierFollow
+
+                prefs.edit()
+                    .putBoolean(
+                        KEY_MAG_FOLLOW,
+                        magnifierFollow,
+                    )
+                    .apply()
+
+                invalidate()
+            }
+
+            PanelAction.FREEZE -> {
+                magnifierFreeze =
+                    !magnifierFreeze
+
+                if (
+                    magnifierFreeze
+                ) {
+                    captureFrozenMagnifier()
+                } else {
+                    frozenBitmap
+                        ?.recycle()
+                    frozenBitmap = null
+                }
+
+                prefs.edit()
+                    .putBoolean(
+                        KEY_MAG_FREEZE,
+                        magnifierFreeze,
+                    )
+                    .apply()
+
+                invalidate()
+            }
+
             PanelAction.NONE ->
                 Unit
         }
@@ -1540,6 +1812,55 @@ class PulseDeckCenterCalibrationOverlayView(
                     return true
                 }
 
+                if (
+                    magnifierEnabled
+                ) {
+                    val targetX =
+                        targetXNorm *
+                            width
+                    val targetY =
+                        targetYNorm *
+                            height
+                    val (
+                        loupeX,
+                        loupeY,
+                    ) =
+                        magnifierCenter(
+                            targetX,
+                            targetY,
+                        )
+                    val radius =
+                        magnifierRadius()
+
+                    if (
+                        hypot(
+                            event.x -
+                                loupeX,
+                            event.y -
+                                loupeY,
+                        ) <=
+                        radius
+                    ) {
+                        magnifierDragging = true
+                        magnifierFollow = false
+                        magnifierDragOffsetX =
+                            event.x -
+                                loupeX
+                        magnifierDragOffsetY =
+                            event.y -
+                                loupeY
+
+                        prefs.edit()
+                            .putBoolean(
+                                KEY_MAG_FOLLOW,
+                                false,
+                            )
+                            .apply()
+
+                        return true
+                    }
+                }
+
                 downWasOnTarget =
                     hypot(
                         event.x -
@@ -1554,6 +1875,47 @@ class PulseDeckCenterCalibrationOverlayView(
             }
 
             MotionEvent.ACTION_MOVE -> {
+                if (
+                    magnifierDragging
+                ) {
+                    val radius =
+                        magnifierRadius()
+                    val centerX =
+                        (
+                            event.x -
+                                magnifierDragOffsetX
+                            )
+                            .coerceIn(
+                                radius +
+                                    dp(8f),
+                                width -
+                                    radius -
+                                    dp(8f),
+                            )
+                    val centerY =
+                        (
+                            event.y -
+                                magnifierDragOffsetY
+                            )
+                            .coerceIn(
+                                radius +
+                                    dp(8f),
+                                height -
+                                    radius -
+                                    dp(8f),
+                            )
+
+                    magnifierXNorm =
+                        centerX /
+                            width
+                    magnifierYNorm =
+                        centerY /
+                            height
+
+                    invalidate()
+                    return true
+                }
+
                 if (
                     panelDragging
                 ) {
@@ -1619,6 +1981,30 @@ class PulseDeckCenterCalibrationOverlayView(
             }
 
             MotionEvent.ACTION_UP -> {
+                if (
+                    magnifierDragging
+                ) {
+                    magnifierDragging = false
+
+                    prefs.edit()
+                        .putFloat(
+                            KEY_MAG_X,
+                            magnifierXNorm,
+                        )
+                        .putFloat(
+                            KEY_MAG_Y,
+                            magnifierYNorm,
+                        )
+                        .putBoolean(
+                            KEY_MAG_FOLLOW,
+                            false,
+                        )
+                        .apply()
+
+                    invalidate()
+                    return true
+                }
+
                 if (
                     panelDragging
                 ) {
@@ -1734,6 +2120,7 @@ class PulseDeckCenterCalibrationOverlayView(
             MotionEvent.ACTION_CANCEL -> {
                 draggingTarget = false
                 panelDragging = false
+                magnifierDragging = false
                 panelTouchCaptured = false
                 activePanelAction =
                     PanelAction.NONE

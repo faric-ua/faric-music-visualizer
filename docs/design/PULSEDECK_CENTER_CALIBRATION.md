@@ -73,3 +73,33 @@ For each point:
 8. After C-20 is saved, the full coordinate block is copied automatically.
 
 The calibration page is temporary engineering tooling. Its output becomes the new source of truth for the visual layout; old guessed center coordinates must not override accepted calibrated points.
+
+
+## Accepted immutable reference — PULSEDECK_CENTER_CALIBRATION
+
+These normalized centers were accepted by the user and are immutable reference geometry. Template editing must never overwrite this table.
+
+| ID | Object | X | Y |
+|---|---|---:|---:|
+| C-01 | Back | 0.076036 | 0.044982 |
+| C-02 | Header title | 0.498148 | 0.044872 |
+| C-03 | Menu | 0.924074 | 0.044872 |
+| C-04 | Hero reactor | 0.498148 | 0.228205 |
+| C-05 | Favorite | 0.075926 | 0.463675 |
+| C-06 | Track info | 0.498148 | 0.480769 |
+| C-07 | Track more | 0.924074 | 0.463675 |
+| C-08 | Waveform | 0.498148 | 0.552137 |
+| C-09 | Progress | 0.498148 | 0.582479 |
+| C-10 | Transport rail | 0.500000 | 0.721367 |
+| C-11 | Shuffle | 0.107407 | 0.720940 |
+| C-12 | Previous | 0.285185 | 0.720940 |
+| C-13 | Play/Pause | 0.500926 | 0.720940 |
+| C-14 | Next | 0.714815 | 0.720940 |
+| C-15 | Repeat | 0.892593 | 0.720940 |
+| C-16 | Quick-actions rail | 0.501852 | 0.876068 |
+| C-17 | Theme | 0.157407 | 0.876068 |
+| C-18 | Board | 0.385185 | 0.876923 |
+| C-19 | Visualizer | 0.618519 | 0.876068 |
+| C-20 | Export | 0.850000 | 0.876068 |
+
+Template Constructor starts from these values but persists edited template positions in a separate store.

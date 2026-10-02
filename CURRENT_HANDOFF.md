@@ -1158,3 +1158,51 @@ Temporary phone calibration workflow:
 - after C-20, all saved coordinates are copied automatically.
 
 The accepted calibrated coordinates will become the source of truth for the next visual rebuild. Do not overwrite accepted calibrated points with old guessed values.
+
+
+## Sleep checkpoint — v0.11.4 calibration remote
+
+Checkpoint HEAD:
+- `4176500fd0d57ffe5d6d73f5530c84b2da16ac25`
+
+Release state:
+- v0.11.4 / versionCode 48;
+- Validate workflow: PASS;
+- Android workflow for v0.11.4: still running at checkpoint time;
+- last fully Android-PASS build before this: v0.11.3 / versionCode 47.
+
+Current visual baseline:
+- Clean Blocks v2 is active and visibly different on phone;
+- reactor/transport/quick actions now come from the clean grouped-block approach;
+- no more independent ring recomposition for transport/quick actions;
+- the user accepted this as a better baseline for further calibration, but exact object centers are still pending.
+
+Center review state preserved:
+- wrong: C-01, C-02, C-03, C-04, C-11, C-12, C-13, C-14, C-15, C-17, C-18, C-19, C-20;
+- seems approximately correct: C-05, C-06, C-07, C-08, C-09, C-10, C-16.
+
+Calibration tooling now implemented:
+- main-page Menu opens `PulseDeckCenterCalibrationActivity`;
+- draggable drafting-style crosshair;
+- floating draggable CENTER REMOTE;
+- D-pad pixel movement;
+- step cycle: 1 / 2 / 5 / 10 / 20 px;
+- PREV / SAVE / NEXT / RESET / COPY;
+- panel position and step persisted;
+- current point and saved coordinates persisted;
+- output includes normalized coordinates for screen-independent layout work.
+
+Important responsive-layout rule:
+- the skin design canvas remains authoritative;
+- never stretch X and Y independently;
+- use uniform scaling to preserve circles/proportions;
+- store accepted centers as normalized coordinates;
+- on different aspect ratios, adapt background/crop/outer breathing room rather than deforming the HUD geometry.
+
+Resume point:
+1. wait for / confirm Android PASS for v0.11.4;
+2. install latest APK;
+3. open Center Calibration from top-right Menu;
+4. calibrate C-01…C-20 using the floating remote;
+5. COPY and paste the resulting coordinate block into chat;
+6. rebuild the main-page geometry from accepted calibrated centers only.

@@ -4,12 +4,12 @@ set -euo pipefail
 REPO="$(CDPATH= cd -- "$(dirname -- "$0")/../.." && pwd)"
 DOWNLOADS="$HOME/storage/downloads"
 SHARED="$HOME/storage/shared"
-EXPECTED_SHA256="edf839ad45c09f1bb0b19f14e0a218dac428a21f0793d083c3b7454034a5cb0d"
+EXPECTED_SHA256="0e88401076da55ccdb49acc5e618ed5a97348e13938c6192ad30061665d91a47"
 TARGET_DIR="$REPO/skin/pulsedeck_master"
 TEMP_PICKED_ZIP=""
 
 clear
-echo "PulseDeck Master Plate import"
+echo "PulseDeck Clean Blocks v2 import"
 echo "========================"
 echo
 
@@ -42,7 +42,7 @@ for root in "${SEARCH_ROOTS[@]}"; do
 
   candidate="$(
     find "$root" -maxdepth 4 -type f \
-      \( -iname 'PulseDeck_MasterPlate_v1.zip' -o -iname 'PulseDeck_MasterPlate_v1*.zip' \) \
+      \( -iname 'PulseDeck_CleanBlocks_v2.zip' -o -iname 'PulseDeck_CleanBlocks_v2*.zip' \) \
       -print 2>/dev/null | sort | tail -n 1
   )"
 
@@ -57,7 +57,7 @@ done
 if [ -z "$ZIP" ]; then
   ZIP="$(
     find "$SHARED" -maxdepth 5 -type f \
-      \( -iname 'PulseDeck_MasterPlate_v1.zip' -o -iname 'PulseDeck_MasterPlate_v1*.zip' \) \
+      \( -iname 'PulseDeck_CleanBlocks_v2.zip' -o -iname 'PulseDeck_CleanBlocks_v2*.zip' \) \
       -print 2>/dev/null | sort | tail -n 1
   )"
 fi
@@ -68,10 +68,10 @@ fi
 if [ -z "$ZIP" ] && command -v termux-storage-get >/dev/null 2>&1; then
   echo "ZIP автоматично не знайдено."
   echo "Відкриваю системний вибір файлу..."
-  echo "Вибери PulseDeck_MasterPlate_v1.zip"
+  echo "Вибери PulseDeck_CleanBlocks_v2.zip"
   echo
 
-  TEMP_PICKED_ZIP="$REPO/.tmp-PulseDeck_MasterPlate_v1.zip"
+  TEMP_PICKED_ZIP="$REPO/.tmp-PulseDeck_CleanBlocks_v2.zip"
   rm -f "$TEMP_PICKED_ZIP"
 
   if termux-storage-get "$TEMP_PICKED_ZIP"; then
@@ -82,13 +82,13 @@ if [ -z "$ZIP" ] && command -v termux-storage-get >/dev/null 2>&1; then
 fi
 
 if [ -z "$ZIP" ]; then
-  echo "FAIL: PulseDeck_MasterPlate_v1.zip не знайдено."
+  echo "FAIL: PulseDeck_CleanBlocks_v2.zip не знайдено."
   echo
   echo "Файл у Download Manager є, але Android не дав Termux прямий файловий шлях."
   echo
   echo "Зроби так:"
   echo "1. Відкрий 'Файли' / My Files."
-  echo "2. Знайди PulseDeck_MasterPlate_v1.zip."
+  echo "2. Знайди PulseDeck_CleanBlocks_v2.zip."
   echo "3. Перемісти його в: Внутрішня пам'ять/Download"
   echo "4. Повернись сюди й знову запусти пункт 19."
   echo
@@ -180,7 +180,7 @@ echo "Файли, які підуть у commit:"
 git --no-pager diff --cached --stat -- "$TARGET_DIR"
 echo
 
-git commit -m "assets: add PulseDeck reference-first master plate"
+git commit -m "assets: replace PulseDeck master with clean grouped blocks v2"
 
 echo
 echo "Синхронізуюсь із origin/$BRANCH перед push..."
@@ -203,7 +203,7 @@ git push origin "$BRANCH"
 
 echo
 echo "========================================"
-echo "PASS: PulseDeck Master Plate у GitHub."
+echo "PASS: PulseDeck Clean Blocks v2 у GitHub."
 echo "Path: skin/pulsedeck_master/"
 echo "Assets: $ASSET_COUNT"
 echo "========================================"

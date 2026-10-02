@@ -2936,19 +2936,19 @@ class PulseDeckCenterCalibrationOverlayView(
 
         targetXNorm =
             when {
-                hasDraft ->
-                    prefs.getFloat(
-                        keyDraftX(
-                            point,
-                        ),
-                        point.baselineX,
-                    )
-
                 isPointSaved(
                     point,
                 ) ->
                     prefs.getFloat(
                         keyX(
+                            point,
+                        ),
+                        point.baselineX,
+                    )
+
+                hasDraft ->
+                    prefs.getFloat(
+                        keyDraftX(
                             point,
                         ),
                         point.baselineX,
@@ -2960,19 +2960,19 @@ class PulseDeckCenterCalibrationOverlayView(
 
         targetYNorm =
             when {
-                hasDraft ->
-                    prefs.getFloat(
-                        keyDraftY(
-                            point,
-                        ),
-                        point.baselineY,
-                    )
-
                 isPointSaved(
                     point,
                 ) ->
                     prefs.getFloat(
                         keyY(
+                            point,
+                        ),
+                        point.baselineY,
+                    )
+
+                hasDraft ->
+                    prefs.getFloat(
+                        keyDraftY(
                             point,
                         ),
                         point.baselineY,
@@ -3294,6 +3294,27 @@ class PulseDeckCenterCalibrationOverlayView(
                     ),
                     true,
                 )
+                // A committed center is the source of truth. Keep its working
+                // draft aligned so an old accidental draft cannot visually
+                // override the saved calibration after import.
+                editor.putFloat(
+                    keyDraftX(
+                        point,
+                    ),
+                    item.getDouble(
+                        "x",
+                    )
+                        .toFloat(),
+                )
+                editor.putFloat(
+                    keyDraftY(
+                        point,
+                    ),
+                    item.getDouble(
+                        "y",
+                    )
+                        .toFloat(),
+                )
                 imported +=
                     1
             }
@@ -3305,6 +3326,7 @@ class PulseDeckCenterCalibrationOverlayView(
                 )
 
             if (
+                !saved &&
                 hasDraft &&
                 item.has(
                     "draftX",

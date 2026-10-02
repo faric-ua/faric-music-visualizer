@@ -675,12 +675,33 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             showLibrary()
 
                         "menu" ->
-                            startActivity(
-                                Intent(
-                                    this,
-                                    PulseDeckCenterCalibrationActivity::class.java,
-                                ),
-                            )
+                            android.app.AlertDialog.Builder(this)
+                                .setTitle("PulseDeck tools")
+                                .setItems(
+                                    arrayOf(
+                                        "Center Calibration",
+                                        "Template Constructor",
+                                    ),
+                                ) { _, which ->
+                                    when (which) {
+                                        0 ->
+                                            startActivity(
+                                                Intent(
+                                                    this,
+                                                    PulseDeckCenterCalibrationActivity::class.java,
+                                                ),
+                                            )
+
+                                        1 ->
+                                            startActivity(
+                                                Intent(
+                                                    this,
+                                                    PulseDeckTemplateConstructorActivity::class.java,
+                                                ),
+                                            )
+                                    }
+                                }
+                                .show()
 
                         "favorite" ->
                             toast(

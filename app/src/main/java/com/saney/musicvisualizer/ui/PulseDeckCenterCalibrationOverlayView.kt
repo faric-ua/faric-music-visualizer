@@ -48,6 +48,7 @@ class PulseDeckCenterCalibrationOverlayView(
         GUIDE_V,
         GUIDE_H,
         GUIDE_CLEAR,
+        GUIDES_TOGGLE,
         NONE,
     }
 
@@ -364,6 +365,12 @@ class PulseDeckCenterCalibrationOverlayView(
         prefs.getFloat(
             KEY_GUIDE_H_Y,
             0.5f,
+        )
+
+    private var guidesExpanded =
+        prefs.getBoolean(
+            KEY_GUIDES_EXPANDED,
+            false,
         )
 
     init {
@@ -1067,7 +1074,15 @@ class PulseDeckCenterCalibrationOverlayView(
                 dp(360f),
             )
         val panelHeight =
-            dp(382f)
+            dp(
+                if (
+                    guidesExpanded
+                ) {
+                    382f
+                } else {
+                    330f
+                },
+            )
 
         val centerX =
             (
@@ -1176,29 +1191,35 @@ class PulseDeckCenterCalibrationOverlayView(
             panel.top +
                 dp(36f),
             panel.top +
-                dp(174f),
-            "MOVE",
+                dp(100f),
+            "ACTIONS",
         )
         drawGroupTile(
             panel.top +
-                dp(180f),
+                dp(106f),
             panel.top +
-                dp(236f),
+                dp(164f),
             "MAGNIFIER",
         )
         drawGroupTile(
             panel.top +
-                dp(242f),
+                dp(170f),
             panel.top +
-                dp(296f),
-            "GUIDES",
+                dp(308f),
+            "MOVE",
         )
         drawGroupTile(
             panel.top +
-                dp(302f),
+                dp(314f),
             panel.bottom -
                 dp(8f),
-            "ACTIONS",
+            if (
+                guidesExpanded
+            ) {
+                "GUIDES  ▲"
+            } else {
+                "GUIDES  ▼"
+            },
         )
 
         val headerHeight =
@@ -1218,7 +1239,7 @@ class PulseDeckCenterCalibrationOverlayView(
                 dp(86f)
         val dpadCy =
             panel.top +
-                dp(112f)
+                dp(246f)
         val button =
             dp(42f)
         val gap =
@@ -1351,11 +1372,11 @@ class PulseDeckCenterCalibrationOverlayView(
                 panel.left +
                     dp(172f),
                 panel.top +
-                    dp(62f),
+                    dp(198f),
                 panel.right -
                     dp(14f),
                 panel.top +
-                    dp(103f),
+                    dp(239f),
             )
         panelActionRects[
             PanelAction.STEP
@@ -1413,7 +1434,7 @@ class PulseDeckCenterCalibrationOverlayView(
             panel.left +
                 dp(172f),
             panel.top +
-                dp(129f),
+                dp(265f),
             smallPaint,
         )
         canvas.drawText(
@@ -1424,13 +1445,13 @@ class PulseDeckCenterCalibrationOverlayView(
             panel.left +
                 dp(172f),
             panel.top +
-                dp(152f),
+                dp(288f),
             savedPaint,
         )
 
         val magRowTop =
             panel.top +
-                dp(196f)
+                dp(122f)
         val magGap =
             dp(5f)
         val magWidth =
@@ -1564,9 +1585,23 @@ class PulseDeckCenterCalibrationOverlayView(
             "FREEZE",
         )
 
-        val guideRowTop =
-            panel.top +
-                dp(256f)
+        val guideHeaderRect =
+            RectF(
+                panel.left +
+                    dp(14f),
+                panel.top +
+                    dp(316f),
+                panel.right -
+                    dp(14f),
+                panel.top +
+                    dp(346f),
+            )
+
+        panelActionRects[
+            PanelAction.GUIDES_TOGGLE
+        ] =
+            guideHeaderRect
+
         val guideGap =
             dp(6f)
         val guideWidth =
@@ -1577,6 +1612,9 @@ class PulseDeckCenterCalibrationOverlayView(
                     2f
                 ) /
                 3f
+        val guideRowTop =
+            panel.top +
+                dp(342f)
 
         fun addGuideAction(
             action: PanelAction,
@@ -1649,28 +1687,32 @@ class PulseDeckCenterCalibrationOverlayView(
                 oldAlign
         }
 
-        addGuideAction(
-            PanelAction.GUIDE_V,
-            0,
-            "V GUIDE",
-            verticalGuideEnabled,
-        )
-        addGuideAction(
-            PanelAction.GUIDE_H,
-            1,
-            "H GUIDE",
-            horizontalGuideEnabled,
-        )
-        addGuideAction(
-            PanelAction.GUIDE_CLEAR,
-            2,
-            "CLEAR",
-            false,
-        )
+        if (
+            guidesExpanded
+        ) {
+            addGuideAction(
+                PanelAction.GUIDE_V,
+                0,
+                "V GUIDE",
+                verticalGuideEnabled,
+            )
+            addGuideAction(
+                PanelAction.GUIDE_H,
+                1,
+                "H GUIDE",
+                horizontalGuideEnabled,
+            )
+            addGuideAction(
+                PanelAction.GUIDE_CLEAR,
+                2,
+                "CLEAR",
+                false,
+            )
+        }
 
         val actionY =
-            panel.bottom -
-                dp(31f)
+            panel.top +
+                dp(78f)
         val actionWidth =
             (
                 panel.width() -
@@ -1945,6 +1987,20 @@ class PulseDeckCenterCalibrationOverlayView(
                     .putBoolean(
                         KEY_GUIDE_H_ENABLED,
                         false,
+                    )
+                    .apply()
+
+                invalidate()
+            }
+
+            PanelAction.GUIDES_TOGGLE -> {
+                guidesExpanded =
+                    !guidesExpanded
+
+                prefs.edit()
+                    .putBoolean(
+                        KEY_GUIDES_EXPANDED,
+                        guidesExpanded,
                     )
                     .apply()
 
@@ -2893,6 +2949,8 @@ class PulseDeckCenterCalibrationOverlayView(
             "guide_v_x"
         private const val KEY_GUIDE_H_Y =
             "guide_h_y"
+        private const val KEY_GUIDES_EXPANDED =
+            "guides_expanded"
 
         private const val LONG_PRESS_MS =
             650L

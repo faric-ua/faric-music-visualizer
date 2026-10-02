@@ -3,9 +3,11 @@ package com.saney.musicvisualizer.ui
 import android.content.ClipData
 import android.content.ClipboardManager
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
+import android.graphics.Path
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.view.MotionEvent
@@ -16,6 +18,7 @@ import kotlin.math.hypot
 
 class PulseDeckCenterCalibrationOverlayView(
     context: Context,
+    private val sourceView: View,
 ) : View(context) {
 
     private enum class ReviewState {
@@ -35,6 +38,11 @@ class PulseDeckCenterCalibrationOverlayView(
         NEXT,
         RESET,
         COPY,
+        MAG,
+        ZOOM,
+        SIZE,
+        FOLLOW,
+        FREEZE,
         NONE,
     }
 
@@ -197,6 +205,95 @@ class PulseDeckCenterCalibrationOverlayView(
     private val panelActionRects =
         mutableMapOf<PanelAction, RectF>()
 
+    private val loupeBorderPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color =
+                Color.rgb(
+                    255,
+                    92,
+                    64,
+                )
+            style =
+                Paint.Style.STROKE
+            strokeWidth =
+                dp(3f)
+        }
+
+    private val loupeCrossPaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color =
+                Color.argb(
+                    230,
+                    0,
+                    255,
+                    220,
+                )
+            style =
+                Paint.Style.STROKE
+            strokeWidth =
+                dp(1.5f)
+        }
+
+    private val loupePath =
+        Path()
+
+    private var magnifierEnabled =
+        prefs.getBoolean(
+            KEY_MAG_ENABLED,
+            true,
+        )
+
+    private var magnifierZoom =
+        prefs.getFloat(
+            KEY_MAG_ZOOM,
+            4f,
+        )
+            .coerceIn(
+                2f,
+                6f,
+            )
+
+    private var magnifierSizeDp =
+        prefs.getInt(
+            KEY_MAG_SIZE_DP,
+            180,
+        )
+            .coerceIn(
+                120,
+                240,
+            )
+
+    private var magnifierFollow =
+        prefs.getBoolean(
+            KEY_MAG_FOLLOW,
+            true,
+        )
+
+    private var magnifierFreeze =
+        prefs.getBoolean(
+            KEY_MAG_FREEZE,
+            false,
+        )
+
+    private var magnifierXNorm =
+        prefs.getFloat(
+            KEY_MAG_X,
+            0.78f,
+        )
+    private var magnifierYNorm =
+        prefs.getFloat(
+            KEY_MAG_Y,
+            0.25f,
+        )
+
+    private var magnifierDragging = false
+    private var magnifierDragOffsetX = 0f
+    private var magnifierDragOffsetY = 0f
+
+    private var frozenBitmap: Bitmap? = null
+    private var frozenTargetX = 0f
+    private var frozenTargetY = 0f
+
     init {
         isClickable = true
         isFocusable = true
@@ -228,6 +325,11 @@ class PulseDeckCenterCalibrationOverlayView(
             y,
         )
         drawCenterTarget(
+            canvas,
+            x,
+            y,
+        )
+        drawMagnifier(
             canvas,
             x,
             y,
@@ -505,6 +607,286 @@ class PulseDeckCenterCalibrationOverlayView(
                 smallPaint
             },
         )
+    }
+
+    private fun magnifierRadius(): Float =
+        dp(
+            magnifierSizeDp /
+                2f,
+        )
+
+    private fun magnifierCenter(
+        targetX: Float,
+        targetY: Float,
+    ): Pair<Float, Float> {
+        val radius =
+            magnifierRadius()
+
+        if (
+            magnifierFollow
+        ) {
+            val offsetX =
+                radius +
+                    dp(34f)
+            val offsetY =
+                radius +
+                    dp(28f)
+
+            val preferRight =
+                targetX <
+                    width *
+                        0.55f
+            val preferBelow =
+                targetY <
+                    height *
+                        0.45f
+
+            val rawX =
+                if (
+                    preferRight
+                ) {
+                    targetX +
+                        offsetX
+                } else {
+                    targetX -
+                        offsetX
+                }
+
+            val rawY =
+                if (
+                    preferBelow
+                ) {
+                    targetY +
+                        offsetY
+                } else {
+                    targetY -
+                        offsetY
+                }
+
+            return rawX
+                .coerceIn(
+                    radius +
+                        dp(8f),
+                    width -
+                        radius -
+                        dp(8f),
+                ) to
+                rawY
+                    .coerceIn(
+                        radius +
+                            dp(8f),
+                        height -
+                            radius -
+                            dp(8f),
+                    )
+        }
+
+        return (
+            magnifierXNorm *
+                width
+            )
+            .coerceIn(
+                radius +
+                    dp(8f),
+                width -
+                    radius -
+                    dp(8f),
+            ) to
+            (
+                magnifierYNorm *
+                    height
+                )
+                .coerceIn(
+                    radius +
+                        dp(8f),
+                    height -
+                        radius -
+                        dp(8f),
+                )
+    }
+
+    private fun drawMagnifier(
+        canvas: Canvas,
+        targetX: Float,
+        targetY: Float,
+    ) {
+        if (
+            !magnifierEnabled
+        ) {
+            return
+        }
+
+        val radius =
+            magnifierRadius()
+        val (
+            centerX,
+            centerY,
+        ) =
+            magnifierCenter(
+                targetX,
+                targetY,
+            )
+
+        loupePath.reset()
+        loupePath.addCircle(
+            centerX,
+            centerY,
+            radius,
+            Path.Direction.CW,
+        )
+
+        val save =
+            canvas.save()
+
+        canvas.clipPath(
+            loupePath,
+        )
+
+        val sourceTargetX =
+            if (
+                magnifierFreeze &&
+                frozenBitmap != null
+            ) {
+                frozenTargetX
+            } else {
+                targetX
+            }
+        val sourceTargetY =
+            if (
+                magnifierFreeze &&
+                frozenBitmap != null
+            ) {
+                frozenTargetY
+            } else {
+                targetY
+            }
+
+        val bitmap =
+            frozenBitmap
+
+        if (
+            magnifierFreeze &&
+            bitmap != null
+        ) {
+            val srcHalf =
+                radius /
+                    magnifierZoom
+
+            val src =
+                RectF(
+                    sourceTargetX -
+                        srcHalf,
+                    sourceTargetY -
+                        srcHalf,
+                    sourceTargetX +
+                        srcHalf,
+                    sourceTargetY +
+                        srcHalf,
+                )
+
+            canvas.drawBitmap(
+                bitmap,
+                null,
+                RectF(
+                    centerX -
+                        radius,
+                    centerY -
+                        radius,
+                    centerX +
+                        radius,
+                    centerY +
+                        radius,
+                ),
+                null,
+            )
+        } else {
+            canvas.translate(
+                centerX,
+                centerY,
+            )
+            canvas.scale(
+                magnifierZoom,
+                magnifierZoom,
+            )
+            canvas.translate(
+                -sourceTargetX,
+                -sourceTargetY,
+            )
+
+            sourceView.draw(
+                canvas,
+            )
+        }
+
+        canvas.restoreToCount(
+            save,
+        )
+
+        canvas.drawCircle(
+            centerX,
+            centerY,
+            radius,
+            loupeBorderPaint,
+        )
+
+        val arm =
+            radius *
+                0.32f
+
+        canvas.drawLine(
+            centerX -
+                arm,
+            centerY,
+            centerX +
+                arm,
+            centerY,
+            loupeCrossPaint,
+        )
+        canvas.drawLine(
+            centerX,
+            centerY -
+                arm,
+            centerX,
+            centerY +
+                arm,
+            loupeCrossPaint,
+        )
+        canvas.drawCircle(
+            centerX,
+            centerY,
+            dp(5f),
+            loupeCrossPaint,
+        )
+    }
+
+    private fun captureFrozenMagnifier() {
+        if (
+            sourceView.width <= 0 ||
+            sourceView.height <= 0
+        ) {
+            return
+        }
+
+        frozenBitmap?.recycle()
+
+        frozenBitmap =
+            Bitmap.createBitmap(
+                sourceView.width,
+                sourceView.height,
+                Bitmap.Config.ARGB_8888,
+            )
+                .also { bitmap ->
+                    sourceView.draw(
+                        Canvas(bitmap),
+                    )
+                }
+
+        frozenTargetX =
+            targetXNorm *
+                width
+        frozenTargetY =
+            targetYNorm *
+                height
     }
 
     private fun panelRect(): RectF {
@@ -1363,6 +1745,13 @@ class PulseDeckCenterCalibrationOverlayView(
         return true
     }
 
+    override fun onDetachedFromWindow() {
+        frozenBitmap
+            ?.recycle()
+        frozenBitmap = null
+        super.onDetachedFromWindow()
+    }
+
     override fun performClick(): Boolean {
         super.performClick()
         return true
@@ -1724,6 +2113,21 @@ class PulseDeckCenterCalibrationOverlayView(
             "panel_x"
         private const val KEY_PANEL_Y =
             "panel_y"
+
+        private const val KEY_MAG_ENABLED =
+            "mag_enabled"
+        private const val KEY_MAG_ZOOM =
+            "mag_zoom"
+        private const val KEY_MAG_SIZE_DP =
+            "mag_size_dp"
+        private const val KEY_MAG_FOLLOW =
+            "mag_follow"
+        private const val KEY_MAG_FREEZE =
+            "mag_freeze"
+        private const val KEY_MAG_X =
+            "mag_x"
+        private const val KEY_MAG_Y =
+            "mag_y"
 
         private const val LONG_PRESS_MS =
             650L

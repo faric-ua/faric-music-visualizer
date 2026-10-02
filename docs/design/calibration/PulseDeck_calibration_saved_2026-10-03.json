@@ -1,0 +1,28 @@
+{
+  "format": "FARIC_PULSEDECK_CENTER_CALIBRATION",
+  "schemaVersion": 1,
+  "createdAtEpochMs": 1790976855474,
+  "currentIndex": 0,
+  "points": [
+    {"id":"C-01","name":"Back","saved":true,"x":0.07603577524423599,"y":0.04498197138309479},
+    {"id":"C-02","name":"Header title","saved":true,"x":0.4981481432914734,"y":0.04487180337309837},
+    {"id":"C-03","name":"Menu","saved":true,"x":0.9240739345550537,"y":0.044871874153614044},
+    {"id":"C-04","name":"Hero reactor","saved":true,"x":0.4981481432914734,"y":0.22863250970840454},
+    {"id":"C-05","name":"Favorite","saved":true,"x":0.07592590898275375,"y":0.46367520093917847},
+    {"id":"C-06","name":"Track info","saved":true,"x":0.4981481432914734,"y":0.46388888359069824},
+    {"id":"C-07","name":"Track more","saved":true,"x":0.9242624640464783,"y":0.4637920558452606},
+    {"id":"C-08","name":"Waveform","saved":true,"x":0.4981481432914734,"y":0.5535356998443604},
+    {"id":"C-09","name":"Progress","saved":true,"x":0.4981481432914734,"y":0.5825487375259399},
+    {"id":"C-10","name":"Transport rail","saved":true,"x":0.5,"y":0.7212039232254028},
+    {"id":"C-11","name":"Shuffle","saved":true,"x":0.10709352791309357,"y":0.7211004495620728},
+    {"id":"C-12","name":"Previous","saved":true,"x":0.2851695120334625,"y":0.7212039232254028},
+    {"id":"C-13","name":"Play/Pause","saved":true,"x":0.5008317828178406,"y":0.7209802269935608},
+    {"id":"C-14","name":"Next","saved":true,"x":0.7153640985488892,"y":0.7212039232254028},
+    {"id":"C-15","name":"Repeat","saved":true,"x":0.8898147344589233,"y":0.7209802269935608},
+    {"id":"C-16","name":"Quick-actions rail","saved":true,"x":0.5018518567085266,"y":0.8761952519416809},
+    {"id":"C-17","name":"Theme","saved":true,"x":0.1582077592611313,"y":0.8763989210128784},
+    {"id":"C-18","name":"Board","saved":true,"x":0.3873509168624878,"y":0.8763989210128784},
+    {"id":"C-19","name":"Visualizer","saved":true,"x":0.6188324093818665,"y":0.8761952519416809},
+    {"id":"C-20","name":"Export","saved":true,"x":0.8498273491859436,"y":0.8761952519416809}
+  ]
+}

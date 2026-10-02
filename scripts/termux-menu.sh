@@ -140,7 +140,7 @@ while true; do
   echo "16 — Імпортувати production-pack з Downloads"
   echo "17 — Синхронізувати Cyber Shark production у app"
   echo "18 — Імпортувати PulseDeck HUD skin (Downloads / вибір файлу)"
-  echo "19 — Імпортувати PulseDeck Master Plate (Downloads / вибір файлу)"
+  echo "19 — Імпортувати PulseDeck Clean Blocks v2 (Downloads / вибір файлу)"
   echo
   echo "0 — Вийти"
   echo

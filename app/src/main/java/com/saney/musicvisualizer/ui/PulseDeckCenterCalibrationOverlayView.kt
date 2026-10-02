@@ -24,6 +24,20 @@ class PulseDeckCenterCalibrationOverlayView(
         UNCHECKED,
     }
 
+    private enum class PanelAction {
+        MOVE_UP,
+        MOVE_DOWN,
+        MOVE_LEFT,
+        MOVE_RIGHT,
+        STEP,
+        PREV,
+        SAVE,
+        NEXT,
+        RESET,
+        COPY,
+        NONE,
+    }
+
     private data class CalibrationPoint(
         val id: String,
         val name: String,
@@ -152,6 +166,36 @@ class PulseDeckCenterCalibrationOverlayView(
     private var downWasOnTarget = false
     private var draggingTarget = false
 
+    private var stepPx =
+        prefs.getInt(
+            KEY_STEP_PX,
+            5,
+        )
+            .coerceIn(
+                1,
+                20,
+            )
+
+    private var panelXNorm =
+        prefs.getFloat(
+            KEY_PANEL_X,
+            0.50f,
+        )
+    private var panelYNorm =
+        prefs.getFloat(
+            KEY_PANEL_Y,
+            0.78f,
+        )
+
+    private var panelDragging = false
+    private var panelDragOffsetX = 0f
+    private var panelDragOffsetY = 0f
+    private var activePanelAction =
+        PanelAction.NONE
+
+    private val panelActionRects =
+        mutableMapOf<PanelAction, RectF>()
+
     init {
         isClickable = true
         isFocusable = true
@@ -188,6 +232,9 @@ class PulseDeckCenterCalibrationOverlayView(
             y,
         )
         drawInfoPanel(
+            canvas,
+        )
+        drawControlPanel(
             canvas,
         )
     }
@@ -459,6 +506,567 @@ class PulseDeckCenterCalibrationOverlayView(
         )
     }
 
+    private fun panelRect(): RectF {
+        val panelWidth =
+            minOf(
+                width -
+                    dp(20f),
+                dp(360f),
+            )
+        val panelHeight =
+            dp(225f)
+
+        val centerX =
+            (
+                panelXNorm *
+                    width
+                )
+                .coerceIn(
+                    panelWidth *
+                        0.5f,
+                    width -
+                        panelWidth *
+                        0.5f,
+                )
+        val centerY =
+            (
+                panelYNorm *
+                    height
+                )
+                .coerceIn(
+                    panelHeight *
+                        0.5f,
+                    height -
+                        panelHeight *
+                        0.5f,
+                )
+
+        return RectF(
+            centerX -
+                panelWidth *
+                0.5f,
+            centerY -
+                panelHeight *
+                0.5f,
+            centerX +
+                panelWidth *
+                0.5f,
+            centerY +
+                panelHeight *
+                0.5f,
+        )
+    }
+
+    private fun drawControlPanel(
+        canvas: Canvas,
+    ) {
+        val panel =
+            panelRect()
+
+        panelActionRects.clear()
+
+        canvas.drawRoundRect(
+            panel,
+            dp(16f),
+            dp(16f),
+            panelPaint,
+        )
+
+        val headerHeight =
+            dp(34f)
+
+        canvas.drawText(
+            "CENTER REMOTE  ·  drag",
+            panel.left +
+                dp(14f),
+            panel.top +
+                dp(23f),
+            labelPaint,
+        )
+
+        val dpadCx =
+            panel.left +
+                dp(86f)
+        val dpadCy =
+            panel.top +
+                dp(105f)
+        val button =
+            dp(42f)
+        val gap =
+            dp(6f)
+
+        fun addButton(
+            action: PanelAction,
+            cx: Float,
+            cy: Float,
+            label: String,
+        ) {
+            val rect =
+                RectF(
+                    cx -
+                        button *
+                        0.5f,
+                    cy -
+                        button *
+                        0.5f,
+                    cx +
+                        button *
+                        0.5f,
+                    cy +
+                        button *
+                        0.5f,
+                )
+
+            panelActionRects[action] =
+                rect
+
+            val pressed =
+                activePanelAction ==
+                    action
+
+            val fill =
+                Paint(
+                    Paint.ANTI_ALIAS_FLAG,
+                ).apply {
+                    color =
+                        if (pressed) {
+                            Color.argb(
+                                245,
+                                20,
+                                122,
+                                148,
+                            )
+                        } else {
+                            Color.argb(
+                                230,
+                                15,
+                                28,
+                                39,
+                            )
+                        }
+                    style =
+                        Paint.Style.FILL
+                }
+
+            canvas.drawRoundRect(
+                rect,
+                dp(9f),
+                dp(9f),
+                fill,
+            )
+
+            canvas.drawRoundRect(
+                rect,
+                dp(9f),
+                dp(9f),
+                axisPaint,
+            )
+
+            val oldAlign =
+                labelPaint.textAlign
+            labelPaint.textAlign =
+                Paint.Align.CENTER
+
+            canvas.drawText(
+                label,
+                cx,
+                cy +
+                    dp(6f),
+                labelPaint,
+            )
+
+            labelPaint.textAlign =
+                oldAlign
+        }
+
+        addButton(
+            PanelAction.MOVE_UP,
+            dpadCx,
+            dpadCy -
+                button -
+                gap,
+            "↑",
+        )
+        addButton(
+            PanelAction.MOVE_LEFT,
+            dpadCx -
+                button -
+                gap,
+            dpadCy,
+            "←",
+        )
+        addButton(
+            PanelAction.MOVE_RIGHT,
+            dpadCx +
+                button +
+                gap,
+            dpadCy,
+            "→",
+        )
+        addButton(
+            PanelAction.MOVE_DOWN,
+            dpadCx,
+            dpadCy +
+                button +
+                gap,
+            "↓",
+        )
+
+        val stepRect =
+            RectF(
+                panel.left +
+                    dp(172f),
+                panel.top +
+                    dp(55f),
+                panel.right -
+                    dp(14f),
+                panel.top +
+                    dp(96f),
+            )
+        panelActionRects[
+            PanelAction.STEP
+        ] =
+            stepRect
+
+        canvas.drawRoundRect(
+            stepRect,
+            dp(10f),
+            dp(10f),
+            Paint(
+                Paint.ANTI_ALIAS_FLAG,
+            ).apply {
+                color =
+                    Color.argb(
+                        230,
+                        20,
+                        36,
+                        48,
+                    )
+            },
+        )
+        canvas.drawText(
+            "STEP  " +
+                stepPx +
+                " px",
+            stepRect.left +
+                dp(14f),
+            stepRect.centerY() +
+                dp(6f),
+            labelPaint,
+        )
+
+        val point =
+            points[
+                currentIndex
+            ]
+        val px =
+            (
+                targetXNorm *
+                    width
+                )
+                .toInt()
+        val py =
+            (
+                targetYNorm *
+                    height
+                )
+                .toInt()
+
+        canvas.drawText(
+            point.id +
+                "  " +
+                point.name,
+            panel.left +
+                dp(172f),
+            panel.top +
+                dp(122f),
+            smallPaint,
+        )
+        canvas.drawText(
+            "X=" +
+                px +
+                "  Y=" +
+                py,
+            panel.left +
+                dp(172f),
+            panel.top +
+                dp(145f),
+            savedPaint,
+        )
+
+        val actionY =
+            panel.bottom -
+                dp(31f)
+        val actionWidth =
+            (
+                panel.width() -
+                    dp(28f)
+                ) /
+                5f
+
+        fun addFooterAction(
+            action: PanelAction,
+            index: Int,
+            label: String,
+        ) {
+            val left =
+                panel.left +
+                    dp(14f) +
+                    actionWidth *
+                    index
+            val rect =
+                RectF(
+                    left,
+                    actionY -
+                        dp(22f),
+                    left +
+                        actionWidth -
+                        dp(4f),
+                    actionY +
+                        dp(18f),
+                )
+
+            panelActionRects[action] =
+                rect
+
+            canvas.drawRoundRect(
+                rect,
+                dp(8f),
+                dp(8f),
+                Paint(
+                    Paint.ANTI_ALIAS_FLAG,
+                ).apply {
+                    color =
+                        Color.argb(
+                            225,
+                            12,
+                            25,
+                            35,
+                        )
+                },
+            )
+
+            val oldAlign =
+                smallPaint.textAlign
+            smallPaint.textAlign =
+                Paint.Align.CENTER
+
+            canvas.drawText(
+                label,
+                rect.centerX(),
+                rect.centerY() +
+                    dp(5f),
+                smallPaint,
+            )
+
+            smallPaint.textAlign =
+                oldAlign
+        }
+
+        addFooterAction(
+            PanelAction.PREV,
+            0,
+            "PREV",
+        )
+        addFooterAction(
+            PanelAction.SAVE,
+            1,
+            "SAVE",
+        )
+        addFooterAction(
+            PanelAction.NEXT,
+            2,
+            "NEXT",
+        )
+        addFooterAction(
+            PanelAction.RESET,
+            3,
+            "RESET",
+        )
+        addFooterAction(
+            PanelAction.COPY,
+            4,
+            "COPY",
+        )
+
+        // Header itself is the drag handle; no action rect is needed.
+        panelActionRects[
+            PanelAction.NONE
+        ] =
+            RectF(
+                panel.left,
+                panel.top,
+                panel.right,
+                panel.top +
+                    headerHeight,
+            )
+    }
+
+    private fun findPanelAction(
+        x: Float,
+        y: Float,
+    ): PanelAction? =
+        panelActionRects
+            .entries
+            .firstOrNull { (
+                action,
+                rect,
+            ) ->
+                action !=
+                    PanelAction.NONE &&
+                    rect.contains(
+                        x,
+                        y,
+                    )
+            }
+            ?.key
+
+    private fun moveTargetByPixels(
+        dx: Int,
+        dy: Int,
+    ) {
+        if (
+            width <= 0 ||
+            height <= 0
+        ) {
+            return
+        }
+
+        val x =
+            targetXNorm *
+                width +
+                dx
+        val y =
+            targetYNorm *
+                height +
+                dy
+
+        setTargetFromPx(
+            x,
+            y,
+        )
+    }
+
+    private fun performPanelAction(
+        action: PanelAction,
+    ) {
+        when (action) {
+            PanelAction.MOVE_UP ->
+                moveTargetByPixels(
+                    0,
+                    -stepPx,
+                )
+
+            PanelAction.MOVE_DOWN ->
+                moveTargetByPixels(
+                    0,
+                    stepPx,
+                )
+
+            PanelAction.MOVE_LEFT ->
+                moveTargetByPixels(
+                    -stepPx,
+                    0,
+                )
+
+            PanelAction.MOVE_RIGHT ->
+                moveTargetByPixels(
+                    stepPx,
+                    0,
+                )
+
+            PanelAction.STEP -> {
+                stepPx =
+                    when (stepPx) {
+                        1 ->
+                            2
+
+                        2 ->
+                            5
+
+                        5 ->
+                            10
+
+                        10 ->
+                            20
+
+                        else ->
+                            1
+                    }
+
+                prefs.edit()
+                    .putInt(
+                        KEY_STEP_PX,
+                        stepPx,
+                    )
+                    .apply()
+
+                invalidate()
+            }
+
+            PanelAction.PREV ->
+                moveIndex(
+                    -1,
+                )
+
+            PanelAction.SAVE ->
+                saveCurrentAndAdvance()
+
+            PanelAction.NEXT ->
+                moveIndex(
+                    1,
+                )
+
+            PanelAction.RESET ->
+                resetCurrentPoint()
+
+            PanelAction.COPY ->
+                copyAllSaved()
+
+            PanelAction.NONE ->
+                Unit
+        }
+    }
+
+    private fun resetCurrentPoint() {
+        val point =
+            points[
+                currentIndex
+            ]
+
+        prefs.edit()
+            .remove(
+                keyX(
+                    point,
+                ),
+            )
+            .remove(
+                keyY(
+                    point,
+                ),
+            )
+            .remove(
+                keySaved(
+                    point,
+                ),
+            )
+            .apply()
+
+        targetXNorm =
+            point.baselineX
+        targetYNorm =
+            point.baselineY
+
+        Toast.makeText(
+            context,
+            point.id +
+                " скинуто до стартової точки",
+            Toast.LENGTH_SHORT,
+        ).show()
+
+        invalidate()
+    }
+
     override fun onTouchEvent(
         event: MotionEvent,
     ): Boolean {
@@ -480,6 +1088,46 @@ class PulseDeckCenterCalibrationOverlayView(
                 downTime =
                     event.eventTime
 
+                val panel =
+                    panelRect()
+                val panelHeader =
+                    panelActionRects[
+                        PanelAction.NONE
+                    ]
+
+                activePanelAction =
+                    findPanelAction(
+                        event.x,
+                        event.y,
+                    )
+                        ?: PanelAction.NONE
+
+                if (
+                    activePanelAction !=
+                    PanelAction.NONE
+                ) {
+                    invalidate()
+                    return true
+                }
+
+                if (
+                    panelHeader
+                        ?.contains(
+                            event.x,
+                            event.y,
+                        ) ==
+                        true
+                ) {
+                    panelDragging = true
+                    panelDragOffsetX =
+                        event.x -
+                            panel.centerX()
+                    panelDragOffsetY =
+                        event.y -
+                            panel.centerY()
+                    return true
+                }
+
                 downWasOnTarget =
                     hypot(
                         event.x -
@@ -494,6 +1142,39 @@ class PulseDeckCenterCalibrationOverlayView(
             }
 
             MotionEvent.ACTION_MOVE -> {
+                if (
+                    panelDragging
+                ) {
+                    val centerX =
+                        event.x -
+                            panelDragOffsetX
+                    val centerY =
+                        event.y -
+                            panelDragOffsetY
+
+                    panelXNorm =
+                        (
+                            centerX /
+                                width
+                            )
+                            .coerceIn(
+                                0f,
+                                1f,
+                            )
+                    panelYNorm =
+                        (
+                            centerY /
+                                height
+                            )
+                            .coerceIn(
+                                0f,
+                                1f,
+                            )
+
+                    invalidate()
+                    return true
+                }
+
                 if (
                     downWasOnTarget
                 ) {
@@ -526,6 +1207,43 @@ class PulseDeckCenterCalibrationOverlayView(
             }
 
             MotionEvent.ACTION_UP -> {
+                if (
+                    panelDragging
+                ) {
+                    panelDragging = false
+
+                    prefs.edit()
+                        .putFloat(
+                            KEY_PANEL_X,
+                            panelXNorm,
+                        )
+                        .putFloat(
+                            KEY_PANEL_Y,
+                            panelYNorm,
+                        )
+                        .apply()
+
+                    invalidate()
+                    return true
+                }
+
+                if (
+                    activePanelAction !=
+                    PanelAction.NONE
+                ) {
+                    val action =
+                        activePanelAction
+                    activePanelAction =
+                        PanelAction.NONE
+
+                    performPanelAction(
+                        action,
+                    )
+
+                    invalidate()
+                    return true
+                }
+
                 val dx =
                     event.x -
                         downX
@@ -593,6 +1311,10 @@ class PulseDeckCenterCalibrationOverlayView(
 
             MotionEvent.ACTION_CANCEL -> {
                 draggingTarget = false
+                panelDragging = false
+                activePanelAction =
+                    PanelAction.NONE
+                invalidate()
                 return true
             }
         }
@@ -881,6 +1603,13 @@ class PulseDeckCenterCalibrationOverlayView(
 
         private const val KEY_CURRENT_INDEX =
             "current_index"
+
+        private const val KEY_STEP_PX =
+            "step_px"
+        private const val KEY_PANEL_X =
+            "panel_x"
+        private const val KEY_PANEL_Y =
+            "panel_y"
 
         private const val LONG_PRESS_MS =
             650L

@@ -1244,3 +1244,30 @@ Phone acceptance:
 6. drag loupe; target must not move;
 7. FREEZE/UNFREEZE;
 8. rotate and verify draft target + loupe settings survive.
+
+
+## v0.11.7 — guide lines + grouped calibration remote
+
+New calibration guides:
+- live dashed crosshair axes remain on the main canvas;
+- the magnifier now draws its own dashed X/Y axes on top of magnified content, clipped exactly to the loupe circle;
+- V GUIDE stores a persistent vertical guide at the current target X;
+- H GUIDE stores a persistent horizontal guide at the current target Y;
+- CLEAR removes both fixed guides;
+- fixed guides stay in place while the target moves and survive recreation through SharedPreferences.
+
+Remote organization:
+- controls are visually grouped into MOVE / MAGNIFIER / GUIDES / ACTIONS tiles;
+- guide controls are placed below magnifier controls and above action controls;
+- existing target draft persistence, D-pad, step, magnifier and save/copy logic remain.
+
+Release:
+- v0.11.7
+- versionCode 51
+
+Phone acceptance:
+1. magnifier shows dashed axes all the way to its circular edge;
+2. V GUIDE stays at its X while target moves;
+3. H GUIDE stays at its Y while target moves;
+4. CLEAR removes both guides;
+5. panel groups are visually separated and all controls still capture touch independently from the target.

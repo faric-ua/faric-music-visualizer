@@ -1056,6 +1056,16 @@ class PulseDeckCenterCalibrationOverlayView(
                     point,
                 ),
             )
+            .remove(
+                keyDraftX(
+                    point,
+                ),
+            )
+            .remove(
+                keyDraftY(
+                    point,
+                ),
+            )
             .apply()
 
         targetXNorm =
@@ -1381,6 +1391,18 @@ class PulseDeckCenterCalibrationOverlayView(
                 ),
                 true,
             )
+            .putFloat(
+                keyDraftX(
+                    point,
+                ),
+                targetXNorm,
+            )
+            .putFloat(
+                keyDraftY(
+                    point,
+                ),
+                targetYNorm,
+            )
             .apply()
 
         val message =
@@ -1443,37 +1465,85 @@ class PulseDeckCenterCalibrationOverlayView(
         val point =
             points[currentIndex]
 
-        targetXNorm =
-            if (
-                isPointSaved(
+        val hasDraft =
+            prefs.contains(
+                keyDraftX(
                     point,
-                )
-            ) {
-                prefs.getFloat(
-                    keyX(
+                ),
+            ) &&
+                prefs.contains(
+                    keyDraftY(
                         point,
                     ),
-                    point.baselineX,
                 )
-            } else {
-                point.baselineX
+
+        targetXNorm =
+            when {
+                hasDraft ->
+                    prefs.getFloat(
+                        keyDraftX(
+                            point,
+                        ),
+                        point.baselineX,
+                    )
+
+                isPointSaved(
+                    point,
+                ) ->
+                    prefs.getFloat(
+                        keyX(
+                            point,
+                        ),
+                        point.baselineX,
+                    )
+
+                else ->
+                    point.baselineX
             }
 
         targetYNorm =
-            if (
+            when {
+                hasDraft ->
+                    prefs.getFloat(
+                        keyDraftY(
+                            point,
+                        ),
+                        point.baselineY,
+                    )
+
                 isPointSaved(
                     point,
-                )
-            ) {
-                prefs.getFloat(
-                    keyY(
-                        point,
-                    ),
-                    point.baselineY,
-                )
-            } else {
-                point.baselineY
+                ) ->
+                    prefs.getFloat(
+                        keyY(
+                            point,
+                        ),
+                        point.baselineY,
+                    )
+
+                else ->
+                    point.baselineY
             }
+    }
+
+    private fun persistCurrentDraft() {
+        val point =
+            points[currentIndex]
+
+        prefs.edit()
+            .putFloat(
+                keyDraftX(
+                    point,
+                ),
+                targetXNorm,
+            )
+            .putFloat(
+                keyDraftY(
+                    point,
+                ),
+                targetYNorm,
+            )
+            .apply()
     }
 
     private fun setTargetFromPx(
@@ -1507,6 +1577,7 @@ class PulseDeckCenterCalibrationOverlayView(
                     1f,
                 )
 
+        persistCurrentDraft()
         invalidate()
     }
 
@@ -1611,6 +1682,18 @@ class PulseDeckCenterCalibrationOverlayView(
     ): String =
         point.id +
             "_saved"
+
+    private fun keyDraftX(
+        point: CalibrationPoint,
+    ): String =
+        point.id +
+            "_draft_x"
+
+    private fun keyDraftY(
+        point: CalibrationPoint,
+    ): String =
+        point.id +
+            "_draft_y"
 
     private fun formatNorm(
         value: Float,

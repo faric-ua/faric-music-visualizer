@@ -1067,7 +1067,7 @@ class PulseDeckCenterCalibrationOverlayView(
                 dp(360f),
             )
         val panelHeight =
-            dp(300f)
+            dp(382f)
 
         val centerX =
             (
@@ -1125,6 +1125,82 @@ class PulseDeckCenterCalibrationOverlayView(
             panelPaint,
         )
 
+        val groupPaint =
+            Paint(
+                Paint.ANTI_ALIAS_FLAG,
+            ).apply {
+                color =
+                    Color.argb(
+                        150,
+                        13,
+                        27,
+                        38,
+                    )
+                style =
+                    Paint.Style.FILL
+            }
+
+        fun drawGroupTile(
+            top: Float,
+            bottom: Float,
+            title: String,
+        ) {
+            val rect =
+                RectF(
+                    panel.left +
+                        dp(10f),
+                    top,
+                    panel.right -
+                        dp(10f),
+                    bottom,
+                )
+
+            canvas.drawRoundRect(
+                rect,
+                dp(12f),
+                dp(12f),
+                groupPaint,
+            )
+
+            canvas.drawText(
+                title,
+                rect.left +
+                    dp(10f),
+                rect.top +
+                    dp(18f),
+                smallPaint,
+            )
+        }
+
+        drawGroupTile(
+            panel.top +
+                dp(36f),
+            panel.top +
+                dp(174f),
+            "MOVE",
+        )
+        drawGroupTile(
+            panel.top +
+                dp(180f),
+            panel.top +
+                dp(236f),
+            "MAGNIFIER",
+        )
+        drawGroupTile(
+            panel.top +
+                dp(242f),
+            panel.top +
+                dp(296f),
+            "GUIDES",
+        )
+        drawGroupTile(
+            panel.top +
+                dp(302f),
+            panel.bottom -
+                dp(8f),
+            "ACTIONS",
+        )
+
         val headerHeight =
             dp(34f)
 
@@ -1142,7 +1218,7 @@ class PulseDeckCenterCalibrationOverlayView(
                 dp(86f)
         val dpadCy =
             panel.top +
-                dp(105f)
+                dp(112f)
         val button =
             dp(42f)
         val gap =
@@ -1275,11 +1351,11 @@ class PulseDeckCenterCalibrationOverlayView(
                 panel.left +
                     dp(172f),
                 panel.top +
-                    dp(55f),
+                    dp(62f),
                 panel.right -
                     dp(14f),
                 panel.top +
-                    dp(96f),
+                    dp(103f),
             )
         panelActionRects[
             PanelAction.STEP
@@ -1337,7 +1413,7 @@ class PulseDeckCenterCalibrationOverlayView(
             panel.left +
                 dp(172f),
             panel.top +
-                dp(122f),
+                dp(129f),
             smallPaint,
         )
         canvas.drawText(
@@ -1348,13 +1424,13 @@ class PulseDeckCenterCalibrationOverlayView(
             panel.left +
                 dp(172f),
             panel.top +
-                dp(145f),
+                dp(152f),
             savedPaint,
         )
 
         val magRowTop =
             panel.top +
-                dp(178f)
+                dp(196f)
         val magGap =
             dp(5f)
         val magWidth =
@@ -1486,6 +1562,110 @@ class PulseDeckCenterCalibrationOverlayView(
             PanelAction.FREEZE,
             4,
             "FREEZE",
+        )
+
+        val guideRowTop =
+            panel.top +
+                dp(256f)
+        val guideGap =
+            dp(6f)
+        val guideWidth =
+            (
+                panel.width() -
+                    dp(28f) -
+                    guideGap *
+                    2f
+                ) /
+                3f
+
+        fun addGuideAction(
+            action: PanelAction,
+            index: Int,
+            label: String,
+            active: Boolean,
+        ) {
+            val left =
+                panel.left +
+                    dp(14f) +
+                    (
+                        guideWidth +
+                            guideGap
+                        ) *
+                    index
+
+            val rect =
+                RectF(
+                    left,
+                    guideRowTop,
+                    left +
+                        guideWidth,
+                    guideRowTop +
+                        dp(34f),
+                )
+
+            panelActionRects[action] =
+                rect
+
+            canvas.drawRoundRect(
+                rect,
+                dp(8f),
+                dp(8f),
+                Paint(
+                    Paint.ANTI_ALIAS_FLAG,
+                ).apply {
+                    color =
+                        if (active) {
+                            Color.argb(
+                                235,
+                                130,
+                                82,
+                                10,
+                            )
+                        } else {
+                            Color.argb(
+                                225,
+                                12,
+                                25,
+                                35,
+                            )
+                        }
+                },
+            )
+
+            val oldAlign =
+                smallPaint.textAlign
+            smallPaint.textAlign =
+                Paint.Align.CENTER
+
+            canvas.drawText(
+                label,
+                rect.centerX(),
+                rect.centerY() +
+                    dp(5f),
+                smallPaint,
+            )
+
+            smallPaint.textAlign =
+                oldAlign
+        }
+
+        addGuideAction(
+            PanelAction.GUIDE_V,
+            0,
+            "V GUIDE",
+            verticalGuideEnabled,
+        )
+        addGuideAction(
+            PanelAction.GUIDE_H,
+            1,
+            "H GUIDE",
+            horizontalGuideEnabled,
+        )
+        addGuideAction(
+            PanelAction.GUIDE_CLEAR,
+            2,
+            "CLEAR",
+            false,
         )
 
         val actionY =

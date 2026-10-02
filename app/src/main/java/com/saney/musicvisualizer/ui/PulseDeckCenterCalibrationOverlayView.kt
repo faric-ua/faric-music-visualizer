@@ -49,6 +49,8 @@ class PulseDeckCenterCalibrationOverlayView(
         GUIDE_H,
         GUIDE_CLEAR,
         GUIDES_TOGGLE,
+        ACTIONS_TOGGLE,
+        MAGNIFIER_TOGGLE,
         NONE,
     }
 
@@ -371,6 +373,18 @@ class PulseDeckCenterCalibrationOverlayView(
         prefs.getBoolean(
             KEY_GUIDES_EXPANDED,
             false,
+        )
+
+    private var actionsExpanded =
+        prefs.getBoolean(
+            KEY_ACTIONS_EXPANDED,
+            true,
+        )
+
+    private var magnifierExpanded =
+        prefs.getBoolean(
+            KEY_MAGNIFIER_EXPANDED,
+            true,
         )
 
     init {
@@ -1075,13 +1089,10 @@ class PulseDeckCenterCalibrationOverlayView(
             )
         val panelHeight =
             dp(
-                if (
-                    guidesExpanded
-                ) {
-                    430f
-                } else {
-                    378f
-                },
+                210f +
+                    (if (actionsExpanded) 58f else 0f) +
+                    (if (magnifierExpanded) 58f else 0f) +
+                    (if (guidesExpanded) 54f else 0f),
             )
 
         val centerX =
@@ -1187,32 +1198,100 @@ class PulseDeckCenterCalibrationOverlayView(
             )
         }
 
+        var sectionTop =
+            panel.top +
+                dp(36f)
+
+        val moveTop =
+            sectionTop
+        val moveBottom =
+            moveTop +
+                dp(138f)
+
         drawGroupTile(
-            panel.top +
-                dp(36f),
-            panel.top +
-                dp(110f),
-            "ACTIONS",
-        )
-        drawGroupTile(
-            panel.top +
-                dp(116f),
-            panel.top +
-                dp(176f),
-            "MAGNIFIER",
-        )
-        drawGroupTile(
-            panel.top +
-                dp(182f),
-            panel.top +
-                dp(320f),
+            moveTop,
+            moveBottom,
             "MOVE",
         )
+        sectionTop =
+            moveBottom +
+                dp(6f)
+
+        val actionsTop =
+            sectionTop
+        val actionsBottom =
+            actionsTop +
+                dp(
+                    if (
+                        actionsExpanded
+                    ) {
+                        64f
+                    } else {
+                        34f
+                    },
+                )
+
         drawGroupTile(
-            panel.top +
-                dp(326f),
-            panel.bottom -
-                dp(8f),
+            actionsTop,
+            actionsBottom,
+            if (
+                actionsExpanded
+            ) {
+                "ACTIONS  ▲"
+            } else {
+                "ACTIONS  ▼"
+            },
+        )
+        sectionTop =
+            actionsBottom +
+                dp(6f)
+
+        val magnifierTop =
+            sectionTop
+        val magnifierBottom =
+            magnifierTop +
+                dp(
+                    if (
+                        magnifierExpanded
+                    ) {
+                        64f
+                    } else {
+                        34f
+                    },
+                )
+
+        drawGroupTile(
+            magnifierTop,
+            magnifierBottom,
+            if (
+                magnifierExpanded
+            ) {
+                "MAGNIFIER  ▲"
+            } else {
+                "MAGNIFIER  ▼"
+            },
+        )
+        sectionTop =
+            magnifierBottom +
+                dp(6f)
+
+        val guidesTop =
+            sectionTop
+        val guidesBottom =
+            guidesTop +
+                dp(
+                    if (
+                        guidesExpanded
+                    ) {
+                        60f
+                    } else {
+                        34f
+                    },
+                )
+
+        drawGroupTile(
+            guidesTop,
+            guidesBottom,
             if (
                 guidesExpanded
             ) {
@@ -1238,8 +1317,8 @@ class PulseDeckCenterCalibrationOverlayView(
             panel.left +
                 dp(86f)
         val dpadCy =
-            panel.top +
-                dp(258f)
+            moveTop +
+                dp(82f)
         val button =
             dp(42f)
         val gap =
@@ -1371,12 +1450,12 @@ class PulseDeckCenterCalibrationOverlayView(
             RectF(
                 panel.left +
                     dp(172f),
-                panel.top +
-                    dp(210f),
+                moveTop +
+                    dp(34f),
                 panel.right -
                     dp(14f),
-                panel.top +
-                    dp(251f),
+                moveTop +
+                    dp(75f),
             )
         panelActionRects[
             PanelAction.STEP
@@ -1433,8 +1512,8 @@ class PulseDeckCenterCalibrationOverlayView(
                 point.name,
             panel.left +
                 dp(172f),
-            panel.top +
-                dp(277f),
+            moveTop +
+                dp(101f),
             smallPaint,
         )
         canvas.drawText(
@@ -1444,14 +1523,14 @@ class PulseDeckCenterCalibrationOverlayView(
                 py,
             panel.left +
                 dp(172f),
-            panel.top +
-                dp(300f),
+            moveTop +
+                dp(124f),
             savedPaint,
         )
 
         val magRowTop =
-            panel.top +
-                dp(132f)
+            magnifierTop +
+                dp(26f)
         val magGap =
             dp(5f)
         val magWidth =
@@ -1545,56 +1624,59 @@ class PulseDeckCenterCalibrationOverlayView(
                 oldAlign
         }
 
-        addMagAction(
-            PanelAction.MAG,
-            0,
-            if (magnifierEnabled) {
-                "MAG ON"
-            } else {
-                "MAG OFF"
-            },
-        )
-        addMagAction(
-            PanelAction.ZOOM,
-            1,
-            "ZOOM " +
-                magnifierZoom
-                    .toInt() +
-                "x",
-        )
-        addMagAction(
-            PanelAction.SIZE,
-            2,
-            when (magnifierSizeDp) {
-                120 ->
-                    "SIZE S"
-                180 ->
-                    "SIZE M"
-                else ->
-                    "SIZE L"
-            },
-        )
-        addMagAction(
-            PanelAction.FOLLOW,
-            3,
-            "FOLLOW",
-        )
-        addMagAction(
-            PanelAction.FREEZE,
-            4,
-            "FREEZE",
-        )
+        if (
+            magnifierExpanded
+        ) {
+            addMagAction(
+                PanelAction.MAG,
+                0,
+                if (magnifierEnabled) {
+                    "MAG ON"
+                } else {
+                    "MAG OFF"
+                },
+            )
+            addMagAction(
+                PanelAction.ZOOM,
+                1,
+                "ZOOM " +
+                    magnifierZoom
+                        .toInt() +
+                    "x",
+            )
+            addMagAction(
+                PanelAction.SIZE,
+                2,
+                when (magnifierSizeDp) {
+                    120 ->
+                        "SIZE S"
+                    180 ->
+                        "SIZE M"
+                    else ->
+                        "SIZE L"
+                },
+            )
+            addMagAction(
+                PanelAction.FOLLOW,
+                3,
+                "FOLLOW",
+            )
+            addMagAction(
+                PanelAction.FREEZE,
+                4,
+                "FREEZE",
+            )
+        }
 
         val guideHeaderRect =
             RectF(
                 panel.left +
-                    dp(14f),
-                panel.top +
-                    dp(330f),
+                    dp(10f),
+                guidesTop,
                 panel.right -
-                    dp(14f),
-                panel.top +
-                    dp(368f),
+                    dp(10f),
+                guidesTop +
+                    dp(34f),
             )
 
         panelActionRects[
@@ -1613,8 +1695,8 @@ class PulseDeckCenterCalibrationOverlayView(
                 ) /
                 3f
         val guideRowTop =
-            panel.top +
-                dp(378f)
+            guidesTop +
+                dp(24f)
 
         fun addGuideAction(
             action: PanelAction,
@@ -1710,9 +1792,41 @@ class PulseDeckCenterCalibrationOverlayView(
             )
         }
 
+        val actionsHeaderRect =
+            RectF(
+                panel.left +
+                    dp(10f),
+                actionsTop,
+                panel.right -
+                    dp(10f),
+                actionsTop +
+                    dp(34f),
+            )
+
+        panelActionRects[
+            PanelAction.ACTIONS_TOGGLE
+        ] =
+            actionsHeaderRect
+
+        val magnifierHeaderRect =
+            RectF(
+                panel.left +
+                    dp(10f),
+                magnifierTop,
+                panel.right -
+                    dp(10f),
+                magnifierTop +
+                    dp(34f),
+            )
+
+        panelActionRects[
+            PanelAction.MAGNIFIER_TOGGLE
+        ] =
+            magnifierHeaderRect
+
         val actionY =
-            panel.top +
-                dp(84f)
+            actionsTop +
+                dp(46f)
         val actionWidth =
             (
                 panel.width() -
@@ -1779,31 +1893,35 @@ class PulseDeckCenterCalibrationOverlayView(
                 oldAlign
         }
 
-        addFooterAction(
-            PanelAction.PREV,
-            0,
-            "PREV",
-        )
-        addFooterAction(
-            PanelAction.SAVE,
-            1,
-            "SAVE",
-        )
-        addFooterAction(
-            PanelAction.NEXT,
-            2,
-            "NEXT",
-        )
-        addFooterAction(
-            PanelAction.RESET,
-            3,
-            "RESET",
-        )
-        addFooterAction(
-            PanelAction.COPY,
-            4,
-            "COPY",
-        )
+        if (
+            actionsExpanded
+        ) {
+            addFooterAction(
+                PanelAction.PREV,
+                0,
+                "PREV",
+            )
+            addFooterAction(
+                PanelAction.SAVE,
+                1,
+                "SAVE",
+            )
+            addFooterAction(
+                PanelAction.NEXT,
+                2,
+                "NEXT",
+            )
+            addFooterAction(
+                PanelAction.RESET,
+                3,
+                "RESET",
+            )
+            addFooterAction(
+                PanelAction.COPY,
+                4,
+                "COPY",
+            )
+        }
 
         // Header itself is the drag handle; no action rect is needed.
         panelActionRects[
@@ -1969,6 +2087,34 @@ class PulseDeckCenterCalibrationOverlayView(
                     .putFloat(
                         KEY_GUIDE_H_Y,
                         horizontalGuideYNorm,
+                    )
+                    .apply()
+
+                invalidate()
+            }
+
+            PanelAction.ACTIONS_TOGGLE -> {
+                actionsExpanded =
+                    !actionsExpanded
+
+                prefs.edit()
+                    .putBoolean(
+                        KEY_ACTIONS_EXPANDED,
+                        actionsExpanded,
+                    )
+                    .apply()
+
+                invalidate()
+            }
+
+            PanelAction.MAGNIFIER_TOGGLE -> {
+                magnifierExpanded =
+                    !magnifierExpanded
+
+                prefs.edit()
+                    .putBoolean(
+                        KEY_MAGNIFIER_EXPANDED,
+                        magnifierExpanded,
                     )
                     .apply()
 
@@ -2951,6 +3097,10 @@ class PulseDeckCenterCalibrationOverlayView(
             "guide_h_y"
         private const val KEY_GUIDES_EXPANDED =
             "guides_expanded"
+        private const val KEY_ACTIONS_EXPANDED =
+            "actions_expanded"
+        private const val KEY_MAGNIFIER_EXPANDED =
+            "magnifier_expanded"
 
         private const val LONG_PRESS_MS =
             650L

@@ -623,3 +623,20 @@ User clarification after 333058.mp4:
 - [ ] Paste exported normalized coordinates into chat.
 - [ ] Rebuild final main-page geometry from accepted centers.
 - [ ] After geometry acceptance, tune spacing/background behavior across aspect ratios without deforming the HUD.
+
+
+## v0.11.6 — precision center calibration
+
+- [x] Persist unsaved crosshair edit position per C-point.
+- [x] Keep panel touches from changing the target.
+- [x] Add live circular magnifier over the real skin.
+- [x] Add 2x / 3x / 4x / 6x zoom.
+- [x] Add S / M / L loupe diameter.
+- [x] Add draggable loupe with persisted position.
+- [x] Add FOLLOW mode.
+- [x] Add FREEZE snapshot mode.
+- [x] Preserve existing pixel-step remote controls.
+- [ ] Validate PASS.
+- [ ] Android PASS.
+- [ ] Phone acceptance.
+- [ ] Calibrate C-01…C-20 and paste COPY output.

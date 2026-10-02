@@ -1,111 +1,111 @@
 {
   "id": "pulsedeck_master",
-  "name": "PulseDeck Master Plate",
-  "version": 2,
+  "name": "PulseDeck Clean Blocks v2",
+  "version": 3,
   "nativeWidth": 1080,
   "nativeHeight": 2340,
   "playingAsset": "master_playing.webp",
   "pausedAsset": "master_paused.webp",
   "fit": "center_crop_uniform",
-  "visualPolicy": "reference_first_master_plate",
+  "visualPolicy": "clean_grouped_assets_no_individual_ring_recomposition",
   "hitZones": [
     {
       "action": "back",
-      "x": 0.066,
+      "x": 0.076,
       "y": 0.045,
-      "w": 0.11,
-      "h": 0.075
+      "w": 0.13,
+      "h": 0.08
     },
     {
       "action": "menu",
-      "x": 0.93,
+      "x": 0.924,
       "y": 0.045,
-      "w": 0.11,
-      "h": 0.075
+      "w": 0.13,
+      "h": 0.08
     },
     {
       "action": "favorite",
-      "x": 0.067,
-      "y": 0.342,
-      "w": 0.115,
-      "h": 0.075
+      "x": 0.076,
+      "y": 0.464,
+      "w": 0.13,
+      "h": 0.08
     },
     {
       "action": "track_more",
-      "x": 0.93,
-      "y": 0.342,
-      "w": 0.115,
-      "h": 0.075
+      "x": 0.924,
+      "y": 0.464,
+      "w": 0.13,
+      "h": 0.08
     },
     {
       "action": "seek",
       "x": 0.5,
-      "y": 0.526,
+      "y": 0.583,
       "w": 0.9,
       "h": 0.055
     },
     {
       "action": "shuffle",
-      "x": 0.094,
-      "y": 0.669,
+      "x": 0.089,
+      "y": 0.718,
       "w": 0.16,
-      "h": 0.11
+      "h": 0.12
     },
     {
       "action": "previous",
-      "x": 0.276,
-      "y": 0.669,
+      "x": 0.278,
+      "y": 0.718,
       "w": 0.16,
-      "h": 0.11
+      "h": 0.12
     },
     {
       "action": "play_pause",
       "x": 0.5,
-      "y": 0.669,
+      "y": 0.718,
       "w": 0.22,
-      "h": 0.135
+      "h": 0.14
     },
     {
       "action": "next",
-      "x": 0.724,
-      "y": 0.669,
+      "x": 0.722,
+      "y": 0.718,
       "w": 0.16,
-      "h": 0.11
+      "h": 0.12
     },
     {
       "action": "repeat",
-      "x": 0.906,
-      "y": 0.669,
+      "x": 0.911,
+      "y": 0.718,
       "w": 0.16,
-      "h": 0.11
+      "h": 0.12
     },
     {
       "action": "theme",
-      "x": 0.14,
-      "y": 0.817,
+      "x": 0.12,
+      "y": 0.874,
       "w": 0.19,
-      "h": 0.115
+      "h": 0.12
     },
     {
       "action": "board",
-      "x": 0.38,
-      "y": 0.817,
+      "x": 0.36,
+      "y": 0.874,
       "w": 0.19,
-      "h": 0.115
+      "h": 0.12
     },
     {
       "action": "visualizer",
-      "x": 0.62,
-      "y": 0.817,
+      "x": 0.64,
+      "y": 0.874,
       "w": 0.19,
-      "h": 0.115
+      "h": 0.12
     },
     {
       "action": "export",
-      "x": 0.86,
-      "y": 0.817,
+      "x": 0.88,
+      "y": 0.874,
       "w": 0.19,
-      "h": 0.115
+      "h": 0.12
     }
   ]
 }

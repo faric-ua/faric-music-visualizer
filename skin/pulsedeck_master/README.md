@@ -1,12 +1,11 @@
-# PulseDeck Master Plate v1
+# PulseDeck Clean Blocks v2
 
-Reference-first visual baseline.
+Built from the clean original HUD source sheets.
 
-This pack intentionally uses large precomposed visual plates derived from the approved original artwork.
-It avoids rebuilding glow rings, rails and buttons from many independently scaled PNG fragments.
-
-Phase 1 priorities:
-- visual fidelity first;
-- static artwork is acceptable;
-- invisible Android hit zones keep controls functional;
-- animation/dynamic text/progress can be reintroduced after the visual baseline is accepted.
+Rules:
+- reactor is one clean hero composition;
+- transport is one precomposed group, never rebuilt from separate rings;
+- quick actions are one precomposed group;
+- no independent X/Y stretching;
+- no rail-over-button ring duplication;
+- exact centers are calibrated on-phone after the visual baseline is accepted.

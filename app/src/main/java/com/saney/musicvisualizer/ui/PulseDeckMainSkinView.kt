@@ -1750,7 +1750,7 @@ class PulseDeckMainSkinView(
 
             val pathData =
                 Regex(
-                    """<path\\s+d="([^"]+)"""",
+                    """<path\s+d="([^"]+)"""",
                 )
                     .findAll(raw)
                     .map {

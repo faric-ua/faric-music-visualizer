@@ -33,7 +33,7 @@ class PulseDeckObjectConstructorOverlayView(
     private enum class Action {
         UP, DOWN, LEFT, RIGHT, STEP, PREV, NEXT, SAVE, RESET, RESET_ALL,
         EXPORT, IMPORT, GRID, MAG, ZOOM, SIZE, FOLLOW, FREEZE,
-        GUIDE_V, GUIDE_H, GUIDE_CLEAR,
+        GUIDE_V, GUIDE_H, GUIDE_CLEAR, SECTION_GROUP_TOGGLE,
         ACTIONS_TOGGLE, MAGNIFIER_TOGGLE, GUIDES_TOGGLE, NONE,
     }
 
@@ -58,6 +58,15 @@ class PulseDeckObjectConstructorOverlayView(
         ObjectItem("C-18", "Board", "board", "C-16"),
         ObjectItem("C-19", "Visualizer", "visualizer", "C-16"),
         ObjectItem("C-20", "Export", "export", "C-16"),
+    )
+
+    private val sections = listOf(
+        "S1 HEADER" to listOf("C-01", "C-02", "C-03"),
+        "S2 HERO / ENERGY" to listOf("C-04"),
+        "S3 METADATA" to listOf("C-05", "C-06", "C-07"),
+        "S4 WAVE / SEEK" to listOf("C-08", "C-09"),
+        "S5 TRANSPORT" to listOf("C-10", "C-11", "C-12", "C-13", "C-14", "C-15"),
+        "S6 QUICK ACTIONS" to listOf("C-16", "C-17", "C-18", "C-19", "C-20"),
     )
 
     private val prefs = context.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
@@ -86,6 +95,7 @@ class PulseDeckObjectConstructorOverlayView(
     private var guideVX = prefs.getFloat(KEY_GUIDE_V_X, 0.5f)
     private var guideHY = prefs.getFloat(KEY_GUIDE_H_Y, 0.5f)
     private var lastAction = "Готово"
+    private var sectionGrouped = prefs.getBoolean(KEY_SECTION_GROUPED, true)
 
     private val actionRects = mutableMapOf<Action, RectF>()
     private val panelRect = RectF()
@@ -460,7 +470,7 @@ class PulseDeckObjectConstructorOverlayView(
                 Action.SAVE to "SAVE",
                 Action.NEXT to "NEXT",
                 Action.RESET to "RESET",
-                Action.GRID to if (gridEnabled) "GRID ON" else "GRID OFF",
+                Action.SECTION_GROUP_TOGGLE to if (sectionGrouped) "UNGROUP" else "GROUP",
             )
         drawRow(canvas, row1, top + dp(28f), dp(34f))
 
@@ -469,6 +479,7 @@ class PulseDeckObjectConstructorOverlayView(
                 Action.EXPORT to "EXPORT",
                 Action.IMPORT to "IMPORT",
                 Action.RESET_ALL to "RESET ALL",
+                Action.GRID to if (gridEnabled) "GRID ON" else "GRID OFF",
             )
         drawRow(canvas, row2, top + dp(64f), dp(28f))
     }
@@ -690,6 +701,26 @@ class PulseDeckObjectConstructorOverlayView(
         ).show()
     }
 
+    private fun sectionFor(index: Int): Pair<String, List<String>> =
+        sections.firstOrNull { (_, ids) -> objects[index].id in ids }
+            ?: ("OBJECT" to listOf(objects[index].id))
+
+    private fun applySectionSelection() {
+        val (name, ids) = sectionFor(primary)
+        selected.clear()
+        objects.forEachIndexed { index, item ->
+            if (item.id in ids) selected.add(index)
+        }
+        lastAction = "$name · згруповано"
+    }
+
+    private fun ungroupSection() {
+        selected.clear()
+        selected.add(primary)
+        val (name, _) = sectionFor(primary)
+        lastAction = "$name · розгруповано"
+    }
+
     private fun editableSelectedIndices(): List<Int> =
         selected.filter { index ->
             val parentId = objects[index].parentId
@@ -770,6 +801,11 @@ class PulseDeckObjectConstructorOverlayView(
             Action.GRID -> {
                 gridEnabled = !gridEnabled
                 prefs.edit().putBoolean(KEY_GRID, gridEnabled).apply()
+            }
+            Action.SECTION_GROUP_TOGGLE -> {
+                sectionGrouped = !sectionGrouped
+                prefs.edit().putBoolean(KEY_SECTION_GROUPED, sectionGrouped).apply()
+                if (sectionGrouped) applySectionSelection() else ungroupSection()
             }
             Action.MAG -> {
                 magnifierEnabled = !magnifierEnabled
@@ -964,6 +1000,7 @@ class PulseDeckObjectConstructorOverlayView(
         private const val KEY_MAG_FREEZE = "mag_freeze"
         private const val KEY_MAG_X = "mag_x"
         private const val KEY_MAG_Y = "mag_y"
+        private const val KEY_SECTION_GROUPED = "section_grouped"
         private const val KEY_GUIDE_V_ENABLED = "guide_v_enabled"
         private const val KEY_GUIDE_H_ENABLED = "guide_h_enabled"
         private const val KEY_GUIDE_V_X = "guide_v_x"

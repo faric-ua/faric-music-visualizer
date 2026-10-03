@@ -245,6 +245,14 @@ class PulseDeckMainSkinView(
                     item.getDouble("dx").toFloat() to
                         item.getDouble("dy").toFloat()
             }
+            playEditorOffset =
+                editorOffsets["play"]
+                    ?: editorOffsets["play_pause"]
+                    ?: (0f to 0f)
+            pauseEditorOffset =
+                editorOffsets["pause"]
+                    ?: editorOffsets["play_pause"]
+                    ?: (0f to 0f)
         }
     }
 

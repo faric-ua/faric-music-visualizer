@@ -640,3 +640,17 @@ User clarification after 333058.mp4:
 - [ ] Android PASS.
 - [ ] Phone acceptance.
 - [ ] Calibrate C-01…C-20 and paste COPY output.
+
+
+## PulseDeck v0.13.0 — approved object centers + control scale pass
+
+- [x] Save the phone-exported C-01…C-20 object template in `skin/pulsedeck_hud/object_templates/PulseDeck_object_template_centered_v1.json`.
+- [x] Preserve exported dx/dy values verbatim; do not overwrite immutable `PULSEDECK_CENTER_CALIBRATION`.
+- [x] Record the layout contract in `docs/design/PULSEDECK_OBJECT_LAYOUT_BASELINE.md`.
+- [x] Scale C-17…C-20 quick-action icons to 150% around their accepted centers.
+- [x] Scale Play to 170% around C-13.
+- [x] Scale Pause to 170% height and effective 136% width around the same C-13 center.
+- [x] Version candidate: v0.13.0 / build 64.
+- [ ] Android workflow PASS for exact candidate HEAD.
+- [ ] Phone visual acceptance of enlarged lower controls and Play/Pause.
+- [ ] After phone PASS, freeze the scale pass as the approved visual baseline.

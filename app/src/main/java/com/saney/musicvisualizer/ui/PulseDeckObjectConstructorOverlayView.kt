@@ -539,9 +539,6 @@ class PulseDeckObjectConstructorOverlayView(
                 }
 
                 downObject = hitObject(event.x, event.y)
-                downWasSelected = downObject >= 0 && selected.contains(downObject)
-                draggingObjects = false
-                dragStartOffsets = offsets.toMap()
                 return true
             }
 
@@ -570,18 +567,6 @@ class PulseDeckObjectConstructorOverlayView(
                     return true
                 }
 
-                if (downObject >= 0 && downWasSelected) {
-                    val distance = hypot(event.x - downX, event.y - downY)
-                    if (!draggingObjects && distance > touchSlop) {
-                        draggingObjects = true
-                    }
-                    if (draggingObjects) {
-                        val dx = (event.x - downX) / width
-                        val dy = (event.y - downY) / height
-                        moveSelectionFromSnapshot(dx, dy)
-                        return true
-                    }
-                }
             }
 
             MotionEvent.ACTION_UP,
@@ -605,18 +590,16 @@ class PulseDeckObjectConstructorOverlayView(
                 if (downObject >= 0) {
                     val held = event.eventTime - downTime
                     val distance = hypot(event.x - downX, event.y - downY)
+                    val tapTolerance = dp(12f)
 
-                    if (draggingObjects) {
-                        saveOffsets()
-                    } else if (held >= LONG_PRESS_MS && distance <= touchSlop * 1.5f) {
+                    if (held >= LONG_PRESS_MS && distance <= tapTolerance) {
                         toggleGroup(downObject)
-                    } else if (distance <= touchSlop * 1.5f) {
+                    } else if (distance <= tapTolerance) {
                         selectOnly(downObject)
                     }
                 }
 
                 downObject = -1
-                draggingObjects = false
                 invalidate()
                 return true
             }
@@ -660,16 +643,6 @@ class PulseDeckObjectConstructorOverlayView(
             "Виділено: " + selected.size,
             Toast.LENGTH_SHORT,
         ).show()
-    }
-
-    private fun moveSelectionFromSnapshot(dx: Float, dy: Float) {
-        editableSelectedIndices().forEach { index ->
-            val item = objects[index]
-            val base = dragStartOffsets[item.id] ?: (0f to 0f)
-            offsets[item.id] = (base.first + dx) to (base.second + dy)
-        }
-        applyOffsets()
-        invalidate()
     }
 
     private fun editableSelectedIndices(): List<Int> =

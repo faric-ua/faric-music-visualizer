@@ -714,3 +714,18 @@ User clarification after 333058.mp4:
 - Pause remains independent: dx=-0.00277777761220932, dy=0.0025641026441007853.
 - Play phone-approved from exported Object Constructor template: dx=0.0018518520519137383, dy=0.0025641026441007853.
 - Do not reapply automatic optical compensation; runtime/editor must use the two saved positions independently.
+
+
+## PulseDeck v0.15.0 — C-13 magnifier + real playback queue foundation
+
+- [x] Expose independent renderer rects for the currently previewed Play/Pause icon so Object Constructor selection, axes, coordinates and magnifier target the actual icon.
+- [x] Keep phone-approved Play/Pause offsets independent; no automatic optical compensation.
+- [x] Replace single-file picker with Android multi-audio picker.
+- [x] Add Media3 queue loading with URI + display-name metadata.
+- [x] Wire Previous and Next to real Media3 queue navigation.
+- [x] Wire Shuffle to Media3 shuffleModeEnabled.
+- [x] Sync displayed track metadata when Media3 transitions between queue items.
+- [x] Keep single-track load API as a one-item queue for compatibility.
+- [ ] Phone verify C-13 magnifier and reported coordinates.
+- [ ] Phone select 3+ tracks and verify Previous / Next / Shuffle.
+- [ ] Exact-HEAD Android workflow PASS.

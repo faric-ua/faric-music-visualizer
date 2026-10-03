@@ -158,6 +158,8 @@ class PulseDeckMainSkinView(
         "0:00"
     private var progressFraction = 0f
 
+    private var equalizerVisible = true
+
     private var controlsVisible = true
     private var controlsAlpha = 1f
     private var transportAlpha = 1f
@@ -395,6 +397,26 @@ class PulseDeckMainSkinView(
         invalidate()
     }
 
+    fun setHudLayersVisible(
+        visible: Boolean,
+    ) {
+        alpha =
+            if (visible) {
+                1f
+            } else {
+                0f
+            }
+        isEnabled = visible
+        isClickable = visible
+    }
+
+    fun setEqualizerVisible(
+        visible: Boolean,
+    ) {
+        equalizerVisible = visible
+        invalidate()
+    }
+
     fun setControlsVisible(
         visible: Boolean,
         animate: Boolean,
@@ -520,11 +542,13 @@ class PulseDeckMainSkinView(
                 w = w,
                 h = h,
             )
-            drawFrequencySpectrum(
-                canvas = canvas,
-                w = w,
-                h = h,
-            )
+            if (equalizerVisible) {
+                drawFrequencySpectrum(
+                    canvas = canvas,
+                    w = w,
+                    h = h,
+                )
+            }
             drawProgressThumb(
                 canvas = canvas,
                 w = w,

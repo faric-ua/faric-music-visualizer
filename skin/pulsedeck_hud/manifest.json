@@ -162,10 +162,7 @@
       "localX": 0.102539,
       "localY": 0.546196,
       "localWidth": 0.07,
-      "cropLeft": 0.355,
-      "cropRight": 0.355,
-      "cropTop": 0.355,
-      "cropBottom": 0.355,
+
       "hitWidth": 0.145,
       "blend": "screen",
       "opacity": 1
@@ -182,10 +179,7 @@
       "localX": 0.280273,
       "localY": 0.559783,
       "localWidth": 0.064,
-      "cropLeft": 0.385,
-      "cropRight": 0.385,
-      "cropTop": 0.385,
-      "cropBottom": 0.385,
+
       "hitWidth": 0.155,
       "blend": "screen",
       "opacity": 1
@@ -203,10 +197,7 @@
       "localX": 0.50293,
       "localY": 0.532609,
       "localWidth": 0.082,
-      "cropLeft": 0.395,
-      "cropRight": 0.395,
-      "cropTop": 0.395,
-      "cropBottom": 0.395,
+
       "hitWidth": 0.235,
       "blend": "screen",
       "opacity": 1
@@ -223,10 +214,7 @@
       "localX": 0.719727,
       "localY": 0.548913,
       "localWidth": 0.064,
-      "cropLeft": 0.385,
-      "cropRight": 0.385,
-      "cropTop": 0.385,
-      "cropBottom": 0.385,
+
       "hitWidth": 0.155,
       "blend": "screen",
       "opacity": 1
@@ -243,10 +231,7 @@
       "localX": 0.894531,
       "localY": 0.529891,
       "localWidth": 0.07,
-      "cropLeft": 0.355,
-      "cropRight": 0.355,
-      "cropTop": 0.355,
-      "cropBottom": 0.355,
+
       "hitWidth": 0.145,
       "blend": "screen",
       "opacity": 1
@@ -271,10 +256,7 @@
       "localX": 0.139648,
       "localY": 0.487179,
       "localWidth": 0.064,
-      "cropLeft": 0.345,
-      "cropRight": 0.345,
-      "cropTop": 0.345,
-      "cropBottom": 0.345,
+
       "hitWidth": 0.19,
       "blend": "screen",
       "opacity": 1
@@ -291,10 +273,7 @@
       "localX": 0.381836,
       "localY": 0.498168,
       "localWidth": 0.06,
-      "cropLeft": 0.35,
-      "cropRight": 0.35,
-      "cropTop": 0.35,
-      "cropBottom": 0.35,
+
       "hitWidth": 0.19,
       "blend": "screen",
       "opacity": 1
@@ -311,10 +290,7 @@
       "localX": 0.62207,
       "localY": 0.490842,
       "localWidth": 0.06,
-      "cropLeft": 0.35,
-      "cropRight": 0.35,
-      "cropTop": 0.35,
-      "cropBottom": 0.35,
+
       "hitWidth": 0.19,
       "blend": "screen",
       "opacity": 1
@@ -331,10 +307,7 @@
       "localX": 0.863281,
       "localY": 0.490842,
       "localWidth": 0.06,
-      "cropLeft": 0.345,
-      "cropRight": 0.345,
-      "cropTop": 0.345,
-      "cropBottom": 0.345,
+
       "hitWidth": 0.19,
       "blend": "screen",
       "opacity": 1

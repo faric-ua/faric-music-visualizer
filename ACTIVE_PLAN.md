@@ -683,3 +683,15 @@ User clarification after 333058.mp4:
 - [x] Preserve approved C-08 waveform center offset.
 - [ ] Exact-HEAD Android workflow PASS.
 - [ ] Phone acceptance of seek thumb and frequency motion.
+
+
+## PulseDeck v0.14.3 — phone visual corrections
+
+- [x] Interpolate FFT bands that have no direct source bin, removing false holes in the mirrored spectrum.
+- [x] Apply light three-band smoothing while preserving real spectral peaks.
+- [x] Recenter play/pause inside S5 without moving approved C-13 or the transport rail.
+- [x] Apply a small Play-only optical X correction; Pause stays geometrically centered.
+- [x] Replace static progress-line PNG rendering with a Canvas gradient while preserving seek hit behavior.
+- [x] Progress direction remains chronological left → right; visual color direction is cyan at track start → orange at track end.
+- [ ] Exact-HEAD Android workflow PASS.
+- [ ] Phone acceptance of spectrum continuity, Play centering and progress color direction.

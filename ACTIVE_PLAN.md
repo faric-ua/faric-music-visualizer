@@ -729,3 +729,18 @@ User clarification after 333058.mp4:
 - [ ] Phone verify C-13 magnifier and reported coordinates.
 - [ ] Phone select 3+ tracks and verify Previous / Next / Shuffle.
 - [ ] Exact-HEAD Android workflow PASS.
+
+
+## PulseDeck v0.15.1 — approved main layout + live visualizers
+
+- [x] Promote the phone-approved Object Constructor JSON to the main PulseDeck HUD asset.
+- [x] Apply independent approved Play/Pause offsets when the main HUD loads.
+- [x] Keep immutable PULSEDECK_CENTER_CALIBRATION unchanged; the approved file remains an object-offset layer.
+- [x] Put ReactiveSceneView behind the modular PulseDeck HUD on Now Playing.
+- [x] Make only the main HUD base canvas transparent so HUD assets remain above the live scene.
+- [x] Reuse the existing SceneOrchestrator and SceneSignal pipeline.
+- [x] Main page now supports the existing RADIAL / WAVE_RIBBON / SPECTRUM_BARS visualizers.
+- [x] Existing Board action continues to shuffle the active scene on the main page.
+- [ ] Exact-HEAD Android build/CI PASS.
+- [ ] Phone verify approved object placement over live visualization.
+- [ ] Phone verify Board cycles live scenes while audio is playing.

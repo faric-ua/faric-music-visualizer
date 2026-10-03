@@ -343,7 +343,7 @@ class PulseDeckObjectConstructorOverlayView(
         var top = panelRect.top + dp(36f)
 
         val moveTop = top
-        val moveBottom = moveTop + dp(138f)
+        val moveBottom = moveTop + dp(154f)
         drawTile(canvas, moveTop, moveBottom, "MOVE")
         drawMoveControls(canvas, moveTop)
         top = moveBottom + dp(6f)
@@ -434,15 +434,21 @@ class PulseDeckObjectConstructorOverlayView(
         val yNorm = centerY / height.toFloat()
 
         canvas.drawText(
-            "X %.6f  Y %.6f".format(xNorm, yNorm),
+            "X %.0fpx  ·  %.6f".format(centerX, xNorm),
             panelRect.left + dp(172f),
-            top + dp(119f),
+            top + dp(116f),
+            smallPaint,
+        )
+        canvas.drawText(
+            "Y %.0fpx  ·  %.6f".format(centerY, yNorm),
+            panelRect.left + dp(172f),
+            top + dp(131f),
             smallPaint,
         )
         canvas.drawText(
             "selected " + selected.size + "  ·  " + lastAction,
             panelRect.left + dp(172f),
-            top + dp(134f),
+            top + dp(146f),
             smallPaint,
         )
     }

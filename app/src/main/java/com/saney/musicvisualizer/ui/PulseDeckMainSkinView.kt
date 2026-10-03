@@ -207,6 +207,7 @@ class PulseDeckMainSkinView(
         )
 
     init {
+        loadApprovedObjectOffsets()
         isClickable = true
         isFocusable = true
         contentDescription =
@@ -224,6 +225,23 @@ class PulseDeckMainSkinView(
             .forEach { asset ->
                 loadBitmap(asset)
             }
+    }
+
+    private fun loadApprovedObjectOffsets() {
+        runCatching {
+            val raw =
+                context.assets
+                    .open("$SKIN_ROOT/object_templates/PulseDeck_object_template_centered_v1.json")
+                    .bufferedReader()
+                    .use { it.readText() }
+            val items = JSONObject(raw).getJSONArray("items")
+            repeat(items.length()) { index ->
+                val item = items.getJSONObject(index)
+                editorOffsets[item.getString("rendererId")] =
+                    item.getDouble("dx").toFloat() to
+                        item.getDouble("dy").toFloat()
+            }
+        }
     }
 
     fun isMasterPlateMode(): Boolean =

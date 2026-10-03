@@ -654,3 +654,19 @@ User clarification after 333058.mp4:
 - [ ] Android workflow PASS for exact candidate HEAD.
 - [ ] Phone visual acceptance of enlarged lower controls and Play/Pause.
 - [ ] After phone PASS, freeze the scale pass as the approved visual baseline.
+
+
+## PulseDeck v0.13.1 — S1-S6 grouped main page
+
+- [x] Preserve approved phone-exported C-01…C-20 center template.
+- [x] Map Object Constructor sections to S1…S6 from the approved cut map.
+- [x] Add explicit GROUP / UNGROUP section editing.
+- [x] Keep parent-child rail movement from double-applying child offsets.
+- [x] Keep v0.13.0 icon scale contract.
+- [x] Wire Repeat to real Media3 Repeat One behavior.
+- [x] Confirm Play/Pause and Seek use real PlaybackController actions.
+- [x] Confirm Theme / Board / Visualizer / Export route to existing product screens.
+- [ ] Playback queue foundation before wiring Shuffle / Previous / Next.
+- [ ] Favorite and Track More product behavior.
+- [ ] Android workflow PASS for exact v0.13.1 candidate HEAD.
+- [ ] Phone visual + GROUP/UNGROUP + action acceptance.

@@ -658,8 +658,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 setBackgroundColor(COLOR_BG)
             }
 
+        val liveScene =
+            ReactiveSceneView(this).also { view ->
+                view.setScene(currentScene)
+                view.updateSignal(latestSignal)
+                view.setPlaying(latestSnapshot.isPlaying)
+            }
+        sceneView = liveScene
+
+        root.addView(
+            liveScene,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+
         val skinView =
-            PulseDeckMainSkinView(this, forceModularMode = true).also { view ->
+            PulseDeckMainSkinView(
+                this,
+                forceModularMode = true,
+                transparentBackground = true,
+            ).also { view ->
                 view.updateSignal(
                     latestSignal,
                 )

@@ -707,3 +707,10 @@ User clarification after 333058.mp4:
 - [x] Migrate legacy C-13 coordinates as the initial value for both variants so existing alignment is not discarded.
 - [ ] User centers C-13▶ Play on phone; C-13P Pause should already match the previously approved position.
 - [ ] Exact-HEAD Android workflow PASS.
+
+
+### C-13 phone-approved positions
+
+- Pause remains independent: dx=-0.00277777761220932, dy=0.0025641026441007853.
+- Play phone-approved from exported Object Constructor template: dx=0.0018518520519137383, dy=0.0025641026441007853.
+- Do not reapply automatic optical compensation; runtime/editor must use the two saved positions independently.

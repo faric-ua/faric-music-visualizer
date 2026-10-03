@@ -1298,3 +1298,17 @@ Phone acceptance:
 - Shuffle / Previous / Next remain blocked on real playback queue foundation; no fake behavior.
 - Candidate version: v0.14.0 / build 66.
 - Pending: exact-HEAD Android workflow PASS and phone acceptance of the assembled main page.
+
+
+## PulseDeck v0.14.2 — mirrored live spectrum + chrome visibility
+
+- Static C-08 waveform PNG is intentionally hidden on the modular main page; it remains an asset/reference, not the live equalizer.
+- Live FFT spectrum is mirrored from screen center toward both edges.
+- Each side uses 36 thin bars (72 visible bars total), with low frequencies nearest center and higher frequencies toward the edges.
+- Bars grow upward from a common baseline and use a height gradient: cool white at baseline, warm mid, red at the peak.
+- C-08 approved center offset remains the anchor for the live spectrum.
+- Auto-hide default is now NEVER while HUD visual work is in progress.
+- PulseDeck tools → Автоприховування persists one of: Не ховати / Ховати тільки керування / Ховати керування + нижню панель.
+- S5 transport and S6 quick actions have independent runtime visibility; metadata/progress/live spectrum stay visible.
+- Candidate version: v0.14.2 / build 68.
+- Pending: exact-HEAD Android workflow PASS and phone visual acceptance.

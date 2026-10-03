@@ -21,12 +21,20 @@ import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.analysis.StereoBalanceAudioProcessor
 import com.saney.musicvisualizer.projectm.ProjectMBridge
 
+data class QueueTrack(
+    val uri: Uri,
+    val displayName: String,
+)
+
 data class PlaybackSnapshot(
     val trackName: String? = null,
     val isPlaying: Boolean = false,
     val positionMs: Long = 0L,
     val durationMs: Long = 0L,
     val analysisActive: Boolean = false,
+    val queueSize: Int = 0,
+    val queueIndex: Int = -1,
+    val shuffleEnabled: Boolean = false,
     val status: String = "Оберіть локальний аудіофайл",
 )
 
@@ -108,6 +116,11 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
                 emitCurrentState()
             }
 
+            override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
+                syncTrackFromPlayer()
+                emitCurrentState()
+            }
+
             override fun onPlaybackStateChanged(playbackState: Int) {
                 status = when (playbackState) {
                     Player.STATE_BUFFERING -> "Буферизація…"
@@ -127,12 +140,56 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
     }
 
     fun load(uri: Uri, displayName: String) {
-        trackName = displayName
-        trackUri = uri
+        loadQueue(listOf(QueueTrack(uri, displayName)), 0)
+    }
+
+    fun loadQueue(tracks: List<QueueTrack>, startIndex: Int = 0) {
+        if (tracks.isEmpty()) return
+        val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
+        val items =
+            tracks.map { track ->
+                MediaItem.Builder()
+                    .setUri(track.uri)
+                    .setMediaId(track.uri.toString())
+                    .setTag(track.displayName)
+                    .build()
+            }
         status = "Завантаження…"
-        player.setMediaItem(MediaItem.fromUri(uri))
+        player.setMediaItems(items, safeIndex, 0L)
         player.prepare()
+        syncTrackFromPlayer()
         emitCurrentState()
+    }
+
+    fun previous() {
+        if (player.hasPreviousMediaItem()) {
+            player.seekToPreviousMediaItem()
+            player.play()
+        } else if (player.mediaItemCount > 0) {
+            player.seekTo(0, 0L)
+            player.play()
+        }
+    }
+
+    fun next() {
+        if (player.hasNextMediaItem()) {
+            player.seekToNextMediaItem()
+            player.play()
+        }
+    }
+
+    fun toggleShuffle(): Boolean {
+        player.shuffleModeEnabled = !player.shuffleModeEnabled
+        emitCurrentState()
+        return player.shuffleModeEnabled
+    }
+
+    private fun syncTrackFromPlayer() {
+        val item = player.currentMediaItem
+        trackUri = item?.localConfiguration?.uri
+        trackName = item?.localConfiguration?.tag as? String
+            ?: item?.mediaMetadata?.title?.toString()
+            ?: trackUri?.lastPathSegment
     }
 
     fun currentTrackUri(): Uri? =
@@ -182,6 +239,9 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
                 positionMs = player.currentPosition.coerceAtLeast(0L),
                 durationMs = duration.coerceAtLeast(0L),
                 analysisActive = analysisActive,
+                queueSize = player.mediaItemCount,
+                queueIndex = player.currentMediaItemIndex.takeIf { player.mediaItemCount > 0 } ?: -1,
+                shuffleEnabled = player.shuffleModeEnabled,
                 status = if (!analysisPermissionGranted && trackName != null) {
                     "$status · реакція на звук вимкнена без дозволу"
                 } else {

@@ -6,6 +6,8 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.LinearGradient
+import android.graphics.Shader
 import android.graphics.Paint
 import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
@@ -154,6 +156,8 @@ class PulseDeckMainSkinView(
 
     private var controlsVisible = true
     private var controlsAlpha = 1f
+    private var transportAlpha = 1f
+    private var quickActionsAlpha = 1f
     private var controlsAnimator: ValueAnimator? = null
 
     private var pressedAction: String? = null
@@ -361,6 +365,15 @@ class PulseDeckMainSkinView(
         listener: () -> Unit,
     ) {
         doubleTapListener = listener
+    }
+
+    fun setChromeVisibility(
+        transportVisible: Boolean,
+        quickActionsVisible: Boolean,
+    ) {
+        transportAlpha = if (transportVisible) 1f else 0f
+        quickActionsAlpha = if (quickActionsVisible) 1f else 0f
+        invalidate()
     }
 
     fun setControlsVisible(
@@ -641,9 +654,29 @@ class PulseDeckMainSkinView(
             layer.z >=
                 CONTROL_Z_MIN
 
+        val sectionAlpha =
+            when (layer.id) {
+                "transport_rail",
+                "shuffle",
+                "previous",
+                "play_pause",
+                "next",
+                "repeat",
+                -> transportAlpha
+
+                "quick_rail",
+                "theme",
+                "board",
+                "visualizer",
+                "export",
+                -> quickActionsAlpha
+
+                else -> 1f
+            }
+
         val chromeAlpha =
             if (isChrome) {
-                controlsAlpha
+                controlsAlpha * sectionAlpha
             } else {
                 1f
             }
@@ -651,6 +684,8 @@ class PulseDeckMainSkinView(
         if (chromeAlpha <= 0.01f) {
             return
         }
+
+        if (layer.id == "waveform") return
 
         val asset =
             if (
@@ -1230,48 +1265,86 @@ class PulseDeckMainSkinView(
         if (spectrum.isEmpty()) return
 
         val waveformOffset = editorOffsets["waveform"] ?: (0f to 0f)
-        val left = w * 0.055f + waveformOffset.first * w
-        val right = w * 0.945f + waveformOffset.first * w
+        val centerX = w * 0.5f + waveformOffset.first * w
         val baseline = h * 0.585f + waveformOffset.second * h
-        val maxHeight = h * 0.055f
-        val gap = w * 0.004f
-        val slot = (right - left) / spectrum.size
-        val barWidth = (slot - gap).coerceAtLeast(w * 0.0025f)
+        val halfWidth = w * 0.445f
+        val maxHeight = h * 0.058f
+        val sideBands = 36
+        val slot = halfWidth / sideBands
+        val barWidth = (slot * 0.28f).coerceAtLeast(1f)
+        val sourceCount = spectrum.size
 
         val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(0, 216, 255)
-            alpha = (controlsAlpha * 70f).toInt().coerceIn(0, 255)
-        }
-        val corePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.rgb(225, 250, 255)
-            alpha = (controlsAlpha * 235f).toInt().coerceIn(0, 255)
+            color = Color.rgb(255, 72, 40)
+            alpha = (controlsAlpha * 42f).toInt().coerceIn(0, 255)
         }
 
-        spectrum.forEachIndexed { index, raw ->
-            val value = raw.coerceIn(0f, 1f)
-            val barHeight = maxHeight * value
-            val x = left + slot * index + (slot - barWidth) * 0.5f
+        fun sourceValue(sideIndex: Int): Float {
+            if (sourceCount == 0) return 0f
+            val normalized = sideIndex.toFloat() / (sideBands - 1).coerceAtLeast(1)
+            val sourceIndex =
+                (normalized * (sourceCount - 1))
+                    .toInt()
+                    .coerceIn(0, sourceCount - 1)
+            return spectrum[sourceIndex].coerceIn(0f, 1f)
+        }
+
+        for (index in 0 until sideBands) {
+            val value = sourceValue(index)
+            val shaped = value * value * 0.72f + value * 0.28f
+            val barHeight = (maxHeight * shaped).coerceAtLeast(h * 0.0025f)
             val top = baseline - barHeight
+            val distance = slot * (index + 0.55f)
+            val gradient =
+                LinearGradient(
+                    0f,
+                    baseline,
+                    0f,
+                    top,
+                    intArrayOf(
+                        Color.rgb(245, 252, 255),
+                        Color.rgb(255, 190, 105),
+                        Color.rgb(255, 58, 42),
+                    ),
+                    floatArrayOf(0f, 0.58f, 1f),
+                    Shader.TileMode.CLAMP,
+                )
+            val corePaint =
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    shader = gradient
+                    alpha = (controlsAlpha * 245f).toInt().coerceIn(0, 255)
+                }
 
-            canvas.drawRoundRect(
-                x - w * 0.002f,
-                top - h * 0.002f,
-                x + barWidth + w * 0.002f,
-                baseline + h * 0.001f,
-                barWidth * 0.45f,
-                barWidth * 0.45f,
-                glowPaint,
-            )
-            canvas.drawRoundRect(
-                x,
-                top,
-                x + barWidth,
-                baseline,
-                barWidth * 0.4f,
-                barWidth * 0.4f,
-                corePaint,
-            )
+            for (direction in intArrayOf(-1, 1)) {
+                val cx = centerX + distance * direction
+                canvas.drawRoundRect(
+                    cx - barWidth * 1.2f,
+                    top - h * 0.0015f,
+                    cx + barWidth * 1.2f,
+                    baseline,
+                    barWidth,
+                    barWidth,
+                    glowPaint,
+                )
+                canvas.drawRoundRect(
+                    cx - barWidth * 0.5f,
+                    top,
+                    cx + barWidth * 0.5f,
+                    baseline,
+                    barWidth * 0.5f,
+                    barWidth * 0.5f,
+                    corePaint,
+                )
+            }
         }
+
+        resolvedRects["waveform"] =
+            RectF(
+                centerX - halfWidth,
+                baseline - maxHeight,
+                centerX + halfWidth,
+                baseline,
+            )
     }
 
     private fun drawProgressThumb(

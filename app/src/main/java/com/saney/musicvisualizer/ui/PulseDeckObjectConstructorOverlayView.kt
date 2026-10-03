@@ -317,7 +317,7 @@ class PulseDeckObjectConstructorOverlayView(
 
     private fun panelHeight(): Float =
         dp(
-            208f +
+            224f +
                 (if (actionsExpanded) 92f else 0f) +
                 (if (magnifierExpanded) 58f else 0f) +
                 (if (guidesExpanded) 54f else 0f),

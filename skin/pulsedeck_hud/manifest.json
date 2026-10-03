@@ -152,7 +152,7 @@
     },
     {
       "id": "shuffle",
-      "asset": "transport/shuffle.png",
+      "asset": "transport/shuffle.svg",
       "x": 0.095,
       "y": 0.74,
       "width": 0.14,
@@ -169,7 +169,7 @@
     },
     {
       "id": "previous",
-      "asset": "transport/previous.png",
+      "asset": "transport/previous.svg",
       "x": 0.275,
       "y": 0.74,
       "width": 0.15,
@@ -186,8 +186,8 @@
     },
     {
       "id": "play_pause",
-      "asset": "transport/play.png",
-      "assetPlaying": "transport/pause.png",
+      "asset": "transport/play.svg",
+      "assetPlaying": "transport/pause.svg",
       "x": 0.5,
       "y": 0.74,
       "width": 0.22,
@@ -204,7 +204,7 @@
     },
     {
       "id": "next",
-      "asset": "transport/next.png",
+      "asset": "transport/next.svg",
       "x": 0.725,
       "y": 0.74,
       "width": 0.15,
@@ -221,7 +221,7 @@
     },
     {
       "id": "repeat",
-      "asset": "transport/repeat.png",
+      "asset": "transport/repeat.svg",
       "x": 0.905,
       "y": 0.74,
       "width": 0.14,
@@ -246,7 +246,7 @@
     },
     {
       "id": "theme",
-      "asset": "quick_actions/theme.png",
+      "asset": "quick_actions/theme.svg",
       "x": 0.14,
       "y": 0.9,
       "width": 0.16,
@@ -263,7 +263,7 @@
     },
     {
       "id": "board",
-      "asset": "quick_actions/board.png",
+      "asset": "quick_actions/board.svg",
       "x": 0.38,
       "y": 0.9,
       "width": 0.16,
@@ -280,7 +280,7 @@
     },
     {
       "id": "visualizer",
-      "asset": "quick_actions/visualizer.png",
+      "asset": "quick_actions/visualizer.svg",
       "x": 0.62,
       "y": 0.9,
       "width": 0.16,
@@ -297,7 +297,7 @@
     },
     {
       "id": "export",
-      "asset": "quick_actions/export.png",
+      "asset": "quick_actions/export.svg",
       "x": 0.86,
       "y": 0.9,
       "width": 0.16,

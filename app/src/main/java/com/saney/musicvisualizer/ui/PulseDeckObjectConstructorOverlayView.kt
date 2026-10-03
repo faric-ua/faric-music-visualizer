@@ -33,7 +33,7 @@ class PulseDeckObjectConstructorOverlayView(
     private enum class Action {
         UP, DOWN, LEFT, RIGHT, STEP, PREV, NEXT, SAVE, RESET, RESET_ALL,
         EXPORT, IMPORT, GRID, MAG, ZOOM, SIZE, FOLLOW, FREEZE,
-        GUIDE_V, GUIDE_H, GUIDE_CLEAR, SECTION_GROUP_TOGGLE,
+        GUIDE_V, GUIDE_H, GUIDE_CLEAR, SECTION_GROUP_TOGGLE, PLAY_PAUSE_TOGGLE,
         ACTIONS_TOGGLE, MAGNIFIER_TOGGLE, GUIDES_TOGGLE, NONE,
     }
 
@@ -50,7 +50,8 @@ class PulseDeckObjectConstructorOverlayView(
         ObjectItem("C-10", "Transport rail", "transport_rail"),
         ObjectItem("C-11", "Shuffle", "shuffle", "C-10"),
         ObjectItem("C-12", "Previous", "previous", "C-10"),
-        ObjectItem("C-13", "Play/Pause", "play_pause", "C-10"),
+        ObjectItem("C-13P", "Pause", "pause", "C-10"),
+        ObjectItem("C-13▶", "Play", "play", "C-10"),
         ObjectItem("C-14", "Next", "next", "C-10"),
         ObjectItem("C-15", "Repeat", "repeat", "C-10"),
         ObjectItem("C-16", "Quick-actions rail", "quick_rail"),
@@ -65,7 +66,7 @@ class PulseDeckObjectConstructorOverlayView(
         "S2 HERO / ENERGY" to listOf("C-04"),
         "S3 METADATA" to listOf("C-05", "C-06", "C-07"),
         "S4 WAVE / SEEK" to listOf("C-08", "C-09"),
-        "S5 TRANSPORT" to listOf("C-10", "C-11", "C-12", "C-13", "C-14", "C-15"),
+        "S5 TRANSPORT" to listOf("C-10", "C-11", "C-12", "C-13P", "C-13▶", "C-14", "C-15"),
         "S6 QUICK ACTIONS" to listOf("C-16", "C-17", "C-18", "C-19", "C-20"),
     )
 
@@ -96,6 +97,7 @@ class PulseDeckObjectConstructorOverlayView(
     private var guideHY = prefs.getFloat(KEY_GUIDE_H_Y, 0.5f)
     private var lastAction = "Готово"
     private var sectionGrouped = prefs.getBoolean(KEY_SECTION_GROUPED, true)
+    private var playPausePreviewPlaying = prefs.getBoolean(KEY_PLAY_PAUSE_PREVIEW, true)
 
     private val actionRects = mutableMapOf<Action, RectF>()
     private val panelRect = RectF()
@@ -174,14 +176,23 @@ class PulseDeckObjectConstructorOverlayView(
     private val loupePath = Path()
 
     init {
+        val legacyC13 =
+            prefs.getFloat("dx_C-13", -0.00277777761220932f) to
+                prefs.getFloat("dy_C-13", 0.0025641026441007853f)
         objects.forEach { item ->
+            val fallback =
+                when (item.id) {
+                    "C-13P", "C-13▶" -> legacyC13
+                    else -> 0f to 0f
+                }
             offsets[item.id] =
-                prefs.getFloat("dx_" + item.id, 0f) to
-                    prefs.getFloat("dy_" + item.id, 0f)
+                prefs.getFloat("dx_" + item.id, fallback.first) to
+                    prefs.getFloat("dy_" + item.id, fallback.second)
         }
         selected.add(primary)
         if (sectionGrouped) applySectionSelection()
         applyOffsets()
+        sourceView.setEditorPlayPausePreview(playPausePreviewPlaying)
         isClickable = true
     }
 
@@ -481,6 +492,7 @@ class PulseDeckObjectConstructorOverlayView(
                 Action.IMPORT to "IMPORT",
                 Action.RESET_ALL to "RESET ALL",
                 Action.GRID to if (gridEnabled) "GRID ON" else "GRID OFF",
+                Action.PLAY_PAUSE_TOGGLE to if (playPausePreviewPlaying) "SHOW PLAY" else "SHOW PAUSE",
             )
         drawRow(canvas, row2, top + dp(64f), dp(28f))
     }
@@ -807,6 +819,15 @@ class PulseDeckObjectConstructorOverlayView(
                 gridEnabled = !gridEnabled
                 prefs.edit().putBoolean(KEY_GRID, gridEnabled).apply()
             }
+            Action.PLAY_PAUSE_TOGGLE -> {
+                playPausePreviewPlaying = !playPausePreviewPlaying
+                prefs.edit().putBoolean(KEY_PLAY_PAUSE_PREVIEW, playPausePreviewPlaying).apply()
+                sourceView.setEditorPlayPausePreview(playPausePreviewPlaying)
+                val wantedId = if (playPausePreviewPlaying) "C-13P" else "C-13▶"
+                val index = objects.indexOfFirst { it.id == wantedId }
+                if (index >= 0) selectOnly(index)
+                lastAction = if (playPausePreviewPlaying) "Pause position" else "Play position"
+            }
             Action.SECTION_GROUP_TOGGLE -> {
                 sectionGrouped = !sectionGrouped
                 prefs.edit().putBoolean(KEY_SECTION_GROUPED, sectionGrouped).apply()
@@ -1006,6 +1027,7 @@ class PulseDeckObjectConstructorOverlayView(
         private const val KEY_MAG_X = "mag_x"
         private const val KEY_MAG_Y = "mag_y"
         private const val KEY_SECTION_GROUPED = "section_grouped"
+        private const val KEY_PLAY_PAUSE_PREVIEW = "play_pause_preview"
         private const val KEY_GUIDE_V_ENABLED = "guide_v_enabled"
         private const val KEY_GUIDE_H_ENABLED = "guide_h_enabled"
         private const val KEY_GUIDE_V_X = "guide_v_x"

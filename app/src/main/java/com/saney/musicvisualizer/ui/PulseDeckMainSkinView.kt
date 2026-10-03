@@ -132,17 +132,13 @@ class PulseDeckMainSkinView(
     private val editorOffsets =
         mutableMapOf<String, Pair<Float, Float>>()
 
-    private val progressThumb =
-        loadBitmap(
-            "progress/progress_thumb.png",
-        )
-
     private var playing = false
     private var amplitude = 0f
     private var bass = 0f
     private var mid = 0f
     private var high = 0f
     private var beat = 0f
+    private var spectrum = FloatArray(0)
 
     private var title =
         "FARIC PulseDeck"
@@ -305,6 +301,7 @@ class PulseDeckMainSkinView(
                         1f,
                     ),
             )
+        spectrum = signal.spectrum.copyOf()
 
         postInvalidateOnAnimation()
     }
@@ -485,6 +482,11 @@ class PulseDeckMainSkinView(
 
         if (controlsAlpha > 0.01f) {
             drawDynamicText(
+                canvas = canvas,
+                w = w,
+                h = h,
+            )
+            drawFrequencySpectrum(
                 canvas = canvas,
                 w = w,
                 h = h,
@@ -1220,76 +1222,93 @@ class PulseDeckMainSkinView(
         )
     }
 
+    private fun drawFrequencySpectrum(
+        canvas: Canvas,
+        w: Float,
+        h: Float,
+    ) {
+        if (spectrum.isEmpty()) return
+
+        val waveformOffset = editorOffsets["waveform"] ?: (0f to 0f)
+        val left = w * 0.055f + waveformOffset.first * w
+        val right = w * 0.945f + waveformOffset.first * w
+        val baseline = h * 0.585f + waveformOffset.second * h
+        val maxHeight = h * 0.055f
+        val gap = w * 0.004f
+        val slot = (right - left) / spectrum.size
+        val barWidth = (slot - gap).coerceAtLeast(w * 0.0025f)
+
+        val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(0, 216, 255)
+            alpha = (controlsAlpha * 70f).toInt().coerceIn(0, 255)
+        }
+        val corePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(225, 250, 255)
+            alpha = (controlsAlpha * 235f).toInt().coerceIn(0, 255)
+        }
+
+        spectrum.forEachIndexed { index, raw ->
+            val value = raw.coerceIn(0f, 1f)
+            val barHeight = maxHeight * value
+            val x = left + slot * index + (slot - barWidth) * 0.5f
+            val top = baseline - barHeight
+
+            canvas.drawRoundRect(
+                x - w * 0.002f,
+                top - h * 0.002f,
+                x + barWidth + w * 0.002f,
+                baseline + h * 0.001f,
+                barWidth * 0.45f,
+                barWidth * 0.45f,
+                glowPaint,
+            )
+            canvas.drawRoundRect(
+                x,
+                top,
+                x + barWidth,
+                baseline,
+                barWidth * 0.4f,
+                barWidth * 0.4f,
+                corePaint,
+            )
+        }
+    }
+
     private fun drawProgressThumb(
         canvas: Canvas,
         w: Float,
         h: Float,
     ) {
-        val bitmap =
-            progressThumb
-                ?: return
-
-        val left =
-            w *
-                0.055f
-        val right =
-            w *
-                0.945f
-        val progressOffset =
-            editorOffsets["progress_group"]
-                ?: (0f to 0f)
+        val left = w * 0.055f
+        val right = w * 0.945f
+        val progressOffset = editorOffsets["progress_group"] ?: (0f to 0f)
         val cx =
             left +
-                (
-                    right -
-                        left
-                    ) *
-                progressFraction +
-                progressOffset.first *
-                    w
+                (right - left) * progressFraction +
+                progressOffset.first * w
         val cy =
-            h *
-                0.595f +
-                progressOffset.second *
-                    h
-        val targetWidth =
-            w *
-                0.046f
-        val targetHeight =
-            targetWidth *
-                bitmap.height.toFloat() /
-                bitmap.width.toFloat()
+            h * 0.595f +
+                progressOffset.second * h
+        val radius = w * 0.014f
 
-        bitmapPaint.alpha =
-            (
-                controlsAlpha *
-                    255f
-                )
-                .toInt()
-                .coerceIn(
-                    0,
-                    255,
-                )
+        val outerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(0, 216, 255)
+            alpha = (controlsAlpha * 90f).toInt().coerceIn(0, 255)
+        }
+        val ringPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.rgb(0, 216, 255)
+            alpha = (controlsAlpha * 255f).toInt().coerceIn(0, 255)
+            style = Paint.Style.STROKE
+            strokeWidth = w * 0.004f
+        }
+        val corePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            alpha = (controlsAlpha * 255f).toInt().coerceIn(0, 255)
+        }
 
-        canvas.drawBitmap(
-            bitmap,
-            null,
-            RectF(
-                cx -
-                    targetWidth *
-                    0.5f,
-                cy -
-                    targetHeight *
-                    0.5f,
-                cx +
-                    targetWidth *
-                    0.5f,
-                cy +
-                    targetHeight *
-                    0.5f,
-            ),
-            bitmapPaint,
-        )
+        canvas.drawCircle(cx, cy, radius * 1.65f, outerPaint)
+        canvas.drawCircle(cx, cy, radius, corePaint)
+        canvas.drawCircle(cx, cy, radius, ringPaint)
 
         resolvedRects["progress_group"] =
             RectF(

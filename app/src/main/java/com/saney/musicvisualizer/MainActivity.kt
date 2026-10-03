@@ -741,10 +741,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 "Next запрацює з чергою",
                             )
 
-                        "repeat" ->
+                        "repeat" -> {
+                            val enabled =
+                                controller.toggleRepeatOne()
                             toast(
-                                "Repeat запрацює з чергою",
+                                if (enabled) {
+                                    "Repeat one · увімкнено"
+                                } else {
+                                    "Repeat one · вимкнено"
+                                },
                             )
+                        }
 
                         "theme" ->
                             showThemePicker()

@@ -695,3 +695,15 @@ User clarification after 333058.mp4:
 - [x] Progress direction remains chronological left → right; visual color direction is cyan at track start → orange at track end.
 - [ ] Exact-HEAD Android workflow PASS.
 - [ ] Phone acceptance of spectrum continuity, Play centering and progress color direction.
+
+
+## PulseDeck v0.14.4 — independent Play/Pause alignment
+
+- [x] Restore the previously approved Pause transport-rail anchor; do not apply automatic optical correction to Pause.
+- [x] Remove the runtime Play optical-offset guess.
+- [x] Split C-13 editor state into C-13P Pause and C-13▶ Play while keeping the same S5 central rail/button.
+- [x] Add SHOW PLAY / SHOW PAUSE in Object Constructor; switching also selects the matching editable position.
+- [x] Persist, export and import Play/Pause offsets independently.
+- [x] Migrate legacy C-13 coordinates as the initial value for both variants so existing alignment is not discarded.
+- [ ] User centers C-13▶ Play on phone; C-13P Pause should already match the previously approved position.
+- [ ] Exact-HEAD Android workflow PASS.

@@ -69,6 +69,12 @@ import kotlin.concurrent.thread
 @UnstableApi
 class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
+    private enum class ControlsAutoHideMode {
+        NEVER,
+        TRANSPORT_ONLY,
+        TRANSPORT_AND_QUICK,
+    }
+
     private enum class Screen {
         LIBRARY,
         NOW_PLAYING,
@@ -128,6 +134,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var nowPlay: PulseDeckIconButton? = null
     private var nowControlsLayer: View? = null
     private var nowControlsHidden = false
+    private var controlsAutoHideMode = ControlsAutoHideMode.NEVER
     private val nowControlsAutoHideRunnable =
         Runnable {
             if (screen == Screen.NOW_PLAYING) {
@@ -170,7 +177,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
 
-        controller = ViewModelProvider(this)[PlaybackController::class.java]
+        controlsAutoHideMode =
+            getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                .getString(KEY_CONTROLS_AUTO_HIDE_MODE, null)
+                ?.let { runCatching { ControlsAutoHideMode.valueOf(it) }.getOrNull() }
+                ?: ControlsAutoHideMode.NEVER
+
+                controller = ViewModelProvider(this)[PlaybackController::class.java]
         controller.setAnalysisPermissionGranted(hasAnalysisPermission())
 
         themeStore = PlaybackThemeStore(this)
@@ -682,6 +695,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         "Center Calibration",
                                         "Template Constructor",
                                         "Object Constructor",
+                                        "Автоприховування",
                                     ),
                                 ) { _, which ->
                                     when (which) {
@@ -708,6 +722,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                                     PulseDeckObjectConstructorActivity::class.java,
                                                 ),
                                             )
+
+                                        3 ->
+                                            showControlsAutoHideDialog()
                                     }
                                 }
                                 .show()
@@ -2909,12 +2926,27 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             return
         }
 
-        nowControlsHidden =
-            !visible
+        if (!visible && controlsAutoHideMode == ControlsAutoHideMode.NEVER) {
+            nowControlsHidden = false
+            skin.setControlsVisible(visible = true, animate = false)
+            skin.setChromeVisibility(
+                transportVisible = true,
+                quickActionsVisible = true,
+            )
+            return
+        }
+
+        nowControlsHidden = !visible
 
         skin.setControlsVisible(
-            visible = visible,
-            animate = animate,
+            visible = true,
+            animate = false,
+        )
+        skin.setChromeVisibility(
+            transportVisible = visible || controlsAutoHideMode == ControlsAutoHideMode.NEVER,
+            quickActionsVisible =
+                visible ||
+                    controlsAutoHideMode != ControlsAutoHideMode.TRANSPORT_AND_QUICK,
         )
 
         if (visible) {
@@ -2931,7 +2963,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             nowControlsAutoHideRunnable,
         )
 
-        if (skin.isMasterPlateMode()) {
+        if (skin.isMasterPlateMode() || controlsAutoHideMode == ControlsAutoHideMode.NEVER) {
             return
         }
 
@@ -2941,6 +2973,36 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 NOW_CONTROLS_AUTO_HIDE_MS,
             )
         }
+    }
+
+    private fun showControlsAutoHideDialog() {
+        val modes =
+            arrayOf(
+                ControlsAutoHideMode.NEVER,
+                ControlsAutoHideMode.TRANSPORT_ONLY,
+                ControlsAutoHideMode.TRANSPORT_AND_QUICK,
+            )
+        val labels =
+            arrayOf(
+                "Не ховати",
+                "Ховати тільки керування",
+                "Ховати керування + нижню панель",
+            )
+        val checked = modes.indexOf(controlsAutoHideMode).coerceAtLeast(0)
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("Автоприховування")
+            .setSingleChoiceItems(labels, checked) { dialog, which ->
+                controlsAutoHideMode = modes[which]
+                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
+                    .edit()
+                    .putString(KEY_CONTROLS_AUTO_HIDE_MODE, controlsAutoHideMode.name)
+                    .apply()
+                nowControlsHidden = false
+                setNowControlsVisible(visible = true, animate = false)
+                dialog.dismiss()
+            }
+            .show()
     }
 
     private fun clearScreenRefs() {
@@ -3074,6 +3136,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         (value * resources.displayMetrics.density).toInt()
 
     companion object {
+        private const val PREFS_NAME =
+            "faric.preferences"
+        private const val KEY_CONTROLS_AUTO_HIDE_MODE =
+            "faric.controls_auto_hide_mode"
         private const val KEY_SCREEN =
             "faric.screen"
         private const val KEY_SELECTED_THEME =

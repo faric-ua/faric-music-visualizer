@@ -150,6 +150,16 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         if (player.isPlaying) pause() else play()
     }
 
+    fun toggleRepeatOne(): Boolean {
+        player.repeatMode =
+            if (player.repeatMode == Player.REPEAT_MODE_ONE) {
+                Player.REPEAT_MODE_OFF
+            } else {
+                Player.REPEAT_MODE_ONE
+            }
+        return player.repeatMode == Player.REPEAT_MODE_ONE
+    }
+
     fun seekTo(positionMs: Long) {
         val duration = player.duration
         if (duration != C.TIME_UNSET && duration > 0L) {

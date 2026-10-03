@@ -180,6 +180,7 @@ class PulseDeckObjectConstructorOverlayView(
                     prefs.getFloat("dy_" + item.id, 0f)
         }
         selected.add(primary)
+        if (sectionGrouped) applySectionSelection()
         applyOffsets()
         isClickable = true
     }
@@ -674,9 +675,13 @@ class PulseDeckObjectConstructorOverlayView(
     }
 
     private fun selectOnly(index: Int) {
-        selected.clear()
-        selected.add(index)
         primary = index
+        if (sectionGrouped) {
+            applySectionSelection()
+        } else {
+            selected.clear()
+            selected.add(index)
+        }
         prefs.edit().putInt(KEY_PRIMARY, primary).apply()
     }
 

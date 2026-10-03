@@ -48,6 +48,7 @@ import com.saney.musicvisualizer.export.OfflineAudioAnalyzer
 import com.saney.musicvisualizer.export.ShortVideoExportProof
 import com.saney.musicvisualizer.playback.PlaybackController
 import com.saney.musicvisualizer.playback.PlaybackSnapshot
+import com.saney.musicvisualizer.playback.QueueTrack
 import com.saney.musicvisualizer.scene.SceneOrchestrator
 import com.saney.musicvisualizer.scene.SceneSpec
 import com.saney.musicvisualizer.theme.ExportAspectRatio
@@ -147,20 +148,33 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private var pendingOpenAfterPermission = false
 
-    private val openAudio = registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
-        if (uri != null) {
-            runCatching {
-                contentResolver.takePersistableUriPermission(uri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
-            }
-            offlineAnalysis = null
-            offlineAnalysisUri = null
-            offlineAnalysisRunning = false
+    private val openAudio =
+        registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
+            if (uris.isNotEmpty()) {
+                uris.forEach { uri ->
+                    runCatching {
+                        contentResolver.takePersistableUriPermission(
+                            uri,
+                            Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                        )
+                    }
+                }
+                offlineAnalysis = null
+                offlineAnalysisUri = null
+                offlineAnalysisRunning = false
 
-            controller.load(uri, resolveDisplayName(uri))
-            controller.play()
-            showNowPlaying()
+                controller.loadQueue(
+                    uris.map { uri ->
+                        QueueTrack(
+                            uri = uri,
+                            displayName = resolveDisplayName(uri),
+                        )
+                    },
+                )
+                controller.play()
+                showNowPlaying()
+            }
         }
-    }
 
     private val requestAudioAnalysisPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->

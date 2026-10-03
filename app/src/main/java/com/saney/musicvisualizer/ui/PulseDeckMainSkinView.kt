@@ -1050,6 +1050,9 @@ class PulseDeckMainSkinView(
 
         resolvedRects[layer.id] =
             RectF(rect)
+        if (layer.id == "play_pause") {
+            resolvedRects[if (effectivePlaying) "pause" else "play"] = RectF(rect)
+        }
 
         val action =
             layer.action

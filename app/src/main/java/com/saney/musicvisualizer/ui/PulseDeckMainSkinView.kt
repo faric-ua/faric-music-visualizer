@@ -34,6 +34,7 @@ import kotlin.math.max
 class PulseDeckMainSkinView(
     context: Context,
     private val forceModularMode: Boolean = false,
+    private val transparentBackground: Boolean = false,
 ) : View(context) {
 
     private data class SkinLayer(
@@ -479,13 +480,15 @@ class PulseDeckMainSkinView(
                 0.82f
             }
 
-        canvas.drawColor(
-            Color.rgb(
-                0,
-                4,
-                8,
-            ),
-        )
+        if (!transparentBackground) {
+            canvas.drawColor(
+                Color.rgb(
+                    0,
+                    4,
+                    8,
+                ),
+            )
+        }
 
         hitTargets.clear()
         resolvedRects.clear()

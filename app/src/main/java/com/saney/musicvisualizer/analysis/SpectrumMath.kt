@@ -3,7 +3,6 @@ package com.saney.musicvisualizer.analysis
 import kotlin.math.hypot
 import kotlin.math.ln1p
 import kotlin.math.ln
-import kotlin.math.exp
 import kotlin.math.pow
 import kotlin.math.sqrt
 

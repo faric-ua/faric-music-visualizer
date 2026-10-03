@@ -7,11 +7,11 @@ import android.graphics.Color
 import android.graphics.DashPathEffect
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
 import android.view.MotionEvent
 import android.view.View
-import android.view.ViewConfiguration
 import android.widget.Toast
 import org.json.JSONArray
 import org.json.JSONObject
@@ -88,21 +88,17 @@ class PulseDeckObjectConstructorOverlayView(
 
     private val actionRects = mutableMapOf<Action, RectF>()
     private val panelRect = RectF()
-    private val touchSlop = ViewConfiguration.get(context).scaledTouchSlop.toFloat()
 
     private var downX = 0f
     private var downY = 0f
     private var downTime = 0L
     private var downObject = -1
-    private var downWasSelected = false
-    private var draggingObjects = false
     private var draggingPanel = false
     private var draggingMagnifier = false
     private var panelOffsetX = 0f
     private var panelOffsetY = 0f
     private var magnifierOffsetX = 0f
     private var magnifierOffsetY = 0f
-    private var dragStartOffsets = emptyMap<String, Pair<Float, Float>>()
 
     private var frozenBitmap: Bitmap? = null
     private var frozenTargetX = 0f
@@ -158,6 +154,11 @@ class PulseDeckObjectConstructorOverlayView(
         style = Paint.Style.STROKE
         strokeWidth = dp(1.5f)
         pathEffect = DashPathEffect(floatArrayOf(dp(8f), dp(6f)), 0f)
+    }
+    private val loupeCrossPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        color = Color.rgb(255, 92, 64)
+        style = Paint.Style.STROKE
+        strokeWidth = dp(1.5f)
     }
     private val loupePath = Path()
 
@@ -233,31 +234,35 @@ class PulseDeckObjectConstructorOverlayView(
     private fun magnifierRadius(): Float = dp(magnifierSizeDp / 2f)
 
     private fun magnifierCenter(targetX: Float, targetY: Float): Pair<Float, Float> {
-        if (!magnifierFollow) {
-            return magnifierX * width to magnifierY * height
-        }
         val radius = magnifierRadius()
-        val margin = dp(18f)
-        var cx = if (targetX < width * 0.55f) {
-            width - radius - margin
-        } else {
-            radius + margin
+        if (magnifierFollow) {
+            val offsetX = radius + dp(34f)
+            val offsetY = radius + dp(28f)
+            val rawX =
+                if (targetX < width * 0.55f) targetX + offsetX
+                else targetX - offsetX
+            val rawY =
+                if (targetY < height * 0.45f) targetY + offsetY
+                else targetY - offsetY
+            return rawX.coerceIn(radius + dp(8f), width - radius - dp(8f)) to
+                rawY.coerceIn(radius + dp(8f), height - radius - dp(8f))
         }
-        var cy = targetY
-        cy = cy.coerceIn(radius + margin, height - radius - margin)
-        cx = cx.coerceIn(radius + margin, width - radius - margin)
-        return cx to cy
+        return (magnifierX * width).coerceIn(radius + dp(8f), width - radius - dp(8f)) to
+            (magnifierY * height).coerceIn(radius + dp(8f), height - radius - dp(8f))
     }
 
     private fun drawMagnifier(canvas: Canvas) {
         if (!magnifierEnabled) return
-        val target = if (magnifierFreeze && frozenBitmap != null) {
-            frozenTargetX to frozenTargetY
-        } else {
-            primaryCenter()
-        }
-        val (tx, ty) = target
-        val (cx, cy) = magnifierCenter(tx, ty)
+
+        val liveTarget = primaryCenter()
+        val sourceTarget =
+            if (magnifierFreeze && frozenBitmap != null) {
+                frozenTargetX to frozenTargetY
+            } else {
+                liveTarget
+            }
+        val (tx, ty) = sourceTarget
+        val (cx, cy) = magnifierCenter(liveTarget.first, liveTarget.second)
         val radius = magnifierRadius()
 
         loupePath.reset()
@@ -265,27 +270,39 @@ class PulseDeckObjectConstructorOverlayView(
 
         val save = canvas.save()
         canvas.clipPath(loupePath)
-        canvas.drawColor(Color.rgb(4, 8, 12))
 
         val bitmap = frozenBitmap
         if (magnifierFreeze && bitmap != null) {
-            canvas.save()
-            canvas.translate(cx - tx * magnifierZoom, cy - ty * magnifierZoom)
-            canvas.scale(magnifierZoom, magnifierZoom)
-            canvas.drawBitmap(bitmap, 0f, 0f, null)
-            canvas.restore()
+            val srcHalf = radius / magnifierZoom
+            val srcLeft = (tx - srcHalf).toInt().coerceIn(0, bitmap.width - 1)
+            val srcTop = (ty - srcHalf).toInt().coerceIn(0, bitmap.height - 1)
+            val srcRight = (tx + srcHalf).toInt().coerceIn(srcLeft + 1, bitmap.width)
+            val srcBottom = (ty + srcHalf).toInt().coerceIn(srcTop + 1, bitmap.height)
+            canvas.drawBitmap(
+                bitmap,
+                Rect(srcLeft, srcTop, srcRight, srcBottom),
+                RectF(cx - radius, cy - radius, cx + radius, cy + radius),
+                null,
+            )
         } else {
-            canvas.save()
-            canvas.translate(cx - tx * magnifierZoom, cy - ty * magnifierZoom)
+            canvas.translate(cx, cy)
             canvas.scale(magnifierZoom, magnifierZoom)
+            canvas.translate(-tx, -ty)
             sourceView.draw(canvas)
-            canvas.restore()
         }
+        canvas.restoreToCount(save)
 
+        val axisSave = canvas.save()
+        canvas.clipPath(loupePath)
         canvas.drawLine(cx - radius, cy, cx + radius, cy, loupeAxisPaint)
         canvas.drawLine(cx, cy - radius, cx, cy + radius, loupeAxisPaint)
-        canvas.restoreToCount(save)
+        canvas.restoreToCount(axisSave)
+
         canvas.drawCircle(cx, cy, radius, loupeBorderPaint)
+        val arm = radius * 0.32f
+        canvas.drawLine(cx - arm, cy, cx + arm, cy, loupeCrossPaint)
+        canvas.drawLine(cx, cy - arm, cx, cy + arm, loupeCrossPaint)
+        canvas.drawCircle(cx, cy, dp(5f), loupeCrossPaint)
     }
 
     private fun panelHeight(): Float =
@@ -734,7 +751,12 @@ class PulseDeckObjectConstructorOverlayView(
             }
             Action.FREEZE -> {
                 magnifierFreeze = !magnifierFreeze
-                if (magnifierFreeze) captureFreeze() else frozenBitmap = null
+                if (magnifierFreeze) {
+                    captureFreeze()
+                } else {
+                    frozenBitmap?.recycle()
+                    frozenBitmap = null
+                }
                 persistMagnifier()
             }
             Action.GUIDE_V -> {
@@ -771,14 +793,15 @@ class PulseDeckObjectConstructorOverlayView(
 
     private fun captureFreeze() {
         if (sourceView.width <= 0 || sourceView.height <= 0) return
-        val bitmap =
+        frozenBitmap?.recycle()
+        frozenBitmap =
             Bitmap.createBitmap(
                 sourceView.width,
                 sourceView.height,
                 Bitmap.Config.ARGB_8888,
-            )
-        sourceView.draw(Canvas(bitmap))
-        frozenBitmap = bitmap
+            ).also { bitmap ->
+                sourceView.draw(Canvas(bitmap))
+            }
         val center = primaryCenter()
         frozenTargetX = center.first
         frozenTargetY = center.second

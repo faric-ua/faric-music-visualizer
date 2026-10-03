@@ -808,9 +808,26 @@ class PulseDeckMainSkinView(
                         visibleWidthFraction
                     )
 
+        val objectScaleX =
+            when (layer.id) {
+                "theme", "board", "visualizer", "export" -> 1.50f
+                "play_pause" -> if (playing) 1.36f else 1.70f
+                else -> 1f
+            }
+        val objectScaleY =
+            when (layer.id) {
+                "theme", "board", "visualizer", "export" -> 1.50f
+                "play_pause" -> 1.70f
+                else -> 1f
+            }
+
+        val renderedWidth =
+            targetWidth *
+                objectScaleX
         val targetHeight =
             targetWidth *
-                aspect
+                aspect *
+                objectScaleY
 
         val baseCenterX =
             if (
@@ -873,13 +890,13 @@ class PulseDeckMainSkinView(
         val rect =
             RectF(
                 centerX -
-                    targetWidth *
+                    renderedWidth *
                     0.5f,
                 centerY -
                     targetHeight *
                     0.5f,
                 centerX +
-                    targetWidth *
+                    renderedWidth *
                     0.5f,
                 centerY +
                     targetHeight *

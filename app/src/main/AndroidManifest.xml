@@ -7,6 +7,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.FaricMusicVisualizer">
         <activity
+            android:name=".PulseDeckObjectConstructorActivity"
+            android:exported="false" />
+        <activity
             android:name=".PulseDeckTemplateConstructorActivity"
             android:exported="false" />
         <activity

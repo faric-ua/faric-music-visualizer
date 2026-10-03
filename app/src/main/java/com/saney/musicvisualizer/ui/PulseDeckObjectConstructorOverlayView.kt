@@ -85,6 +85,7 @@ class PulseDeckObjectConstructorOverlayView(
     private var guideHEnabled = prefs.getBoolean(KEY_GUIDE_H_ENABLED, false)
     private var guideVX = prefs.getFloat(KEY_GUIDE_V_X, 0.5f)
     private var guideHY = prefs.getFloat(KEY_GUIDE_H_Y, 0.5f)
+    private var lastAction = "Готово"
 
     private val actionRects = mutableMapOf<Action, RectF>()
     private val panelRect = RectF()
@@ -178,6 +179,7 @@ class PulseDeckObjectConstructorOverlayView(
         if (width <= 0 || height <= 0) return
         if (gridEnabled) drawGrid(canvas)
         drawGuides(canvas)
+        drawPrimaryObjectAxes(canvas)
         drawSelections(canvas)
         drawMagnifier(canvas)
         drawPanel(canvas)
@@ -201,6 +203,14 @@ class PulseDeckObjectConstructorOverlayView(
             val y = guideHY * height
             canvas.drawLine(0f, y, width.toFloat(), y, guidePaint)
         }
+    }
+
+    private fun drawPrimaryObjectAxes(canvas: Canvas) {
+        val rect = primaryRect() ?: return
+        val x = rect.centerX()
+        val y = rect.centerY()
+        canvas.drawLine(x, 0f, x, height.toFloat(), loupeAxisPaint)
+        canvas.drawLine(0f, y, width.toFloat(), y, loupeAxisPaint)
     }
 
     private fun drawSelections(canvas: Canvas) {
@@ -417,10 +427,22 @@ class PulseDeckObjectConstructorOverlayView(
             top + dp(101f),
             smallPaint,
         )
+        val rect = primaryRect()
+        val centerX = rect?.centerX() ?: width * 0.5f
+        val centerY = rect?.centerY() ?: height * 0.5f
+        val xNorm = centerX / width.toFloat()
+        val yNorm = centerY / height.toFloat()
+
         canvas.drawText(
-            "selected " + selected.size,
+            "X %.6f  Y %.6f".format(xNorm, yNorm),
             panelRect.left + dp(172f),
-            top + dp(124f),
+            top + dp(119f),
+            smallPaint,
+        )
+        canvas.drawText(
+            "selected " + selected.size + "  ·  " + lastAction,
+            panelRect.left + dp(172f),
+            top + dp(134f),
             smallPaint,
         )
     }
@@ -681,6 +703,16 @@ class PulseDeckObjectConstructorOverlayView(
 
         applyOffsets()
         saveOffsets()
+        val item = objects[primary]
+        val rect = primaryRect()
+        lastAction =
+            if (rect != null) {
+                val x = rect.centerX() / width.toFloat()
+                val y = rect.centerY() / height.toFloat()
+                "%s X %.6f Y %.6f".format(item.id, x, y)
+            } else {
+                item.id + " переміщено"
+            }
         invalidate()
     }
 
@@ -703,21 +735,32 @@ class PulseDeckObjectConstructorOverlayView(
             }
             Action.PREV -> selectOnly((primary - 1 + objects.size) % objects.size)
             Action.NEXT -> selectOnly((primary + 1) % objects.size)
-            Action.SAVE -> saveOffsets()
+            Action.SAVE -> {
+                saveOffsets()
+                lastAction = "Збережено"
+            }
             Action.RESET -> {
                 editableSelectedIndices().forEach {
                     offsets[objects[it].id] = 0f to 0f
                 }
                 applyOffsets()
                 saveOffsets()
+                lastAction = "Скинуто " + objects[primary].id
             }
             Action.RESET_ALL -> {
                 objects.forEach { offsets[it.id] = 0f to 0f }
                 applyOffsets()
                 saveOffsets()
+                lastAction = "Скинуто все"
             }
-            Action.EXPORT -> onExportRequested(exportTemplateJson())
-            Action.IMPORT -> onImportRequested()
+            Action.EXPORT -> {
+                lastAction = "Експорт"
+                onExportRequested(exportTemplateJson())
+            }
+            Action.IMPORT -> {
+                lastAction = "Імпорт"
+                onImportRequested()
+            }
             Action.GRID -> {
                 gridEnabled = !gridEnabled
                 prefs.edit().putBoolean(KEY_GRID, gridEnabled).apply()

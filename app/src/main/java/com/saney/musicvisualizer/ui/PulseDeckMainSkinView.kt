@@ -30,6 +30,7 @@ import kotlin.math.max
  */
 class PulseDeckMainSkinView(
     context: Context,
+    private val forceModularMode: Boolean = false,
 ) : View(context) {
 
     private data class SkinLayer(
@@ -127,6 +128,9 @@ class PulseDeckMainSkinView(
     private val resolvedRects =
         mutableMapOf<String, RectF>()
 
+    private val editorOffsets =
+        mutableMapOf<String, Pair<Float, Float>>()
+
     private val progressThumb =
         loadBitmap(
             "progress/progress_thumb.png",
@@ -222,9 +226,33 @@ class PulseDeckMainSkinView(
     }
 
     fun isMasterPlateMode(): Boolean =
-        masterSkin != null &&
+        !forceModularMode &&
+            masterSkin != null &&
             masterPlayingBitmap != null &&
             masterPausedBitmap != null
+
+    fun setEditorObjectOffset(
+        id: String,
+        dxNorm: Float,
+        dyNorm: Float,
+    ) {
+        editorOffsets[id] =
+            dxNorm to dyNorm
+        invalidate()
+    }
+
+    fun setEditorObjectOffsets(
+        offsets: Map<String, Pair<Float, Float>>,
+    ) {
+        editorOffsets.clear()
+        editorOffsets.putAll(offsets)
+        invalidate()
+    }
+
+    fun editorObjectRects(): Map<String, RectF> =
+        resolvedRects.mapValues {
+            RectF(it.value)
+        }
 
     fun updateSignal(
         signal: SceneSignal,
@@ -783,7 +811,7 @@ class PulseDeckMainSkinView(
             targetWidth *
                 aspect
 
-        val centerX =
+        val baseCenterX =
             if (
                 parentRect != null &&
                 layer.localX != null
@@ -796,7 +824,7 @@ class PulseDeckMainSkinView(
                     layer.x
             }
 
-        val centerY =
+        val baseCenterY =
             if (
                 parentRect != null &&
                 layer.localY != null
@@ -808,6 +836,38 @@ class PulseDeckMainSkinView(
                 h *
                     layer.y
             }
+
+        val directOffset =
+            editorOffsets[layer.id]
+                ?: (0f to 0f)
+        val groupOffset =
+            if (
+                layer.id ==
+                    "progress_line"
+            ) {
+                editorOffsets["progress_group"]
+                    ?: (0f to 0f)
+            } else {
+                0f to 0f
+            }
+        val editorOffset =
+            (
+                directOffset.first +
+                    groupOffset.first
+                ) to
+                (
+                    directOffset.second +
+                    groupOffset.second
+                )
+
+        val centerX =
+            baseCenterX +
+                editorOffset.first *
+                    w
+        val centerY =
+            baseCenterY +
+                editorOffset.second *
+                    h
 
         val rect =
             RectF(
@@ -975,21 +1035,50 @@ class PulseDeckMainSkinView(
 
         textPaint.alpha = alpha
 
+        val headerOffset =
+            editorOffsets["header_title"]
+                ?: (0f to 0f)
+
+        val headerX =
+            w *
+                (0.5f + headerOffset.first)
+        val headerY =
+            h *
+                (0.069f + headerOffset.second)
+
         drawCenteredText(
             canvas = canvas,
             text = "FARIC PulseDeck",
-            x = w * 0.5f,
-            y = h * 0.069f,
+            x = headerX,
+            y = headerY,
             size = w * 0.052f,
             color = Color.WHITE,
             bold = true,
         )
 
+        resolvedRects["header_title"] =
+            RectF(
+                headerX - w * 0.24f,
+                headerY - h * 0.035f,
+                headerX + w * 0.24f,
+                headerY + h * 0.014f,
+            )
+
+        val trackOffset =
+            editorOffsets["track_info"]
+                ?: (0f to 0f)
+        val trackX =
+            w *
+                (0.5f + trackOffset.first)
+        val trackDy =
+            h *
+                trackOffset.second
+
         drawCenteredText(
             canvas = canvas,
             text = title,
-            x = w * 0.5f,
-            y = h * 0.485f,
+            x = trackX,
+            y = h * 0.485f + trackDy,
             size = w * 0.052f,
             color = Color.WHITE,
             bold = true,
@@ -998,8 +1087,8 @@ class PulseDeckMainSkinView(
         drawCenteredText(
             canvas = canvas,
             text = artist,
-            x = w * 0.5f,
-            y = h * 0.515f,
+            x = trackX,
+            y = h * 0.515f + trackDy,
             size = w * 0.037f,
             color =
                 Color.rgb(
@@ -1013,8 +1102,8 @@ class PulseDeckMainSkinView(
         drawCenteredText(
             canvas = canvas,
             text = status,
-            x = w * 0.5f,
-            y = h * 0.538f,
+            x = trackX,
+            y = h * 0.538f + trackDy,
             size = w * 0.026f,
             color =
                 Color.rgb(
@@ -1025,11 +1114,29 @@ class PulseDeckMainSkinView(
             bold = false,
         )
 
+        resolvedRects["track_info"] =
+            RectF(
+                trackX - w * 0.30f,
+                h * 0.455f + trackDy,
+                trackX + w * 0.30f,
+                h * 0.548f + trackDy,
+            )
+
+        val progressOffset =
+            editorOffsets["progress_group"]
+                ?: (0f to 0f)
+        val progressDx =
+            w *
+                progressOffset.first
+        val progressDy =
+            h *
+                progressOffset.second
+
         drawCenteredText(
             canvas = canvas,
             text = elapsed,
-            x = w * 0.085f,
-            y = h * 0.625f,
+            x = w * 0.085f + progressDx,
+            y = h * 0.625f + progressDy,
             size = w * 0.031f,
             color = Color.WHITE,
             bold = true,
@@ -1038,8 +1145,8 @@ class PulseDeckMainSkinView(
         drawCenteredText(
             canvas = canvas,
             text = total,
-            x = w * 0.915f,
-            y = h * 0.625f,
+            x = w * 0.915f + progressDx,
+            y = h * 0.625f + progressDy,
             size = w * 0.031f,
             color = Color.WHITE,
             bold = true,
@@ -1092,16 +1199,23 @@ class PulseDeckMainSkinView(
         val right =
             w *
                 0.945f
+        val progressOffset =
+            editorOffsets["progress_group"]
+                ?: (0f to 0f)
         val cx =
             left +
                 (
                     right -
                         left
                     ) *
-                progressFraction
+                progressFraction +
+                progressOffset.first *
+                    w
         val cy =
             h *
-                0.595f
+                0.595f +
+                progressOffset.second *
+                    h
         val targetWidth =
             w *
                 0.046f
@@ -1140,6 +1254,14 @@ class PulseDeckMainSkinView(
             ),
             bitmapPaint,
         )
+
+        resolvedRects["progress_group"] =
+            RectF(
+                w * 0.045f + progressOffset.first * w,
+                h * 0.575f + progressOffset.second * h,
+                w * 0.955f + progressOffset.first * w,
+                h * 0.635f + progressOffset.second * h,
+            )
     }
 
     override fun onTouchEvent(

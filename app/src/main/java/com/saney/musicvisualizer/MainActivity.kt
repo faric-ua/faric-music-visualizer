@@ -753,24 +753,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 "Дії треку — наступний етап",
                             )
 
-                        "shuffle" ->
-                            toast(
-                                "Shuffle запрацює з чергою",
-                            )
+                        "shuffle" -> {
+                            val enabled = controller.toggleShuffle()
+                            toast(if (enabled) "Shuffle · увімкнено" else "Shuffle · вимкнено")
+                        }
 
                         "previous" ->
-                            toast(
-                                "Previous запрацює з чергою",
-                            )
+                            controller.previous()
 
                         "play_pause" ->
                             controller
                                 .togglePlayPause()
 
                         "next" ->
-                            toast(
-                                "Next запрацює з чергою",
-                            )
+                            controller.next()
 
                         "repeat" -> {
                             val enabled =

@@ -670,3 +670,16 @@ User clarification after 333058.mp4:
 - [ ] Favorite and Track More product behavior.
 - [ ] Android workflow PASS for exact v0.13.1 candidate HEAD.
 - [ ] Phone visual + GROUP/UNGROUP + action acceptance.
+
+
+## PulseDeck v0.14.1 — seek thumb + frequency spectrum
+
+- [x] Remove the moving progress-thumb PNG from runtime rendering.
+- [x] Draw a clean Canvas seek thumb centered on the progress line.
+- [x] Preserve the approved C-09 progress center offset.
+- [x] Extend SceneSignal with live spectrum bins.
+- [x] Derive 32 logarithmic FFT bands from approximately 60 Hz to 12 kHz.
+- [x] Render each spectrum band from the bottom baseline upward, low frequencies left to high frequencies right.
+- [x] Preserve approved C-08 waveform center offset.
+- [ ] Exact-HEAD Android workflow PASS.
+- [ ] Phone acceptance of seek thumb and frequency motion.

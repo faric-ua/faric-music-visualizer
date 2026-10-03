@@ -133,6 +133,9 @@ class PulseDeckMainSkinView(
 
     private val editorOffsets =
         mutableMapOf<String, Pair<Float, Float>>()
+    private var playEditorOffset = 0f to 0f
+    private var pauseEditorOffset = 0f to 0f
+    private var editorPlayPausePreviewPlaying: Boolean? = null
 
     private var playing = false
     private var amplitude = 0f
@@ -265,6 +268,13 @@ class PulseDeckMainSkinView(
     ) {
         editorOffsets.clear()
         editorOffsets.putAll(offsets)
+        playEditorOffset = offsets["play"] ?: offsets["play_pause"] ?: (0f to 0f)
+        pauseEditorOffset = offsets["pause"] ?: offsets["play_pause"] ?: (0f to 0f)
+        invalidate()
+    }
+
+    fun setEditorPlayPausePreview(playing: Boolean?) {
+        editorPlayPausePreviewPlaying = playing
         invalidate()
     }
 
@@ -691,11 +701,18 @@ class PulseDeckMainSkinView(
             return
         }
 
+        val effectivePlaying =
+            if (layer.id == "play_pause") {
+                editorPlayPausePreviewPlaying ?: playing
+            } else {
+                playing
+            }
+
         val asset =
             if (
                 layer.id ==
                     "play_pause" &&
-                playing &&
+                effectivePlaying &&
                 layer.assetPlaying != null
             ) {
                 layer.assetPlaying
@@ -915,8 +932,11 @@ class PulseDeckMainSkinView(
             }
 
         val directOffset =
-            editorOffsets[layer.id]
-                ?: (0f to 0f)
+            if (layer.id == "play_pause") {
+                if (effectivePlaying) pauseEditorOffset else playEditorOffset
+            } else {
+                editorOffsets[layer.id] ?: (0f to 0f)
+            }
         val groupOffset =
             if (
                 layer.id ==
@@ -937,17 +957,10 @@ class PulseDeckMainSkinView(
                     groupOffset.second
                 )
 
-        val opticalOffsetX =
-            if (layer.id == "play_pause" && !playing) {
-                -targetWidth * 0.045f
-            } else {
-                0f
-            }
         val centerX =
             baseCenterX +
                 editorOffset.first *
-                    w +
-                opticalOffsetX
+                    w
         val centerY =
             baseCenterY +
                 editorOffset.second *

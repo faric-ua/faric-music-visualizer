@@ -1285,3 +1285,16 @@ Phone acceptance:
 - [ ] Android workflow PASS for exact candidate HEAD.
 - [ ] Phone visual acceptance of enlarged lower controls and Play/Pause.
 - [ ] After phone PASS, freeze the scale pass as the approved visual baseline.
+
+
+## PulseDeck v0.14.0 — modular main page candidate
+
+- Final phone-exported C-01…C-20 layout promoted to the repository baseline.
+- Main `PulseDeckMainSkinView` loads the approved object-template offsets from assets.
+- Now Playing explicitly uses modular HUD mode; the old master plate is no longer the main-page renderer.
+- S1…S6 grouping remains available in Object Constructor via GROUP / UNGROUP.
+- Approved scale contract remains: C17…C20 150%, Play 170%, Pause 170% height / 136% width.
+- Main-page real actions: Back, Menu/tools, Seek, Play/Pause, Repeat One, Theme, Board, Visualizer, Export.
+- Shuffle / Previous / Next remain blocked on real playback queue foundation; no fake behavior.
+- Candidate version: v0.14.0 / build 66.
+- Pending: exact-HEAD Android workflow PASS and phone acceptance of the assembled main page.

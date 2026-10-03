@@ -666,8 +666,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         sceneView = liveScene
 
+        // Layer 0 is always the visualizer. Every PulseDeck surface is added
+        // after it, so HUD chrome, transport, menu and equalizer can be hidden
+        // independently without ever moving the visualizer above them.
         root.addView(
             liveScene,
+            0,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,

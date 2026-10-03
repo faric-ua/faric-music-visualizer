@@ -7,4 +7,5 @@ data class SceneSignal(
     val high: Float,
     val beatStrength: Float,
     val stereoPan: Float = 0f,
+    val spectrum: FloatArray = FloatArray(0),
 )

@@ -686,6 +686,10 @@ class PulseDeckMainSkinView(
         }
 
         if (layer.id == "waveform") return
+        if (layer.id == "progress_line") {
+            drawProgressLine(canvas, w, h, layer)
+            return
+        }
 
         val asset =
             if (
@@ -933,10 +937,17 @@ class PulseDeckMainSkinView(
                     groupOffset.second
                 )
 
+        val opticalOffsetX =
+            if (layer.id == "play_pause" && !playing) {
+                -targetWidth * 0.045f
+            } else {
+                0f
+            }
         val centerX =
             baseCenterX +
                 editorOffset.first *
-                    w
+                    w +
+                opticalOffsetX
         val centerY =
             baseCenterY +
                 editorOffset.second *
@@ -1345,6 +1356,73 @@ class PulseDeckMainSkinView(
                 centerX + halfWidth,
                 baseline,
             )
+    }
+
+    private fun drawProgressLine(
+        canvas: Canvas,
+        w: Float,
+        h: Float,
+        layer: SkinLayer,
+    ) {
+        val progressOffset = editorOffsets["progress_group"] ?: (0f to 0f)
+        val left = w * 0.055f + progressOffset.first * w
+        val right = w * 0.945f + progressOffset.first * w
+        val cy = h * 0.595f + progressOffset.second * h
+        val stroke = w * 0.007f
+
+        val glowPaint =
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                shader =
+                    LinearGradient(
+                        left,
+                        cy,
+                        right,
+                        cy,
+                        Color.rgb(0, 216, 255),
+                        Color.rgb(255, 145, 24),
+                        Shader.TileMode.CLAMP,
+                    )
+                alpha = (controlsAlpha * 70f).toInt().coerceIn(0, 255)
+                strokeWidth = stroke * 2.2f
+                strokeCap = Paint.Cap.ROUND
+            }
+        val corePaint =
+            Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                shader =
+                    LinearGradient(
+                        left,
+                        cy,
+                        right,
+                        cy,
+                        Color.rgb(125, 245, 255),
+                        Color.rgb(255, 154, 28),
+                        Shader.TileMode.CLAMP,
+                    )
+                alpha = (controlsAlpha * 255f).toInt().coerceIn(0, 255)
+                strokeWidth = stroke
+                strokeCap = Paint.Cap.ROUND
+            }
+
+        canvas.drawLine(left, cy, right, cy, glowPaint)
+        canvas.drawLine(left, cy, right, cy, corePaint)
+
+        val rect =
+            RectF(
+                left,
+                cy - stroke * 0.5f,
+                right,
+                cy + stroke * 0.5f,
+            )
+        resolvedRects[layer.id] = RectF(rect)
+
+        val extra = resources.displayMetrics.density * 18f
+        hitTargets.add(
+            HitTarget(
+                action = "seek",
+                z = layer.z,
+                rect = RectF(rect.left, rect.top - extra, rect.right, rect.bottom + extra),
+            ),
+        )
     }
 
     private fun drawProgressThumb(

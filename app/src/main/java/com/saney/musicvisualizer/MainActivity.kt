@@ -681,6 +681,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     arrayOf(
                                         "Center Calibration",
                                         "Template Constructor",
+                                        "Object Constructor",
                                     ),
                                 ) { _, which ->
                                     when (which) {
@@ -697,6 +698,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                                 Intent(
                                                     this,
                                                     PulseDeckTemplateConstructorActivity::class.java,
+                                                ),
+                                            )
+
+                                        2 ->
+                                            startActivity(
+                                                Intent(
+                                                    this,
+                                                    PulseDeckObjectConstructorActivity::class.java,
                                                 ),
                                             )
                                     }

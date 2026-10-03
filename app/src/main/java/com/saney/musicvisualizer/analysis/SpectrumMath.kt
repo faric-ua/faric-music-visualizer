@@ -71,12 +71,43 @@ object SpectrumMath {
             counts[band]++
         }
 
-        return FloatArray(bandCount) { band ->
-            if (counts[band] == 0) {
-                0f
-            } else {
-                (sums[band] / counts[band]).toFloat().coerceIn(0f, 1f)
+        val raw =
+            FloatArray(bandCount) { band ->
+                if (counts[band] == 0) {
+                    Float.NaN
+                } else {
+                    (sums[band] / counts[band]).toFloat().coerceIn(0f, 1f)
+                }
             }
+
+        // Logarithmic bands can be narrower than the FFT resolution, especially
+        // at the low-frequency end. Interpolate empty bands instead of drawing
+        // false zero-energy holes in the visual spectrum.
+        for (band in raw.indices) {
+            if (!raw[band].isNaN()) continue
+
+            var left = band - 1
+            while (left >= 0 && raw[left].isNaN()) left--
+            var right = band + 1
+            while (right < raw.size && raw[right].isNaN()) right++
+
+            raw[band] =
+                when {
+                    left >= 0 && right < raw.size -> {
+                        val t = (band - left).toFloat() / (right - left).toFloat()
+                        raw[left] + (raw[right] - raw[left]) * t
+                    }
+                    left >= 0 -> raw[left]
+                    right < raw.size -> raw[right]
+                    else -> 0f
+                }
+        }
+
+        return FloatArray(bandCount) { band ->
+            val center = raw[band].coerceIn(0f, 1f)
+            val left = raw[(band - 1).coerceAtLeast(0)].coerceIn(0f, 1f)
+            val right = raw[(band + 1).coerceAtMost(raw.lastIndex)].coerceIn(0f, 1f)
+            (center * 0.64f + left * 0.18f + right * 0.18f).coerceIn(0f, 1f)
         }
     }
 

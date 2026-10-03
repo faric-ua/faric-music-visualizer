@@ -12,6 +12,7 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
+import androidx.core.graphics.PathParser
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
@@ -1710,17 +1711,21 @@ class PulseDeckMainSkinView(
             }
 
         val bitmap =
-            runCatching {
-                context.assets
-                    .open(
-                        "$SKIN_ROOT/$relativePath",
-                    )
-                    .use { input ->
-                        BitmapFactory.decodeStream(
-                            input,
+            if (relativePath.endsWith(".svg")) {
+                loadSvgBitmap(relativePath)
+            } else {
+                runCatching {
+                    context.assets
+                        .open(
+                            "$SKIN_ROOT/$relativePath",
                         )
-                    }
-            }.getOrNull()
+                        .use { input ->
+                            BitmapFactory.decodeStream(
+                                input,
+                            )
+                        }
+                }.getOrNull()
+            }
                 ?: return null
 
         bitmaps[relativePath] =
@@ -1728,6 +1733,179 @@ class PulseDeckMainSkinView(
 
         return bitmap
     }
+
+    private fun loadSvgBitmap(
+        relativePath: String,
+    ): Bitmap? =
+        runCatching {
+            val raw =
+                context.assets
+                    .open(
+                        "$SKIN_ROOT/$relativePath",
+                    )
+                    .bufferedReader()
+                    .use {
+                        it.readText()
+                    }
+
+            val pathData =
+                Regex(
+                    """<path\\s+d="([^"]+)"""",
+                )
+                    .findAll(raw)
+                    .map {
+                        it.groupValues[1]
+                    }
+                    .toList()
+
+            if (pathData.isEmpty()) {
+                return@runCatching null
+            }
+
+            val size = 512
+            val bitmap =
+                Bitmap.createBitmap(
+                    size,
+                    size,
+                    Bitmap.Config.ARGB_8888,
+                )
+            val canvas =
+                Canvas(bitmap)
+            val scale = 18f
+            val inset =
+                (
+                    size -
+                        24f *
+                        scale
+                    ) *
+                    0.5f
+
+            canvas.translate(
+                inset,
+                inset,
+            )
+            canvas.scale(
+                scale,
+                scale,
+            )
+
+            val warmAccent =
+                relativePath.endsWith(
+                    "pause.svg",
+                ) ||
+                    relativePath.endsWith(
+                        "theme.svg",
+                    )
+            val glowColor =
+                if (warmAccent) {
+                    Color.rgb(
+                        255,
+                        126,
+                        24,
+                    )
+                } else {
+                    Color.rgb(
+                        0,
+                        216,
+                        255,
+                    )
+                }
+            val coreColor =
+                if (warmAccent) {
+                    Color.rgb(
+                        255,
+                        238,
+                        204,
+                    )
+                } else {
+                    Color.rgb(
+                        232,
+                        252,
+                        255,
+                    )
+                }
+
+            val filled =
+                raw.contains(
+                    """fill="currentColor"""",
+                )
+
+            fun drawPass(
+                color: Int,
+                alpha: Int,
+                width: Float,
+                style: Paint.Style,
+            ) {
+                val paint =
+                    Paint(
+                        Paint.ANTI_ALIAS_FLAG,
+                    ).apply {
+                        this.color = color
+                        this.alpha = alpha
+                        this.style = style
+                        strokeWidth = width
+                        strokeCap =
+                            Paint.Cap.ROUND
+                        strokeJoin =
+                            Paint.Join.ROUND
+                    }
+
+                pathData.forEach { data ->
+                    PathParser
+                        .createPathFromPathData(
+                            data,
+                        )
+                        ?.let { vectorPath ->
+                            canvas.drawPath(
+                                vectorPath,
+                                paint,
+                            )
+                        }
+                }
+            }
+
+            if (filled) {
+                drawPass(
+                    glowColor,
+                    44,
+                    5.2f,
+                    Paint.Style.STROKE,
+                )
+                drawPass(
+                    glowColor,
+                    92,
+                    3.5f,
+                    Paint.Style.STROKE,
+                )
+                drawPass(
+                    coreColor,
+                    255,
+                    0f,
+                    Paint.Style.FILL,
+                )
+            } else {
+                drawPass(
+                    glowColor,
+                    44,
+                    5.4f,
+                    Paint.Style.STROKE,
+                )
+                drawPass(
+                    glowColor,
+                    104,
+                    3.6f,
+                    Paint.Style.STROKE,
+                )
+                drawPass(
+                    coreColor,
+                    255,
+                    2f,
+                    Paint.Style.STROKE,
+                )
+            }
+
+            bitmap
+        }.getOrNull()
 
     companion object {
         private const val SKIN_ROOT =

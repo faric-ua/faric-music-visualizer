@@ -632,7 +632,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
 
         val skinView =
-            PulseDeckMainSkinView(this).also { view ->
+            PulseDeckMainSkinView(this, forceModularMode = true).also { view ->
                 view.updateSignal(
                     latestSignal,
                 )

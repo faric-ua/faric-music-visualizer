@@ -1209,6 +1209,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 layer,
                 visible,
             )
+
+        if (
+            layer ==
+                PulseDeckLayerStack.Layer.VISUALIZER
+        ) {
+            updateProjectMRenderState()
+            updateSceneOrchestratorState()
+        }
     }
 
 
@@ -1252,6 +1260,29 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             .apply()
 
         when (layer) {
+            PulseDeckLayerStack.Layer.VISUALIZER ->
+                when (objectId) {
+                    "projectm" -> {
+                        projectMMainView?.visibility =
+                            if (visible) {
+                                View.VISIBLE
+                            } else {
+                                View.GONE
+                            }
+                        updateProjectMRenderState()
+                    }
+
+                    "faric_reactive" -> {
+                        sceneView?.visibility =
+                            if (visible) {
+                                View.VISIBLE
+                            } else {
+                                View.GONE
+                            }
+                        updateSceneOrchestratorState()
+                    }
+                }
+
             PulseDeckLayerStack.Layer.GRAPHIC_FIGURES ->
                 HeroBoardView.ObjectId.entries
                     .firstOrNull { candidate ->
@@ -1290,6 +1321,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         layer: PulseDeckLayerStack.Layer,
     ): List<LayerMenuObject> =
         when (layer) {
+            PulseDeckLayerStack.Layer.VISUALIZER ->
+                listOf(
+                    LayerMenuObject(
+                        "projectm",
+                        "projectM · вибраний preset",
+                    ),
+                    LayerMenuObject(
+                        "faric_reactive",
+                        "FARIC reactive visualizer",
+                    ),
+                )
+
             PulseDeckLayerStack.Layer.GRAPHIC_FIGURES ->
                 listOf(
                     LayerMenuObject("background", "GF background / glow"),

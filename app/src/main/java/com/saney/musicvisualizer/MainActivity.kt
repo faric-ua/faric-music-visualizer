@@ -738,6 +738,68 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ),
         )
 
+        val visualizerLayer =
+            FrameLayout(this)
+
+        layerStack.setContent(
+            PulseDeckLayerStack.Layer.VISUALIZER,
+            visualizerLayer,
+        )
+
+        val projectMState =
+            ProjectMStateStore(
+                this,
+            )
+        val projectMPreset =
+            projectMState
+                .lastPresetFileOrNull()
+
+        if (
+            projectMPreset != null &&
+            ProjectMLibraryManager
+                .textureDir(this)
+                .isDirectory
+        ) {
+            val projectM =
+                ProjectMView(
+                    context = this,
+                    initialPreset = projectMPreset,
+                    textureDirectory =
+                        ProjectMLibraryManager
+                            .textureDir(this),
+                    profile =
+                        ProjectMPerformanceProfile
+                            .BALANCED_BACKGROUND,
+                    foregroundSample =
+                        projectMState
+                            .foregroundSample,
+                    onTapNext = {},
+                ).also { view ->
+                    view.visibility =
+                        if (
+                            layerObjectVisible(
+                                PulseDeckLayerStack.Layer.VISUALIZER,
+                                "projectm",
+                            )
+                        ) {
+                            View.VISIBLE
+                        } else {
+                            View.GONE
+                        }
+                }
+
+            projectMMainView =
+                projectM
+
+            visualizerLayer.addView(
+                projectM,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                ),
+            )
+        }
+
         val liveScene =
             ReactiveSceneView(
                 this,
@@ -747,12 +809,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 view.setScene(currentScene)
                 view.updateSignal(latestSignal)
                 view.setPlaying(latestSnapshot.isPlaying)
+                view.visibility =
+                    if (
+                        layerObjectVisible(
+                            PulseDeckLayerStack.Layer.VISUALIZER,
+                            "faric_reactive",
+                        )
+                    ) {
+                        View.VISIBLE
+                    } else {
+                        View.GONE
+                    }
             }
         sceneView = liveScene
 
-        layerStack.setContent(
-            PulseDeckLayerStack.Layer.VISUALIZER,
+        visualizerLayer.addView(
             liveScene,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
         )
 
         val overVisualization =
@@ -791,38 +867,50 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             effects,
         )
 
-        if (isLayeredBoardTheme(selectedThemeId)) {
-            val boardView =
-                HeroBoardView(this).also { view ->
-                    view.setGroupTransform(
-                        boardTransformStore.load(selectedThemeId),
-                    )
-                    view.setGroupReaction(
-                        boardGroupReactionStore.load(selectedThemeId),
-                    )
-                    view.setLayerTransforms(
-                        boardLayerTransformStore.loadAll(selectedThemeId),
-                    )
-                    HeroBoardView.ObjectId.entries
-                        .forEach { objectId ->
-                            view.setObjectVisible(
-                                objectId,
-                                layerObjectVisible(
-                                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-                                    objectId.name.lowercase(),
-                                ),
-                            )
-                        }
-                    view.setPlaying(latestSnapshot.isPlaying)
-                    view.updateSignal(latestSignal)
-                }
+        val gfThemeId =
+            GF_THEME_ID
 
-            heroBoardView = boardView
-            layerStack.setContent(
-                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-                boardView,
-            )
-        }
+        val boardView =
+            HeroBoardView(this).also { view ->
+                view.setGroupTransform(
+                    boardTransformStore.load(
+                        gfThemeId,
+                    ),
+                )
+                view.setGroupReaction(
+                    boardGroupReactionStore.load(
+                        gfThemeId,
+                    ),
+                )
+                view.setLayerTransforms(
+                    boardLayerTransformStore.loadAll(
+                        gfThemeId,
+                    ),
+                )
+                HeroBoardView.ObjectId.entries
+                    .forEach { objectId ->
+                        view.setObjectVisible(
+                            objectId,
+                            layerObjectVisible(
+                                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                                objectId.name.lowercase(),
+                            ),
+                        )
+                    }
+                view.setPlaying(
+                    latestSnapshot.isPlaying,
+                )
+                view.updateSignal(
+                    latestSignal,
+                )
+            }
+
+        heroBoardView =
+            boardView
+        layerStack.setContent(
+            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+            boardView,
+        )
 
         val skinView =
             PulseDeckMainSkinView(
@@ -1031,6 +1119,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         applyPulseDeckLayerVisibility(layerStack)
+        updateProjectMRenderState()
 
         setContentView(root)
         enableImmersiveFullscreen()

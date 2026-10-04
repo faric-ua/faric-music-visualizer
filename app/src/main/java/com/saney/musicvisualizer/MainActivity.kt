@@ -4641,6 +4641,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         (value * resources.displayMetrics.density).toInt()
 
     companion object {
+        private val GF_THEME_ID =
+            PlaybackThemeId.CYBER_SHARK
+
         private const val PREFS_NAME =
             "faric.preferences"
         private const val KEY_CONTROLS_AUTO_HIDE_MODE =

@@ -116,6 +116,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var offlineAnalysisRunning = false
 
     private var sceneView: ReactiveSceneView? = null
+    private var effectsView: ReactiveSceneView? = null
     private var bigEqualizerView: BigEqualizerView? = null
     private var heroBoardView: HeroBoardView? = null
     private var heroThemeView: HeroThemeView? = null
@@ -274,6 +275,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         sceneOrchestrator = SceneOrchestrator { spec ->
             currentScene = spec
             sceneView?.setScene(spec)
+            effectsView?.setScene(spec)
         }
         currentScene = sceneOrchestrator.currentScene()
 
@@ -431,6 +433,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
         )
         sceneView?.setPlaying(snapshot.isPlaying)
+        effectsView?.setPlaying(snapshot.isPlaying)
         bigEqualizerView?.setPlaying(snapshot.isPlaying)
         heroBoardView?.setPlaying(snapshot.isPlaying)
         heroThemeView?.setPlaying(snapshot.isPlaying)
@@ -497,6 +500,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     override fun onSceneSignal(signal: SceneSignal) {
         latestSignal = signal
         sceneView?.updateSignal(signal)
+        effectsView?.updateSignal(signal)
         bigEqualizerView?.updateSignal(signal)
         heroBoardView?.updateSignal(signal)
         heroThemeView?.updateSignal(signal)
@@ -673,7 +677,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         val liveScene =
-            ReactiveSceneView(this).also { view ->
+            ReactiveSceneView(
+                this,
+                renderBackground = false,
+                renderVisualizer = true,
+            ).also { view ->
                 view.setScene(currentScene)
                 view.updateSignal(latestSignal)
                 view.setPlaying(latestSnapshot.isPlaying)
@@ -694,6 +702,22 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         layerStack.setContent(
             PulseDeckLayerStack.Layer.BIG_EQUALIZER,
             bigEqualizer,
+        )
+
+        val effects =
+            ReactiveSceneView(
+                this,
+                renderBackground = true,
+                renderVisualizer = false,
+            ).also { view ->
+                view.setScene(currentScene)
+                view.updateSignal(latestSignal)
+                view.setPlaying(latestSnapshot.isPlaying)
+            }
+        effectsView = effects
+        layerStack.setContent(
+            PulseDeckLayerStack.Layer.EFFECTS,
+            effects,
         )
 
         if (isLayeredBoardTheme(selectedThemeId)) {
@@ -3086,6 +3110,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 nowControlsAutoHideRunnable,
             )
         sceneView = null
+        effectsView = null
         bigEqualizerView = null
         heroBoardView = null
         heroThemeView = null

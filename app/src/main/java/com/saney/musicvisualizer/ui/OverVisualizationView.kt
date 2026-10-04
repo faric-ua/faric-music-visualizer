@@ -5,8 +5,6 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.PorterDuff
-import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.RectF
 import android.view.View
@@ -14,10 +12,13 @@ import android.view.View
 /**
  * Layer 1 — over-visualization.
  *
- * Draws the user-approved vertical neon artwork above Layer 0 using SCREEN
- * blending so black areas stay transparent to the visualizer below. The
- * artwork uses center-crop plus 5% overscan on every edge to tolerate
- * different phone aspect ratios without exposing hard image boundaries.
+ * Layer 1 — the complete user-approved 447504 artwork.
+ *
+ * This is a real full-screen image layer, not a transparent/effect overlay.
+ * It is drawn normally (SRC_OVER) so the black background and every pixel of
+ * the source image belong to Layer 1. The artwork uses center-crop plus 5%
+ * overscan on every edge to tolerate different phone aspect ratios without
+ * exposing hard image boundaries.
  */
 class OverVisualizationView(
     context: Context,
@@ -28,11 +29,7 @@ class OverVisualizationView(
             Paint.ANTI_ALIAS_FLAG or
                 Paint.FILTER_BITMAP_FLAG,
         ).apply {
-            alpha = 238
-            xfermode =
-                PorterDuffXfermode(
-                    PorterDuff.Mode.SCREEN,
-                )
+            alpha = 255
         }
 
     private val artwork: Bitmap? by lazy {

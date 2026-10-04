@@ -1433,6 +1433,230 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
+    private fun buildLayerConfigurationJson(): String {
+        val root =
+            JSONObject().apply {
+                put(
+                    "schema",
+                    "faric-layer-config-v1",
+                )
+                put(
+                    "appVersion",
+                    BuildConfig.VERSION_NAME,
+                )
+            }
+
+        val layersJson =
+            JSONObject()
+
+        PulseDeckLayerStack.Layer.entries
+            .sortedBy { layer ->
+                layer.z
+            }
+            .forEach { layer ->
+                val visible =
+                    when (layer) {
+                        PulseDeckLayerStack.Layer.PULSEDECK_LOCKED ->
+                            true
+
+                        PulseDeckLayerStack.Layer.SERVICE_OVERLAY ->
+                            pulseDeckLayerStack
+                                ?.isLayerVisible(
+                                    layer,
+                                )
+                                ?: true
+
+                        else ->
+                            layerVisible(
+                                layer,
+                            )
+                    }
+
+                layersJson.put(
+                    layer.name,
+                    visible,
+                )
+            }
+
+        root.put(
+            "layers",
+            layersJson,
+        )
+
+        val objectsJson =
+            JSONObject()
+
+        PulseDeckLayerStack.Layer.entries
+            .forEach { layer ->
+                val items =
+                    layerMenuObjects(
+                        layer,
+                    )
+
+                if (items.isNotEmpty()) {
+                    val layerObjects =
+                        JSONObject()
+
+                    items.forEach { item ->
+                        layerObjects.put(
+                            item.id,
+                            layerObjectVisible(
+                                layer,
+                                item.id,
+                            ),
+                        )
+                    }
+
+                    objectsJson.put(
+                        layer.name,
+                        layerObjects,
+                    )
+                }
+            }
+
+        root.put(
+            "objects",
+            objectsJson,
+        )
+
+        val gfThemeId =
+            GF_THEME_ID
+        val group =
+            boardTransformStore.load(
+                gfThemeId,
+            )
+        val reaction =
+            boardGroupReactionStore.load(
+                gfThemeId,
+            )
+
+        val gfJson =
+            JSONObject().apply {
+                put(
+                    "theme",
+                    gfThemeId.name,
+                )
+                put(
+                    "group",
+                    JSONObject().apply {
+                        put(
+                            "x",
+                            group.xFraction,
+                        )
+                        put(
+                            "y",
+                            group.yFraction,
+                        )
+                        put(
+                            "scale",
+                            group.sizeFraction,
+                        )
+                        put(
+                            "rotation",
+                            group.rotationDegrees,
+                        )
+                        put(
+                            "opacity",
+                            group.opacity,
+                        )
+                    },
+                )
+                put(
+                    "reaction",
+                    JSONObject().apply {
+                        put(
+                            "rotationSwayDegrees",
+                            reaction.rotationSwayDegrees,
+                        )
+                        put(
+                            "stereoShiftFraction",
+                            reaction.stereoShiftFraction,
+                        )
+                        put(
+                            "bassFloatFraction",
+                            reaction.bassFloatFraction,
+                        )
+                    },
+                )
+            }
+
+        val gfLayers =
+            JSONObject()
+
+        BoardLayerId.entries
+            .forEach { layerId ->
+                val value =
+                    boardLayerTransformStore.load(
+                        gfThemeId,
+                        layerId,
+                    )
+
+                gfLayers.put(
+                    layerId.name,
+                    JSONObject().apply {
+                        put(
+                            "x",
+                            value.offsetXFraction,
+                        )
+                        put(
+                            "y",
+                            value.offsetYFraction,
+                        )
+                        put(
+                            "scale",
+                            value.scale,
+                        )
+                        put(
+                            "rotation",
+                            value.rotationDegrees,
+                        )
+                        put(
+                            "opacity",
+                            value.opacity,
+                        )
+                    },
+                )
+            }
+
+        gfJson.put(
+            "layers",
+            gfLayers,
+        )
+        root.put(
+            "gf",
+            gfJson,
+        )
+
+        ProjectMStateStore(this)
+            .lastPresetFileOrNull()
+            ?.let { preset ->
+                root.put(
+                    "projectM",
+                    JSONObject().apply {
+                        put(
+                            "presetId",
+                            ProjectMLibraryManager
+                                .presetId(
+                                    preset,
+                                ),
+                        )
+                        put(
+                            "foreground",
+                            ProjectMStateStore(
+                                this@MainActivity,
+                            )
+                                .foregroundSample
+                                .name,
+                        )
+                    },
+                )
+            }
+
+        return root.toString(
+            2,
+        )
+    }
+
     private fun showPulseDeckLayersDialog() {
         val metrics =
             resources.displayMetrics
@@ -1539,6 +1763,31 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ),
         )
 
+        val exportConfig =
+            TextView(this).apply {
+                text = "⇩"
+                textSize = 21f
+                gravity = Gravity.CENTER
+                contentDescription =
+                    "Експортувати конфігурацію шарів"
+                setPadding(
+                    dp(9),
+                    dp(4),
+                    dp(9),
+                    dp(4),
+                )
+                setTextColor(
+                    Color.WHITE,
+                )
+                setOnClickListener {
+                    exportLayerConfiguration.launch(
+                        "FARIC-layers-v" +
+                            BuildConfig.VERSION_NAME +
+                            ".json",
+                    )
+                }
+            }
+
         val resetPosition =
             TextView(this).apply {
                 text = "◎"
@@ -1578,6 +1827,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
             }
 
+        header.addView(
+            exportConfig,
+        )
         header.addView(
             resetPosition,
         )
@@ -1881,6 +2133,33 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 "GF objects",
                             objects = objects,
                         )
+
+                        if (
+                            layer ==
+                                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES
+                        ) {
+                            container.addView(
+                                actionPill(
+                                    text =
+                                        "⚙ GF / Background · позиція / масштаб",
+                                    accent = false,
+                                ) {
+                                    dialog.dismiss()
+                                    boardEditorLayer =
+                                        BoardLayerId.BACKGROUND
+                                    showBoardTransform()
+                                },
+                                LinearLayout.LayoutParams(
+                                    ViewGroup.LayoutParams.MATCH_PARENT,
+                                    dp(42),
+                                ).apply {
+                                    leftMargin = dp(18)
+                                    rightMargin = dp(4)
+                                    topMargin = dp(4)
+                                    bottomMargin = dp(4)
+                                },
+                            )
+                        }
                     }
                 } else if (
                     layer ==

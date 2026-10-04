@@ -746,6 +746,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     view.setLayerTransforms(
                         boardLayerTransformStore.loadAll(selectedThemeId),
                     )
+                    HeroBoardView.ObjectId.entries
+                        .forEach { objectId ->
+                            view.setObjectVisible(
+                                objectId,
+                                layerObjectVisible(
+                                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                                    objectId.name.lowercase(),
+                                ),
+                            )
+                        }
                     view.setPlaying(latestSnapshot.isPlaying)
                     view.updateSignal(latestSignal)
                 }
@@ -769,6 +779,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 view.setPlaying(
                     latestSnapshot.isPlaying,
                 )
+                view.objectVisibilityItems()
+                    .forEach { item ->
+                        view.setObjectVisible(
+                            item.id,
+                            layerObjectVisible(
+                                PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
+                                item.id,
+                            ),
+                        )
+                    }
                 view.setInteractionListener {
                     scheduleNowControlsAutoHide()
                 }
@@ -1052,6 +1072,110 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
     }
 
+
+    private fun layerObjectPreferenceKey(
+        layer: PulseDeckLayerStack.Layer,
+        objectId: String,
+    ): String =
+        "object_" +
+            layer.name.lowercase() +
+            "_" +
+            objectId.lowercase()
+
+    private fun layerObjectVisible(
+        layer: PulseDeckLayerStack.Layer,
+        objectId: String,
+        defaultValue: Boolean = true,
+    ): Boolean =
+        layerPrefs()
+            .getBoolean(
+                layerObjectPreferenceKey(
+                    layer,
+                    objectId,
+                ),
+                defaultValue,
+            )
+
+    private fun setLayerObjectVisible(
+        layer: PulseDeckLayerStack.Layer,
+        objectId: String,
+        visible: Boolean,
+    ) {
+        layerPrefs()
+            .edit()
+            .putBoolean(
+                layerObjectPreferenceKey(
+                    layer,
+                    objectId,
+                ),
+                visible,
+            )
+            .apply()
+
+        when (layer) {
+            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES ->
+                HeroBoardView.ObjectId.entries
+                    .firstOrNull { candidate ->
+                        candidate.name.equals(
+                            objectId,
+                            ignoreCase = true,
+                        )
+                    }
+                    ?.let { objectIdValue ->
+                        heroBoardView
+                            ?.setObjectVisible(
+                                objectIdValue,
+                                visible,
+                            )
+                    }
+
+            PulseDeckLayerStack.Layer.PULSEDECK_LOCKED ->
+                pulseDeckMainSkinView
+                    ?.setObjectVisible(
+                        objectId,
+                        visible,
+                    )
+
+            else -> Unit
+        }
+    }
+
+    private data class LayerMenuObject(
+        val id: String,
+        val label: String,
+        val groupCode: String? = null,
+        val groupLabel: String? = null,
+    )
+
+    private fun layerMenuObjects(
+        layer: PulseDeckLayerStack.Layer,
+    ): List<LayerMenuObject> =
+        when (layer) {
+            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES ->
+                listOf(
+                    LayerMenuObject("background", "GF background / glow"),
+                    LayerMenuObject("frame", "Frame"),
+                    LayerMenuObject("fx", "FX"),
+                    LayerMenuObject("creature", "Creature"),
+                    LayerMenuObject("wordmark", "Wordmark"),
+                )
+
+            PulseDeckLayerStack.Layer.PULSEDECK_LOCKED ->
+                pulseDeckMainSkinView
+                    ?.objectVisibilityItems()
+                    .orEmpty()
+                    .map { item ->
+                        LayerMenuObject(
+                            id = item.id,
+                            label = item.label,
+                            groupCode = item.groupCode,
+                            groupLabel = item.groupLabel,
+                        )
+                    }
+
+            else -> emptyList()
+        }
+
     private fun controllablePulseDeckLayers() =
         listOf(
             PulseDeckLayerStack.Layer.VISUALIZER,
@@ -1114,87 +1238,296 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showPulseDeckLayersDialog() {
-        val layers =
-            arrayOf(
-                PulseDeckLayerStack.Layer.VISUALIZER,
-                PulseDeckLayerStack.Layer.OVER_VISUALIZATION,
-                PulseDeckLayerStack.Layer.BIG_EQUALIZER,
-                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-                PulseDeckLayerStack.Layer.GIF_ANIMATION,
-                PulseDeckLayerStack.Layer.EFFECTS,
-            )
-        val labels =
-            arrayOf(
-                "Layer 0 · Visualizer",
-                "Layer 1 · Надвізуалізація",
-                "Layer 2 · Big Equalizer",
-                "Layer 3 · GF / Graphic Figures",
-                "Layer 4 · GIF / Animation",
-                "Layer 5 · Effects",
-            )
-        val checked =
-            BooleanArray(
-                layers.size,
-            ) { index ->
-                layerVisible(
-                    layers[index],
+        val container =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(
+                    dp(12),
+                    dp(6),
+                    dp(12),
+                    dp(18),
                 )
+            }
+
+        val scroll =
+            ScrollView(this).apply {
+                isFillViewport = true
+                addView(
+                    container,
+                    ScrollView.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ),
+                )
+            }
+
+        fun addSectionLabel(
+            text: String,
+            leftPaddingDp: Int = 0,
+        ) {
+            container.addView(
+                TextView(this).apply {
+                    this.text = text
+                    textSize = 13f
+                    setTextColor(COLOR_MUTED)
+                    setPadding(
+                        dp(leftPaddingDp),
+                        dp(8),
+                        0,
+                        dp(2),
+                    )
+                },
+            )
+        }
+
+        fun addObjectGroup(
+            layer: PulseDeckLayerStack.Layer,
+            groupLabel: String,
+            objects: List<LayerMenuObject>,
+        ) {
+            var updatingGroup = false
+            val childBoxes =
+                mutableListOf<android.widget.CheckBox>()
+
+            val groupBox =
+                android.widget.CheckBox(this).apply {
+                    text =
+                        "↳ $groupLabel · об'єктів: ${objects.size}"
+                    textSize = 14f
+                    setPadding(
+                        dp(18),
+                        dp(2),
+                        0,
+                        dp(2),
+                    )
+                }
+
+            container.addView(groupBox)
+
+            fun refreshGroupState() {
+                updatingGroup = true
+                groupBox.isChecked =
+                    childBoxes.isNotEmpty() &&
+                        childBoxes.all { child ->
+                            child.isChecked
+                        }
+                updatingGroup = false
+            }
+
+            objects.forEach { item ->
+                val child =
+                    android.widget.CheckBox(this).apply {
+                        text = item.label + "  [" + item.id + "]"
+                        textSize = 13f
+                        isChecked =
+                            layerObjectVisible(
+                                layer,
+                                item.id,
+                            )
+                        setPadding(
+                            dp(42),
+                            0,
+                            0,
+                            0,
+                        )
+                    }
+
+                child.setOnCheckedChangeListener { _, checked ->
+                    setLayerObjectVisible(
+                        layer,
+                        item.id,
+                        checked,
+                    )
+                    if (!updatingGroup) {
+                        refreshGroupState()
+                    }
+                }
+
+                childBoxes += child
+                container.addView(child)
+            }
+
+            refreshGroupState()
+
+            groupBox.setOnCheckedChangeListener { _, checked ->
+                if (updatingGroup) {
+                    return@setOnCheckedChangeListener
+                }
+
+                updatingGroup = true
+                childBoxes.forEach { child ->
+                    if (child.isChecked != checked) {
+                        child.isChecked = checked
+                    }
+                }
+                updatingGroup = false
+
+                objects.forEach { item ->
+                    setLayerObjectVisible(
+                        layer,
+                        item.id,
+                        checked,
+                    )
+                }
+            }
+        }
+
+        PulseDeckLayerStack.Layer.entries
+            .sortedBy { layer ->
+                layer.z
+            }
+            .forEach { layer ->
+                val objects =
+                    layerMenuObjects(
+                        layer,
+                    )
+
+                val layerName =
+                    when (layer) {
+                        PulseDeckLayerStack.Layer.VISUALIZER ->
+                            "Visualizer"
+
+                        PulseDeckLayerStack.Layer.OVER_VISUALIZATION ->
+                            "Надвізуалізація · 447504"
+
+                        PulseDeckLayerStack.Layer.BIG_EQUALIZER ->
+                            "Big Equalizer"
+
+                        PulseDeckLayerStack.Layer.GRAPHIC_FIGURES ->
+                            "GF / Graphic Figures"
+
+                        PulseDeckLayerStack.Layer.GIF_ANIMATION ->
+                            "GIF / Animation"
+
+                        PulseDeckLayerStack.Layer.EFFECTS ->
+                            "Effects"
+
+                        PulseDeckLayerStack.Layer.PULSEDECK_LOCKED ->
+                            "PulseDeck 🔒"
+
+                        PulseDeckLayerStack.Layer.SERVICE_OVERLAY ->
+                            "Service Overlay"
+                    }
+
+                val suffix =
+                    when {
+                        objects.isNotEmpty() ->
+                            " · об'єктів: ${objects.size}"
+
+                        layer ==
+                            PulseDeckLayerStack.Layer.GIF_ANIMATION ->
+                            " · порожній слот"
+
+                        layer ==
+                            PulseDeckLayerStack.Layer.SERVICE_OVERLAY ->
+                            " · service"
+
+                        else -> ""
+                    }
+
+                val layerBox =
+                    android.widget.CheckBox(this).apply {
+                        text =
+                            "Layer ${layer.z} · $layerName$suffix"
+                        textSize = 16f
+                        setPadding(
+                            0,
+                            dp(8),
+                            0,
+                            dp(2),
+                        )
+
+                        when (layer) {
+                            PulseDeckLayerStack.Layer.PULSEDECK_LOCKED -> {
+                                isChecked = true
+                                isEnabled = false
+                            }
+
+                            PulseDeckLayerStack.Layer.SERVICE_OVERLAY -> {
+                                isChecked =
+                                    pulseDeckLayerStack
+                                        ?.isLayerVisible(layer)
+                                        ?: true
+                                isEnabled = false
+                            }
+
+                            else -> {
+                                isChecked =
+                                    layerVisible(
+                                        layer,
+                                    )
+                            }
+                        }
+                    }
+
+                if (
+                    layer !=
+                        PulseDeckLayerStack.Layer.PULSEDECK_LOCKED &&
+                    layer !=
+                        PulseDeckLayerStack.Layer.SERVICE_OVERLAY
+                ) {
+                    layerBox.setOnCheckedChangeListener { _, checked ->
+                        setLayerVisible(
+                            layer,
+                            checked,
+                        )
+                    }
+                }
+
+                container.addView(layerBox)
+
+                if (objects.isNotEmpty()) {
+                    if (
+                        layer ==
+                            PulseDeckLayerStack.Layer.PULSEDECK_LOCKED
+                    ) {
+                        objects
+                            .groupBy { item ->
+                                item.groupCode
+                                    ?: "6.x"
+                            }
+                            .toSortedMap()
+                            .forEach { (_, groupObjects) ->
+                                addObjectGroup(
+                                    layer = layer,
+                                    groupLabel =
+                                        groupObjects
+                                            .firstOrNull()
+                                            ?.groupLabel
+                                            ?: "PulseDeck objects",
+                                    objects = groupObjects,
+                                )
+                            }
+                    } else {
+                        addObjectGroup(
+                            layer = layer,
+                            groupLabel = "GF objects",
+                            objects = objects,
+                        )
+                    }
+                } else if (
+                    layer ==
+                        PulseDeckLayerStack.Layer.GIF_ANIMATION
+                ) {
+                    addSectionLabel(
+                        "↳ Поки немає активних GIF-об'єктів",
+                        leftPaddingDp = 18,
+                    )
+                }
             }
 
         android.app.AlertDialog
             .Builder(this)
             .setTitle(
-                "PulseDeck · Layers",
+                "Шари та об'єкти",
             )
-            .setSingleChoiceItems(
-                arrayOf(
-                    "Preset · Visualizer only",
-                    "Preset · Visualizer + Надвізуалізація",
-                    "Preset · Full composition",
-                ),
-                -1,
-            ) { dialog, which ->
-                val preset =
-                    when (which) {
-                        0 ->
-                            PulseDeckLayerPreset
-                                .VISUALIZER_ONLY
-
-                        1 ->
-                            PulseDeckLayerPreset
-                                .VISUALIZER_OVER
-
-                        else ->
-                            PulseDeckLayerPreset
-                                .FULL
-                    }
-
-                applyPulseDeckLayerPreset(
-                    preset,
-                )
-                dialog.dismiss()
-                showPulseDeckLayersDialog()
-            }
-            .setMultiChoiceItems(
-                labels,
-                checked,
-            ) { _, which, isChecked ->
-                setLayerVisible(
-                    layers[which],
-                    isChecked,
-                )
-            }
+            .setView(
+                scroll,
+            )
             .setPositiveButton(
                 "Готово",
                 null,
             )
-            .setNeutralButton(
-                "PulseDeck 🔒",
-            ) { _, _ ->
-                toast(
-                    "Layer 6 · PulseDeck заблокований і завжди увімкнений",
-                )
-            }
             .show()
     }
 

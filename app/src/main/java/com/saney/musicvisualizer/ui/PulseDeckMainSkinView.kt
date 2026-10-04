@@ -7,7 +7,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
-import android.graphics.RadialGradient
 import android.graphics.Shader
 import android.graphics.Paint
 import android.graphics.PorterDuff
@@ -19,7 +18,6 @@ import androidx.core.graphics.PathParser
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
-import android.util.Base64
 import com.saney.musicvisualizer.analysis.SceneSignal
 import org.json.JSONObject
 import kotlin.math.max
@@ -38,11 +36,6 @@ class PulseDeckMainSkinView(
     private val forceModularMode: Boolean = false,
     private val transparentBackground: Boolean = false,
 ) : View(context) {
-
-    enum class ReactorVariant {
-        CLASSIC,
-        PHOTO,
-    }
 
     private enum class PulseDeckSubsystem(
         val code: String,
@@ -120,10 +113,6 @@ class PulseDeckMainSkinView(
     private val layers =
         loadManifest()
 
-    private val photoReactorBitmap: Bitmap? by lazy {
-        loadPhotoReactorBitmap()
-    }
-
     private val bitmaps =
         mutableMapOf<String, Bitmap>()
 
@@ -181,7 +170,6 @@ class PulseDeckMainSkinView(
     private var progressFraction = 0f
 
     private var equalizerVisible = true
-    private var reactorVariant = ReactorVariant.CLASSIC
 
     private var controlsVisible = true
     private var controlsAlpha = 1f
@@ -445,20 +433,6 @@ class PulseDeckMainSkinView(
         invalidate()
     }
 
-    fun setReactorVariant(
-        value: ReactorVariant,
-    ) {
-        if (reactorVariant == value) {
-            return
-        }
-
-        reactorVariant = value
-        invalidate()
-    }
-
-    fun reactorVariant(): ReactorVariant =
-        reactorVariant
-
     fun setControlsVisible(
         visible: Boolean,
         animate: Boolean,
@@ -715,26 +689,18 @@ class PulseDeckMainSkinView(
         hitTargets.clear()
         resolvedRects.clear()
 
-        if (reactorVariant == ReactorVariant.PHOTO) {
-            drawPhotoReactor(
-                canvas = canvas,
-                w = w,
-                h = h,
-            )
-        } else {
-            drawSubsystemLayers(
-                canvas = canvas,
-                subsystem = PulseDeckSubsystem.ATMOSPHERE,
-                w = w,
-                h = h,
-            )
-            drawSubsystemLayers(
-                canvas = canvas,
-                subsystem = PulseDeckSubsystem.REACTOR,
-                w = w,
-                h = h,
-            )
-        }
+        drawSubsystemLayers(
+            canvas = canvas,
+            subsystem = PulseDeckSubsystem.ATMOSPHERE,
+            w = w,
+            h = h,
+        )
+        drawSubsystemLayers(
+            canvas = canvas,
+            subsystem = PulseDeckSubsystem.REACTOR,
+            w = w,
+            h = h,
+        )
 
         drawSubsystemLayers(
             canvas = canvas,
@@ -857,190 +823,6 @@ class PulseDeckMainSkinView(
                     h = h,
                 )
             }
-    }
-
-    private fun loadPhotoReactorBitmap(): Bitmap? =
-        runCatching {
-            val encoded =
-                context.assets
-                    .open(
-                        "$SKIN_ROOT/photo_reactor/photo_reactor_376926.b64",
-                    )
-                    .bufferedReader()
-                    .use {
-                        it.readText()
-                    }
-
-            val bytes =
-                Base64.decode(
-                    encoded,
-                    Base64.DEFAULT,
-                )
-
-            BitmapFactory.decodeByteArray(
-                bytes,
-                0,
-                bytes.size,
-            )
-        }.getOrNull()
-
-    private fun drawPhotoReactor(
-        canvas: Canvas,
-        w: Float,
-        h: Float,
-    ) {
-        val bitmap =
-            photoReactorBitmap
-                ?: return
-
-        val target =
-            RectF(
-                0f,
-                h * 0.105f,
-                w,
-                h * 0.495f,
-            )
-
-        val targetAspect =
-            target.width() /
-                target.height()
-        val sourceAspect =
-            bitmap.width.toFloat() /
-                bitmap.height.toFloat()
-
-        val source =
-            if (sourceAspect > targetAspect) {
-                val sourceWidth =
-                    bitmap.height *
-                        targetAspect
-                val left =
-                    (
-                        bitmap.width -
-                            sourceWidth
-                        ) *
-                        0.5f
-
-                Rect(
-                    left.toInt(),
-                    0,
-                    (left + sourceWidth).toInt(),
-                    bitmap.height,
-                )
-            } else {
-                val sourceHeight =
-                    bitmap.width /
-                        targetAspect
-                val top =
-                    (
-                        bitmap.height -
-                            sourceHeight
-                        ) *
-                        0.5f
-
-                Rect(
-                    0,
-                    top.toInt(),
-                    bitmap.width,
-                    (top + sourceHeight).toInt(),
-                )
-            }
-
-        val pulseScale =
-            (
-                1f +
-                    bass *
-                    0.010f +
-                    beat *
-                    0.014f
-                )
-                .coerceIn(
-                    1f,
-                    1.024f,
-                )
-
-        val centerX =
-            target.centerX()
-        val centerY =
-            target.centerY()
-        val drawRect =
-            RectF(
-                centerX -
-                    target.width() *
-                    pulseScale *
-                    0.5f,
-                centerY -
-                    target.height() *
-                    pulseScale *
-                    0.5f,
-                centerX +
-                    target.width() *
-                    pulseScale *
-                    0.5f,
-                centerY +
-                    target.height() *
-                    pulseScale *
-                    0.5f,
-            )
-
-        bitmapPaint.alpha =
-            (
-                238f +
-                    amplitude *
-                    17f
-                )
-                .toInt()
-                .coerceIn(
-                    0,
-                    255,
-                )
-        bitmapPaint.xfermode = null
-
-        canvas.drawBitmap(
-            bitmap,
-            source,
-            drawRect,
-            bitmapPaint,
-        )
-
-        val glowPaint =
-            Paint(Paint.ANTI_ALIAS_FLAG).apply {
-                shader =
-                    RadialGradient(
-                        w * 0.5f,
-                        h * 0.285f,
-                        w * 0.48f,
-                        intArrayOf(
-                            Color.argb(
-                                (
-                                    18f +
-                                        beat *
-                                        36f
-                                    )
-                                    .toInt()
-                                    .coerceIn(
-                                        0,
-                                        60,
-                                    ),
-                                40,
-                                220,
-                                255,
-                            ),
-                            Color.TRANSPARENT,
-                        ),
-                        floatArrayOf(
-                            0f,
-                            1f,
-                        ),
-                        Shader.TileMode.CLAMP,
-                    )
-            }
-
-        canvas.drawRect(
-            target,
-            glowPaint,
-        )
-
-        bitmapPaint.alpha = 255
     }
 
     private fun drawMasterPlate(

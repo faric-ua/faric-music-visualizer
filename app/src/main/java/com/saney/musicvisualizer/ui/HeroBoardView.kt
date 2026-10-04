@@ -42,6 +42,20 @@ import kotlin.math.sin
  * per-layer music response.
  */
 class HeroBoardView(context: Context) : View(context) {
+
+    enum class ObjectId {
+        BACKGROUND,
+        FRAME,
+        FX,
+        CREATURE,
+        WORDMARK,
+    }
+
+    private val objectVisibility =
+        ObjectId.entries
+            .associateWith { true }
+            .toMutableMap()
+
     private val bitmapPaint =
         Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
@@ -199,6 +213,18 @@ class HeroBoardView(context: Context) : View(context) {
         playing = value
         postInvalidateOnAnimation()
     }
+
+    fun setObjectVisible(
+        objectId: ObjectId,
+        visible: Boolean,
+    ) {
+        objectVisibility[objectId] = visible
+        postInvalidateOnAnimation()
+    }
+
+    fun isObjectVisible(
+        objectId: ObjectId,
+    ): Boolean = objectVisibility[objectId] != false
 
     fun setGroupTransform(
         value: BoardTransform,
@@ -681,14 +707,16 @@ class HeroBoardView(context: Context) : View(context) {
                 transform.sizeFraction *
                 presentationScale
 
-        drawBoardBackground(
-            canvas = canvas,
-            w = w,
-            h = h,
-            cx = cx,
-            cy = cy,
-            minSide = minSide,
-        )
+        if (isObjectVisible(ObjectId.BACKGROUND)) {
+            drawBoardBackground(
+                canvas = canvas,
+                w = w,
+                h = h,
+                cx = cx,
+                cy = cy,
+                minSide = minSide,
+            )
+        }
 
         val audio =
             BoardAudioState(
@@ -705,21 +733,23 @@ class HeroBoardView(context: Context) : View(context) {
                 audio,
                 timeSeconds,
             )
-        drawBitmapLayer(
-            canvas = canvas,
-            bitmap = frameBitmap,
-            motion = frameMotion,
-            cx = cx,
-            cy = cy,
-            baseSize = baseSize,
-            transform = transform,
-            layerTransform =
-                layerTransform(
-                    BoardLayerId.FRAME,
-                ),
-            groupRotationDegrees =
-                groupRotationDegrees,
-        )
+        if (isObjectVisible(ObjectId.FRAME)) {
+            drawBitmapLayer(
+                canvas = canvas,
+                bitmap = frameBitmap,
+                motion = frameMotion,
+                cx = cx,
+                cy = cy,
+                baseSize = baseSize,
+                transform = transform,
+                layerTransform =
+                    layerTransform(
+                        BoardLayerId.FRAME,
+                    ),
+                groupRotationDegrees =
+                    groupRotationDegrees,
+            )
+        }
 
         val fxMotion =
             BoardLayerMotionEvaluator.evaluate(
@@ -727,21 +757,23 @@ class HeroBoardView(context: Context) : View(context) {
                 audio,
                 timeSeconds,
             )
-        drawFxLayer(
-            canvas = canvas,
-            motion = fxMotion,
-            cx = cx,
-            cy = cy,
-            baseSize = baseSize,
-            timeSeconds = timeSeconds,
-            transform = transform,
-            layerTransform =
-                layerTransform(
-                    BoardLayerId.FX,
-                ),
-            groupRotationDegrees =
-                groupRotationDegrees,
-        )
+        if (isObjectVisible(ObjectId.FX)) {
+            drawFxLayer(
+                canvas = canvas,
+                motion = fxMotion,
+                cx = cx,
+                cy = cy,
+                baseSize = baseSize,
+                timeSeconds = timeSeconds,
+                transform = transform,
+                layerTransform =
+                    layerTransform(
+                        BoardLayerId.FX,
+                    ),
+                groupRotationDegrees =
+                    groupRotationDegrees,
+            )
+        }
 
         val creatureMotion =
             BoardLayerMotionEvaluator.evaluate(
@@ -749,21 +781,23 @@ class HeroBoardView(context: Context) : View(context) {
                 audio,
                 timeSeconds,
             )
-        drawBitmapLayer(
-            canvas = canvas,
-            bitmap = creatureBitmap,
-            motion = creatureMotion,
-            cx = cx,
-            cy = cy,
-            baseSize = baseSize,
-            transform = transform,
-            layerTransform =
-                layerTransform(
-                    BoardLayerId.CREATURE,
-                ),
-            groupRotationDegrees =
-                groupRotationDegrees,
-        )
+        if (isObjectVisible(ObjectId.CREATURE)) {
+            drawBitmapLayer(
+                canvas = canvas,
+                bitmap = creatureBitmap,
+                motion = creatureMotion,
+                cx = cx,
+                cy = cy,
+                baseSize = baseSize,
+                transform = transform,
+                layerTransform =
+                    layerTransform(
+                        BoardLayerId.CREATURE,
+                    ),
+                groupRotationDegrees =
+                    groupRotationDegrees,
+            )
+        }
 
         val wordmarkMotion =
             BoardLayerMotionEvaluator.evaluate(
@@ -771,21 +805,23 @@ class HeroBoardView(context: Context) : View(context) {
                 audio,
                 timeSeconds,
             )
-        drawBitmapLayer(
-            canvas = canvas,
-            bitmap = wordmarkBitmap,
-            motion = wordmarkMotion,
-            cx = cx,
-            cy = cy,
-            baseSize = baseSize,
-            transform = transform,
-            layerTransform =
-                layerTransform(
-                    BoardLayerId.WORDMARK,
-                ),
-            groupRotationDegrees =
-                groupRotationDegrees,
-        )
+        if (isObjectVisible(ObjectId.WORDMARK)) {
+            drawBitmapLayer(
+                canvas = canvas,
+                bitmap = wordmarkBitmap,
+                motion = wordmarkMotion,
+                cx = cx,
+                cy = cy,
+                baseSize = baseSize,
+                transform = transform,
+                layerTransform =
+                    layerTransform(
+                        BoardLayerId.WORDMARK,
+                    ),
+                groupRotationDegrees =
+                    groupRotationDegrees,
+            )
+        }
 
         bitmapPaint.alpha = 255
         postInvalidateOnAnimation()
@@ -1125,20 +1161,9 @@ class HeroBoardView(context: Context) : View(context) {
         cy: Float,
         minSide: Float,
     ) {
-        fill.color =
-            Color.rgb(
-                1,
-                5,
-                10,
-            )
-        canvas.drawRect(
-            0f,
-            0f,
-            w,
-            h,
-            fill,
-        )
-
+        // Layer 3 must stay compositing-friendly: never paint an opaque
+        // full-screen background over Layers 0–2. Keep only local glow/HUD
+        // decoration around the GF object.
         fill.shader =
             RadialGradient(
                 cx,

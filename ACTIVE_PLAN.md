@@ -883,3 +883,23 @@ Implementation:
 - [ ] Phone: PulseDeck groups 6.0–6.5 and every listed object toggle independently.
 - [ ] Phone: hiding transport/quick-action rails does not move their still-enabled child icons.
 - [ ] Phone: rotation/app recreation preserves parent-layer and object visibility state.
+
+## PulseDeck v0.18.3 — draggable compact layers panel
+
+User finding from phone screenshot: the layers/object panel covered almost the whole composition, making it impossible to see what each toggle changed.
+
+- [x] Replace the tall near-fullscreen control surface with a floating panel occupying ~30% of the physical screen height.
+- [x] Keep a wide readable panel width so layer/object names do not become unusably narrow.
+- [x] Remove background dimming.
+- [x] Make the panel draggable by its header across the screen.
+- [x] Allow touches outside the panel to reach the underlying Now Playing screen.
+- [x] Persist the panel X/Y position across reopen/recreation.
+- [x] Add a reset-to-center control in the panel header.
+- [x] Keep layer/object toggles live; the panel no longer closes or rebuilds on each toggle.
+- [x] Compact labels and spacing so more controls fit in the 30%-height viewport.
+- [x] Bump candidate to v0.18.3 / versionCode 82.
+- [ ] Exact-HEAD Validate PASS.
+- [ ] Exact-HEAD Android workflow PASS.
+- [ ] Phone: drag the panel to top/middle/bottom and verify it remains inside screen bounds.
+- [ ] Phone: toggle layers/objects while the underlying composition remains visible.
+- [ ] Phone: close/reopen panel and verify saved position is restored.

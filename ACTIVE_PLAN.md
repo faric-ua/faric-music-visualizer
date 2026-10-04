@@ -840,3 +840,16 @@ User-authorized correction: the 447504 artwork is not part of PulseDeck. It is a
 - [ ] Phone verify 447504 full-screen crop/overscan on the target device and no exposed image edges.
 - [ ] Phone verify Big EQ / GF / GIF / Effects / PulseDeck Z-order after the +1 shift.
 - [ ] Phone verify locked PulseDeck geometry remains unchanged.
+
+## PulseDeck v0.18.1 — 447504 is the actual Layer 1 image
+
+Correction after user review:
+- [x] Keep Layer 0 = Visualizer and Layer 1 = Надвізуалізація as independent toggleable layers.
+- [x] Layer 1 content is the complete 447504 artwork, not a PulseDeck fragment and not an effects-only blend.
+- [x] Render 447504 as a normal full-screen image with alpha 255; remove SCREEN blend/transparency.
+- [x] Preserve center-crop with 5% overscan per edge.
+- [x] Keep all higher layers unchanged: 2 Big Equalizer, 3 GF, 4 GIF, 5 Effects, 6 PulseDeck 🔒, 7 Service.
+- [ ] Exact-HEAD Android workflow PASS for v0.18.1.
+- [ ] Phone verify: with Layer 1 ON, the complete 447504 image is visible full-screen.
+- [ ] Phone verify: Layer 1 OFF reveals Layer 0 Visualizer independently.
+- [ ] Phone verify: Layer 0 OFF + Layer 1 ON still shows the complete 447504 image.

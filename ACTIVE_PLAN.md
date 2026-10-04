@@ -792,3 +792,27 @@ User-authorized implementation after layer-theory review.
 - [x] Validate workflow PASS.
 - [x] Android workflow PASS.
 - [ ] Phone verify press/hold/release feel on transport, quick actions, Back and Menu.
+
+
+## PulseDeck v0.17.0 — Layer 5 subsystem split + Photo Reactor
+
+User-authorized Layer 5 refactor. Classic geometry remains available and unchanged.
+
+- [x] Formalize internal PulseDeck Layer 5 subsystems:
+  - 5.0 Atmosphere
+  - 5.1 Reactor
+  - 5.2 Track UI
+  - 5.3 Transport
+  - 5.4 Quick Actions
+  - 5.5 Navigation
+- [x] Keep Classic as the default Layer 5 upper composition.
+- [x] Add Photo Reactor variant based on the user-provided 376926 image source.
+- [x] In Photo Reactor mode, replace only 5.0 Atmosphere + 5.1 Reactor.
+- [x] Skip classic hero_core/F only in Photo Reactor mode; Classic remains untouched.
+- [x] Keep 5.2 Track UI, 5.3 Transport, 5.4 Quick Actions and 5.5 Navigation unchanged in both variants.
+- [x] Add subtle music-reactive scale/glow to Photo Reactor without changing PulseDeck control geometry.
+- [x] Add persistent tools selector: PulseDeck tools → Верх Layer 5 / Reactor → Classic / Photo Reactor · 376926.
+- [x] Validate workflow PASS on implementation candidate.
+- [x] Android workflow PASS on implementation candidate.
+- [ ] Phone compare Classic vs Photo Reactor.
+- [ ] Phone verify Photo Reactor crop/scale, lower Layer 5 alignment, and no F-core leakage.

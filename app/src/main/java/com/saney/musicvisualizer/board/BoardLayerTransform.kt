@@ -1,6 +1,7 @@
 package com.saney.musicvisualizer.board
 
 enum class BoardLayerId {
+    BACKGROUND,
     FRAME,
     FX,
     CREATURE,

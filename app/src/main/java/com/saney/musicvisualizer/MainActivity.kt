@@ -116,6 +116,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var offlineAnalysisRunning = false
 
     private var sceneView: ReactiveSceneView? = null
+    private var bigEqualizerView: BigEqualizerView? = null
     private var heroBoardView: HeroBoardView? = null
     private var heroThemeView: HeroThemeView? = null
     private var pulseDeckMainSkinView: PulseDeckMainSkinView? = null
@@ -430,6 +431,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
         )
         sceneView?.setPlaying(snapshot.isPlaying)
+        bigEqualizerView?.setPlaying(snapshot.isPlaying)
         heroBoardView?.setPlaying(snapshot.isPlaying)
         heroThemeView?.setPlaying(snapshot.isPlaying)
         pulseDeckMainSkinView?.setPlaying(snapshot.isPlaying)
@@ -495,6 +497,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     override fun onSceneSignal(signal: SceneSignal) {
         latestSignal = signal
         sceneView?.updateSignal(signal)
+        bigEqualizerView?.updateSignal(signal)
         heroBoardView?.updateSignal(signal)
         heroThemeView?.updateSignal(signal)
         pulseDeckMainSkinView?.updateSignal(signal)
@@ -680,6 +683,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         layerStack.setContent(
             PulseDeckLayerStack.Layer.VISUALIZER,
             liveScene,
+        )
+
+        val bigEqualizer =
+            BigEqualizerView(this).also { view ->
+                view.updateSignal(latestSignal)
+                view.setPlaying(latestSnapshot.isPlaying)
+            }
+        bigEqualizerView = bigEqualizer
+        layerStack.setContent(
+            PulseDeckLayerStack.Layer.BIG_EQUALIZER,
+            bigEqualizer,
         )
 
         if (isLayeredBoardTheme(selectedThemeId)) {

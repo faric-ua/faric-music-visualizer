@@ -760,6 +760,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 view.setPlaying(
                     latestSnapshot.isPlaying,
                 )
+                view.setReactorVariant(
+                    loadPulseDeckReactorVariant(),
+                )
 
                 view.setInteractionListener {
                     scheduleNowControlsAutoHide()
@@ -803,6 +806,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         "Center Calibration",
                                         "Template Constructor",
                                         "Object Constructor",
+                                        "Верх Layer 5 / Reactor",
                                         "Шари / Layers",
                                         "Автоприховування",
                                     ),
@@ -833,9 +837,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                             )
 
                                         3 ->
-                                            showPulseDeckLayersDialog()
+                                            showPulseDeckReactorDialog()
 
                                         4 ->
+                                            showPulseDeckLayersDialog()
+
+                                        5 ->
                                             showControlsAutoHideDialog()
                                     }
                                 }
@@ -1034,6 +1041,85 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         ).forEach { layer ->
             setLayerVisible(layer, layer in visible)
         }
+    }
+
+    private fun loadPulseDeckReactorVariant():
+        PulseDeckMainSkinView.ReactorVariant =
+        getSharedPreferences(
+            PREFS_NAME,
+            MODE_PRIVATE,
+        )
+            .getString(
+                KEY_PULSEDECK_REACTOR_VARIANT,
+                null,
+            )
+            ?.let { raw ->
+                runCatching {
+                    PulseDeckMainSkinView
+                        .ReactorVariant
+                        .valueOf(raw)
+                }.getOrNull()
+            }
+            ?: PulseDeckMainSkinView
+                .ReactorVariant
+                .CLASSIC
+
+    private fun savePulseDeckReactorVariant(
+        value: PulseDeckMainSkinView.ReactorVariant,
+    ) {
+        getSharedPreferences(
+            PREFS_NAME,
+            MODE_PRIVATE,
+        )
+            .edit()
+            .putString(
+                KEY_PULSEDECK_REACTOR_VARIANT,
+                value.name,
+            )
+            .apply()
+
+        pulseDeckMainSkinView
+            ?.setReactorVariant(value)
+    }
+
+    private fun showPulseDeckReactorDialog() {
+        val values =
+            arrayOf(
+                PulseDeckMainSkinView
+                    .ReactorVariant
+                    .CLASSIC,
+                PulseDeckMainSkinView
+                    .ReactorVariant
+                    .PHOTO,
+            )
+        val labels =
+            arrayOf(
+                "Classic · поточний PulseDeck",
+                "Photo Reactor · 376926",
+            )
+        val current =
+            loadPulseDeckReactorVariant()
+        val checked =
+            values.indexOf(current)
+                .coerceAtLeast(0)
+
+        android.app.AlertDialog
+            .Builder(this)
+            .setTitle("Layer 5 · верхня частина")
+            .setSingleChoiceItems(
+                labels,
+                checked,
+            ) { dialog, which ->
+                savePulseDeckReactorVariant(
+                    values[which],
+                )
+                dialog.dismiss()
+            }
+            .setNegativeButton(
+                "Скасувати",
+                null,
+            )
+            .show()
     }
 
     private fun showPulseDeckLayersDialog() {
@@ -3373,6 +3459,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             "faric.preferences"
         private const val KEY_CONTROLS_AUTO_HIDE_MODE =
             "faric.controls_auto_hide_mode"
+        private const val KEY_PULSEDECK_REACTOR_VARIANT =
+            "faric.pulsedeck_reactor_variant"
         private const val KEY_SCREEN =
             "faric.screen"
         private const val KEY_SELECTED_THEME =

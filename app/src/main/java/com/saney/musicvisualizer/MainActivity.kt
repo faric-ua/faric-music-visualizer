@@ -3086,6 +3086,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 nowControlsAutoHideRunnable,
             )
         sceneView = null
+        bigEqualizerView = null
         heroBoardView = null
         heroThemeView = null
         pulseDeckMainSkinView = null

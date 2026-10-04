@@ -4150,6 +4150,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             "faric.has_horizontal_scroll"
         private const val KEY_HORIZONTAL_SCROLL_X =
             "faric.horizontal_scroll_x"
+        private const val KEY_LAYER_PANEL_X =
+            "faric.layer_panel_x"
+        private const val KEY_LAYER_PANEL_Y =
+            "faric.layer_panel_y"
 
         private val COLOR_BG = Color.rgb(2, 6, 10)
         private val COLOR_PANEL = Color.rgb(13, 20, 27)

@@ -167,6 +167,7 @@ class PulseDeckMainSkinView(
     private var controlsAnimator: ValueAnimator? = null
 
     private var pressedAction: String? = null
+    private var pressedOriginAction: String? = null
     private var scrubbing = false
 
     private var actionListener:
@@ -1578,6 +1579,8 @@ class PulseDeckMainSkinView(
 
                 pressedAction =
                     target?.action
+                pressedOriginAction =
+                    target?.action
                 invalidate()
 
                 scrubbing =
@@ -1611,6 +1614,20 @@ class PulseDeckMainSkinView(
                     )
                     interactionListener
                         ?.invoke()
+                } else if (pressedOriginAction != null) {
+                    val hoveredAction =
+                        findTarget(
+                            event.x,
+                            event.y,
+                        )?.action
+                    val nextPressed =
+                        pressedOriginAction
+                            .takeIf { it == hoveredAction }
+
+                    if (nextPressed != pressedAction) {
+                        pressedAction = nextPressed
+                        invalidate()
+                    }
                 }
 
                 return true
@@ -1649,6 +1666,7 @@ class PulseDeckMainSkinView(
                 }
 
                 pressedAction = null
+                pressedOriginAction = null
                 scrubbing = false
                 invalidate()
                 return true

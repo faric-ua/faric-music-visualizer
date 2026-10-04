@@ -120,6 +120,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var sceneView: ReactiveSceneView? = null
     private var effectsView: ReactiveSceneView? = null
     private var bigEqualizerView: BigEqualizerView? = null
+    private var pulseDeckLayerStack: PulseDeckLayerStack? = null
     private var heroBoardView: HeroBoardView? = null
     private var heroThemeView: HeroThemeView? = null
     private var pulseDeckMainSkinView: PulseDeckMainSkinView? = null
@@ -669,6 +670,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         val layerStack =
             PulseDeckLayerStack(this)
+        pulseDeckLayerStack = layerStack
 
         root.addView(
             layerStack,
@@ -801,6 +803,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         "Center Calibration",
                                         "Template Constructor",
                                         "Object Constructor",
+                                        "Шари / Layers",
                                         "Автоприховування",
                                     ),
                                 ) { _, which ->
@@ -830,6 +833,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                             )
 
                                         3 ->
+                                            showPulseDeckLayersDialog()
+
+                                        4 ->
                                             showControlsAutoHideDialog()
                                     }
                                 }
@@ -939,6 +945,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             skinView,
         )
 
+        applyPulseDeckLayerVisibility(layerStack)
+
         setContentView(root)
         enableImmersiveFullscreen()
 
@@ -955,6 +963,129 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         if (!nowControlsHidden) {
             scheduleNowControlsAutoHide()
         }
+    }
+
+    private enum class PulseDeckLayerPreset {
+        VISUALIZER_ONLY,
+        VISUALIZER_EQ,
+        FULL,
+        CUSTOM,
+    }
+
+    private fun layerPrefs() =
+        getSharedPreferences("pulsedeck_layers", MODE_PRIVATE)
+
+    private fun layerVisible(
+        layer: PulseDeckLayerStack.Layer,
+        defaultValue: Boolean = true,
+    ): Boolean =
+        layerPrefs().getBoolean("layer_" + layer.z, defaultValue)
+
+    private fun setLayerVisible(
+        layer: PulseDeckLayerStack.Layer,
+        visible: Boolean,
+    ) {
+        layerPrefs().edit().putBoolean("layer_" + layer.z, visible).apply()
+        pulseDeckLayerStack?.setLayerVisible(layer, visible)
+    }
+
+    private fun applyPulseDeckLayerVisibility(stack: PulseDeckLayerStack) {
+        listOf(
+            PulseDeckLayerStack.Layer.VISUALIZER,
+            PulseDeckLayerStack.Layer.BIG_EQUALIZER,
+            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+            PulseDeckLayerStack.Layer.GIF_ANIMATION,
+            PulseDeckLayerStack.Layer.EFFECTS,
+        ).forEach { layer ->
+            stack.setLayerVisible(layer, layerVisible(layer))
+        }
+
+        // Layer 5 is deliberately not user-toggleable.
+        stack.setLayerVisible(PulseDeckLayerStack.Layer.PULSEDECK_LOCKED, true)
+    }
+
+    private fun applyPulseDeckLayerPreset(preset: PulseDeckLayerPreset) {
+        val visible =
+            when (preset) {
+                PulseDeckLayerPreset.VISUALIZER_ONLY ->
+                    setOf(PulseDeckLayerStack.Layer.VISUALIZER)
+                PulseDeckLayerPreset.VISUALIZER_EQ ->
+                    setOf(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        PulseDeckLayerStack.Layer.BIG_EQUALIZER,
+                    )
+                PulseDeckLayerPreset.FULL ->
+                    setOf(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        PulseDeckLayerStack.Layer.BIG_EQUALIZER,
+                        PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                        PulseDeckLayerStack.Layer.GIF_ANIMATION,
+                        PulseDeckLayerStack.Layer.EFFECTS,
+                    )
+                PulseDeckLayerPreset.CUSTOM -> return
+            }
+
+        listOf(
+            PulseDeckLayerStack.Layer.VISUALIZER,
+            PulseDeckLayerStack.Layer.BIG_EQUALIZER,
+            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+            PulseDeckLayerStack.Layer.GIF_ANIMATION,
+            PulseDeckLayerStack.Layer.EFFECTS,
+        ).forEach { layer ->
+            setLayerVisible(layer, layer in visible)
+        }
+    }
+
+    private fun showPulseDeckLayersDialog() {
+        val layers =
+            arrayOf(
+                PulseDeckLayerStack.Layer.VISUALIZER,
+                PulseDeckLayerStack.Layer.BIG_EQUALIZER,
+                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                PulseDeckLayerStack.Layer.GIF_ANIMATION,
+                PulseDeckLayerStack.Layer.EFFECTS,
+            )
+        val labels =
+            arrayOf(
+                "Layer 0 · Visualizer",
+                "Layer 1 · Big Equalizer",
+                "Layer 2 · GF / Graphic Figures",
+                "Layer 3 · GIF / Animation",
+                "Layer 4 · Effects",
+            )
+        val checked =
+            BooleanArray(layers.size) { index ->
+                layerVisible(layers[index])
+            }
+
+        android.app.AlertDialog.Builder(this)
+            .setTitle("PulseDeck · Layers")
+            .setSingleChoiceItems(
+                arrayOf(
+                    "Preset · Visualizer only",
+                    "Preset · Visualizer + Big EQ",
+                    "Preset · Full composition",
+                ),
+                -1,
+            ) { dialog, which ->
+                val preset =
+                    when (which) {
+                        0 -> PulseDeckLayerPreset.VISUALIZER_ONLY
+                        1 -> PulseDeckLayerPreset.VISUALIZER_EQ
+                        else -> PulseDeckLayerPreset.FULL
+                    }
+                applyPulseDeckLayerPreset(preset)
+                dialog.dismiss()
+                showPulseDeckLayersDialog()
+            }
+            .setMultiChoiceItems(labels, checked) { _, which, isChecked ->
+                setLayerVisible(layers[which], isChecked)
+            }
+            .setPositiveButton("Готово", null)
+            .setNeutralButton("PulseDeck 🔒") { _, _ ->
+                toast("Layer 5 · PulseDeck заблокований і завжди увімкнений")
+            }
+            .show()
     }
 
     private fun showBoardTransform() {
@@ -3115,6 +3246,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         sceneView = null
         effectsView = null
         bigEqualizerView = null
+        pulseDeckLayerStack = null
         heroBoardView = null
         heroThemeView = null
         pulseDeckMainSkinView = null

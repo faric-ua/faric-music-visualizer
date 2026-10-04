@@ -2130,7 +2130,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         addObjectGroup(
                             layer = layer,
                             groupLabel =
-                                "GF objects",
+                                when (layer) {
+                                    PulseDeckLayerStack.Layer.VISUALIZER ->
+                                        "Visualizer objects"
+
+                                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES ->
+                                        "GF objects"
+
+                                    else ->
+                                        "Objects"
+                                },
                             objects = objects,
                         )
 

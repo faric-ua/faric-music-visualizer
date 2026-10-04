@@ -26,6 +26,7 @@ class ReactiveSceneView(
     context: Context,
     private val renderBackground: Boolean = true,
     private val renderVisualizer: Boolean = true,
+    private val transparentBackground: Boolean = false,
 ) : View(context) {
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
@@ -174,7 +175,11 @@ class ReactiveSceneView(
 
     private fun drawScene(canvas: Canvas, spec: SceneSpec, now: Long, alpha: Float) {
         if (renderBackground) {
-            drawBackground(canvas, spec, now, alpha)
+            if (transparentBackground) {
+                drawEffectOverlay(canvas, spec, now, alpha)
+            } else {
+                drawBackground(canvas, spec, now, alpha)
+            }
         }
         if (renderVisualizer) {
             when (spec.visualizerType) {
@@ -182,6 +187,35 @@ class ReactiveSceneView(
                 VisualizerType.WAVE_RIBBON -> drawWaveRibbon(canvas, spec, now, alpha)
                 VisualizerType.SPECTRUM_BARS -> drawSpectrumBars(canvas, spec, now, alpha)
             }
+        }
+    }
+
+    private fun drawEffectOverlay(canvas: Canvas, spec: SceneSpec, now: Long, alpha: Float) {
+        val w = width.toFloat()
+        val h = height.toFloat()
+        val colors = palette(spec.palette)
+        val phase = now / 1000.0
+        val minSide = minOf(w, h)
+
+        // Transparent atmospheric energy only. The opaque scene background
+        // belongs below Layer 0 and must never cover Layer 1/2 content.
+        repeat(5) { index ->
+            val progress = index / 4f
+            val x =
+                w * (0.12f + progress * 0.76f) +
+                    sin(phase * (0.32 + index * 0.035) + index).toFloat() * w * 0.045f
+            val y =
+                h * (0.18f + (index % 3) * 0.19f) +
+                    cos(phase * (0.28 + index * 0.03) + index).toFloat() * h * 0.025f
+            val color = if (index % 2 == 0) colors.first else colors.second
+            drawGlow(
+                canvas,
+                x,
+                y,
+                minSide * (0.16f + backgroundBeat * 0.045f),
+                color,
+                alpha * (0.035f + amplitude * 0.055f + backgroundBeat * 0.08f),
+            )
         }
     }
 

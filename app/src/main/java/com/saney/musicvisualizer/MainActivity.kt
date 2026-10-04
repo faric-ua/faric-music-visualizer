@@ -658,6 +658,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 setBackgroundColor(COLOR_BG)
             }
 
+        val layerStack =
+            PulseDeckLayerStack(this)
+
+        root.addView(
+            layerStack,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+
         val liveScene =
             ReactiveSceneView(this).also { view ->
                 view.setScene(currentScene)
@@ -666,16 +677,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         sceneView = liveScene
 
-        // Layer 0 is always the visualizer. Every PulseDeck surface is added
-        // after it, so HUD chrome, transport, menu and equalizer can be hidden
-        // independently without ever moving the visualizer above them.
-        root.addView(
+        layerStack.setContent(
+            PulseDeckLayerStack.Layer.VISUALIZER,
             liveScene,
-            0,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            ),
         )
 
         val skinView =
@@ -866,12 +870,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             applySafeArea(root)
         }
 
-        root.addView(
+        layerStack.setContent(
+            PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
             skinView,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            ),
         )
 
         setContentView(root)

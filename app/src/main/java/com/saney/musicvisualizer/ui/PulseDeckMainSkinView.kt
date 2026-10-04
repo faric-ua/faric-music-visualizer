@@ -1074,12 +1074,53 @@ class PulseDeckMainSkinView(
                 null
             }
 
+        val isPressed =
+            layer.action != null &&
+                layer.action == pressedAction &&
+                layer.action != "seek"
+
+        val drawRect =
+            if (isPressed) {
+                val pressedScale = 0.92f
+                val cx = rect.centerX()
+                val cy = rect.centerY()
+                val halfWidth = rect.width() * pressedScale * 0.5f
+                val halfHeight = rect.height() * pressedScale * 0.5f
+                RectF(
+                    cx - halfWidth,
+                    cy - halfHeight,
+                    cx + halfWidth,
+                    cy + halfHeight,
+                )
+            } else {
+                rect
+            }
+
         canvas.drawBitmap(
             bitmap,
             sourceRect,
-            rect,
+            drawRect,
             bitmapPaint,
         )
+
+        if (isPressed) {
+            val feedbackPaint =
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = Color.rgb(90, 232, 255)
+                    alpha = 72
+                    style = Paint.Style.STROKE
+                    strokeWidth = maxOf(2f, w * 0.0035f)
+                }
+            val glowPaint =
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color = Color.WHITE
+                    alpha = 28
+                    style = Paint.Style.FILL
+                }
+
+            canvas.drawOval(drawRect, glowPaint)
+            canvas.drawOval(drawRect, feedbackPaint)
+        }
 
         bitmapPaint.xfermode = null
 
@@ -1537,6 +1578,7 @@ class PulseDeckMainSkinView(
 
                 pressedAction =
                     target?.action
+                invalidate()
 
                 scrubbing =
                     target?.action ==
@@ -1608,12 +1650,14 @@ class PulseDeckMainSkinView(
 
                 pressedAction = null
                 scrubbing = false
+                invalidate()
                 return true
             }
 
             MotionEvent.ACTION_CANCEL -> {
                 pressedAction = null
                 scrubbing = false
+                invalidate()
                 return true
             }
         }

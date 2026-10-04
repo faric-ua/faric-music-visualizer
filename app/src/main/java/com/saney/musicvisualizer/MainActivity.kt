@@ -63,6 +63,8 @@ import com.saney.musicvisualizer.ui.PulseMiniView
 import com.saney.musicvisualizer.ui.PulseDeckControlRail
 import com.saney.musicvisualizer.ui.PulseDeckIconButton
 import com.saney.musicvisualizer.ui.PulseDeckMainSkinView
+import com.saney.musicvisualizer.ui.BigEqualizerView
+import com.saney.musicvisualizer.ui.PulseDeckLayerStack
 import com.saney.musicvisualizer.ui.ReactiveSceneView
 import java.util.Locale
 import kotlin.concurrent.thread

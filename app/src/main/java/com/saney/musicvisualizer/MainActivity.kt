@@ -204,6 +204,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         registerForActivityResult(
             ActivityResultContracts.StartActivityForResult(),
         ) {
+            if (
+                ProjectMStateStore(this)
+                    .lastPresetFileOrNull() != null
+            ) {
+                layerPrefs()
+                    .edit()
+                    .putBoolean(
+                        layerPreferenceKey(
+                            PulseDeckLayerStack.Layer.VISUALIZER,
+                        ),
+                        true,
+                    )
+                    .putBoolean(
+                        layerObjectPreferenceKey(
+                            PulseDeckLayerStack.Layer.VISUALIZER,
+                            "projectm",
+                        ),
+                        true,
+                    )
+                    .apply()
+            }
+
             if (screen == Screen.NOW_PLAYING) {
                 showNowPlaying()
             }
@@ -1100,39 +1122,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             showThemePicker()
 
                         "board" ->
-                            if (
-                                isLayeredBoardTheme(
-                                    selectedThemeId,
-                                )
-                            ) {
-                                showBoardTransform()
-                            } else if (
-                                selectedThemeId ==
-                                PlaybackThemeId.VISUALIZER
-                            ) {
-                                val nextScene =
-                                    sceneOrchestrator
-                                        .shuffleNow()
+                            showBoardTransform()
 
-                                toast(
-                                    "Сцена: " +
-                                        nextScene
-                                            .visualizerType
-                                            .name
-                                            .lowercase()
-                                            .replace(
-                                                '_',
-                                                ' ',
-                                            ),
-                                )
-                            } else {
-                                toast(
-                                    "Board для цього шару — наступний етап",
-                                )
+                        "visualizer" -> {
+                            if (projectMMainResumed) {
+                                projectMMainView?.onPause()
+                                projectMMainResumed = false
                             }
+                            projectMMainView
+                                ?.releaseProjectM()
+                            projectMMainView = null
 
-                        "visualizer" ->
-                            startActivity(
+                            openProjectMVisualizer.launch(
                                 Intent(
                                     this,
                                     com.saney.musicvisualizer
@@ -1140,6 +1141,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         .ProjectMActivity::class.java,
                                 ),
                             )
+                        }
 
                         "export" ->
                             showExportLab()
@@ -1164,9 +1166,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         applyPulseDeckLayerVisibility(layerStack)
-        updateProjectMRenderState()
 
         setContentView(root)
+        updateProjectMRenderState()
         enableImmersiveFullscreen()
 
         onPlaybackSnapshot(

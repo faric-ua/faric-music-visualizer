@@ -10,6 +10,7 @@ import android.graphics.drawable.GradientDrawable
 import android.net.Uri
 import android.os.Bundle
 import android.provider.OpenableColumns
+import android.provider.DocumentsContract
 import android.util.Log
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -3906,6 +3907,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         content.addView(
+            actionPill(
+                text = "Відкрити папку експорту",
+                accent = false,
+            ) {
+                showExportFolderChooser()
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(54),
+            ).apply {
+                topMargin = dp(10)
+            },
+        )
+
+        content.addView(
             label(
                 "PNG proof перевіряє кадр. MP4 proof рендерить 3 секунди відео з offline timeline, кодує фрагмент музики в AAC і mux-ить звук із H.264.",
                 12f,
@@ -3925,6 +3941,91 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         setContentView(root)
         restorePendingScrollPositions()
         enableImmersiveFullscreen()
+    }
+
+    private fun showExportFolderChooser() {
+        android.app.AlertDialog
+            .Builder(this)
+            .setTitle(
+                "Папка експорту",
+            )
+            .setItems(
+                arrayOf(
+                    "Кадри PNG · Pictures/FARIC",
+                    "Відео зі звуком · Movies/FARIC",
+                ),
+            ) { _, which ->
+                when (which) {
+                    0 ->
+                        openExportFolder(
+                            "Pictures/FARIC",
+                        )
+
+                    1 ->
+                        openExportFolder(
+                            "Movies/FARIC",
+                        )
+                }
+            }
+            .show()
+    }
+
+    private fun openExportFolder(
+        relativePath: String,
+    ) {
+        val documentUri =
+            DocumentsContract
+                .buildDocumentUri(
+                    "com.android.externalstorage.documents",
+                    "primary:$relativePath",
+                )
+
+        val viewIntent =
+            Intent(
+                Intent.ACTION_VIEW,
+            ).apply {
+                setDataAndType(
+                    documentUri,
+                    DocumentsContract.Document.MIME_TYPE_DIR,
+                )
+                addFlags(
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+
+        val opened =
+            runCatching {
+                startActivity(
+                    viewIntent,
+                )
+            }.isSuccess
+
+        if (opened) {
+            return
+        }
+
+        val picker =
+            Intent(
+                Intent.ACTION_OPEN_DOCUMENT_TREE,
+            ).apply {
+                putExtra(
+                    DocumentsContract.EXTRA_INITIAL_URI,
+                    documentUri,
+                )
+                addFlags(
+                    Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                )
+            }
+
+        runCatching {
+            startActivity(
+                picker,
+            )
+        }.onFailure {
+            toast(
+                "Не вдалося відкрити $relativePath",
+            )
+        }
     }
 
     private fun runOfflineAnalysis() {

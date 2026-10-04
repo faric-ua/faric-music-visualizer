@@ -933,3 +933,27 @@ Implementation:
 - [ ] Phone: GF and Layer 0 run together; selecting/editing GF no longer disables the visualizer.
 - [ ] Phone: BG/Glow X/Y, zoom, rotation and opacity all change only GF background/glow.
 - [ ] Phone: export Layers JSON and verify file is created.
+
+## PulseDeck v0.18.5 — live GF editor composition + export folders
+
+Phone findings:
+- Layer 3 parent could be OFF while its saved child object checkboxes still looked active, which made the panel state visually misleading.
+- Entering Board Transform / BG-Glow editing destroyed the lower visualization preview; GF had to be positioned against the real Layer 0/1/2 composition instead.
+- Export Lab saved PNG to Pictures/FARIC and MP4+AAC to Movies/FARIC but provided no direct way to open those folders.
+
+Implementation:
+- [x] Nested object controls now follow their parent layer visually: when L0/L3/etc. is OFF, its child controls are disabled/dimmed while preserving saved child ON/OFF values.
+- [x] Refactor Layer 0 construction into a reusable composition builder.
+- [x] Board Transform now previews the real lower stack: Layer 0 Visualizer, Layer 1 Over-visualization and Layer 2 Big Equalizer with their persisted visibility.
+- [x] Board Transform forces only Layer 3 container visible for editing while preserving each GF child object's saved visibility.
+- [x] projectM and FARIC reactive visualizer continue rendering while Screen.BOARD_TRANSFORM is active.
+- [x] Remove root safe-area padding from Board Transform preview so GF↔Visualizer registration matches Now Playing full viewport.
+- [x] Add Export Lab button "Відкрити папку експорту" with Pictures/FARIC and Movies/FARIC choices.
+- [x] Use Android DocumentsProvider folder URI with document-tree fallback.
+- [x] Bump candidate to v0.18.5 / versionCode 84.
+- [ ] Exact-HEAD Validate PASS.
+- [ ] Exact-HEAD Android workflow PASS.
+- [ ] Phone: L3 OFF dims GF child controls; L3 ON re-enables them without losing child states.
+- [ ] Phone: Board → BG/Glow keeps Layer 0 visualization visible and aligned exactly as on Now Playing.
+- [ ] Phone: projectM keeps animating and GF remains music-reactive while editing.
+- [ ] Phone: Export Lab → Відкрити папку експорту opens Pictures/FARIC and Movies/FARIC.

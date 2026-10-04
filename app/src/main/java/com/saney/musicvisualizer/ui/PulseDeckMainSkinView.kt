@@ -165,6 +165,10 @@ class PulseDeckMainSkinView(
     private var transportAlpha = 1f
     private var quickActionsAlpha = 1f
     private var controlsAnimator: ValueAnimator? = null
+    private var pressFeedbackAnimator: ValueAnimator? = null
+    private var feedbackAction: String? = null
+    private var feedbackScale = 1f
+    private var feedbackGlow = 0f
 
     private var pressedAction: String? = null
     private var pressedOriginAction: String? = null
@@ -475,7 +479,157 @@ class PulseDeckMainSkinView(
     override fun onDetachedFromWindow() {
         controlsAnimator?.cancel()
         controlsAnimator = null
+        pressFeedbackAnimator?.cancel()
+        pressFeedbackAnimator = null
         super.onDetachedFromWindow()
+    }
+
+    private fun animatePressFeedback(
+        action: String?,
+        targetScale: Float,
+        durationMs: Long,
+        clearWhenDone: Boolean,
+    ) {
+        if (action == null || action == "seek") {
+            return
+        }
+
+        pressFeedbackAnimator?.cancel()
+        feedbackAction = action
+
+        pressFeedbackAnimator =
+            ValueAnimator
+                .ofFloat(
+                    feedbackScale,
+                    targetScale,
+                )
+                .apply {
+                    duration = durationMs
+                    addUpdateListener { animator ->
+                        feedbackScale =
+                            animator.animatedValue
+                                as Float
+                        feedbackGlow =
+                            when {
+                                feedbackScale < 1f ->
+                                    (
+                                        (1f - feedbackScale) /
+                                            0.20f
+                                        )
+                                        .coerceIn(0f, 1f)
+
+                                else ->
+                                    (
+                                        (feedbackScale - 1f) /
+                                            0.50f
+                                        )
+                                        .coerceIn(0f, 1f)
+                            }
+                        invalidate()
+                    }
+                    if (clearWhenDone) {
+                        addListener(
+                            object :
+                                android.animation
+                                    .AnimatorListenerAdapter() {
+                                override fun onAnimationEnd(
+                                    animation: android.animation.Animator,
+                                ) {
+                                    if (feedbackAction == action) {
+                                        feedbackAction = null
+                                        feedbackScale = 1f
+                                        feedbackGlow = 0f
+                                        invalidate()
+                                    }
+                                }
+                            },
+                        )
+                    }
+                    start()
+                }
+    }
+
+    private fun startPressFeedback(
+        action: String?,
+    ) {
+        animatePressFeedback(
+            action = action,
+            targetScale = 0.80f,
+            durationMs = 90L,
+            clearWhenDone = false,
+        )
+    }
+
+    private fun cancelPressFeedback(
+        action: String?,
+    ) {
+        animatePressFeedback(
+            action = action,
+            targetScale = 1.00f,
+            durationMs = 90L,
+            clearWhenDone = true,
+        )
+    }
+
+    private fun startReleaseFeedback(
+        action: String?,
+    ) {
+        if (action == null || action == "seek") {
+            return
+        }
+
+        pressFeedbackAnimator?.cancel()
+        feedbackAction = action
+
+        pressFeedbackAnimator =
+            ValueAnimator
+                .ofFloat(
+                    feedbackScale,
+                    1.50f,
+                    1.00f,
+                )
+                .apply {
+                    duration = 290L
+                    addUpdateListener { animator ->
+                        feedbackScale =
+                            animator.animatedValue
+                                as Float
+                        feedbackGlow =
+                            when {
+                                feedbackScale < 1f ->
+                                    (
+                                        (1f - feedbackScale) /
+                                            0.20f
+                                        )
+                                        .coerceIn(0f, 1f)
+
+                                else ->
+                                    (
+                                        (feedbackScale - 1f) /
+                                            0.50f
+                                        )
+                                        .coerceIn(0f, 1f)
+                            }
+                        invalidate()
+                    }
+                    addListener(
+                        object :
+                            android.animation
+                                .AnimatorListenerAdapter() {
+                            override fun onAnimationEnd(
+                                animation: android.animation.Animator,
+                            ) {
+                                if (feedbackAction == action) {
+                                    feedbackAction = null
+                                    feedbackScale = 1f
+                                    feedbackGlow = 0f
+                                    invalidate()
+                                }
+                            }
+                        },
+                    )
+                    start()
+                }
     }
 
     override fun onDraw(
@@ -1075,18 +1229,31 @@ class PulseDeckMainSkinView(
                 null
             }
 
-        val isPressed =
+        val hasPressFeedback =
             layer.action != null &&
-                layer.action == pressedAction &&
+                layer.action == feedbackAction &&
                 layer.action != "seek"
 
+        val objectScale =
+            if (hasPressFeedback) {
+                feedbackScale
+            } else {
+                1f
+            }
+
         val drawRect =
-            if (isPressed) {
-                val pressedScale = 0.92f
+            if (hasPressFeedback) {
                 val cx = rect.centerX()
                 val cy = rect.centerY()
-                val halfWidth = rect.width() * pressedScale * 0.5f
-                val halfHeight = rect.height() * pressedScale * 0.5f
+                val halfWidth =
+                    rect.width() *
+                        objectScale *
+                        0.5f
+                val halfHeight =
+                    rect.height() *
+                        objectScale *
+                        0.5f
+
                 RectF(
                     cx - halfWidth,
                     cy - halfHeight,
@@ -1097,6 +1264,54 @@ class PulseDeckMainSkinView(
                 rect
             }
 
+        if (hasPressFeedback) {
+            val glowPad =
+                maxOf(
+                    drawRect.width(),
+                    drawRect.height(),
+                ) *
+                    (
+                        0.12f +
+                            feedbackGlow *
+                            0.10f
+                        )
+
+            val neonGlowRect =
+                RectF(
+                    drawRect.left - glowPad,
+                    drawRect.top - glowPad,
+                    drawRect.right + glowPad,
+                    drawRect.bottom + glowPad,
+                )
+
+            val neonGlowPaint =
+                Paint(Paint.ANTI_ALIAS_FLAG).apply {
+                    color =
+                        Color.rgb(
+                            44,
+                            226,
+                            255,
+                        )
+                    alpha =
+                        (
+                            28f +
+                                feedbackGlow *
+                                60f
+                            )
+                            .toInt()
+                            .coerceIn(
+                                0,
+                                100,
+                            )
+                    style = Paint.Style.FILL
+                }
+
+            canvas.drawOval(
+                neonGlowRect,
+                neonGlowPaint,
+            )
+        }
+
         canvas.drawBitmap(
             bitmap,
             sourceRect,
@@ -1104,23 +1319,55 @@ class PulseDeckMainSkinView(
             bitmapPaint,
         )
 
-        if (isPressed) {
+        if (hasPressFeedback) {
+            // Keep the existing ring and add only the requested stronger spring/glow.
             val feedbackPaint =
                 Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     color = Color.rgb(90, 232, 255)
-                    alpha = 72
+                    alpha =
+                        (
+                            72f +
+                                feedbackGlow *
+                                65f
+                            )
+                            .toInt()
+                            .coerceIn(
+                                0,
+                                150,
+                            )
                     style = Paint.Style.STROKE
-                    strokeWidth = maxOf(2f, w * 0.0035f)
+                    strokeWidth =
+                        maxOf(
+                            2f,
+                            w *
+                                0.0035f,
+                        )
                 }
             val glowPaint =
                 Paint(Paint.ANTI_ALIAS_FLAG).apply {
                     color = Color.WHITE
-                    alpha = 28
+                    alpha =
+                        (
+                            28f +
+                                feedbackGlow *
+                                20f
+                            )
+                            .toInt()
+                            .coerceIn(
+                                0,
+                                64,
+                            )
                     style = Paint.Style.FILL
                 }
 
-            canvas.drawOval(drawRect, glowPaint)
-            canvas.drawOval(drawRect, feedbackPaint)
+            canvas.drawOval(
+                drawRect,
+                glowPaint,
+            )
+            canvas.drawOval(
+                drawRect,
+                feedbackPaint,
+            )
         }
 
         bitmapPaint.xfermode = null
@@ -1581,6 +1828,9 @@ class PulseDeckMainSkinView(
                     target?.action
                 pressedOriginAction =
                     target?.action
+                startPressFeedback(
+                    target?.action,
+                )
                 invalidate()
 
                 scrubbing =
@@ -1625,7 +1875,21 @@ class PulseDeckMainSkinView(
                             .takeIf { it == hoveredAction }
 
                     if (nextPressed != pressedAction) {
-                        pressedAction = nextPressed
+                        val previousPressed =
+                            pressedAction
+                        pressedAction =
+                            nextPressed
+
+                        if (nextPressed != null) {
+                            startPressFeedback(
+                                nextPressed,
+                            )
+                        } else {
+                            cancelPressFeedback(
+                                previousPressed
+                                    ?: pressedOriginAction,
+                            )
+                        }
                         invalidate()
                     }
                 }
@@ -1665,16 +1929,27 @@ class PulseDeckMainSkinView(
                     }
                 }
 
+                val releasedAction =
+                    pressedOriginAction
                 pressedAction = null
                 pressedOriginAction = null
                 scrubbing = false
+                startReleaseFeedback(
+                    releasedAction,
+                )
                 invalidate()
                 return true
             }
 
             MotionEvent.ACTION_CANCEL -> {
+                val cancelledAction =
+                    pressedOriginAction
                 pressedAction = null
+                pressedOriginAction = null
                 scrubbing = false
+                cancelPressFeedback(
+                    cancelledAction,
+                )
                 invalidate()
                 return true
             }

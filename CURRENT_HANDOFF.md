@@ -1386,3 +1386,27 @@ Phone UX correction:
 - layer/object hierarchy from v0.18.2 remains unchanged.
 
 Candidate: v0.18.3 / build 82.
+
+## v0.18.4 — Layer 0 + GF independence
+
+Phone feedback drove the next composition correction.
+
+Current contract:
+- Layer 0 Visualizer is a composite layer:
+  - `projectm` = the last preset selected in the Visualizer/projectM screen;
+  - `faric_reactive` = FARIC ReactiveScene foreground.
+- Returning from projectM automatically enables Layer 0 + projectM and rebuilds Now Playing with the selected preset.
+- SceneOrchestrator is no longer gated by PlaybackThemeId.VISUALIZER; Layer 0 and Layer 3 can run simultaneously.
+- Layer 3 GF always mounts the current production Cyber Shark set independently from playback-theme selection.
+- Layer 3 exposes five current renderable GF objects: Background/Glow, Frame, FX, Creature, Wordmark.
+- Background/Glow now has the same persistent per-object transform contract as other GF objects: X, Y, scale, rotation, opacity.
+- Board Transform includes BG/Glow plus Center / 100% / Reset quick controls.
+- Layers panel includes direct GF Background settings entry.
+- Layers panel can export a JSON snapshot of layer visibility, object visibility, GF transforms/reaction and projectM preset id.
+
+Asset boundary:
+- the app currently has one production-ready modular GF set in code: Cyber Shark.
+- the wider FARIC/FMV/FVMP master archive remains reference/LFS material; those masters are not yet separated into app-ready transparent frame/creature/wordmark/FX packs, so they must not be pretended to be live Layer 3 assets.
+
+Candidate: v0.18.4 / build 83.
+Next gate: exact-head Android PASS, then phone verification of projectM return-to-main, simultaneous Layer 0 + GF, BG/Glow transforms, and JSON export.

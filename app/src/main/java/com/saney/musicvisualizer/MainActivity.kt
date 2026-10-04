@@ -434,6 +434,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         super.onStart()
         controller.listener = this
         controller.emitCurrentState()
+        updateProjectMRenderState()
     }
 
     override fun onStop() {
@@ -441,6 +442,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         // but a music player must keep playing. A MediaSessionService migration is
         // tracked separately for full long-lived background playback/notification.
         sceneOrchestrator.stop()
+        if (projectMMainResumed) {
+            projectMMainView?.onPause()
+            projectMMainResumed = false
+        }
         controller.listener = null
         super.onStop()
     }
@@ -540,15 +545,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             artist = if (snapshot.trackName == null) null else "Невідомий виконавець",
         )
 
-        if (
-            screen == Screen.NOW_PLAYING &&
-            snapshot.isPlaying &&
-            selectedThemeId == PlaybackThemeId.VISUALIZER
-        ) {
-            sceneOrchestrator.start()
-        } else {
-            sceneOrchestrator.stop()
-        }
+        updateSceneOrchestratorState()
+        updateProjectMRenderState()
 
         nowSeek?.let { seek ->
             if (!seek.isPressed) {
@@ -567,6 +565,53 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         heroThemeView?.updateSignal(signal)
         pulseDeckMainSkinView?.updateSignal(signal)
         miniPulseView?.updateSignal(signal)
+    }
+
+    private fun updateSceneOrchestratorState() {
+        val active =
+            screen == Screen.NOW_PLAYING &&
+                latestSnapshot.isPlaying &&
+                layerVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                ) &&
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "faric_reactive",
+                )
+
+        if (active) {
+            sceneOrchestrator.start()
+        } else {
+            sceneOrchestrator.stop()
+        }
+    }
+
+    private fun updateProjectMRenderState() {
+        val shouldRender =
+            screen == Screen.NOW_PLAYING &&
+                layerVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                ) &&
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "projectm",
+                ) &&
+                projectMMainView?.visibility ==
+                    View.VISIBLE
+
+        if (
+            shouldRender &&
+            !projectMMainResumed
+        ) {
+            projectMMainView?.onResume()
+            projectMMainResumed = true
+        } else if (
+            !shouldRender &&
+            projectMMainResumed
+        ) {
+            projectMMainView?.onPause()
+            projectMMainResumed = false
+        }
     }
 
     private fun showLibrary() {
@@ -4182,6 +4227,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun clearScreenRefs() {
+        if (projectMMainResumed) {
+            projectMMainView?.onPause()
+            projectMMainResumed = false
+        }
+        projectMMainView
+            ?.releaseProjectM()
+        projectMMainView = null
+
         nowControlsLayer?.removeCallbacks(
             nowControlsAutoHideRunnable,
         )

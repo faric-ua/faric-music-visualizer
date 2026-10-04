@@ -1416,3 +1416,28 @@ v0.18.4 CI evidence:
 - Android #387 — PASS on the same app/source SHA.
 - Unit tests, debug APK build, stable signer verification, zipalign/badging checks and artifact upload all completed successfully.
 - Later documentation-only commits do not change APK source; the Termux APK downloader may legitimately select run #387 for the current docs-only HEAD.
+
+## v0.18.5 — edit GF against the real visualization
+
+Phone evidence clarified two UX/runtime issues.
+
+Layer panel:
+- parent layer remains the master switch;
+- child object states are still persisted independently;
+- when a parent such as L3 is OFF, child controls are now dimmed/disabled instead of appearing fully active.
+
+Board Transform:
+- no longer opens an isolated HeroBoardView over black;
+- now reconstructs the real lower composition below GF: L0 Visualizer + L1 447504 + L2 Big Equalizer, using the same persisted visibility state;
+- L3 is forced visible only inside the editor so the user can position it;
+- individual GF object visibility still matches live state;
+- projectM/FARIC reactive rendering remains active in Board Transform;
+- preview uses the full physical viewport, matching Now Playing geometry.
+
+Export Lab:
+- new "Відкрити папку експорту" button;
+- PNG: Pictures/FARIC;
+- video with audio: Movies/FARIC (MP4 container with AAC audio, not MP3).
+
+Candidate: v0.18.5 / build 84.
+Next gate: exact-head CI then phone QA of L3 hierarchy, live BG/Glow positioning over visualization, and folder opening.

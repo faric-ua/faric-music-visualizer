@@ -903,3 +903,33 @@ User finding from phone screenshot: the layers/object panel covered almost the w
 - [ ] Phone: drag the panel to top/middle/bottom and verify it remains inside screen bounds.
 - [ ] Phone: toggle layers/objects while the underlying composition remains visible.
 - [ ] Phone: close/reopen panel and verify saved position is restored.
+
+## PulseDeck v0.18.4 — Layer 0 projectM + GF background transforms
+
+Phone findings after v0.18.3:
+- GF `background / glow` could be toggled but had no independent position/scale/rotation controls.
+- Selecting a projectM visualizer in the Visualizer screen did not return that selected preset to the main PulseDeck Layer 0.
+- GF was still coupled to the mutually-exclusive playback-theme selection, which conflicts with the new independent layer architecture.
+
+Implementation:
+- [x] Add `BoardLayerId.BACKGROUND` and persist the same transform model as other GF parts: X/Y, scale, rotation, opacity.
+- [x] Apply Background/Glow transform to the actual Layer 3 procedural glow/arcs/particles renderer.
+- [x] Add `BG/Glow` to Board Transform selector.
+- [x] Add quick controls for every GF object: Center, 100%, Reset.
+- [x] Add a direct `GF / Background · позиція / масштаб` entry from the Layers panel.
+- [x] Keep all current production GF objects wired into Layer 3: Background/Glow, Frame, FX, Creature, Wordmark.
+- [x] Decouple the current production GF set (Cyber Shark) from the selected playback theme so Layer 3 can coexist with Layer 0.
+- [x] Layer 0 is now a composite container with two independently toggleable objects:
+  - projectM selected preset background;
+  - FARIC reactive visualizer foreground.
+- [x] Return the last selected projectM preset from the Visualizer screen to main PulseDeck Layer 0.
+- [x] Remove the old `selectedThemeId == VISUALIZER` gate from the FARIC SceneOrchestrator so Layer 0 keeps reacting while GF is enabled.
+- [x] Add layer/object configuration export to JSON, including GF transforms/reaction and projectM preset id.
+- [x] Bump candidate to v0.18.4 / versionCode 83.
+- [ ] Exact-HEAD Validate PASS.
+- [ ] Exact-HEAD Android workflow PASS.
+- [ ] Phone: choose a projectM preset, Back, verify it appears in Layer 0 on the main page.
+- [ ] Phone: Layer 0 projectM and FARIC reactive subobjects toggle independently.
+- [ ] Phone: GF and Layer 0 run together; selecting/editing GF no longer disables the visualizer.
+- [ ] Phone: BG/Glow X/Y, zoom, rotation and opacity all change only GF background/glow.
+- [ ] Phone: export Layers JSON and verify file is created.

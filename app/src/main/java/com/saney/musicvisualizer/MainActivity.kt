@@ -591,7 +591,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun updateSceneOrchestratorState() {
         val active =
-            screen == Screen.NOW_PLAYING &&
+            (
+                screen == Screen.NOW_PLAYING ||
+                    screen == Screen.BOARD_TRANSFORM
+                ) &&
                 latestSnapshot.isPlaying &&
                 layerVisible(
                     PulseDeckLayerStack.Layer.VISUALIZER,
@@ -610,7 +613,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun updateProjectMRenderState() {
         val shouldRender =
-            screen == Screen.NOW_PLAYING &&
+            (
+                screen == Screen.NOW_PLAYING ||
+                    screen == Screen.BOARD_TRANSFORM
+                ) &&
                 layerVisible(
                     PulseDeckLayerStack.Layer.VISUALIZER,
                 ) &&
@@ -2418,27 +2424,108 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         applySafeArea(root)
 
+        // Board Transform is a composition editor, not an isolated GF screen.
+        // Keep the real lower layers visible so GF position/scale is adjusted
+        // against the same visualizer/background the user sees in Now Playing.
+        val previewStack =
+            PulseDeckLayerStack(this)
+
+        root.addView(
+            previewStack,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+
+        attachLayer0Visualizer(
+            previewStack,
+        )
+
+        previewStack.setContent(
+            PulseDeckLayerStack.Layer.OVER_VISUALIZATION,
+            OverVisualizationView(this),
+        )
+
+        val previewEqualizer =
+            BigEqualizerView(this).also { view ->
+                view.updateSignal(
+                    latestSignal,
+                )
+                view.setPlaying(
+                    latestSnapshot.isPlaying,
+                )
+            }
+        bigEqualizerView =
+            previewEqualizer
+        previewStack.setContent(
+            PulseDeckLayerStack.Layer.BIG_EQUALIZER,
+            previewEqualizer,
+        )
+
+        previewStack.setLayerVisible(
+            PulseDeckLayerStack.Layer.VISUALIZER,
+            layerVisible(
+                PulseDeckLayerStack.Layer.VISUALIZER,
+            ),
+        )
+        previewStack.setLayerVisible(
+            PulseDeckLayerStack.Layer.OVER_VISUALIZATION,
+            layerVisible(
+                PulseDeckLayerStack.Layer.OVER_VISUALIZATION,
+            ),
+        )
+        previewStack.setLayerVisible(
+            PulseDeckLayerStack.Layer.BIG_EQUALIZER,
+            layerVisible(
+                PulseDeckLayerStack.Layer.BIG_EQUALIZER,
+            ),
+        )
+
         val boardView =
             HeroBoardView(this).also { view ->
-                view.setGroupTransform(transform)
-                view.setGroupReaction(groupReaction)
+                view.setGroupTransform(
+                    transform,
+                )
+                view.setGroupReaction(
+                    groupReaction,
+                )
                 view.setLayerTransforms(
                     boardLayerTransformStore.loadAll(
                         gfThemeId,
                     ),
                 )
-                view.setPlaying(latestSnapshot.isPlaying)
-                view.updateSignal(latestSignal)
+                HeroBoardView.ObjectId.entries
+                    .forEach { objectId ->
+                        view.setObjectVisible(
+                            objectId,
+                            layerObjectVisible(
+                                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                                objectId.name.lowercase(),
+                            ),
+                        )
+                    }
+                view.setPlaying(
+                    latestSnapshot.isPlaying,
+                )
+                view.updateSignal(
+                    latestSignal,
+                )
             }
 
-        heroBoardView = boardView
+        heroBoardView =
+            boardView
 
-        root.addView(
+        previewStack.setContent(
+            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
             boardView,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            ),
+        )
+
+        // Force only the edited GF container visible in the editor. Its child
+        // visibility still mirrors the live composition.
+        previewStack.setLayerVisible(
+            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+            true,
         )
 
         fun layerTitle(
@@ -3497,6 +3584,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         setContentView(root)
+        updateProjectMRenderState()
+        updateSceneOrchestratorState()
         restorePendingScrollPositions()
         enableImmersiveFullscreen()
     }

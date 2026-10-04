@@ -2474,8 +2474,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             FrameLayout(this).apply {
                 setBackgroundColor(COLOR_BG)
             }
-        applySafeArea(root)
 
+        // Keep the preview on the same full physical viewport as Now Playing.
+        // Applying safe-area padding to the root would change GF↔Visualizer
+        // registration while the user is editing it.
         // Board Transform is a composition editor, not an isolated GF screen.
         // Keep the real lower layers visible so GF position/scale is adjusted
         // against the same visualizer/background the user sees in Now Playing.

@@ -744,3 +744,23 @@ User clarification after 333058.mp4:
 - [ ] Exact-HEAD Android build/CI PASS.
 - [ ] Phone verify approved object placement over live visualization.
 - [ ] Phone verify Board cycles live scenes while audio is playing.
+
+
+## PulseDeck v0.16.0 — canonical render layer stack
+
+User-authorized implementation after layer-theory review.
+
+- [x] Add explicit seven-slot PulseDeckLayerStack with stable Z-order 0..6.
+- [x] Layer 0 = existing ReactiveScene visualizer renderer.
+- [x] Layer 1 = independent BigEqualizerView driven by the shared SceneSignal.
+- [x] Layer 2 = existing layered GF/HeroBoardView for Cyber Shark, preserving saved group/layer transforms and reactions.
+- [x] Layer 3 = reserved GIF/Animation slot; no fake content added.
+- [x] Layer 4 = independent transparent atmospheric FX renderer driven by the same SceneSpec/SceneSignal.
+- [x] Layer 5 = approved PulseDeck HUD mounted unchanged as PULSEDECK_LOCKED.
+- [x] Layer 6 = reserved Service Overlay slot for editor-only tools.
+- [x] Split ReactiveSceneView render responsibilities so Layer 4 cannot paint an opaque background over Layers 1/2.
+- [x] Keep PulseDeck object positions, approved offsets, scale and Z contract unchanged.
+- [ ] Exact-HEAD Android workflow PASS.
+- [ ] Phone verify visual Z-order and that locked PulseDeck geometry is unchanged.
+- [ ] Phone verify Big EQ is above Visualizer and below GF/Effects/PulseDeck.
+- [ ] Phone verify Cyber Shark GF remains editable with its existing frame/FX/creature/wordmark transforms.

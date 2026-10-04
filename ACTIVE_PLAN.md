@@ -764,3 +764,18 @@ User-authorized implementation after layer-theory review.
 - [ ] Phone verify visual Z-order and that locked PulseDeck geometry is unchanged.
 - [ ] Phone verify Big EQ is above Visualizer and below GF/Effects/PulseDeck.
 - [ ] Phone verify Cyber Shark GF remains editable with its existing frame/FX/creature/wordmark transforms.
+
+
+## PulseDeck v0.16.1 — layer visibility controls
+
+- [x] Add persistent visibility state for Layers 0–4.
+- [x] Keep Layer 5 PulseDeck locked and forcibly visible.
+- [x] Add PulseDeck tools → Шари / Layers.
+- [x] Add presets: Visualizer only, Visualizer + Big EQ, Full composition.
+- [x] Add manual toggles: Visualizer, Big Equalizer, GF, GIF/Animation, Effects.
+- [x] Persist layer choices across Now Playing recreation/app restart.
+- [x] Validate workflow PASS on implementation candidate.
+- [x] Android workflow PASS on implementation candidate.
+- [ ] Exact-HEAD CI after this documentation commit.
+- [ ] Phone verify all three presets and manual toggles.
+- [ ] Phone verify PulseDeck geometry remains unchanged and Layer 5 cannot be disabled.

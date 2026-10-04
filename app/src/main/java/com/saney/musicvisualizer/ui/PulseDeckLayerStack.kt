@@ -10,12 +10,13 @@ import android.widget.FrameLayout
  *
  * Z-order is explicit and stable:
  * 0 Visualizer
- * 1 Big Equalizer
- * 2 GF / Graphic Figures
- * 3 GIF / Animation
- * 4 Effects
- * 5 PulseDeck HUD (LOCKED)
- * 6 Service Overlay
+ * 1 Over-visualization
+ * 2 Big Equalizer
+ * 3 GF / Graphic Figures
+ * 4 GIF / Animation
+ * 5 Effects
+ * 6 PulseDeck HUD (LOCKED)
+ * 7 Service Overlay
  *
  * Layer numbers define depth only. Content and visibility are independent.
  */
@@ -27,12 +28,13 @@ class PulseDeckLayerStack(
         val z: Int,
     ) {
         VISUALIZER(0),
-        BIG_EQUALIZER(1),
-        GRAPHIC_FIGURES(2),
-        GIF_ANIMATION(3),
-        EFFECTS(4),
-        PULSEDECK_LOCKED(5),
-        SERVICE_OVERLAY(6),
+        OVER_VISUALIZATION(1),
+        BIG_EQUALIZER(2),
+        GRAPHIC_FIGURES(3),
+        GIF_ANIMATION(4),
+        EFFECTS(5),
+        PULSEDECK_LOCKED(6),
+        SERVICE_OVERLAY(7),
     }
 
     private val slots: Map<Layer, FrameLayout> =

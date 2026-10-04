@@ -1917,6 +1917,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         }
 
+        val objectControlsByLayer =
+            mutableMapOf<
+                PulseDeckLayerStack.Layer,
+                MutableList<View>
+                >()
+
+        fun setObjectControlsEnabled(
+            layer: PulseDeckLayerStack.Layer,
+            enabled: Boolean,
+        ) {
+            objectControlsByLayer[layer]
+                ?.forEach { control ->
+                    control.isEnabled = enabled
+                    control.alpha =
+                        if (enabled) {
+                            1f
+                        } else {
+                            0.38f
+                        }
+                }
+        }
+
         fun addObjectGroup(
             layer: PulseDeckLayerStack.Layer,
             groupLabel: String,
@@ -1942,6 +1964,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             container.addView(
                 groupBox,
             )
+            objectControlsByLayer
+                .getOrPut(
+                    layer,
+                ) {
+                    mutableListOf()
+                }
+                .add(
+                    groupBox,
+                )
 
             fun refreshGroupState() {
                 updatingGroup = true
@@ -1986,6 +2017,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 container.addView(
                     child,
                 )
+                objectControlsByLayer
+                    .getOrPut(
+                        layer,
+                    ) {
+                        mutableListOf()
+                    }
+                    .add(
+                        child,
+                    )
             }
 
             refreshGroupState()
@@ -2118,6 +2158,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             layer,
                             checked,
                         )
+                        setObjectControlsEnabled(
+                            layer,
+                            checked,
+                        )
                     }
                 }
 
@@ -2199,6 +2243,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     addSectionLabel(
                         "↳ Немає активних GIF",
                         leftPaddingDp = 14,
+                    )
+                }
+
+                if (objects.isNotEmpty()) {
+                    setObjectControlsEnabled(
+                        layer,
+                        layerBox.isChecked,
                     )
                 }
             }

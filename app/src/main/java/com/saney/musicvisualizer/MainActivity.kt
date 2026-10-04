@@ -993,13 +993,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
-    private enum class PulseDeckLayerPreset {
-        VISUALIZER_ONLY,
-        VISUALIZER_OVER,
-        FULL,
-        CUSTOM,
-    }
-
     private fun layerPrefs() =
         getSharedPreferences("pulsedeck_layers", MODE_PRIVATE)
 
@@ -1202,39 +1195,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
             true,
         )
-    }
-
-    private fun applyPulseDeckLayerPreset(
-        preset: PulseDeckLayerPreset,
-    ) {
-        val visible =
-            when (preset) {
-                PulseDeckLayerPreset.VISUALIZER_ONLY ->
-                    setOf(
-                        PulseDeckLayerStack.Layer.VISUALIZER,
-                    )
-
-                PulseDeckLayerPreset.VISUALIZER_OVER ->
-                    setOf(
-                        PulseDeckLayerStack.Layer.VISUALIZER,
-                        PulseDeckLayerStack.Layer.OVER_VISUALIZATION,
-                    )
-
-                PulseDeckLayerPreset.FULL ->
-                    controllablePulseDeckLayers()
-                        .toSet()
-
-                PulseDeckLayerPreset.CUSTOM ->
-                    return
-            }
-
-        controllablePulseDeckLayers()
-            .forEach { layer ->
-                setLayerVisible(
-                    layer,
-                    layer in visible,
-                )
-            }
     }
 
     private fun showPulseDeckLayersDialog() {

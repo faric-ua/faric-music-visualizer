@@ -49,6 +49,10 @@ import com.saney.musicvisualizer.export.ShortVideoExportProof
 import com.saney.musicvisualizer.playback.PlaybackController
 import com.saney.musicvisualizer.playback.PlaybackSnapshot
 import com.saney.musicvisualizer.playback.QueueTrack
+import com.saney.musicvisualizer.projectm.ProjectMLibraryManager
+import com.saney.musicvisualizer.projectm.ProjectMPerformanceProfile
+import com.saney.musicvisualizer.projectm.ProjectMStateStore
+import com.saney.musicvisualizer.projectm.ProjectMView
 import com.saney.musicvisualizer.scene.SceneOrchestrator
 import com.saney.musicvisualizer.scene.SceneSpec
 import com.saney.musicvisualizer.theme.ExportAspectRatio
@@ -68,6 +72,8 @@ import com.saney.musicvisualizer.ui.OverVisualizationView
 import com.saney.musicvisualizer.ui.PulseDeckLayerStack
 import com.saney.musicvisualizer.ui.ReactiveSceneView
 import java.util.Locale
+import org.json.JSONArray
+import org.json.JSONObject
 import kotlin.concurrent.thread
 
 @UnstableApi
@@ -119,6 +125,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var offlineAnalysisRunning = false
 
     private var sceneView: ReactiveSceneView? = null
+    private var projectMMainView: ProjectMView? = null
+    private var projectMMainResumed = false
     private var effectsView: ReactiveSceneView? = null
     private var bigEqualizerView: BigEqualizerView? = null
     private var pulseDeckLayerStack: PulseDeckLayerStack? = null
@@ -188,6 +196,55 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             if (pendingOpenAfterPermission) {
                 pendingOpenAfterPermission = false
                 openAudio.launch(arrayOf("audio/*"))
+            }
+        }
+
+
+    private val openProjectMVisualizer =
+        registerForActivityResult(
+            ActivityResultContracts.StartActivityForResult(),
+        ) {
+            if (screen == Screen.NOW_PLAYING) {
+                showNowPlaying()
+            }
+        }
+
+    private val exportLayerConfiguration =
+        registerForActivityResult(
+            ActivityResultContracts.CreateDocument(
+                "application/json",
+            ),
+        ) { uri ->
+            if (uri == null) {
+                return@registerForActivityResult
+            }
+
+            runCatching {
+                contentResolver
+                    .openOutputStream(
+                        uri,
+                    )
+                    ?.bufferedWriter()
+                    ?.use { writer ->
+                        writer.write(
+                            buildLayerConfigurationJson(),
+                        )
+                    }
+                    ?: error(
+                        "Не вдалося відкрити файл",
+                    )
+            }.onSuccess {
+                toast(
+                    "Конфігурацію шарів збережено",
+                )
+            }.onFailure { error ->
+                toast(
+                    "Експорт: " +
+                        (
+                            error.message
+                                ?: error.javaClass.simpleName
+                            ),
+                )
             }
         }
 

@@ -10,7 +10,7 @@ import android.view.View
 import com.saney.musicvisualizer.analysis.SceneSignal
 import kotlin.math.max
 
-/** Layer 1: independent large rounded-bar equalizer. */
+/** Layer 2: independent large rounded-bar equalizer. */
 class BigEqualizerView(
     context: Context,
 ) : View(context) {

@@ -1335,3 +1335,16 @@ Next evidence gate:
 3. verify Layer 0 and Layer 1 independently ON/OFF;
 4. verify 447504 crop/overscan on the physical display;
 5. verify all higher layers preserve the new +1 Z-order and PulseDeck geometry is unchanged.
+
+## v0.18.1 — Layer 1 artwork correction
+
+User clarified that 447504 itself must be the full Layer 1 content.
+
+Corrected:
+- Layer 0 remains the independently toggleable Visualizer.
+- Layer 1 remains independently toggleable, but now renders the complete 447504 image normally at full opacity.
+- Removed SCREEN blend behavior that treated the image as a transparent effects overlay.
+- Center-crop + 5% per-edge overscan stays.
+- Higher Z-order remains unchanged: 2 Big Equalizer → 3 GF → 4 GIF → 5 Effects → 6 PulseDeck 🔒 → 7 Service.
+
+Next: exact-head Android build, then phone verification of Layer 1 ON/OFF independently from Layer 0.

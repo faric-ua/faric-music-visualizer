@@ -709,6 +709,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 this,
                 renderBackground = true,
                 renderVisualizer = false,
+                transparentBackground = true,
             ).also { view ->
                 view.setScene(currentScene)
                 view.updateSignal(latestSignal)

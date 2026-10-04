@@ -22,7 +22,11 @@ import kotlin.math.max
 import kotlin.math.pow
 import kotlin.math.sin
 
-class ReactiveSceneView(context: Context) : View(context) {
+class ReactiveSceneView(
+    context: Context,
+    private val renderBackground: Boolean = true,
+    private val renderVisualizer: Boolean = true,
+) : View(context) {
 
     private val paint = Paint(Paint.ANTI_ALIAS_FLAG)
     private val strokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -169,11 +173,15 @@ class ReactiveSceneView(context: Context) : View(context) {
     }
 
     private fun drawScene(canvas: Canvas, spec: SceneSpec, now: Long, alpha: Float) {
-        drawBackground(canvas, spec, now, alpha)
-        when (spec.visualizerType) {
-            VisualizerType.RADIAL -> drawRadial(canvas, spec, now, alpha)
-            VisualizerType.WAVE_RIBBON -> drawWaveRibbon(canvas, spec, now, alpha)
-            VisualizerType.SPECTRUM_BARS -> drawSpectrumBars(canvas, spec, now, alpha)
+        if (renderBackground) {
+            drawBackground(canvas, spec, now, alpha)
+        }
+        if (renderVisualizer) {
+            when (spec.visualizerType) {
+                VisualizerType.RADIAL -> drawRadial(canvas, spec, now, alpha)
+                VisualizerType.WAVE_RIBBON -> drawWaveRibbon(canvas, spec, now, alpha)
+                VisualizerType.SPECTRUM_BARS -> drawSpectrumBars(canvas, spec, now, alpha)
+            }
         }
     }
 

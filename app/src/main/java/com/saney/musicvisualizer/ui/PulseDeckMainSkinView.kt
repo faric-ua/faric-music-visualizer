@@ -37,6 +37,13 @@ class PulseDeckMainSkinView(
     private val transparentBackground: Boolean = false,
 ) : View(context) {
 
+    data class ObjectInfo(
+        val id: String,
+        val label: String,
+        val groupCode: String,
+        val groupLabel: String,
+    )
+
     private enum class PulseDeckSubsystem(
         val code: String,
     ) {
@@ -112,6 +119,9 @@ class PulseDeckMainSkinView(
 
     private val layers =
         loadManifest()
+
+    private val objectVisibility =
+        mutableMapOf<String, Boolean>()
 
     private val bitmaps =
         mutableMapOf<String, Bitmap>()
@@ -357,6 +367,99 @@ class PulseDeckMainSkinView(
         playing = value
         postInvalidateOnAnimation()
     }
+
+
+    fun setObjectVisible(
+        objectId: String,
+        visible: Boolean,
+    ) {
+        objectVisibility[objectId] = visible
+        postInvalidateOnAnimation()
+    }
+
+    fun isObjectVisible(
+        objectId: String,
+    ): Boolean = objectVisibility[objectId] != false
+
+    fun objectVisibilityItems(): List<ObjectInfo> =
+        buildList {
+            layers.forEach { layer ->
+                val subsystem =
+                    subsystemFor(layer.id)
+                add(
+                    ObjectInfo(
+                        id = layer.id,
+                        label = objectLabel(layer.id),
+                        groupCode = subsystem.code,
+                        groupLabel = subsystemLabel(subsystem),
+                    ),
+                )
+            }
+
+            add(
+                ObjectInfo(
+                    id = "header_title",
+                    label = "Header title",
+                    groupCode = PulseDeckSubsystem.NAVIGATION.code,
+                    groupLabel = subsystemLabel(PulseDeckSubsystem.NAVIGATION),
+                ),
+            )
+            add(
+                ObjectInfo(
+                    id = "track_info",
+                    label = "Track info",
+                    groupCode = PulseDeckSubsystem.TRACK_UI.code,
+                    groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
+                ),
+            )
+            add(
+                ObjectInfo(
+                    id = "progress_time",
+                    label = "Elapsed / total time",
+                    groupCode = PulseDeckSubsystem.TRACK_UI.code,
+                    groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
+                ),
+            )
+            add(
+                ObjectInfo(
+                    id = "progress_thumb",
+                    label = "Progress thumb",
+                    groupCode = PulseDeckSubsystem.TRACK_UI.code,
+                    groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
+                ),
+            )
+        }
+            .distinctBy { item ->
+                item.id
+            }
+            .sortedWith(
+                compareBy<ObjectInfo> { item ->
+                    item.groupCode
+                }.thenBy { item ->
+                    item.label
+                },
+            )
+
+    private fun subsystemLabel(
+        subsystem: PulseDeckSubsystem,
+    ): String =
+        when (subsystem) {
+            PulseDeckSubsystem.ATMOSPHERE -> "6.0 · Atmosphere"
+            PulseDeckSubsystem.REACTOR -> "6.1 · Reactor"
+            PulseDeckSubsystem.TRACK_UI -> "6.2 · Track UI"
+            PulseDeckSubsystem.TRANSPORT -> "6.3 · Transport"
+            PulseDeckSubsystem.QUICK_ACTIONS -> "6.4 · Quick Actions"
+            PulseDeckSubsystem.NAVIGATION -> "6.5 · Navigation"
+        }
+
+    private fun objectLabel(
+        id: String,
+    ): String =
+        id
+            .replace('_', ' ')
+            .replaceFirstChar { ch ->
+                ch.uppercaseChar()
+            }
 
     fun setPlaybackContent(
         title: String,
@@ -954,6 +1057,11 @@ class PulseDeckMainSkinView(
         w: Float,
         h: Float,
     ) {
+        val objectVisible =
+            isObjectVisible(
+                layer.id,
+            )
+
         val isChrome =
             layer.z >=
                 CONTROL_Z_MIN
@@ -991,7 +1099,9 @@ class PulseDeckMainSkinView(
 
         if (layer.id == "waveform") return
         if (layer.id == "progress_line") {
-            drawProgressLine(canvas, w, h, layer)
+            if (objectVisible) {
+                drawProgressLine(canvas, w, h, layer)
+            }
             return
         }
 
@@ -1276,6 +1386,25 @@ class PulseDeckMainSkinView(
                     0.5f,
             )
 
+        // Keep geometry stable even when an individual object is hidden.
+        // Child controls use their parent rect for local coordinates, so a hidden
+        // rail must still resolve its layout or its children would visibly jump.
+        resolvedRects[layer.id] =
+            RectF(rect)
+        if (layer.id == "play_pause") {
+            resolvedRects[
+                if (effectivePlaying) {
+                    "pause"
+                } else {
+                    "play"
+                }
+            ] = RectF(rect)
+        }
+
+        if (!objectVisible) {
+            return
+        }
+
         val reactiveAlpha =
             when (layer.reactive) {
                 "ambient" ->
@@ -1476,12 +1605,6 @@ class PulseDeckMainSkinView(
 
         bitmapPaint.xfermode = null
 
-        resolvedRects[layer.id] =
-            RectF(rect)
-        if (layer.id == "play_pause") {
-            resolvedRects[if (effectivePlaying) "pause" else "play"] = RectF(rect)
-        }
-
         val action =
             layer.action
 
@@ -1574,23 +1697,25 @@ class PulseDeckMainSkinView(
             h *
                 (0.069f + headerOffset.second)
 
-        drawCenteredText(
-            canvas = canvas,
-            text = "FARIC PulseDeck",
-            x = headerX,
-            y = headerY,
-            size = w * 0.052f,
-            color = Color.WHITE,
-            bold = true,
-        )
-
-        resolvedRects["header_title"] =
-            RectF(
-                headerX - w * 0.24f,
-                headerY - h * 0.035f,
-                headerX + w * 0.24f,
-                headerY + h * 0.014f,
+        if (isObjectVisible("header_title")) {
+            drawCenteredText(
+                canvas = canvas,
+                text = "FARIC PulseDeck",
+                x = headerX,
+                y = headerY,
+                size = w * 0.052f,
+                color = Color.WHITE,
+                bold = true,
             )
+
+            resolvedRects["header_title"] =
+                RectF(
+                    headerX - w * 0.24f,
+                    headerY - h * 0.035f,
+                    headerX + w * 0.24f,
+                    headerY + h * 0.014f,
+                )
+        }
 
         val trackOffset =
             editorOffsets["track_info"]
@@ -1602,53 +1727,55 @@ class PulseDeckMainSkinView(
             h *
                 trackOffset.second
 
-        drawCenteredText(
-            canvas = canvas,
-            text = title,
-            x = trackX,
-            y = h * 0.485f + trackDy,
-            size = w * 0.052f,
-            color = Color.WHITE,
-            bold = true,
-        )
-
-        drawCenteredText(
-            canvas = canvas,
-            text = artist,
-            x = trackX,
-            y = h * 0.515f + trackDy,
-            size = w * 0.037f,
-            color =
-                Color.rgb(
-                    190,
-                    202,
-                    212,
-                ),
-            bold = false,
-        )
-
-        drawCenteredText(
-            canvas = canvas,
-            text = status,
-            x = trackX,
-            y = h * 0.538f + trackDy,
-            size = w * 0.026f,
-            color =
-                Color.rgb(
-                    164,
-                    182,
-                    194,
-                ),
-            bold = false,
-        )
-
-        resolvedRects["track_info"] =
-            RectF(
-                trackX - w * 0.30f,
-                h * 0.455f + trackDy,
-                trackX + w * 0.30f,
-                h * 0.548f + trackDy,
+        if (isObjectVisible("track_info")) {
+            drawCenteredText(
+                canvas = canvas,
+                text = title,
+                x = trackX,
+                y = h * 0.485f + trackDy,
+                size = w * 0.052f,
+                color = Color.WHITE,
+                bold = true,
             )
+
+            drawCenteredText(
+                canvas = canvas,
+                text = artist,
+                x = trackX,
+                y = h * 0.515f + trackDy,
+                size = w * 0.037f,
+                color =
+                    Color.rgb(
+                        190,
+                        202,
+                        212,
+                    ),
+                bold = false,
+            )
+
+            drawCenteredText(
+                canvas = canvas,
+                text = status,
+                x = trackX,
+                y = h * 0.538f + trackDy,
+                size = w * 0.026f,
+                color =
+                    Color.rgb(
+                        164,
+                        182,
+                        194,
+                    ),
+                bold = false,
+            )
+
+            resolvedRects["track_info"] =
+                RectF(
+                    trackX - w * 0.30f,
+                    h * 0.455f + trackDy,
+                    trackX + w * 0.30f,
+                    h * 0.548f + trackDy,
+                )
+        }
 
         val progressOffset =
             editorOffsets["progress_group"]
@@ -1660,25 +1787,27 @@ class PulseDeckMainSkinView(
             h *
                 progressOffset.second
 
-        drawCenteredText(
-            canvas = canvas,
-            text = elapsed,
-            x = w * 0.085f + progressDx,
-            y = h * 0.625f + progressDy,
-            size = w * 0.031f,
-            color = Color.WHITE,
-            bold = true,
-        )
+        if (isObjectVisible("progress_time")) {
+            drawCenteredText(
+                canvas = canvas,
+                text = elapsed,
+                x = w * 0.085f + progressDx,
+                y = h * 0.625f + progressDy,
+                size = w * 0.031f,
+                color = Color.WHITE,
+                bold = true,
+            )
 
-        drawCenteredText(
-            canvas = canvas,
-            text = total,
-            x = w * 0.915f + progressDx,
-            y = h * 0.625f + progressDy,
-            size = w * 0.031f,
-            color = Color.WHITE,
-            bold = true,
-        )
+            drawCenteredText(
+                canvas = canvas,
+                text = total,
+                x = w * 0.915f + progressDx,
+                y = h * 0.625f + progressDy,
+                size = w * 0.031f,
+                color = Color.WHITE,
+                bold = true,
+            )
+        }
 
         textPaint.alpha = 255
     }
@@ -1717,6 +1846,7 @@ class PulseDeckMainSkinView(
         w: Float,
         h: Float,
     ) {
+        if (!isObjectVisible("waveform")) return
         if (spectrum.isEmpty()) return
 
         val waveformOffset = editorOffsets["waveform"] ?: (0f to 0f)
@@ -1874,6 +2004,8 @@ class PulseDeckMainSkinView(
         w: Float,
         h: Float,
     ) {
+        if (!isObjectVisible("progress_thumb")) return
+
         val left = w * 0.055f
         val right = w * 0.945f
         val progressOffset = editorOffsets["progress_group"] ?: (0f to 0f)

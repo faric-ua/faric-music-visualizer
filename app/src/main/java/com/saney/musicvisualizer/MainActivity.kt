@@ -2082,21 +2082,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showBoardTransform() {
-        if (!isLayeredBoardTheme(selectedThemeId)) {
-            toast("Board Transform доступний для layered GF")
-            return
-        }
+        val gfThemeId =
+            GF_THEME_ID
 
         screen = Screen.BOARD_TRANSFORM
         sceneOrchestrator.stop()
         clearScreenRefs()
 
         var transform =
-            boardTransformStore.load(selectedThemeId)
+            boardTransformStore.load(gfThemeId)
 
         var groupReaction =
             boardGroupReactionStore.load(
-                selectedThemeId,
+                gfThemeId,
             )
 
         val selectedLayer =
@@ -2105,7 +2103,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         var selectedLayerTransform =
             selectedLayer?.let { layerId ->
                 boardLayerTransformStore.load(
-                    selectedThemeId,
+                    gfThemeId,
                     layerId,
                 )
             }
@@ -2122,7 +2120,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 view.setGroupReaction(groupReaction)
                 view.setLayerTransforms(
                     boardLayerTransformStore.loadAll(
-                        selectedThemeId,
+                        gfThemeId,
                     ),
                 )
                 view.setPlaying(latestSnapshot.isPlaying)
@@ -2144,6 +2142,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         ): String =
             when (layerId) {
                 null -> "Усе GF"
+                BoardLayerId.BACKGROUND -> "Background / Glow"
                 BoardLayerId.FRAME -> "Frame"
                 BoardLayerId.FX -> "FX"
                 BoardLayerId.CREATURE -> "Shark"
@@ -2273,6 +2272,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val selectorItems =
             listOf(
                 null to "Усе",
+                BoardLayerId.BACKGROUND to "BG/Glow",
                 BoardLayerId.FRAME to "Frame",
                 BoardLayerId.CREATURE to "Shark",
                 BoardLayerId.WORDMARK to "FARIC",
@@ -2346,7 +2346,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 value.sanitized()
 
             boardTransformStore.save(
-                selectedThemeId,
+                gfThemeId,
                 transform,
             )
 
@@ -2362,7 +2362,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 value.sanitized()
 
             boardGroupReactionStore.save(
-                selectedThemeId,
+                gfThemeId,
                 groupReaction,
             )
 
@@ -2382,7 +2382,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 safe
 
             boardLayerTransformStore.save(
-                selectedThemeId,
+                gfThemeId,
                 layerId,
                 safe,
             )
@@ -2765,7 +2765,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ) {
                     boardTransformStore
                         .fitSafeArea(
-                            selectedThemeId,
+                            gfThemeId,
                         )
 
                     showBoardTransform()
@@ -2785,14 +2785,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     accent = false,
                 ) {
                     boardTransformStore.reset(
-                        selectedThemeId,
+                        gfThemeId,
                     )
                     boardGroupReactionStore.reset(
-                        selectedThemeId,
+                        gfThemeId,
                     )
                     boardLayerTransformStore
                         .resetAll(
-                            selectedThemeId,
+                            gfThemeId,
                         )
                     showBoardTransform()
                 },
@@ -3065,7 +3065,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     accent = false,
                 ) {
                     boardLayerTransformStore.reset(
-                        selectedThemeId,
+                        gfThemeId,
                         layerId,
                     )
                     showBoardTransform()
@@ -4283,15 +4283,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 showThemePicker()
 
             Screen.BOARD_TRANSFORM ->
-                if (
-                    isLayeredBoardTheme(
-                        selectedThemeId,
-                    )
-                ) {
-                    showBoardTransform()
-                } else {
-                    showNowPlaying()
-                }
+                showBoardTransform()
 
             Screen.EXPORT_LAB ->
                 showExportLab()

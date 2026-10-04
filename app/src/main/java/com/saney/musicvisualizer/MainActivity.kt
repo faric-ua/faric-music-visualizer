@@ -682,6 +682,29 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             liveScene,
         )
 
+        if (isLayeredBoardTheme(selectedThemeId)) {
+            val boardView =
+                HeroBoardView(this).also { view ->
+                    view.setGroupTransform(
+                        boardTransformStore.load(selectedThemeId),
+                    )
+                    view.setGroupReaction(
+                        boardGroupReactionStore.load(selectedThemeId),
+                    )
+                    view.setLayerTransforms(
+                        boardLayerTransformStore.loadAll(selectedThemeId),
+                    )
+                    view.setPlaying(latestSnapshot.isPlaying)
+                    view.updateSignal(latestSignal)
+                }
+
+            heroBoardView = boardView
+            layerStack.setContent(
+                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                boardView,
+            )
+        }
+
         val skinView =
             PulseDeckMainSkinView(
                 this,

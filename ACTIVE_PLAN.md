@@ -926,8 +926,8 @@ Implementation:
 - [x] Remove the old `selectedThemeId == VISUALIZER` gate from the FARIC SceneOrchestrator so Layer 0 keeps reacting while GF is enabled.
 - [x] Add layer/object configuration export to JSON, including GF transforms/reaction and projectM preset id.
 - [x] Bump candidate to v0.18.4 / versionCode 83.
-- [ ] Exact-HEAD Validate PASS.
-- [ ] Exact-HEAD Android workflow PASS.
+- [x] Exact-HEAD Validate PASS — run #652 on `b81e81743b5f`.
+- [x] Exact-HEAD Android workflow PASS — run #387 on `b81e81743b5f`; unit tests, APK build, signer/zipalign verification and artifact upload all PASS.
 - [ ] Phone: choose a projectM preset, Back, verify it appears in Layer 0 on the main page.
 - [ ] Phone: Layer 0 projectM and FARIC reactive subobjects toggle independently.
 - [ ] Phone: GF and Layer 0 run together; selecting/editing GF no longer disables the visualizer.

@@ -16,8 +16,8 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 74
-        versionName = "0.16.0"
+        versionCode = 75
+        versionName = "0.16.1"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

@@ -784,31 +784,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         onPlaybackSnapshot(latestSnapshot)
     }
 
-    private fun showNowPlaying() {
-        screen = Screen.NOW_PLAYING
-        clearScreenRefs()
-
-        val root =
-            FrameLayout(this).apply {
-                setBackgroundColor(COLOR_BG)
-            }
-
-        val layerStack =
-            PulseDeckLayerStack(this)
-        pulseDeckLayerStack = layerStack
-
-        root.addView(
-            layerStack,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            ),
-        )
-
+    private fun attachLayer0Visualizer(
+        stack: PulseDeckLayerStack,
+    ) {
         val visualizerLayer =
             FrameLayout(this)
 
-        layerStack.setContent(
+        stack.setContent(
             PulseDeckLayerStack.Layer.VISUALIZER,
             visualizerLayer,
         )
@@ -873,9 +855,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 renderBackground = false,
                 renderVisualizer = true,
             ).also { view ->
-                view.setScene(currentScene)
-                view.updateSignal(latestSignal)
-                view.setPlaying(latestSnapshot.isPlaying)
+                view.setScene(
+                    currentScene,
+                )
+                view.updateSignal(
+                    latestSignal,
+                )
+                view.setPlaying(
+                    latestSnapshot.isPlaying,
+                )
                 view.visibility =
                     if (
                         layerObjectVisible(
@@ -888,7 +876,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         View.GONE
                     }
             }
-        sceneView = liveScene
+
+        sceneView =
+            liveScene
 
         visualizerLayer.addView(
             liveScene,
@@ -896,6 +886,32 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ),
+        )
+    }
+
+    private fun showNowPlaying() {
+        screen = Screen.NOW_PLAYING
+        clearScreenRefs()
+
+        val root =
+            FrameLayout(this).apply {
+                setBackgroundColor(COLOR_BG)
+            }
+
+        val layerStack =
+            PulseDeckLayerStack(this)
+        pulseDeckLayerStack = layerStack
+
+        root.addView(
+            layerStack,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+
+        attachLayer0Visualizer(
+            layerStack,
         )
 
         val overVisualization =

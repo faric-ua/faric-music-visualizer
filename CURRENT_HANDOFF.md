@@ -1312,3 +1312,26 @@ Phone acceptance:
 - S5 transport and S6 quick actions have independent runtime visibility; metadata/progress/live spectrum stay visible.
 - Candidate version: v0.14.2 / build 68.
 - Pending: exact-HEAD Android workflow PASS and phone visual acceptance.
+
+
+## v0.18.0 — over-visualization split
+
+Recovered/confirmed on 2026-10-04:
+- canonical app repository remains `faric-ua/faric-music-visualizer`;
+- the previous attempt did not lose the implementation: current main already contains the new 8-slot `PulseDeckLayerStack` and `OverVisualizationView`;
+- target stack is now:
+  `0 Visualizer → 1 Надвізуалізація → 2 Big Equalizer → 3 GF → 4 GIF → 5 Effects → 6 PulseDeck 🔒 → 7 Service`;
+- Layer 0 and Layer 1 have separate persistent visibility controls;
+- `447504` is stored as `skin/pulsedeck_hud/over_visualization/over_visualization_447504.webp` and is loaded by `OverVisualizationView`;
+- the Android app includes the repository-level `skin/` directory through `assets.srcDir("../skin")`, so this binary WebP is packaged without a duplicate copy under `app/src/main/assets`;
+- Layer 1 uses center-crop + 5% overscan per edge + SCREEN blend;
+- old PulseDeck Photo Reactor logic was removed from the active path;
+- PulseDeck internal subsystem numbering is now 6.0–6.5, matching locked Layer 6;
+- the old layer architecture document was stale and has now been updated to the implemented 0..7 contract.
+
+Next evidence gate:
+1. Android workflow PASS for exact v0.18.0 HEAD;
+2. install exact signed APK on the phone;
+3. verify Layer 0 and Layer 1 independently ON/OFF;
+4. verify 447504 crop/overscan on the physical display;
+5. verify all higher layers preserve the new +1 Z-order and PulseDeck geometry is unchanged.

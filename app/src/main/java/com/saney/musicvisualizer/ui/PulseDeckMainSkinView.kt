@@ -47,12 +47,12 @@ class PulseDeckMainSkinView(
     private enum class PulseDeckSubsystem(
         val code: String,
     ) {
-        ATMOSPHERE("5.0"),
-        REACTOR("5.1"),
-        TRACK_UI("5.2"),
-        TRANSPORT("5.3"),
-        QUICK_ACTIONS("5.4"),
-        NAVIGATION("5.5"),
+        ATMOSPHERE("6.0"),
+        REACTOR("6.1"),
+        TRACK_UI("6.2"),
+        TRANSPORT("6.3"),
+        QUICK_ACTIONS("6.4"),
+        NAVIGATION("6.5"),
     }
 
     private data class SkinLayer(

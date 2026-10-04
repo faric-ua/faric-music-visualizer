@@ -50,10 +50,10 @@ The current `OverVisualizationView`:
 - renders full-screen;
 - uses center-crop;
 - applies 5% overscan per edge (110% total width/height target);
-- uses SCREEN blending so dark areas reveal Layer 0 below;
+- renders the complete image normally as Layer 1, including its black background; no SCREEN transparency/blending is applied;
 - is controlled independently from Layer 0 by persistent layer visibility state.
 
-Layer 0 and Layer 1 must never be coupled: either can be enabled while the other is disabled.
+Layer 0 and Layer 1 must never be coupled: either can be enabled while the other is disabled. When Layer 1 is enabled, its complete full-screen image sits above Layer 0.
 
 ## GF internal hierarchy
 

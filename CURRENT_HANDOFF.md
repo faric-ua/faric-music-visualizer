@@ -1348,3 +1348,27 @@ Corrected:
 - Higher Z-order remains unchanged: 2 Big Equalizer → 3 GF → 4 GIF → 5 Effects → 6 PulseDeck 🔒 → 7 Service.
 
 Next: exact-head Android build, then phone verification of Layer 1 ON/OFF independently from Layer 0.
+
+## v0.18.2 — Layers panel rebuild
+
+The layer-control problem was traced to both UI and rendering issues.
+
+Current control contract:
+- Layer 0 Visualizer — parent ON/OFF.
+- Layer 1 Надвізуалізація / 447504 — parent ON/OFF.
+- Layer 2 Big Equalizer — parent ON/OFF.
+- Layer 3 GF — parent ON/OFF plus independent GF objects: background/glow, frame, FX, creature, wordmark.
+- Layer 4 GIF/Animation — parent slot shown; currently empty.
+- Layer 5 Effects — parent ON/OFF.
+- Layer 6 PulseDeck 🔒 — container remains locked ON, but internal groups 6.0 Atmosphere, 6.1 Reactor, 6.2 Track UI, 6.3 Transport, 6.4 Quick Actions, 6.5 Navigation and their objects are independently toggleable.
+- Layer 7 Service Overlay — shown as service slot.
+
+Important fixes:
+- old single-choice + multi-choice AlertDialog collision removed;
+- toggles no longer dismiss/reopen the panel;
+- GF Layer 3 no longer paints an opaque fullscreen black background;
+- hidden PulseDeck parent rails still resolve geometry, preventing child icons from jumping;
+- object visibility persists and is reapplied on recreation.
+
+Candidate: v0.18.2 / build 81.
+Next gate: exact-head Validate + Android PASS, then physical-phone QA of nested toggles and lifecycle persistence.

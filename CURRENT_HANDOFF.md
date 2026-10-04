@@ -1372,3 +1372,17 @@ Important fixes:
 
 Candidate: v0.18.2 / build 81.
 Next gate: exact-head Validate + Android PASS, then physical-phone QA of nested toggles and lifecycle persistence.
+
+## v0.18.3 — draggable layers panel
+
+Phone UX correction:
+- the Layers/Object panel is now a floating control surface about 30% of screen height rather than a near-fullscreen dialog;
+- it can be dragged anywhere on screen by the header;
+- background dimming is removed, so visual changes are visible immediately;
+- the panel does not close/reopen when toggles change;
+- X/Y position persists;
+- header includes reset-to-center and close controls;
+- outside-panel touches are allowed to reach Now Playing;
+- layer/object hierarchy from v0.18.2 remains unchanged.
+
+Candidate: v0.18.3 / build 82.

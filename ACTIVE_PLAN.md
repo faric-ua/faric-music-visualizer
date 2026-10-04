@@ -816,3 +816,27 @@ User-authorized Layer 5 refactor. Classic geometry remains available and unchang
 - [x] Android workflow PASS on implementation candidate.
 - [ ] Phone compare Classic vs Photo Reactor.
 - [ ] Phone verify Photo Reactor crop/scale, lower Layer 5 alignment, and no F-core leakage.
+
+
+## PulseDeck v0.18.0 — Over-visualization layer split
+
+User-authorized correction: the 447504 artwork is not part of PulseDeck. It is a separate independently switchable layer directly above the base visualizer.
+
+- [x] Expand canonical render stack from 0..6 to 0..7.
+- [x] Layer 0 = Visualizer; independent persistent visibility.
+- [x] Layer 1 = Надвізуалізація / Over-visualization; independent persistent visibility.
+- [x] Layer 1 uses user artwork 447504 as a full-screen center-crop overlay with 5% overscan per edge.
+- [x] Store the active artwork as `skin/pulsedeck_hud/over_visualization/over_visualization_447504.webp` and load it through the repository-level `skin/` Android assets source.
+- [x] Shift Big Equalizer → Layer 2, GF → Layer 3, GIF → Layer 4, Effects → Layer 5, PulseDeck 🔒 → Layer 6, Service Overlay → Layer 7.
+- [x] Renumber PulseDeck internal subsystem codes from 5.x to 6.x without moving approved PulseDeck geometry.
+- [x] Retire the old Photo Reactor variant/path from active PulseDeck rendering.
+- [x] Update persistent layer keys/compatibility mapping and presets for the new stack.
+- [x] Add preset: Visualizer + Надвізуалізація.
+- [x] Keep PulseDeck Layer 6 forcibly visible and not user-toggleable.
+- [x] Update the canonical layer architecture document to the implemented 0..7 contract.
+- [ ] Exact-HEAD Android workflow PASS for v0.18.0.
+- [ ] Phone verify Layer 0 can be toggled independently of Layer 1.
+- [ ] Phone verify Layer 1 can be toggled independently of Layer 0.
+- [ ] Phone verify 447504 full-screen crop/overscan on the target device and no exposed image edges.
+- [ ] Phone verify Big EQ / GF / GIF / Effects / PulseDeck Z-order after the +1 shift.
+- [ ] Phone verify locked PulseDeck geometry remains unchanged.

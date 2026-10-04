@@ -853,3 +853,33 @@ Correction after user review:
 - [ ] Phone verify: with Layer 1 ON, the complete 447504 image is visible full-screen.
 - [ ] Phone verify: Layer 1 OFF reveals Layer 0 Visualizer independently.
 - [ ] Phone verify: Layer 0 OFF + Layer 1 ON still shows the complete 447504 image.
+
+## PulseDeck v0.18.2 — hierarchical layer/object controls
+
+User finding: the Layers panel behaved inconsistently and some layers appeared to jump or cover other layers.
+
+Root causes found:
+- [x] The old AlertDialog tried to use `setSingleChoiceItems()` and `setMultiChoiceItems()` in the same list; the second list configuration replaced the first and preset selection dismissed/reopened the dialog, causing visible jumping.
+- [x] Layer 3 GF rendered an opaque full-screen black background, so enabling GF could hide Layers 0–2 and make layer toggles look broken.
+- [x] PulseDeck child controls use parent rail rectangles for local coordinates; object hiding must preserve parent geometry or children can jump.
+
+Implementation:
+- [x] Replace the old layer list/preset dialog with one stable custom scrollable hierarchy. No dismiss/reopen on toggle.
+- [x] Show every canonical Layer 0–7 in the control panel.
+- [x] Keep Layer 6 PulseDeck container locked/visible, but expose its internal subsystems 6.0–6.5.
+- [x] Expose individual PulseDeck manifest objects plus dynamic HUD objects for independent ON/OFF control.
+- [x] Expose Layer 3 GF objects: background/glow, frame, FX, creature, wordmark.
+- [x] Persist every object visibility state in `pulsedeck_layers`.
+- [x] Restore persisted GF and PulseDeck object visibility when Now Playing is recreated.
+- [x] Keep hidden PulseDeck parent geometry resolved so child objects do not shift when a parent rail is hidden.
+- [x] Remove the opaque full-screen fill from Layer 3 GF; retain only transparent/local glow/HUD decoration.
+- [x] Remove obsolete preset-dialog code from the active UI path.
+- [x] Bump candidate to v0.18.2 / versionCode 81.
+- [ ] Exact-HEAD Validate PASS for v0.18.2.
+- [ ] Exact-HEAD Android build PASS for v0.18.2.
+- [ ] Phone: Layers panel opens once and stays stable while toggling many entries.
+- [ ] Phone: Layer 0–5 parent toggles work without unexpected redraw/jump.
+- [ ] Phone: GF object toggles work independently and no longer hide lower layers with a black fullscreen fill.
+- [ ] Phone: PulseDeck groups 6.0–6.5 and every listed object toggle independently.
+- [ ] Phone: hiding transport/quick-action rails does not move their still-enabled child icons.
+- [ ] Phone: rotation/app recreation preserves parent-layer and object visibility state.

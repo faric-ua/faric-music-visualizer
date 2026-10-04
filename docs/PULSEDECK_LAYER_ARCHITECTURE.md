@@ -34,7 +34,7 @@ flowchart TB
 
 | Layer | System | Role |
 |---:|---|---|
-| 0 | Visualizer | Absolute bottom canvas. Full-screen music-reactive visualizations. Independently toggleable. |
+| 0 | Visualizer | Absolute bottom composite. Contains independent `projectM` selected-preset background + FARIC reactive visualizer foreground. Parent and both subobjects are independently toggleable. |
 | 1 | Надвізуалізація / Over-visualization | Independent full-screen artwork above Visualizer. Current artwork: `447504`, stored as `skin/pulsedeck_hud/over_visualization/over_visualization_447504.webp`. Independently toggleable. |
 | 2 | Big Equalizer | Large colored rounded bars. Independent from PulseDeck Spectrum and Visualizer `SPECTRUM_BARS`. |
 | 3 | GF — Graphic Figures | Layered graphic compositions such as Cyber Shark. |
@@ -55,17 +55,30 @@ The current `OverVisualizationView`:
 
 Layer 0 and Layer 1 must never be coupled: either can be enabled while the other is disabled. When Layer 1 is enabled, its complete full-screen image sits above Layer 0.
 
+
+### Layer 0 internal objects
+
+```text
+Layer 0 · Visualizer
+├── projectm        — last preset selected in the projectM/Visualizer screen
+└── faric_reactive  — FARIC ReactiveScene foreground (RADIAL / WAVE_RIBBON / SPECTRUM_BARS)
+```
+
+These are composition objects, not mutually-exclusive playback themes. Selecting/editing Layer 3 GF must not stop Layer 0.
+
 ## GF internal hierarchy
 
-GF is a composition container with independently controllable sublayers.
+GF is a composition container with independently controllable sublayers. The current production set exposes **Background/Glow, Frame, FX, Creature and Wordmark**. Each has persistent visibility; all five also use the Board transform system, including Background/Glow X/Y, scale, rotation and opacity.
 
 ```mermaid
 flowchart TB
-    GF["Layer 3 — GF container<br/>Cyber Shark"]
+    GF["Layer 3 — GF container<br/>current production set: Cyber Shark"]
+    BG["GF.background<br/>local glow / arcs / particles"]
     W["GF.wordmark<br/>text / logo"]
     C["GF.creature<br/>main creature/object"]
     FX["GF.fx<br/>local effects"]
     F["GF.frame<br/>graphic frame"]
+    GF --> BG
     GF --> W
     GF --> C
     GF --> FX

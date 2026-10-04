@@ -1410,3 +1410,9 @@ Asset boundary:
 
 Candidate: v0.18.4 / build 83.
 Next gate: exact-head Android PASS, then phone verification of projectM return-to-main, simultaneous Layer 0 + GF, BG/Glow transforms, and JSON export.
+
+v0.18.4 CI evidence:
+- Validate #652 — PASS on app/source SHA `b81e81743b5fd628fdfae9fbcb70841dcbe600db`.
+- Android #387 — PASS on the same app/source SHA.
+- Unit tests, debug APK build, stable signer verification, zipalign/badging checks and artifact upload all completed successfully.
+- Later documentation-only commits do not change APK source; the Termux APK downloader may legitimately select run #387 for the current docs-only HEAD.

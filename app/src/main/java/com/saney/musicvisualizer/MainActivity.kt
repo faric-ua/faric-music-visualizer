@@ -1198,20 +1198,176 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showPulseDeckLayersDialog() {
+        val metrics =
+            resources.displayMetrics
+        val screenWidth =
+            metrics.widthPixels
+        val screenHeight =
+            metrics.heightPixels
+
+        // Keep the panel readable, but make it occupy only ~30% of the
+        // physical screen height so the composition remains visible while
+        // layers/objects are toggled.
+        val panelWidth =
+            (screenWidth * 0.88f)
+                .toInt()
+                .coerceAtLeast(
+                    dp(280),
+                )
+                .coerceAtMost(
+                    screenWidth,
+                )
+        val panelHeight =
+            (screenHeight * 0.30f)
+                .toInt()
+                .coerceAtLeast(
+                    dp(220),
+                )
+                .coerceAtMost(
+                    screenHeight,
+                )
+
+        val dialog =
+            android.app.Dialog(
+                this,
+            ).apply {
+                requestWindowFeature(
+                    android.view.Window
+                        .FEATURE_NO_TITLE,
+                )
+                setCanceledOnTouchOutside(
+                    false,
+                )
+            }
+
+        val panel =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.VERTICAL
+                background =
+                    GradientDrawable().apply {
+                        setColor(
+                            Color.argb(
+                                235,
+                                35,
+                                35,
+                                38,
+                            ),
+                        )
+                        cornerRadius =
+                            dp(14)
+                                .toFloat()
+                    }
+                setPadding(
+                    dp(8),
+                    dp(4),
+                    dp(8),
+                    dp(6),
+                )
+            }
+
+        val header =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+                gravity =
+                    Gravity.CENTER_VERTICAL
+                setPadding(
+                    dp(8),
+                    dp(2),
+                    dp(2),
+                    dp(2),
+                )
+            }
+
+        val title =
+            TextView(this).apply {
+                text =
+                    "☰  Шари та об'єкти · тягни панель"
+                textSize = 15f
+                setTextColor(
+                    Color.WHITE,
+                )
+                setTypeface(
+                    typeface,
+                    Typeface.BOLD,
+                )
+            }
+
+        header.addView(
+            title,
+            LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f,
+            ),
+        )
+
+        val resetPosition =
+            TextView(this).apply {
+                text = "◎"
+                textSize = 22f
+                gravity = Gravity.CENTER
+                contentDescription =
+                    "Повернути панель у центр"
+                setPadding(
+                    dp(10),
+                    dp(4),
+                    dp(10),
+                    dp(4),
+                )
+                setTextColor(
+                    Color.WHITE,
+                )
+            }
+
+        val close =
+            TextView(this).apply {
+                text = "✕"
+                textSize = 20f
+                gravity = Gravity.CENTER
+                contentDescription =
+                    "Закрити панель"
+                setPadding(
+                    dp(10),
+                    dp(4),
+                    dp(8),
+                    dp(4),
+                )
+                setTextColor(
+                    Color.WHITE,
+                )
+                setOnClickListener {
+                    dialog.dismiss()
+                }
+            }
+
+        header.addView(
+            resetPosition,
+        )
+        header.addView(
+            close,
+        )
+        panel.addView(
+            header,
+        )
+
         val container =
             LinearLayout(this).apply {
-                orientation = LinearLayout.VERTICAL
+                orientation =
+                    LinearLayout.VERTICAL
                 setPadding(
-                    dp(12),
-                    dp(6),
-                    dp(12),
-                    dp(18),
+                    dp(4),
+                    0,
+                    dp(4),
+                    dp(10),
                 )
             }
 
         val scroll =
             ScrollView(this).apply {
-                isFillViewport = true
+                isFillViewport = false
+                isVerticalScrollBarEnabled = true
                 addView(
                     container,
                     FrameLayout.LayoutParams(
@@ -1221,6 +1377,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 )
             }
 
+        panel.addView(
+            scroll,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                0,
+                1f,
+            ),
+        )
+
         fun addSectionLabel(
             text: String,
             leftPaddingDp: Int = 0,
@@ -1228,13 +1393,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             container.addView(
                 TextView(this).apply {
                     this.text = text
-                    textSize = 13f
-                    setTextColor(COLOR_MUTED)
+                    textSize = 12f
+                    setTextColor(
+                        COLOR_MUTED,
+                    )
                     setPadding(
                         dp(leftPaddingDp),
-                        dp(8),
+                        dp(5),
                         0,
-                        dp(2),
+                        dp(1),
                     )
                 },
             )
@@ -1252,17 +1419,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val groupBox =
                 android.widget.CheckBox(this).apply {
                     text =
-                        "↳ $groupLabel · об'єктів: ${objects.size}"
-                    textSize = 14f
+                        "↳ $groupLabel · ${objects.size}"
+                    textSize = 13f
                     setPadding(
-                        dp(18),
-                        dp(2),
+                        dp(12),
                         0,
-                        dp(2),
+                        0,
+                        0,
                     )
                 }
 
-            container.addView(groupBox)
+            container.addView(
+                groupBox,
+            )
 
             fun refreshGroupState() {
                 updatingGroup = true
@@ -1277,15 +1446,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             objects.forEach { item ->
                 val child =
                     android.widget.CheckBox(this).apply {
-                        text = item.label + "  [" + item.id + "]"
-                        textSize = 13f
+                        text = item.label
+                        textSize = 12f
                         isChecked =
                             layerObjectVisible(
                                 layer,
                                 item.id,
                             )
                         setPadding(
-                            dp(42),
+                            dp(30),
                             0,
                             0,
                             0,
@@ -1304,7 +1473,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
 
                 childBoxes += child
-                container.addView(child)
+                container.addView(
+                    child,
+                )
             }
 
             refreshGroupState()
@@ -1316,8 +1487,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
                 updatingGroup = true
                 childBoxes.forEach { child ->
-                    if (child.isChecked != checked) {
-                        child.isChecked = checked
+                    if (
+                        child.isChecked !=
+                            checked
+                    ) {
+                        child.isChecked =
+                            checked
                     }
                 }
                 updatingGroup = false
@@ -1372,11 +1547,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 val suffix =
                     when {
                         objects.isNotEmpty() ->
-                            " · об'єктів: ${objects.size}"
+                            " · ${objects.size}"
 
                         layer ==
                             PulseDeckLayerStack.Layer.GIF_ANIMATION ->
-                            " · порожній слот"
+                            " · порожньо"
 
                         layer ==
                             PulseDeckLayerStack.Layer.SERVICE_OVERLAY ->
@@ -1388,13 +1563,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 val layerBox =
                     android.widget.CheckBox(this).apply {
                         text =
-                            "Layer ${layer.z} · $layerName$suffix"
-                        textSize = 16f
+                            "L${layer.z} · $layerName$suffix"
+                        textSize = 14f
                         setPadding(
                             0,
-                            dp(8),
+                            dp(4),
                             0,
-                            dp(2),
+                            0,
                         )
 
                         when (layer) {
@@ -1406,7 +1581,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             PulseDeckLayerStack.Layer.SERVICE_OVERLAY -> {
                                 isChecked =
                                     pulseDeckLayerStack
-                                        ?.isLayerVisible(layer)
+                                        ?.isLayerVisible(
+                                            layer,
+                                        )
                                         ?: true
                                 isEnabled = false
                             }
@@ -1434,7 +1611,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     }
                 }
 
-                container.addView(layerBox)
+                container.addView(
+                    layerBox,
+                )
 
                 if (objects.isNotEmpty()) {
                     if (
@@ -1454,14 +1633,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         groupObjects
                                             .firstOrNull()
                                             ?.groupLabel
-                                            ?: "PulseDeck objects",
-                                    objects = groupObjects,
+                                            ?: "PulseDeck",
+                                    objects =
+                                        groupObjects,
                                 )
                             }
                     } else {
                         addObjectGroup(
                             layer = layer,
-                            groupLabel = "GF objects",
+                            groupLabel =
+                                "GF objects",
                             objects = objects,
                         )
                     }
@@ -1470,25 +1651,198 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         PulseDeckLayerStack.Layer.GIF_ANIMATION
                 ) {
                     addSectionLabel(
-                        "↳ Поки немає активних GIF-об'єктів",
-                        leftPaddingDp = 18,
+                        "↳ Немає активних GIF",
+                        leftPaddingDp = 14,
                     )
                 }
             }
 
-        android.app.AlertDialog
-            .Builder(this)
-            .setTitle(
-                "Шари та об'єкти",
+        dialog.setContentView(
+            panel,
+        )
+        dialog.show()
+
+        val window =
+            dialog.window
+                ?: return
+
+        window.setBackgroundDrawable(
+            android.graphics.drawable
+                .ColorDrawable(
+                    Color.TRANSPARENT,
+                ),
+        )
+        window.clearFlags(
+            android.view.WindowManager
+                .LayoutParams
+                .FLAG_DIM_BEHIND,
+        )
+        window.addFlags(
+            android.view.WindowManager
+                .LayoutParams
+                .FLAG_NOT_TOUCH_MODAL,
+        )
+        window.setGravity(
+            Gravity.TOP or
+                Gravity.START,
+        )
+        window.setLayout(
+            panelWidth,
+            panelHeight,
+        )
+
+        val positionPrefs =
+            layerPrefs()
+        val maxX =
+            (
+                screenWidth -
+                    panelWidth
+                )
+                .coerceAtLeast(
+                    0,
+                )
+        val maxY =
+            (
+                screenHeight -
+                    panelHeight
+                )
+                .coerceAtLeast(
+                    0,
+                )
+
+        fun setPanelPosition(
+            x: Int,
+            y: Int,
+            persist: Boolean,
+        ) {
+            val safeX =
+                x.coerceIn(
+                    0,
+                    maxX,
+                )
+            val safeY =
+                y.coerceIn(
+                    0,
+                    maxY,
+                )
+
+            val attrs =
+                window.attributes
+            attrs.x = safeX
+            attrs.y = safeY
+            window.attributes = attrs
+
+            if (persist) {
+                positionPrefs
+                    .edit()
+                    .putInt(
+                        KEY_LAYER_PANEL_X,
+                        safeX,
+                    )
+                    .putInt(
+                        KEY_LAYER_PANEL_Y,
+                        safeY,
+                    )
+                    .apply()
+            }
+        }
+
+        val defaultX =
+            (
+                (screenWidth -
+                    panelWidth) /
+                    2
+                )
+        val defaultY =
+            (
+                (screenHeight -
+                    panelHeight) /
+                    2
+                )
+
+        setPanelPosition(
+            x =
+                positionPrefs.getInt(
+                    KEY_LAYER_PANEL_X,
+                    defaultX,
+                ),
+            y =
+                positionPrefs.getInt(
+                    KEY_LAYER_PANEL_Y,
+                    defaultY,
+                ),
+            persist = false,
+        )
+
+        resetPosition.setOnClickListener {
+            setPanelPosition(
+                x = defaultX,
+                y = defaultY,
+                persist = true,
             )
-            .setView(
-                scroll,
-            )
-            .setPositiveButton(
-                "Готово",
-                null,
-            )
-            .show()
+        }
+
+        var dragStartRawX = 0f
+        var dragStartRawY = 0f
+        var dragStartWindowX = 0
+        var dragStartWindowY = 0
+
+        header.setOnTouchListener { _, event ->
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    dragStartRawX =
+                        event.rawX
+                    dragStartRawY =
+                        event.rawY
+                    val attrs =
+                        window.attributes
+                    dragStartWindowX =
+                        attrs.x
+                    dragStartWindowY =
+                        attrs.y
+                    true
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    val nextX =
+                        dragStartWindowX +
+                            (
+                                event.rawX -
+                                    dragStartRawX
+                                )
+                                .toInt()
+                    val nextY =
+                        dragStartWindowY +
+                            (
+                                event.rawY -
+                                    dragStartRawY
+                                )
+                                .toInt()
+
+                    setPanelPosition(
+                        x = nextX,
+                        y = nextY,
+                        persist = false,
+                    )
+                    true
+                }
+
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL,
+                -> {
+                    val attrs =
+                        window.attributes
+                    setPanelPosition(
+                        x = attrs.x,
+                        y = attrs.y,
+                        persist = true,
+                    )
+                    true
+                }
+
+                else -> false
+            }
+        }
     }
 
     private fun showBoardTransform() {

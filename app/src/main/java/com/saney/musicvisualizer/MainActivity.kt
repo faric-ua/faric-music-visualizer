@@ -3338,9 +3338,67 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 },
             )
 
-            panelContent.addView(
+            val layerQuickRow =
+                LinearLayout(this).apply {
+                    orientation =
+                        LinearLayout.HORIZONTAL
+                    gravity =
+                        Gravity.CENTER
+                }
+
+            layerQuickRow.addView(
                 actionPill(
-                    text = "Скинути ${layerTitle(layerId)}",
+                    text = "Центр",
+                    accent = false,
+                ) {
+                    layerValue =
+                        layerValue.copy(
+                            offsetXFraction = 0f,
+                            offsetYFraction = 0f,
+                        )
+                    persistLayerTransform(
+                        layerId,
+                        layerValue,
+                    )
+                    showBoardTransform()
+                },
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(46),
+                    1f,
+                ).apply {
+                    marginEnd = dp(4)
+                },
+            )
+
+            layerQuickRow.addView(
+                actionPill(
+                    text = "100%",
+                    accent = false,
+                ) {
+                    layerValue =
+                        layerValue.copy(
+                            scale = 1f,
+                        )
+                    persistLayerTransform(
+                        layerId,
+                        layerValue,
+                    )
+                    showBoardTransform()
+                },
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(46),
+                    1f,
+                ).apply {
+                    marginStart = dp(2)
+                    marginEnd = dp(2)
+                },
+            )
+
+            layerQuickRow.addView(
+                actionPill(
+                    text = "Reset",
                     accent = false,
                 ) {
                     boardLayerTransformStore.reset(
@@ -3350,8 +3408,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     showBoardTransform()
                 },
                 LinearLayout.LayoutParams(
+                    0,
+                    dp(46),
+                    1f,
+                ).apply {
+                    marginStart = dp(4)
+                },
+            )
+
+            panelContent.addView(
+                layerQuickRow,
+                LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(48),
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
                 ).apply {
                     topMargin = dp(8)
                 },

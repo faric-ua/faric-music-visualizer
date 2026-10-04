@@ -779,3 +779,16 @@ User-authorized implementation after layer-theory review.
 - [ ] Exact-HEAD CI after this documentation commit.
 - [ ] Phone verify all three presets and manual toggles.
 - [ ] Phone verify PulseDeck geometry remains unchanged and Layer 5 cannot be disabled.
+
+
+## PulseDeck v0.16.3 — spring press feedback
+
+- [x] Keep existing cyan/white pressed ring.
+- [x] While a control is held: scale its rendered object to 80% of its approved baseline size.
+- [x] On release: spring to 150% of baseline, then settle back to 100%.
+- [x] Add a soft cyan neon backing glow behind the active control.
+- [x] Preserve original hit zones and approved object coordinates.
+- [x] Leaving the hit zone while still holding cancels back to 100% without the release overshoot.
+- [x] Validate workflow PASS.
+- [x] Android workflow PASS.
+- [ ] Phone verify press/hold/release feel on transport, quick actions, Back and Menu.

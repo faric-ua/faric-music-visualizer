@@ -715,6 +715,12 @@ class HeroBoardView(context: Context) : View(context) {
                 cx = cx,
                 cy = cy,
                 minSide = minSide,
+                groupTransform = transform,
+                groupRotationDegrees = groupRotationDegrees,
+                layerTransform =
+                    layerTransform(
+                        BoardLayerId.BACKGROUND,
+                    ),
             )
         }
 
@@ -1160,7 +1166,58 @@ class HeroBoardView(context: Context) : View(context) {
         cx: Float,
         cy: Float,
         minSide: Float,
+        groupTransform: BoardTransform,
+        groupRotationDegrees: Float,
+        layerTransform: BoardLayerTransform,
     ) {
+        val layerCx =
+            cx +
+                w *
+                    layerTransform
+                        .offsetXFraction
+        val layerCy =
+            cy +
+                h *
+                    layerTransform
+                        .offsetYFraction
+
+        val alpha =
+            (
+                255f *
+                    groupTransform.opacity *
+                    layerTransform.opacity
+                )
+                .toInt()
+                .coerceIn(
+                    0,
+                    255,
+                )
+
+        val saveCount =
+            canvas.saveLayerAlpha(
+                0f,
+                0f,
+                w,
+                h,
+                alpha,
+            )
+
+        canvas.rotate(
+            groupRotationDegrees +
+                layerTransform.rotationDegrees,
+            layerCx,
+            layerCy,
+        )
+        canvas.scale(
+            layerTransform.scale,
+            layerTransform.scale,
+            layerCx,
+            layerCy,
+        )
+        canvas.translate(
+            layerCx - cx,
+            layerCy - cy,
+        )
         // Layer 3 must stay compositing-friendly: never paint an opaque
         // full-screen background over Layers 0–2. Keep only local glow/HUD
         // decoration around the GF object.
@@ -1419,6 +1476,10 @@ class HeroBoardView(context: Context) : View(context) {
                 fill,
             )
         }
+
+        canvas.restoreToCount(
+            saveCount,
+        )
     }
 
     private fun decodeSafely(

@@ -1202,21 +1202,21 @@ class HeroBoardView(context: Context) : View(context) {
                 alpha,
             )
 
+        canvas.translate(
+            layerCx - cx,
+            layerCy - cy,
+        )
         canvas.rotate(
             groupRotationDegrees +
                 layerTransform.rotationDegrees,
-            layerCx,
-            layerCy,
+            cx,
+            cy,
         )
         canvas.scale(
             layerTransform.scale,
             layerTransform.scale,
-            layerCx,
-            layerCy,
-        )
-        canvas.translate(
-            layerCx - cx,
-            layerCy - cy,
+            cx,
+            cy,
         )
         // Layer 3 must stay compositing-friendly: never paint an opaque
         // full-screen background over Layers 0–2. Keep only local glow/HUD

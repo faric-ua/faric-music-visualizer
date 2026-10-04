@@ -9,7 +9,6 @@ import android.graphics.PorterDuff
 import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.RectF
-import android.util.Base64
 import android.view.View
 
 /**
@@ -118,49 +117,14 @@ class OverVisualizationView(
 
     private fun loadArtwork(): Bitmap? =
         runCatching {
-            val dir =
-                "pulsedeck_hud/over_visualization"
-            val parts =
-                context.assets
-                    .list(dir)
-                    .orEmpty()
-                    .filter { name ->
-                        name.startsWith(
-                            "over_visualization_447504.part",
-                        )
-                    }
-                    .sorted()
-
-            if (parts.isEmpty()) {
-                return@runCatching null
-            }
-
-            val encoded =
-                buildString {
-                    parts.forEach { part ->
-                        append(
-                            context.assets
-                                .open(
-                                    "$dir/$part",
-                                )
-                                .bufferedReader()
-                                .use { reader ->
-                                    reader.readText()
-                                },
-                        )
-                    }
-                }
-
-            val bytes =
-                Base64.decode(
-                    encoded,
-                    Base64.DEFAULT,
+            context.assets
+                .open(
+                    "pulsedeck_hud/over_visualization/over_visualization_447504.webp",
                 )
-
-            BitmapFactory.decodeByteArray(
-                bytes,
-                0,
-                bytes.size,
-            )
+                .use { input ->
+                    BitmapFactory.decodeStream(
+                        input,
+                    )
+                }
         }.getOrNull()
 }

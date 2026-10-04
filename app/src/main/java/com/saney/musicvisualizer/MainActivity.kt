@@ -1214,7 +1214,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 isFillViewport = true
                 addView(
                     container,
-                    ScrollView.LayoutParams(
+                    FrameLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT,
                     ),

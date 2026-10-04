@@ -53,7 +53,7 @@ class OverVisualizationView(
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
 
-        val overscan = 1.05f
+        val overscan = 1.10f
         val targetWidth = w * overscan
         val targetHeight = h * overscan
         val target =

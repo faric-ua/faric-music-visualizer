@@ -25,8 +25,8 @@ The product direction now also includes a configurable multi-layer Board, a sepa
 1. `CURRENT_HANDOFF.md`
 2. `BUILD_CHECKPOINTS.md`
 3. `ACTIVE_PLAN.md`
-5. `docs/product/PRODUCT_VISION.md`
-4. `docs/architecture/ARCHITECTURE.md`
+4. `docs/product/PRODUCT_VISION.md`
+5. `docs/architecture/ARCHITECTURE.md`
 6. `docs/architecture/FARIC_LAYERED_BOARD_VISION.md`
 7. `docs/visualizer/assets/ASSET_INDEX.md`
 8. `docs/diagrams/FARIC_PROJECT_ATLAS.md`

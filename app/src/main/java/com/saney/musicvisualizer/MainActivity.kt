@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -75,6 +76,8 @@ import com.saney.musicvisualizer.ui.BigEqualizerView
 import com.saney.musicvisualizer.ui.OverVisualizationView
 import com.saney.musicvisualizer.ui.PulseDeckLayerStack
 import com.saney.musicvisualizer.ui.ReactiveSceneView
+import java.io.File
+import java.io.FileOutputStream
 import java.util.Locale
 import org.json.JSONArray
 import org.json.JSONObject
@@ -132,6 +135,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var projectMMainView: ProjectMView? = null
     private var projectMMainResumed = false
     private var projectMExportSnapshot: Bitmap? = null
+    private var projectMExportLiveView: ProjectMView? = null
+    private var projectMExportLiveResumed = false
     private var effectsView: ReactiveSceneView? = null
     private var bigEqualizerView: BigEqualizerView? = null
     private var pulseDeckLayerStack: PulseDeckLayerStack? = null
@@ -462,6 +467,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         controller.listener = this
         controller.emitCurrentState()
         updateProjectMRenderState()
+
+        if (
+            screen == Screen.EXPORT_LAB &&
+            !projectMExportLiveResumed
+        ) {
+            projectMExportLiveView
+                ?.onResume()
+            projectMExportLiveResumed =
+                projectMExportLiveView !=
+                null
+        }
     }
 
     override fun onStop() {
@@ -472,6 +488,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         if (projectMMainResumed) {
             projectMMainView?.onPause()
             projectMMainResumed = false
+        }
+        if (projectMExportLiveResumed) {
+            projectMExportLiveView?.onPause()
+            projectMExportLiveResumed = false
         }
         controller.listener = null
         super.onStop()
@@ -5330,6 +5350,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun clearScreenRefs() {
+        if (projectMExportLiveResumed) {
+            projectMExportLiveView
+                ?.onPause()
+            projectMExportLiveResumed =
+                false
+        }
+        projectMExportLiveView
+            ?.releaseProjectM()
+        projectMExportLiveView =
+            null
+
         if (projectMMainResumed) {
             projectMMainView?.onPause()
             projectMMainResumed = false

@@ -52,3 +52,34 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   1. install the v0.19.1 build-90 artifact on the phone;
   2. run the 3-second offline preview;
   3. if PASS, run full-song export while the live player is paused or positioned away from 0:00.
+
+
+---
+
+## 2026-10-05 — Fast export surface pipeline — Android PASS
+
+- Status: BUILD PASS / phone performance QA pending.
+- App version metadata at this build: v0.19.1 / build 90.
+- App/source commit: `9d19c8b3017aa3b39657fdc844f0464d3d4cf716`.
+- Android workflow: #459.
+- Workflow run id: `37348700831`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.1-Debug`.
+- Artifact id: `11361767355`.
+- Artifact digest: `sha256:c827cd4784e5d6a3a728fb53f308d6aaae9b446c80292b2249facbe2088709ab`.
+- Successfully completed in this build:
+  - added EGL-backed MediaCodec input-surface bridge;
+  - removed the per-frame `Bitmap.getPixels -> IntArray -> Kotlin ARGB->YUV420` conversion from the video hot path;
+  - offline frame timestamps are submitted explicitly to the encoder surface;
+  - composition still uses the same deterministic offline timeline and active-layer renderer;
+  - H.264 remains hardware MediaCodec + AAC source-audio mux.
+- Supporting CI:
+  - Validate #746 — PASS on the same source commit.
+- Not yet proven:
+  - physical-phone export speedup;
+  - orientation correctness of EGL-uploaded frame;
+  - full-song stability and thermal behavior;
+  - whether projectM framebuffer readback is now the dominant bottleneck.
+- Resume exactly here:
+  1. keep this commit as the known-good Surface-encoder checkpoint;
+  2. remove avoidable per-frame projectM readback allocations;
+  3. bump/release the combined optimization as v0.19.2 only after the next Android PASS.

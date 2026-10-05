@@ -4668,6 +4668,131 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
+    private fun captureProjectMExportFrames(
+        view: ProjectMView,
+        frameCount: Int,
+        fps: Int,
+    ): List<File> {
+        val directory =
+            File(
+                cacheDir,
+                "projectm-export-" +
+                    System.currentTimeMillis(),
+            )
+
+        check(
+            directory.mkdirs() ||
+                directory.isDirectory,
+        ) {
+            "Не вдалося створити projectM cache"
+        }
+
+        val files =
+            ArrayList<File>(
+                frameCount,
+            )
+
+        val startedNs =
+            System.nanoTime()
+
+        try {
+            repeat(
+                frameCount,
+            ) { frameIndex ->
+                val targetNs =
+                    startedNs +
+                        frameIndex *
+                        1_000_000_000L /
+                        fps
+
+                while (true) {
+                    val remainingNs =
+                        targetNs -
+                            System.nanoTime()
+
+                    if (remainingNs <= 0L) {
+                        break
+                    }
+
+                    val sleepMs =
+                        remainingNs /
+                            1_000_000L
+                    val sleepNs =
+                        (
+                            remainingNs %
+                                1_000_000L
+                            )
+                            .toInt()
+
+                    Thread.sleep(
+                        sleepMs,
+                        sleepNs,
+                    )
+                }
+
+                val bitmap =
+                    view.captureFrameBlocking()
+                        ?: error(
+                            "projectM framebuffer capture failed at frame $frameIndex",
+                        )
+
+                val file =
+                    File(
+                        directory,
+                        "frame-" +
+                            frameIndex
+                                .toString()
+                                .padStart(
+                                    3,
+                                    '0',
+                                ) +
+                            ".jpg",
+                    )
+
+                FileOutputStream(
+                    file,
+                ).use { output ->
+                    check(
+                        bitmap.compress(
+                            Bitmap.CompressFormat.JPEG,
+                            95,
+                            output,
+                        ),
+                    ) {
+                        "projectM JPEG encode failed"
+                    }
+                }
+
+                bitmap.recycle()
+                files +=
+                    file
+            }
+
+            return files
+        } catch (error: Throwable) {
+            files.forEach { file ->
+                file.delete()
+            }
+            directory.delete()
+            throw error
+        }
+    }
+
+    private fun deleteProjectMExportFrames(
+        files: List<File>,
+    ) {
+        val parent =
+            files
+                .firstOrNull()
+                ?.parentFile
+
+        files.forEach { file ->
+            file.delete()
+        }
+
+        parent?.delete()
+    }
+
     private fun exportProofVideo() {
         val analysis =
             offlineAnalysis
@@ -4696,12 +4821,77 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val compositionConfig =
             currentCompositionExportConfig()
 
+        val exportStartMs =
+            snapshot.positionMs
+                .coerceAtMost(
+                    (
+                        analysis.durationMs -
+                            500L
+                        )
+                        .coerceAtLeast(
+                            0L,
+                        ),
+                )
+
+        val exportDurationMs =
+            minOf(
+                PROJECTM_EXPORT_DURATION_MS,
+                (
+                    analysis.durationMs -
+                        exportStartMs
+                    )
+                    .coerceAtLeast(
+                        0L,
+                    ),
+            )
+                .coerceAtLeast(
+                    500L,
+                )
+
+        val projectMView =
+            projectMExportLiveView
+                ?.takeIf {
+                    compositionConfig
+                        .projectMVisible
+                }
+
         toast(
-            "Рендерю 3 с композиції H.264 + AAC…",
+            if (projectMView != null) {
+                "Захоплюю projectM і рендерю композицію…"
+            } else {
+                "Рендерю 3 с композиції H.264 + AAC…"
+            },
         )
 
         thread(name = "faric-h264-proof") {
+            var projectMFrames:
+                List<File> =
+                emptyList()
+
             runCatching {
+                if (projectMView != null) {
+                    val frameCount =
+                        maxOf(
+                            1,
+                            (
+                                exportDurationMs *
+                                    PROJECTM_EXPORT_FPS /
+                                    1000L
+                                )
+                                .toInt(),
+                        )
+
+                    projectMFrames =
+                        captureProjectMExportFrames(
+                            view =
+                                projectMView,
+                            frameCount =
+                                frameCount,
+                            fps =
+                                PROJECTM_EXPORT_FPS,
+                        )
+                }
+
                 ShortVideoExportProof.export(
                     context = this,
                     sourceAudioUri =
@@ -4724,15 +4914,34 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             "Невідомий виконавець"
                         },
                     startMs =
-                        snapshot.positionMs
-                            .coerceAtMost(
-                                (analysis.durationMs - 500L)
-                                    .coerceAtLeast(0L),
-                            ),
+                        exportStartMs,
                     compositionConfig =
                         compositionConfig,
+                    projectMFrameProvider =
+                        if (
+                            projectMFrames.isNotEmpty()
+                        ) {
+                            { frameIndex, _ ->
+                                projectMFrames
+                                    .getOrNull(
+                                        frameIndex,
+                                    )
+                                    ?.let { file ->
+                                        BitmapFactory
+                                            .decodeFile(
+                                                file.absolutePath,
+                                            )
+                                    }
+                            }
+                        } else {
+                            null
+                        },
                 )
             }.onSuccess { result ->
+                deleteProjectMExportFrames(
+                    projectMFrames,
+                )
+
                 runOnUiThread {
                     if (result.uri != null) {
                         toast(
@@ -4743,6 +4952,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     }
                 }
             }.onFailure { error ->
+                deleteProjectMExportFrames(
+                    projectMFrames,
+                )
+
                 runOnUiThread {
                     toast(
                         "MP4 proof: ${error.message ?: error.javaClass.simpleName}",

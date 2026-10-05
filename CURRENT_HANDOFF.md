@@ -1525,3 +1525,31 @@ Important architecture note:
 
 Release candidate: v0.19.0 / build 89.
 Phone acceptance is required before calling dynamic projectM export closed.
+
+## v0.19.1 — offline full-song export candidate
+
+This changes the export contract fundamentally: the final video is no longer driven by whatever the live player happens to be doing.
+
+Full-song flow:
+1. User performs offline analysis for the selected local song.
+2. `Експортувати всю пісню MP4` fixes the export range to 0:00 → source end.
+3. If projectM is active, FARIC decodes/caches mono PCM from the source file and resets projectM to a clean export state.
+4. Every video frame sets projectM to the explicit export time `frameIndex / 30`, feeds the matching PCM slice + offline SceneSignal, renders GL, reads that frame and composites the normal layers.
+5. FARIC/GF/EQ/FX/HUD are rendered from the same offline song timestamp.
+6. The finished H.264 stream is muxed with AAC transcoded from the original source audio, not captured from device playback.
+
+The main player may be playing or paused and may be at any position; it is not the export clock and its PCM is suppressed from projectM while Export Lab owns the manual engine.
+
+Current quality target remains 1080p-class / 30 FPS / H.264 + AAC.
+
+Compatibility:
+- FARIC still pins projectM 4.1.7.
+- One narrow build-time patch backports the external frame-time API that is intended upstream for projectM 4.2.
+- Stable-upgrade procedure is documented in `PROJECTM_4_2_MIGRATION.md`; do not track moving upstream 4.2 code.
+
+CI foundation:
+- Validate #735 — PASS on `9123cbfbf61d`.
+- Android #456 — PASS on the same SHA, including native build and signed APK verification.
+
+Release candidate: v0.19.1 / build 90.
+Next gate: exact-head CI for the version bump/docs, then phone testing of 3-second offline preview and full-song 0:00→end export.

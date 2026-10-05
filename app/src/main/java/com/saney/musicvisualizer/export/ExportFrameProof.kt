@@ -21,6 +21,11 @@ object ExportFrameProof {
         timeMs: Long,
         cyberSharkConfig:
             CyberSharkExportConfig? = null,
+        compositionConfig:
+            CompositionExportConfig? = null,
+        title: String = input.title,
+        artist: String = input.artist,
+        durationMs: Long = input.durationMs,
     ): Bitmap {
         val bitmap =
             Bitmap.createBitmap(
@@ -31,7 +36,32 @@ object ExportFrameProof {
 
         val canvas = Canvas(bitmap)
 
-        if (
+        val signal =
+            com.saney.musicvisualizer.analysis
+                .SceneSignal(
+                    amplitude = input.amplitude,
+                    bass = input.bass,
+                    mid = input.mid,
+                    high = input.high,
+                    beatStrength = input.beat,
+                )
+
+        if (compositionConfig != null) {
+            CompositionExportRenderer(
+                context = context,
+                config = compositionConfig,
+            ).render(
+                canvas = canvas,
+                width = bitmap.width,
+                height = bitmap.height,
+                timeMs = timeMs,
+                signal = signal,
+                title = title,
+                artist = artist,
+                durationMs = durationMs,
+                playing = true,
+            )
+        } else if (
             project.themeId ==
                 com.saney.musicvisualizer.theme
                     .PlaybackThemeId.CYBER_SHARK &&
@@ -44,15 +74,7 @@ object ExportFrameProof {
                 width = bitmap.width,
                 height = bitmap.height,
                 timeMs = timeMs,
-                signal =
-                    com.saney.musicvisualizer.analysis
-                        .SceneSignal(
-                            amplitude = input.amplitude,
-                            bass = input.bass,
-                            mid = input.mid,
-                            high = input.high,
-                            beatStrength = input.beat,
-                        ),
+                signal = signal,
                 config =
                     cyberSharkConfig,
             )

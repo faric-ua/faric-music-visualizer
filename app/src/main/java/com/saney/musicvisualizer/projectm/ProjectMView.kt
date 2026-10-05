@@ -23,6 +23,8 @@ class ProjectMView(
     private var foregroundSample: FaricForegroundSample = FaricForegroundSample.PULSE_RAYS,
     private val onTapNext: () -> Unit = {},
     private val manualFrameMode: Boolean = false,
+    private val manualRenderWidth: Int? = null,
+    private val manualRenderHeight: Int? = null,
 ) : GLSurfaceView(context) {
 
     @Volatile
@@ -70,14 +72,55 @@ class ProjectMView(
         super.onSizeChanged(w, h, oldw, oldh)
         if (w <= 0 || h <= 0) return
 
-        val scaledWidth = (w * profile.renderScale).roundToInt().coerceAtLeast(1)
-        val scaledHeight = (h * profile.renderScale).roundToInt().coerceAtLeast(1)
+        val baseWidth =
+            manualRenderWidth
+                ?.takeIf {
+                    it > 0
+                }
+                ?: w
+        val baseHeight =
+            manualRenderHeight
+                ?.takeIf {
+                    it > 0
+                }
+                ?: h
+
+        val scaledWidth =
+            (
+                baseWidth *
+                    profile.renderScale
+                )
+                .roundToInt()
+                .coerceAtLeast(
+                    1,
+                )
+        val scaledHeight =
+            (
+                baseHeight *
+                    profile.renderScale
+                )
+                .roundToInt()
+                .coerceAtLeast(
+                    1,
+                )
 
         post {
-            holder.setFixedSize(scaledWidth, scaledHeight)
+            holder.setFixedSize(
+                scaledWidth,
+                scaledHeight,
+            )
             Log.i(
                 TAG,
-                "surface ${scaledWidth}x${scaledHeight} from ${w}x${h} · ${profile.name}",
+                "surface ${scaledWidth}x${scaledHeight} from " +
+                    "${baseWidth}x${baseHeight} · ${profile.name}" +
+                    if (
+                        manualRenderWidth != null &&
+                        manualRenderHeight != null
+                    ) {
+                        " · manual export geometry"
+                    } else {
+                        ""
+                    },
             )
         }
     }

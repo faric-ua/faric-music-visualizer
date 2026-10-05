@@ -677,6 +677,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val root = FrameLayout(this).apply {
             setBackgroundColor(COLOR_BG)
         }
+
+        attachExportProjectMPreview(
+            root,
+        )
         applySafeArea(root)
 
         val scroll = ScrollView(this).apply {
@@ -3768,6 +3772,82 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             selectedThemeId
         }
 
+    private fun attachExportProjectMPreview(
+        root: FrameLayout,
+    ) {
+        val projectMVisible =
+            layerVisible(
+                PulseDeckLayerStack.Layer.VISUALIZER,
+            ) &&
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "projectm",
+                )
+
+        if (!projectMVisible) {
+            return
+        }
+
+        val state =
+            ProjectMStateStore(
+                this,
+            )
+        val preset =
+            state.lastPresetFileOrNull()
+                ?: return
+        val textureDirectory =
+            ProjectMLibraryManager
+                .textureDir(
+                    this,
+                )
+
+        if (!textureDirectory.isDirectory) {
+            return
+        }
+
+        val view =
+            ProjectMView(
+                context = this,
+                initialPreset = preset,
+                textureDirectory =
+                    textureDirectory,
+                profile =
+                    ProjectMPerformanceProfile
+                        .BALANCED_BACKGROUND,
+                foregroundSample =
+                    state.foregroundSample,
+                onTapNext = {},
+            )
+
+        projectMExportLiveView =
+            view
+
+        root.addView(
+            view,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+
+        root.addView(
+            View(this).apply {
+                setBackgroundColor(
+                    Color.argb(
+                        218,
+                        0,
+                        0,
+                        0,
+                    ),
+                )
+            },
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+    }
+
     private fun showExportLab() {
         screen = Screen.EXPORT_LAB
         sceneOrchestrator.stop()
@@ -4169,6 +4249,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         scroll.addView(content)
         root.addView(scroll)
         setContentView(root)
+
+        projectMExportLiveView
+            ?.onResume()
+        projectMExportLiveResumed =
+            projectMExportLiveView !=
+            null
+
         restorePendingScrollPositions()
         enableImmersiveFullscreen()
     }

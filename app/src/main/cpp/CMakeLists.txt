@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
 include(FetchContent)
+find_package(Git REQUIRED)
 
 # Pin the spike to a stable libprojectM release. Do not build from moving master.
 set(BUILD_SHARED_LIBS ON CACHE BOOL "" FORCE)
@@ -16,6 +17,10 @@ FetchContent_Declare(
     GIT_REPOSITORY https://github.com/projectM-visualizer/projectm.git
     GIT_TAG v4.1.7
     GIT_SHALLOW TRUE
+    PATCH_COMMAND
+        ${CMAKE_COMMAND} -E chdir <SOURCE_DIR>
+        ${GIT_EXECUTABLE} apply --whitespace=nowarn
+        "${CMAKE_CURRENT_LIST_DIR}/patches/projectm-4.1.7-frame-time.patch"
 )
 
 FetchContent_MakeAvailable(projectm)

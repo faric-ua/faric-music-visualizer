@@ -39,6 +39,7 @@ class ProjectMView(
                 texturePath = textureDirectory.absolutePath,
                 profile = profile,
                 foregroundSample = foregroundSample,
+                manualFrameMode = manualFrameMode,
                 onSurfaceSize = { width, height ->
                     glWidth = width
                     glHeight = height
@@ -445,6 +446,7 @@ class ProjectMView(
         private val texturePath: String,
         private val profile: ProjectMPerformanceProfile,
         private val foregroundSample: FaricForegroundSample,
+        private val manualFrameMode: Boolean,
         private val onSurfaceSize: (Int, Int) -> Unit,
     ) : GLSurfaceView.Renderer {
         private var created = false
@@ -481,6 +483,10 @@ class ProjectMView(
         }
 
         override fun onDrawFrame(gl: GL10?) {
+            if (manualFrameMode) {
+                return
+            }
+
             ProjectMBridge.render()
 
             frameCount++

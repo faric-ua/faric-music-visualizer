@@ -30,6 +30,9 @@ object ShortVideoExportProof {
         val height: Int,
         val durationMs: Long,
         val hasAudio: Boolean,
+        val projectMFrameMs: Long,
+        val compositionMs: Long,
+        val encoderSubmitMs: Long,
     )
 
     private const val MIME = "video/avc"
@@ -189,6 +192,13 @@ object ShortVideoExportProof {
             EglBitmapEncoderSurface? =
             null
 
+        var projectMFrameNs =
+            0L
+        var compositionNs =
+            0L
+        var encoderSubmitNs =
+            0L
+
         try {
             encoder.configure(
                 format,
@@ -337,6 +347,9 @@ object ShortVideoExportProof {
                         bitmap,
                     )
 
+                val projectMStartedNs =
+                    System.nanoTime()
+
                 val dynamicProjectMFrame =
                     if (
                         compositionRenderer != null &&
@@ -352,6 +365,13 @@ object ShortVideoExportProof {
                     } else {
                         null
                     }
+
+                projectMFrameNs +=
+                    System.nanoTime() -
+                        projectMStartedNs
+
+                val compositionStartedNs =
+                    System.nanoTime()
 
                 if (
                     compositionRenderer != null
@@ -411,8 +431,15 @@ object ShortVideoExportProof {
                     )
                 }
 
+                compositionNs +=
+                    System.nanoTime() -
+                        compositionStartedNs
+
                 // Offline projectM returns a reusable framebuffer bitmap.
                 // Do not recycle it here; the GL view owns and reuses it.
+                val encoderStartedNs =
+                    System.nanoTime()
+
                 encoderSurface
                     ?.draw(
                         bitmap = bitmap,
@@ -428,6 +455,10 @@ object ShortVideoExportProof {
                 drain(
                     waitForEos = false,
                 )
+
+                encoderSubmitNs +=
+                    System.nanoTime() -
+                        encoderStartedNs
 
                 onProgress(
                     (
@@ -527,6 +558,15 @@ object ShortVideoExportProof {
                 height = height,
                 durationMs = durationMs,
                 hasAudio = true,
+                projectMFrameMs =
+                    projectMFrameNs /
+                        1_000_000L,
+                compositionMs =
+                    compositionNs /
+                        1_000_000L,
+                encoderSubmitMs =
+                    encoderSubmitNs /
+                        1_000_000L,
             )
         } finally {
             videoTemp.delete()

@@ -1129,3 +1129,11 @@ Implementation:
 - [ ] Phone: cancel leaves no corrupt published MP4.
 - [ ] Phone: several-minute export completes without OOM/ANR/black projectM frames.
 - [ ] Measure remaining bottleneck; synchronous projectM `glFinish + glReadPixels + RGBA->ARGB` is the expected next target if export remains too slow.
+
+
+### Preview behavior contract
+
+- The 3-second MP4 preview MUST start at the current playback scrubber/player position.
+- It MUST render the next 3 seconds from that position (clamped only by source end).
+- Do not change the preview to always start at 0:00.
+- Full-song export remains independent and MUST start at 0:00.

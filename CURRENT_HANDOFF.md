@@ -1465,3 +1465,23 @@ Scope boundary:
 
 Candidate: v0.18.6 / build 85.
 Next gate: exact-head CI, then phone comparison of live GF vs PNG/MP4 proof.
+
+## v0.18.7 — composition export v1
+
+The export path has moved from single-theme/GF proof to an active-layer composition renderer.
+
+Current deterministic export stack:
+- L0 FARIC reactive visualizer — included when parent + `faric_reactive` are ON.
+- L0 projectM — detected and shown in Export Lab, but not yet rendered; native GL capture remains the only current gap.
+- L1 447504 — included with the live center-crop/overscan contract.
+- L2 Big Equalizer — included and driven by offline signal.
+- L3 Cyber Shark GF — included with saved group/per-object transforms, visibility and audio reaction.
+- L4 GIF — currently empty.
+- L5 Effects — included as transparent atmospheric SceneSpec FX.
+- L6 PulseDeck — included from modular skin with the 29 persisted object switches, audio state, metadata and progress.
+
+PNG and MP4 use the same `CompositionExportRenderer`.
+MP4 remains a 3-second proof at the existing proof resolution/FPS path with H.264 video + AAC audio.
+
+Candidate: v0.18.7 / build 86.
+Phone acceptance should compare the exported composition against the live layer menu configuration. projectM mismatch is expected until the dedicated native-GL export step.

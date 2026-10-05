@@ -149,3 +149,37 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   2. run the 3-second MP4 preview and verify orientation/colors/audio;
   3. if PASS, export the same full song that was slow in v0.19.1 and compare wall-clock time;
   4. if still too slow, profile/replace synchronous projectM `glFinish + glReadPixels + RGBA->ARGB` readback.
+
+
+---
+
+## 2026-10-05 — Raw projectM offline readback fast path — Android PASS
+
+- Status: BUILD PASS / phone performance QA pending.
+- App version metadata at this build: v0.19.2 / build 91.
+- App/source commit: `73cd730ea9394dd550d3dd87d2de133dc0e7465e`.
+- Android workflow: #464.
+- Workflow run id: `37355612628`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.2-Debug`.
+- Artifact id: `11364308392`.
+- Artifact digest: `sha256:81ae4859e8a51e418427770e49ddd16453b2689404736af094412cbd883e0052`.
+- Successfully completed in this build:
+  - preserved the preview contract: 3-second MP4 starts from the current playback scrubber position;
+  - removed the Kotlin per-pixel RGBA->ARGB loop from the dynamic offline projectM readback path;
+  - removed the explicit `glFinish()` from that hot path and relies on synchronous `glReadPixels`;
+  - copies the reusable GL RGBA buffer directly into the reusable Bitmap;
+  - corrects GL vertical orientation and red/blue channel layout during composition instead of another CPU pixel pass;
+  - keeps the v0.19.2 EGL -> MediaCodec Surface encoder path.
+- Supporting CI:
+  - Validate #759 — PASS on the same source commit.
+- Evidence from user screen recording before this optimization:
+  - a 3.008-second / 90-frame preview took roughly 28 seconds wall-clock to finish;
+  - therefore remaining export performance was about 9x slower than realtime.
+- Not yet proven:
+  - physical-phone speedup after removing the projectM per-pixel loop;
+  - orientation/color correctness of the raw GL correction path;
+  - full-song stability.
+- Resume exactly here:
+  1. promote this optimization to the next build/version;
+  2. build/sign exact release candidate;
+  3. phone-test the same 3-second preview and compare wall-clock time against ~28 seconds.

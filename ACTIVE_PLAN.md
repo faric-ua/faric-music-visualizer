@@ -957,3 +957,28 @@ Implementation:
 - [ ] Phone: Board → BG/Glow keeps Layer 0 visualization visible and aligned exactly as on Now Playing.
 - [ ] Phone: projectM keeps animating and GF remains music-reactive while editing.
 - [ ] Phone: Export Lab → Відкрити папку експорту opens Pictures/FARIC and Movies/FARIC.
+
+## PulseDeck v0.18.6 — GF export proof + compact control UX
+
+Phone feedback after v0.18.5:
+- the full-width GF Background/Glow settings button consumed too much room inside the 30%-height layer panel;
+- the export-folder chooser looked like a raw system dialog rather than PulseDeck UI;
+- Cyber Shark / Layer 3 GF could be configured reactively but Export Lab still reported the active scene as unsupported.
+
+Implementation:
+- [x] Move GF Background/Glow settings into a compact side gear button on the L3 row; remove the large nested settings pill.
+- [x] Replace the raw export-folder AlertDialog with a styled PulseDeck dialog: dark rounded panel, PNG / video destination buttons, close control, explicit Cancel; Android Back/outside touch still dismisses it.
+- [x] Add deterministic Cyber Shark export renderer using the real modular frame / creature / wordmark resources.
+- [x] Reuse current saved GF group transform, group reaction, per-object transforms and per-object visibility during proof rendering.
+- [x] Make Cyber Shark PNG proof music-reactive from the current/offline signal.
+- [x] Make Cyber Shark 3 s MP4 proof music-reactive from offline analysis and keep AAC audio muxed into H.264 MP4.
+- [x] Export source now follows the active Layer 3 GF when L3 is enabled, even if Theme Picker currently points at another/unsupported theme.
+- [x] Export Lab identifies that source as `Layer 3 GF · Cyber Shark`.
+- [x] Bump candidate to v0.18.6 / versionCode 85.
+- [ ] Exact-HEAD Validate PASS.
+- [ ] Exact-HEAD Android workflow PASS.
+- [ ] Phone: L3 row gear opens BG/Glow editor without wasting vertical panel space.
+- [ ] Phone: export-folder chooser matches PulseDeck styling; PNG and Movies buttons open expected folders; Cancel/Back dismiss.
+- [ ] Phone: with L3 GF enabled, PNG proof button is enabled and exports current Cyber Shark pose/visibility.
+- [ ] Phone: after offline analysis, MP4 proof button is enabled and exports a 3 s reactive Cyber Shark clip with audio.
+- [ ] Compare proof against live GF: object positions/scales/visibility should match closely. Full Layer 0/1/2/6 stack export remains a later composition-renderer step.

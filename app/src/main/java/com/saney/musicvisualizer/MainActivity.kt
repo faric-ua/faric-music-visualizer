@@ -3988,30 +3988,193 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showExportFolderChooser() {
-        android.app.AlertDialog
-            .Builder(this)
-            .setTitle(
-                "Папка експорту",
-            )
-            .setItems(
-                arrayOf(
-                    "Кадри PNG · Pictures/FARIC",
-                    "Відео зі звуком · Movies/FARIC",
-                ),
-            ) { _, which ->
-                when (which) {
-                    0 ->
-                        openExportFolder(
-                            "Pictures/FARIC",
-                        )
-
-                    1 ->
-                        openExportFolder(
-                            "Movies/FARIC",
-                        )
-                }
+        val dialog =
+            android.app.Dialog(
+                this,
+            ).apply {
+                requestWindowFeature(
+                    android.view.Window
+                        .FEATURE_NO_TITLE,
+                )
+                setCanceledOnTouchOutside(
+                    true,
+                )
             }
-            .show()
+
+        val panel =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.VERTICAL
+                setPadding(
+                    dp(18),
+                    dp(16),
+                    dp(18),
+                    dp(14),
+                )
+                background =
+                    panelDrawable(
+                        Color.argb(
+                            248,
+                            24,
+                            27,
+                            31,
+                        ),
+                        26,
+                        Color.argb(
+                            95,
+                            255,
+                            255,
+                            255,
+                        ),
+                        1,
+                    )
+            }
+
+        val titleRow =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+                gravity =
+                    Gravity.CENTER_VERTICAL
+            }
+
+        titleRow.addView(
+            label(
+                "Папка експорту",
+                21f,
+                Color.WHITE,
+                true,
+            ),
+            LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f,
+            ),
+        )
+
+        titleRow.addView(
+            TextView(this).apply {
+                text = "✕"
+                textSize = 22f
+                gravity = Gravity.CENTER
+                contentDescription =
+                    "Закрити"
+                setTextColor(
+                    Color.WHITE,
+                )
+                setOnClickListener {
+                    dialog.dismiss()
+                }
+            },
+            LinearLayout.LayoutParams(
+                dp(44),
+                dp(44),
+            ),
+        )
+
+        panel.addView(
+            titleRow,
+        )
+
+        panel.addView(
+            label(
+                "Куди перейти?",
+                12f,
+                COLOR_MUTED,
+                false,
+            ),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                bottomMargin = dp(12)
+            },
+        )
+
+        panel.addView(
+            actionPill(
+                text =
+                    "▣  Кадри PNG\nPictures/FARIC",
+                accent = false,
+            ) {
+                dialog.dismiss()
+                openExportFolder(
+                    "Pictures/FARIC",
+                )
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(66),
+            ).apply {
+                bottomMargin = dp(8)
+            },
+        )
+
+        panel.addView(
+            actionPill(
+                text =
+                    "▶  Відео зі звуком\nMovies/FARIC",
+                accent = false,
+            ) {
+                dialog.dismiss()
+                openExportFolder(
+                    "Movies/FARIC",
+                )
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(66),
+            ),
+        )
+
+        panel.addView(
+            actionPill(
+                text = "Скасувати",
+                accent = false,
+            ) {
+                dialog.dismiss()
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(44),
+            ).apply {
+                topMargin = dp(10)
+            },
+        )
+
+        dialog.setContentView(
+            panel,
+        )
+        dialog.show()
+
+        dialog.window
+            ?.apply {
+                setBackgroundDrawable(
+                    android.graphics.drawable
+                        .ColorDrawable(
+                            Color.TRANSPARENT,
+                        ),
+                )
+                clearFlags(
+                    android.view.WindowManager
+                        .LayoutParams
+                        .FLAG_DIM_BEHIND,
+                )
+                setLayout(
+                    (
+                        resources
+                            .displayMetrics
+                            .widthPixels *
+                            0.86f
+                        )
+                        .toInt(),
+                    ViewGroup.LayoutParams
+                        .WRAP_CONTENT,
+                )
+                setGravity(
+                    Gravity.CENTER,
+                )
+            }
     }
 
     private fun openExportFolder(

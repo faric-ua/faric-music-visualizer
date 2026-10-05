@@ -115,22 +115,28 @@ class CompositionExportRenderer(
         artist: String,
         durationMs: Long,
         playing: Boolean = true,
+        projectMFrameOverride:
+            Bitmap? = null,
     ) {
         canvas.drawColor(
             Color.BLACK,
         )
 
         // Layer 0 · projectM snapshot sits below FARIC reactive content.
+        val projectMFrame =
+            projectMFrameOverride
+                ?: config.projectMFrame
+
         if (
             config.projectMVisible &&
-            config.projectMFrame != null
+            projectMFrame != null
         ) {
             drawProjectMFrame(
                 canvas = canvas,
                 width = width,
                 height = height,
                 bitmap =
-                    config.projectMFrame,
+                    projectMFrame,
             )
         }
 

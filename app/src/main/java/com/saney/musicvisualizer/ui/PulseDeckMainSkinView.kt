@@ -14,6 +14,8 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.os.Handler
+import android.os.Looper
 import androidx.core.graphics.PathParser
 import android.view.GestureDetector
 import android.view.MotionEvent
@@ -236,6 +238,9 @@ class PulseDeckMainSkinView(
                     return false
                 }
             },
+            Handler(
+                Looper.getMainLooper(),
+            ),
         )
 
     init {

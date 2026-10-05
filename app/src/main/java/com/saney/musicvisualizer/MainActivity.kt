@@ -43,6 +43,7 @@ import com.saney.musicvisualizer.board.BoardLayerTransform
 import com.saney.musicvisualizer.board.BoardLayerTransformStore
 import com.saney.musicvisualizer.board.BoardTransform
 import com.saney.musicvisualizer.board.BoardTransformStore
+import com.saney.musicvisualizer.export.CompositionExportConfig
 import com.saney.musicvisualizer.export.CyberSharkExportConfig
 import com.saney.musicvisualizer.export.ExportFrameProof
 import com.saney.musicvisualizer.export.OfflineAnalysisResult
@@ -3751,29 +3752,68 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
         content.addView(header)
 
-        val proofThemeId =
-            exportProofThemeId()
+        val compositionConfig =
+            currentCompositionExportConfig()
 
-        val themeTitle =
-            PlaybackThemeRegistry
-                .byId(proofThemeId)
-                .title
+        val activeLayers =
+            buildList {
+                if (
+                    compositionConfig
+                        .faricReactiveVisible
+                ) {
+                    add("L0 FARIC")
+                }
+                if (
+                    compositionConfig
+                        .projectMVisible
+                ) {
+                    add("L0 projectM*")
+                }
+                if (
+                    compositionConfig
+                        .overVisualizationVisible
+                ) {
+                    add("L1")
+                }
+                if (
+                    compositionConfig
+                        .bigEqualizerVisible
+                ) {
+                    add("L2")
+                }
+                if (
+                    compositionConfig
+                        .graphicFiguresVisible
+                ) {
+                    add("L3 GF")
+                }
+                if (
+                    compositionConfig
+                        .effectsVisible
+                ) {
+                    add("L5 FX")
+                }
+                if (
+                    compositionConfig
+                        .pulseDeckVisible
+                ) {
+                    add("L6 HUD")
+                }
+            }
+                .joinToString(
+                    " + ",
+                )
 
         content.addView(
             label(
-                (
-                    if (
-                        proofThemeId ==
-                            PlaybackThemeId.CYBER_SHARK &&
-                        layerVisible(
-                            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-                        )
-                    ) {
-                        "Proof: Layer 3 GF · $themeTitle"
-                    } else {
-                        "Тема: $themeTitle"
-                    }
-                    ) +
+                "Композиція: " +
+                    (
+                        activeLayers
+                            .takeIf {
+                                it.isNotBlank()
+                            }
+                            ?: "порожньо"
+                        ) +
                     "\nТрек: ${latestSnapshot.trackName ?: "—"}",
                 15f,
                 Color.WHITE,
@@ -3789,7 +3829,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         content.addView(
             label(
-                "Перший export proof: FARIC рендерить кадр не через screenshot UI, а через детермінований renderer. Це той самий шлях, на якому далі буде MP4.",
+                "Composition export рендерить активні шари в їхньому Z-порядку: L0 → L1 → L2 → L3 → L5 → L6. PNG і MP4 використовують один deterministic renderer.",
                 13f,
                 COLOR_MUTED,
                 false,
@@ -3799,9 +3839,37 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply {
                 topMargin = dp(10)
-                bottomMargin = dp(18)
+                bottomMargin =
+                    if (
+                        compositionConfig
+                            .projectMVisible
+                    ) {
+                        dp(8)
+                    } else {
+                        dp(18)
+                    }
             },
         )
+
+        if (
+            compositionConfig
+                .projectMVisible
+        ) {
+            content.addView(
+                label(
+                    "⚠ projectM preset поки не входить у deterministic export. Інші активні шари експортуються. Наступний етап — native GL capture для projectM.",
+                    12f,
+                    COLOR_ACCENT_ORANGE,
+                    true,
+                ),
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    bottomMargin = dp(18)
+                },
+            )
+        }
 
         val currentTrackUri =
             controller
@@ -3913,15 +3981,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
 
         val exportReady =
-            isDeterministicExportReady(
-                proofThemeId,
-            )
+            true
 
         content.addView(
             actionPill(
                 text =
                     if (exportReady) {
-                        "Зберегти тестовий кадр PNG"
+                        "Зберегти кадр композиції PNG"
                     } else {
                         "Ця тема ще не готова до export proof"
                     },
@@ -3952,7 +4018,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             "Спочатку виконай offline analysis"
 
                         else ->
-                            "Експортувати 3 с MP4 зі звуком"
+                            "Експортувати 3 с композиції MP4"
                     },
                 accent =
                     exportReady &&
@@ -3996,7 +4062,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         content.addView(
             label(
-                "PNG proof перевіряє кадр. MP4 proof рендерить 3 секунди відео з offline timeline, кодує фрагмент музики в AAC і mux-ить звук із H.264.",
+                "PNG і MP4 рендерять ту саму конфігурацію активних шарів. MP4 бере реакцію з offline timeline, кодує H.264 і додає AAC звук.",
                 12f,
                 COLOR_MUTED,
                 false,
@@ -4358,6 +4424,66 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
+
+    private fun currentCompositionExportConfig():
+        CompositionExportConfig {
+        val visualizerParentVisible =
+            layerVisible(
+                PulseDeckLayerStack.Layer.VISUALIZER,
+            )
+
+        val projectMVisible =
+            visualizerParentVisible &&
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "projectm",
+                ) &&
+                ProjectMStateStore(this)
+                    .lastPresetFileOrNull() !=
+                null
+
+        return CompositionExportConfig(
+            scene =
+                currentScene,
+            faricReactiveVisible =
+                visualizerParentVisible &&
+                    layerObjectVisible(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        "faric_reactive",
+                    ),
+            projectMVisible =
+                projectMVisible,
+            overVisualizationVisible =
+                layerVisible(
+                    PulseDeckLayerStack.Layer.OVER_VISUALIZATION,
+                ),
+            bigEqualizerVisible =
+                layerVisible(
+                    PulseDeckLayerStack.Layer.BIG_EQUALIZER,
+                ),
+            graphicFiguresVisible =
+                layerVisible(
+                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                ),
+            cyberSharkConfig =
+                currentCyberSharkExportConfig(),
+            effectsVisible =
+                layerVisible(
+                    PulseDeckLayerStack.Layer.EFFECTS,
+                ),
+            pulseDeckVisible =
+                true,
+            pulseDeckObjectVisibility =
+                PULSEDECK_EXPORT_OBJECT_IDS
+                    .associateWith { objectId ->
+                        layerObjectVisible(
+                            PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
+                            objectId,
+                        )
+                    },
+        )
+    }
+
     private fun exportProofVideo() {
         val analysis =
             offlineAnalysis
@@ -4379,18 +4505,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             return
         }
 
-        val snapshot = latestSnapshot
-        val theme =
-            exportProofThemeId()
+        val snapshot =
+            latestSnapshot
         val ratio =
             exportAspectRatio
+        val compositionConfig =
+            currentCompositionExportConfig()
 
-        if (!isDeterministicExportReady(theme)) {
-            toast("Ця тема ще не підтримує H.264 proof")
-            return
-        }
-
-        toast("Рендерю 3 с H.264 + AAC proof…")
+        toast(
+            "Рендерю 3 с композиції H.264 + AAC…",
+        )
 
         thread(name = "faric-h264-proof") {
             runCatching {
@@ -4401,7 +4525,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             ?: error("Current track URI missing"),
                     project =
                         MusicVideoProject(
-                            themeId = theme,
+                            themeId =
+                                PlaybackThemeId.CYBER_SHARK,
                             aspectRatio = ratio,
                             frameRate = 15,
                         ),
@@ -4420,15 +4545,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 (analysis.durationMs - 500L)
                                     .coerceAtLeast(0L),
                             ),
-                    cyberSharkConfig =
-                        if (
-                            theme ==
-                                PlaybackThemeId.CYBER_SHARK
-                        ) {
-                            currentCyberSharkExportConfig()
-                        } else {
-                            null
-                        },
+                    compositionConfig =
+                        compositionConfig,
                 )
             }.onSuccess { result ->
                 runOnUiThread {
@@ -4467,17 +4585,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     snapshot.positionMs,
                 )
                 ?: latestSignal
-        val theme =
-            exportProofThemeId()
         val ratio =
             exportAspectRatio
+        val compositionConfig =
+            currentCompositionExportConfig()
 
-        if (!isDeterministicExportReady(theme)) {
-            toast("Ця тема ще не підтримує export proof")
-            return
-        }
-
-        toast("Рендерю ${ratio.width}×${ratio.height}…")
+        toast(
+            "Рендерю композицію ${ratio.width}×${ratio.height}…",
+        )
 
         thread(name = "faric-export-frame") {
             runCatching {
@@ -4512,29 +4627,29 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         project = project,
                         input = input,
                         timeMs = snapshot.positionMs,
-                        cyberSharkConfig =
+                        compositionConfig =
+                            compositionConfig,
+                        title =
+                            snapshot.trackName.orEmpty(),
+                        artist =
                             if (
-                                theme ==
-                                    PlaybackThemeId.CYBER_SHARK
+                                snapshot.trackName ==
+                                    null
                             ) {
-                                currentCyberSharkExportConfig()
+                                ""
                             } else {
-                                null
+                                "Невідомий виконавець"
                             },
+                        durationMs =
+                            snapshot.durationMs,
                     )
-
-                val safeTheme =
-                    PlaybackThemeRegistry
-                        .byId(theme)
-                        .title
-                        .replace(" ", "-")
 
                 val uri =
                     ExportFrameProof.savePng(
                         context = this,
                         bitmap = bitmap,
                         displayName =
-                            "FARIC-$safeTheme-${System.currentTimeMillis()}.png",
+                            "FARIC-Composition-${System.currentTimeMillis()}.png",
                     )
 
                 bitmap.recycle()

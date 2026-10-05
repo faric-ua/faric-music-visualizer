@@ -1622,3 +1622,16 @@ Next phone metric: rerun the same 3-second preview and compare wall-clock time a
 - Validate #763 — PASS on the v0.19.3 documentation handoff SHA `5e653e9baf8b90959eb5016c73efd5f9977c8386`.
 
 Current gate is phone QA only. The 3-second preview semantics are locked: start from current scrubber position, render the next 3 seconds. The performance baseline to beat is ~28 seconds wall-clock for a 3.008-second / 90-frame preview.
+
+
+### v0.19.3 phone timing evidence
+
+User screen recording `447864.mp4` confirms the same 3-second preview now finishes in roughly 16 seconds wall-clock. The previous v0.19.2 baseline was roughly 28 seconds.
+
+Result:
+- performance improvement: about 43% less wall-clock time;
+- effective render speed: still only about 0.19x realtime / ~5.3x slower than realtime;
+- preview semantics remain current-position based;
+- export completes and publishes a 1080x1920 / 90-frame result.
+
+This is a meaningful PASS for the raw-readback optimization, but NOT a production-speed PASS. Next performance target: reduce the cost of offline projectM rendering/readback itself without changing preview semantics or the 30 fps final video contract.

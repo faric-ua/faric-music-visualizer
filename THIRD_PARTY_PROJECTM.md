@@ -5,6 +5,11 @@ FARIC Music Visualizer integrates **libprojectM 4.1.7**.
 - Upstream: `projectM-visualizer/projectm`
 - Engine license: GNU LGPL-2.1-or-later
 - Native library is fetched from the pinned tag `v4.1.7` at build time.
+- FARIC applies one narrow compatibility patch at build time:
+  `app/src/main/cpp/patches/projectm-4.1.7-frame-time.patch`.
+  It backports only the external frame-time API needed by offline video export.
+- The removal path for that patch after a stable projectM 4.2 release is
+  documented in `PROJECTM_4_2_MIGRATION.md`.
 
 ## Bundled integration presets
 

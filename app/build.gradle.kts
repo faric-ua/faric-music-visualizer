@@ -18,6 +18,7 @@ android {
         targetSdk = 36
         versionCode = 93
         versionName = "0.19.4"
+        // v0.19.4 export-geometry candidate; restart exact signed CI.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

@@ -1161,6 +1161,6 @@ Implementation:
 - [x] Validate PASS for v0.19.3 documentation — #763 PASS on `5e653e9baf8b90959eb5016c73efd5f9977c8386`; later checkpoint docs only.
 - [ ] Phone: 3-second preview starts from current scrubber position.
 - [ ] Phone: orientation/colors remain correct.
-- [ ] Phone: compare 3-second export wall-clock time against the previous ~28 seconds.
+- [x] Phone: 3-second preview wall-clock improved from ~28 s to ~16 s on v0.19.3 (about 43% faster), but is still ~5.3x slower than realtime.
 - [ ] Phone: verify audio sync.
 - [ ] Phone: if preview speed is acceptable, repeat full-song test.

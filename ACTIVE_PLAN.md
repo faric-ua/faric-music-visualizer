@@ -1122,8 +1122,8 @@ Implementation:
 - [x] Validate #749 — PASS on combined optimization source `09b0346310ef2164e0c565fac0866f2775d717ce`.
 - [x] Android #461 — PASS on the same source commit.
 - [x] Promote candidate to v0.19.2 / versionCode 91.
-- [ ] Exact-head Validate PASS for v0.19.2.
-- [ ] Exact-head Android PASS for v0.19.2.
+- [x] Exact-head Validate PASS for v0.19.2 documentation HEAD — Validate #753 PASS on `3e12cc87ed5e0d3ffa52eb13637660c70557b698`.
+- [x] Android PASS for v0.19.2 app/source — Android #462 PASS on `bcab5fc8a1910581627fc82737ab0528e976b702`; later HEAD changes are documentation-only.
 - [ ] Phone: 3-second preview orientation/colors/audio sync remain correct.
 - [ ] Phone: compare full-song wall-clock export time against v0.19.1 on the same track.
 - [ ] Phone: cancel leaves no corrupt published MP4.

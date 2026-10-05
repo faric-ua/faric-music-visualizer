@@ -1009,3 +1009,32 @@ Implemented:
 - [ ] Phone: verify disabled PulseDeck child objects stay absent in exported PNG/MP4.
 - [ ] Phone: verify 9:16 / 16:9 / 1:1 / 4:5 composition geometry.
 - [ ] Next: native GL projectM frame capture/offscreen export so L0 projectM can join the deterministic stack.
+
+## PulseDeck v0.18.8 — high-quality composition proof
+
+- [x] Raise proof export from 540×960 / 15 FPS to 1080p-class / 30 FPS.
+- [x] Raise H.264 bitrate floor for neon/high-detail content.
+- [x] Validate #689 — PASS.
+- [x] Android #416 — PASS.
+- [x] Phone MP4 quality check — PASS: 1080×1920, 30 FPS, ~12.4 Mbps H.264 + AAC.
+
+## PulseDeck v0.18.9 — projectM GL snapshot bridge
+
+Goal: close the largest remaining visual gap in composition export without pretending projectM is already deterministic frame-by-frame.
+
+Implemented:
+- [x] Capture the live projectM framebuffer from the real GLSurfaceView with `glReadPixels`.
+- [x] Flip the OpenGL framebuffer vertically and convert RGBA to Android Bitmap.
+- [x] Capture projectM before opening Export when L0/projectM is visible.
+- [x] Composite the captured projectM frame at the bottom of Layer 0.
+- [x] Center-crop the captured framebuffer to 9:16 / 16:9 / 1:1 / 4:5.
+- [x] Keep FARIC reactive, L2, L3, L5 and L6 animated over the captured projectM snapshot.
+- [x] Avoid prematurely recycling an export snapshot still referenced by background rendering.
+- [x] Candidate: v0.18.9 / versionCode 88.
+- [x] Validate #694 — PASS on `0f8dd2445970`.
+- [x] Android #421 — PASS on `0f8dd2445970`.
+- [x] Phone MP4: real projectM image is present in Layer 0 under GF/HUD.
+- [x] Phone MP4: projectM remains static as designed while GF/HUD/reactive layers change over 3 seconds.
+- [x] Phone MP4: high-quality path remains 1080×1920 / 30 FPS / H.264 ~12.4 Mbps + AAC.
+- [ ] Phone PNG: verify captured projectM frame matches the exact live moment.
+- [ ] Next: true frame-by-frame/offscreen projectM rendering for animated projectM MP4.

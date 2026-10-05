@@ -1612,3 +1612,13 @@ Known-good pre-release source: `73cd730ea9394dd550d3dd87d2de133dc0e7465e`.
 
 Release candidate: v0.19.3 / build 92.
 Next phone metric: rerun the same 3-second preview and compare wall-clock time against the previous ~28 seconds.
+
+
+### v0.19.3 CI closeout
+
+- Android #465 — PASS on exact v0.19.3 app/source `7add461579d259150f52e860d14ad6df226e2793`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.3-Debug`, id `11364403633`.
+- Artifact digest: `sha256:0c15d5ae800ea295541a07b90837f79222e311e48481dd3c93366f71b9701cdc`.
+- Validate #763 — PASS on the v0.19.3 documentation handoff SHA `5e653e9baf8b90959eb5016c73efd5f9977c8386`.
+
+Current gate is phone QA only. The 3-second preview semantics are locked: start from current scrubber position, render the next 3 seconds. The performance baseline to beat is ~28 seconds wall-clock for a 3.008-second / 90-frame preview.

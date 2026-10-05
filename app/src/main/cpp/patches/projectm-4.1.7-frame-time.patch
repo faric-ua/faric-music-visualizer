@@ -1,7 +1,7 @@
 diff --git a/src/api/include/projectM-4/parameters.h b/src/api/include/projectM-4/parameters.h
 --- a/src/api/include/projectM-4/parameters.h
 +++ b/src/api/include/projectM-4/parameters.h
-@@ -44,7 +44,29 @@ PROJECTM_EXPORT void projectm_set_texture_search_paths(projectm_handle instance,
+@@ -45,6 +45,26 @@ PROJECTM_EXPORT void projectm_set_texture_search_paths(projectm_handle instance,
                                                         const char** texture_search_paths,
                                                         size_t count);
  

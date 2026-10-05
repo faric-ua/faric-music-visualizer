@@ -3824,6 +3824,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             return
         }
 
+        ProjectMBridge
+            .beginOfflineExport()
+
         val view =
             ProjectMView(
                 context = this,

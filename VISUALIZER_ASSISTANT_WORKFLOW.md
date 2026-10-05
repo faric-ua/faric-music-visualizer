@@ -49,6 +49,22 @@ For major behavior:
 The first unchecked item is the default resume point.
 Only mark `[x]` when current evidence proves it.
 
+## Successful build checkpoint rule
+
+Every successful Android build / Android GitHub Actions PASS must be recorded immediately in `BUILD_CHECKPOINTS.md` before starting the next implementation step.
+
+Each checkpoint must include:
+- app version + versionCode/build number;
+- exact app/source commit SHA;
+- Android workflow run number and run id;
+- artifact name/id when available;
+- the exact behavior/features successfully completed in that build;
+- what remains unverified, especially physical-phone QA;
+- one explicit next resume step.
+
+If the resume point changes, update `CURRENT_HANDOFF.md` and `ACTIVE_PLAN.md` in the same work cycle.
+Never rely on chat memory alone for a known-good build point.
+
 ## Android lifecycle
 
 Rotation/recreation must restore:

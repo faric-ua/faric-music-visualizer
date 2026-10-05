@@ -251,6 +251,64 @@ class ProjectMView(
         return true
     }
 
+    fun resetOfflineRendererBlocking(
+        timeoutMs: Long = 4_000L,
+    ): Boolean {
+        val width =
+            glWidth
+        val height =
+            glHeight
+
+        if (
+            width <= 0 ||
+            height <= 0
+        ) {
+            return false
+        }
+
+        val latch =
+            CountDownLatch(
+                1,
+            )
+
+        queueEvent {
+            ProjectMBridge.destroy()
+            ProjectMBridge.beginOfflineExport()
+            ProjectMBridge.create(
+                width = width,
+                height = height,
+                presetPath =
+                    initialPreset.absolutePath,
+                texturePath =
+                    textureDirectory.absolutePath,
+                profile =
+                    profile,
+            )
+            ProjectMBridge
+                .enableAutoPresetSwitching(
+                    false,
+                )
+            ProjectMBridge
+                .setForegroundSample(
+                    foregroundSample,
+                )
+            ProjectMBridge
+                .setFrameTime(
+                    0.0,
+                )
+            latch.countDown()
+        }
+
+        return runCatching {
+            latch.await(
+                timeoutMs,
+                TimeUnit.MILLISECONDS,
+            )
+        }.getOrDefault(
+            false,
+        )
+    }
+
     fun renderOfflineFrameBlocking(
         frameTimeSeconds: Double,
         pcm: ShortArray,

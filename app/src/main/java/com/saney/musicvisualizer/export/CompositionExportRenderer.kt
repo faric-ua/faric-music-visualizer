@@ -293,16 +293,19 @@ class CompositionExportRenderer(
                         index *
                         0.73
 
+                val oscillation =
+                    kotlin.math.abs(
+                        kotlin.math.sin(
+                            phase,
+                        ),
+                    ).toFloat()
+
                 (
                     band *
                         (
                             0.72f +
                                 0.28f *
-                                kotlin.math.abs(
-                                    kotlin.math.sin(
-                                        phase,
-                                    ),
-                                )
+                                oscillation
                             ) +
                         signal.amplitude *
                         0.08f +

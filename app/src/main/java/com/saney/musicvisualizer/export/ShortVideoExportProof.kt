@@ -411,9 +411,8 @@ object ShortVideoExportProof {
                     )
                 }
 
-                dynamicProjectMFrame
-                    ?.recycle()
-
+                // Offline projectM returns a reusable framebuffer bitmap.
+                // Do not recycle it here; the GL view owns and reuses it.
                 encoderSurface
                     ?.draw(
                         bitmap = bitmap,

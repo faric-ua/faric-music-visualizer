@@ -5,7 +5,6 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -79,8 +78,6 @@ import com.saney.musicvisualizer.ui.BigEqualizerView
 import com.saney.musicvisualizer.ui.OverVisualizationView
 import com.saney.musicvisualizer.ui.PulseDeckLayerStack
 import com.saney.musicvisualizer.ui.ReactiveSceneView
-import java.io.File
-import java.io.FileOutputStream
 import java.util.Locale
 import java.util.concurrent.CancellationException
 import java.util.concurrent.atomic.AtomicBoolean
@@ -512,6 +509,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onDestroy() {
         sceneOrchestrator.close()
+        ProjectMBridge
+            .endOfflineExport()
+        offlinePcmCache
+            ?.file
+            ?.delete()
+        offlinePcmCache =
+            null
+        offlinePcmCacheUri =
+            null
         projectMExportSnapshot =
             null
         super.onDestroy()
@@ -6052,6 +6058,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun clearScreenRefs() {
+        ProjectMBridge
+            .endOfflineExport()
         projectMExportLiveView
             ?.releaseProjectMBlocking()
         if (projectMExportLiveResumed) {

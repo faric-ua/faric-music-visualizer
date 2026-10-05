@@ -3829,6 +3829,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 foregroundSample =
                     state.foregroundSample,
                 onTapNext = {},
+                manualFrameMode = true,
             )
 
         projectMExportLiveView =
@@ -3935,7 +3936,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         when {
                             projectMExportLiveView !=
                                 null ->
-                                "L0 projectM live"
+                                "L0 projectM offline"
 
                             compositionConfig
                                 .projectMFrame !=
@@ -4045,7 +4046,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 label(
                     when {
                         hasLiveCapture ->
-                            "✓ projectM live capture готовий. MP4 захопить до 30 GL-кадрів/с протягом 3 секунд і збере їх разом з реактивними L0/L2/L3/L5/L6."
+                            "✓ projectM offline clock готовий. MP4 може рендерити кадри з власного timeline без очікування реального часу та без залежності від головного плеєра."
 
                         hasSnapshot ->
                             "✓ projectM GL snapshot є. PNG включить його точно; MP4 використає snapshot як fallback, якщо live capture недоступний."

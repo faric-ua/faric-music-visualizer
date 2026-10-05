@@ -83,3 +83,34 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   1. keep this commit as the known-good Surface-encoder checkpoint;
   2. remove avoidable per-frame projectM readback allocations;
   3. bump/release the combined optimization as v0.19.2 only after the next Android PASS.
+
+
+---
+
+## 2026-10-05 — Fast export + reusable projectM readback — Android PASS
+
+- Status: BUILD PASS / phone performance QA pending.
+- App version metadata at this build: v0.19.1 / build 90.
+- App/source commit: `09b0346310ef2164e0c565fac0866f2775d717ce`.
+- Android workflow: #461.
+- Workflow run id: `37349349348`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.1-Debug`.
+- Artifact id: `11362525336`.
+- Artifact digest: `sha256:98b9590a23afafdd8a96e0b4edaf99779a6e26a4af94f522e4062003b11f62c5`.
+- Successfully completed in this build:
+  - keeps the EGL -> MediaCodec Surface encoder path from Android #459;
+  - removes repeated projectM offline readback allocation of the large direct RGBA buffer;
+  - removes repeated allocation of the projectM pixel IntArray;
+  - reuses one projectM readback Bitmap during offline export instead of allocating/recycling one every frame;
+  - clears the reusable readback cache when projectM is released.
+- Supporting CI:
+  - Validate #749 — PASS on the same source commit.
+- Not yet proven:
+  - physical-phone speedup and exact export factor versus realtime;
+  - output orientation/color correctness;
+  - several-minute thermal/memory stability;
+  - whether synchronous `glFinish + glReadPixels + RGBA->ARGB` conversion is now the remaining dominant bottleneck.
+- Resume exactly here:
+  1. promote the combined optimization to v0.19.2 / build 91;
+  2. build/sign that exact version;
+  3. phone-test 3-second preview and then the same full song used for v0.19.1 timing.

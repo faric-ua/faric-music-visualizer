@@ -221,6 +221,35 @@ class ProjectMView(
         }
     }
 
+    fun awaitReadyBlocking(
+        timeoutMs: Long = 4_000L,
+    ): Boolean {
+        val started =
+            System.nanoTime()
+
+        while (
+            glWidth <= 0 ||
+            glHeight <= 0
+        ) {
+            if (
+                (
+                    System.nanoTime() -
+                        started
+                    ) /
+                    1_000_000L >=
+                timeoutMs
+            ) {
+                return false
+            }
+
+            Thread.sleep(
+                10L,
+            )
+        }
+
+        return true
+    }
+
     fun renderOfflineFrameBlocking(
         frameTimeSeconds: Double,
         pcm: ShortArray,

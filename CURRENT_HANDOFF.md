@@ -1556,3 +1556,22 @@ CI foundation:
 
 Release candidate: v0.19.1 / build 90.
 Next gate: phone testing only — 3-second offline preview first, then full-song 0:00→end export, cancellation and long-song stability.
+
+
+## v0.19.2 — fast export candidate
+
+v0.19.1 proved the correct offline full-song timeline but exposed a production performance problem: every Full HD frame was copied to an IntArray and converted from ARGB to YUV420 in Kotlin before MediaCodec, while projectM also allocated large readback objects every frame.
+
+v0.19.2 keeps the same deterministic behavior but changes the hot path:
+1. The normal composition is still rendered from the explicit offline song timestamp.
+2. The final ARGB Bitmap is uploaded through an EGL texture to a MediaCodec input Surface.
+3. `eglPresentationTimeANDROID` gives each encoded frame the exact offline `frameIndex / fps` timestamp.
+4. The old `Bitmap.getPixels -> IntArray -> manual ARGB/YUV420` conversion is removed.
+5. projectM offline readback reuses its large RGBA buffer, pixel array and Bitmap instead of allocating/recycling them every frame.
+
+Known-good pre-version-bump source:
+- Validate #749 — PASS on `09b0346310ef2164e0c565fac0866f2775d717ce`.
+- Android #461 — PASS on the same SHA.
+
+Release candidate: v0.19.2 / build 91.
+Next gate: exact-head CI, then phone A/B timing using the same song that was slow on v0.19.1. First confirm the 3-second preview orientation/colors, then measure full-song export speed.

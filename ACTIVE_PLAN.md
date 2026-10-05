@@ -1038,3 +1038,28 @@ Implemented:
 - [x] Phone MP4: high-quality path remains 1080×1920 / 30 FPS / H.264 ~12.4 Mbps + AAC.
 - [ ] Phone PNG: verify captured projectM frame matches the exact live moment.
 - [ ] Next: true frame-by-frame/offscreen projectM rendering for animated projectM MP4.
+
+## PulseDeck v0.19.0 — dynamic projectM MP4 capture
+
+Goal: replace the static projectM frame in MP4 with a real sequence of live OpenGL frames.
+
+Implementation:
+- [x] Add blocking framebuffer sampling to `ProjectMView`; GL reads stay on the real GLSurfaceView render thread.
+- [x] Add ordered/blocking projectM teardown before switching between Now Playing and Export GL surfaces.
+- [x] Keep an export-only live projectM GLSurfaceView running behind Export Lab when L0/projectM is enabled.
+- [x] Export Lab reports `L0 projectM live` when the live capture surface is available.
+- [x] Before MP4 encoding, capture a projectM sequence at 30 FPS for the requested proof duration.
+- [x] Pace capture in real time so the projectM internal clock advances naturally rather than being sampled as fast as the CPU can encode.
+- [x] Store intermediate projectM frames as JPEG quality 95 cache files to avoid holding ~90 full-resolution Bitmaps in RAM.
+- [x] Feed one captured projectM frame into each `CompositionExportRenderer` video frame; static GL snapshot remains fallback.
+- [x] Delete temporary projectM capture files after success or failure.
+- [x] Preserve the existing 1080p-class / 30 FPS / H.264 high-quality composition path with AAC audio.
+- [x] Candidate: v0.19.0 / versionCode 89.
+- [ ] Exact-head Validate PASS.
+- [ ] Exact-head Android PASS.
+- [ ] Phone: Export Lab shows `projectM live`.
+- [ ] Phone: 3 s MP4 shows projectM visibly changing frame-to-frame under GF/HUD.
+- [ ] Phone: audio and projectM motion feel synchronized around the export start position.
+- [ ] Phone: no OOM, ANR, black projectM frames or GL teardown race when entering/leaving Export repeatedly.
+- [ ] Compare 9:16 quality against v0.18.9 static-snapshot MP4.
+- [ ] After phone PASS: consider a true fully-offscreen deterministic projectM renderer; v0.19.0 deliberately uses live GL capture because libprojectM currently advances on its own realtime clock.

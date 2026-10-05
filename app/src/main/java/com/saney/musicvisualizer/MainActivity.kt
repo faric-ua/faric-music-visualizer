@@ -5341,6 +5341,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     " ms · enc " +
                                     result.encoderSubmitMs +
                                     " ms" +
+                                    "\naudio " +
+                                    result.audioTranscodeMs +
+                                    " ms · mux " +
+                                    result.muxMs +
+                                    " ms · save " +
+                                    result.publishMs +
+                                    " ms" +
+                                    "\ntotal " +
+                                    result.totalMs +
+                                    " ms" +
                                     "\nMovies/FARIC"
                             },
                         )

@@ -10,6 +10,9 @@ object ProjectMBridge {
     @Volatile
     private var active = false
 
+    @Volatile
+    private var offlineExportMode = false
+
     fun create(
         width: Int,
         height: Int,
@@ -61,6 +64,57 @@ object ProjectMBridge {
         if (active) nativeSetForegroundSample(sample.nativeId)
     }
 
+    fun beginOfflineExport() {
+        offlineExportMode = true
+    }
+
+    fun endOfflineExport() {
+        offlineExportMode = false
+        if (active) {
+            nativeSetFrameTime(
+                -1.0,
+            )
+        }
+    }
+
+    fun setFrameTime(
+        seconds: Double,
+    ) {
+        if (active) {
+            nativeSetFrameTime(
+                seconds,
+            )
+        }
+    }
+
+    fun pushOfflinePcm(
+        pcm: ShortArray,
+    ) {
+        if (
+            !active ||
+            pcm.isEmpty()
+        ) {
+            return
+        }
+        nativeAddPcm(
+            pcm,
+            pcm.size,
+        )
+    }
+
+    fun pushOfflineSignal(
+        signal: SceneSignal,
+    ) {
+        if (!active) return
+        nativeSetSignal(
+            signal.amplitude,
+            signal.bass,
+            signal.mid,
+            signal.high,
+            signal.beatStrength,
+        )
+    }
+
     fun destroy() {
         if (!active) return
         active = false
@@ -68,12 +122,23 @@ object ProjectMBridge {
     }
 
     fun pushPcmIfActive(pcm: ShortArray) {
-        if (!active || pcm.isEmpty()) return
+        if (
+            !active ||
+            offlineExportMode ||
+            pcm.isEmpty()
+        ) {
+            return
+        }
         nativeAddPcm(pcm, pcm.size)
     }
 
     fun pushSignalIfActive(signal: SceneSignal) {
-        if (!active) return
+        if (
+            !active ||
+            offlineExportMode
+        ) {
+            return
+        }
         nativeSetSignal(
             signal.amplitude,
             signal.bass,

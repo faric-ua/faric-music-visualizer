@@ -2166,9 +2166,77 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     }
                 }
 
-                container.addView(
-                    layerBox,
-                )
+                if (
+                    layer ==
+                        PulseDeckLayerStack.Layer.GRAPHIC_FIGURES
+                ) {
+                    val layerRow =
+                        LinearLayout(this).apply {
+                            orientation =
+                                LinearLayout.HORIZONTAL
+                            gravity =
+                                Gravity.CENTER_VERTICAL
+                        }
+
+                    layerRow.addView(
+                        layerBox,
+                        LinearLayout.LayoutParams(
+                            0,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            1f,
+                        ),
+                    )
+
+                    layerRow.addView(
+                        TextView(this).apply {
+                            text = "⚙"
+                            textSize = 20f
+                            gravity = Gravity.CENTER
+                            contentDescription =
+                                "Налаштувати GF Background / Glow"
+                            setTextColor(
+                                COLOR_ACCENT_CYAN,
+                            )
+                            background =
+                                panelDrawable(
+                                    Color.argb(
+                                        105,
+                                        8,
+                                        18,
+                                        24,
+                                    ),
+                                    18,
+                                    Color.argb(
+                                        95,
+                                        80,
+                                        220,
+                                        255,
+                                    ),
+                                    1,
+                                )
+                            setOnClickListener {
+                                dialog.dismiss()
+                                boardEditorLayer =
+                                    BoardLayerId.BACKGROUND
+                                showBoardTransform()
+                            }
+                        },
+                        LinearLayout.LayoutParams(
+                            dp(42),
+                            dp(42),
+                        ).apply {
+                            marginStart = dp(6)
+                        },
+                    )
+
+                    container.addView(
+                        layerRow,
+                    )
+                } else {
+                    container.addView(
+                        layerBox,
+                    )
+                }
 
                 if (objects.isNotEmpty()) {
                     if (
@@ -2210,32 +2278,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             objects = objects,
                         )
 
-                        if (
-                            layer ==
-                                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES
-                        ) {
-                            container.addView(
-                                actionPill(
-                                    text =
-                                        "⚙ GF / Background · позиція / масштаб",
-                                    accent = false,
-                                ) {
-                                    dialog.dismiss()
-                                    boardEditorLayer =
-                                        BoardLayerId.BACKGROUND
-                                    showBoardTransform()
-                                },
-                                LinearLayout.LayoutParams(
-                                    ViewGroup.LayoutParams.MATCH_PARENT,
-                                    dp(42),
-                                ).apply {
-                                    leftMargin = dp(18)
-                                    rightMargin = dp(4)
-                                    topMargin = dp(4)
-                                    bottomMargin = dp(4)
-                                },
-                            )
-                        }
                     }
                 } else if (
                     layer ==

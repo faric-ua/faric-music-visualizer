@@ -1591,3 +1591,24 @@ Current gate is phone QA only. Do not change export architecture again before ch
 4. several-minute stability.
 
 If speed is still unacceptable, the next performance target is projectM synchronous framebuffer readback (`glFinish + glReadPixels + RGBA->ARGB`), not the H.264 YUV path that v0.19.2 already removed.
+
+
+## v0.19.3 — projectM raw readback candidate
+
+User phone evidence showed a 3.008-second / 90-frame preview taking roughly 28 seconds wall-clock, even after v0.19.2 removed the final ARGB->YUV CPU conversion. This identified projectM readback as the next bottleneck.
+
+v0.19.3 preserves preview semantics exactly: the 3-second preview starts from the current playback scrubber position. Do not change this to 0:00.
+
+Optimization:
+- dynamic offline projectM frames no longer run a Kotlin loop over every RGBA pixel;
+- the reusable GL buffer is copied directly to the reusable Bitmap;
+- no explicit `glFinish()` is issued before the dynamic offline `glReadPixels`;
+- vertical flip and R/B correction are applied at composition draw time;
+- final video encoding still uses EGL -> MediaCodec Surface from v0.19.2.
+
+Known-good pre-release source: `73cd730ea9394dd550d3dd87d2de133dc0e7465e`.
+- Validate #759 — PASS.
+- Android #464 — PASS.
+
+Release candidate: v0.19.3 / build 92.
+Next phone metric: rerun the same 3-second preview and compare wall-clock time against the previous ~28 seconds.

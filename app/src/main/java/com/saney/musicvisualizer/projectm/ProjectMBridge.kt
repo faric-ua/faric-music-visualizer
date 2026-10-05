@@ -161,6 +161,9 @@ object ProjectMBridge {
 
     private external fun nativeResize(width: Int, height: Int)
     private external fun nativeRender()
+    private external fun nativeSetFrameTime(
+        seconds: Double,
+    )
     private external fun nativeAddPcm(pcm: ShortArray, frameCount: Int)
     private external fun nativeSetSignal(
         amplitude: Float,

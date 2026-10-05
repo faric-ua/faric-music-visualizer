@@ -4221,7 +4221,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             "Спочатку виконай offline analysis"
 
                         else ->
-                            "Експортувати 3 с композиції MP4"
+                            "Тест · експортувати 3 с MP4"
                     },
                 accent =
                     exportReady &&
@@ -4235,6 +4235,39 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ) {
                     exportProofVideo()
                 } else if (!analysisReady) {
+                    toast(
+                        "Спочатку проаналізуй трек офлайн",
+                    )
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(58),
+            ).apply {
+                topMargin = dp(10)
+            },
+        )
+
+        content.addView(
+            actionPill(
+                text =
+                    when {
+                        !analysisReady ->
+                            "Спочатку виконай offline analysis"
+
+                        else ->
+                            "Експортувати всю пісню MP4"
+                    },
+                accent =
+                    analysisReady &&
+                        !offlineAnalysisRunning,
+            ) {
+                if (
+                    analysisReady &&
+                    !offlineAnalysisRunning
+                ) {
+                    exportFullSongVideo()
+                } else {
                     toast(
                         "Спочатку проаналізуй трек офлайн",
                     )
@@ -4265,7 +4298,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         content.addView(
             label(
-                "PNG і MP4 рендерять ту саму конфігурацію активних шарів. MP4 бере реакцію з offline timeline, кодує H.264 і додає AAC звук.",
+                "Тестовий MP4 рендерить 3 секунди. «Експортувати всю пісню» проходить offline timeline від 0:00 до кінця, незалежно від позиції та стану головного плеєра.",
                 12f,
                 COLOR_MUTED,
                 false,

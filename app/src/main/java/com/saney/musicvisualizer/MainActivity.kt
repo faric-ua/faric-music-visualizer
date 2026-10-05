@@ -5816,6 +5816,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private val GF_THEME_ID =
             PlaybackThemeId.CYBER_SHARK
 
+        private const val PROJECTM_EXPORT_FPS =
+            30
+        private const val PROJECTM_EXPORT_DURATION_MS =
+            3_000L
+
         private val PULSEDECK_EXPORT_OBJECT_IDS =
             listOf(
                 "energy_waves",

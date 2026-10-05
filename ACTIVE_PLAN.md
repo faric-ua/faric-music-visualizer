@@ -1164,3 +1164,26 @@ Implementation:
 - [x] Phone: 3-second preview wall-clock improved from ~28 s to ~16 s on v0.19.3 (about 43% faster), but is still ~5.3x slower than realtime.
 - [ ] Phone: verify audio sync.
 - [ ] Phone: if preview speed is acceptable, repeat full-song test.
+
+
+## PulseDeck v0.19.4 — projectM export-geometry optimization
+
+Goal: reduce projectM offline work by rendering only the pixels needed for the selected output aspect ratio.
+
+Contract:
+- 3-second preview still starts from the current playback scrubber position.
+- Final video remains 30 FPS.
+- Full-song export remains 0:00 -> end.
+- No intentional quality reduction.
+
+Implementation:
+- [x] Add fixed manual export geometry support to `ProjectMView`.
+- [x] Export Lab projectM surface now uses the selected output dimensions/aspect ratio instead of the full phone-screen geometry.
+- [x] Keep the existing projectM performance profile scale after applying output geometry.
+- [x] Promote to v0.19.4 / build 93.
+- [ ] Android PASS for exact v0.19.4 source.
+- [ ] Validate PASS for current v0.19.4 HEAD.
+- [ ] Phone: same 3-second preview starts at current scrubber position.
+- [ ] Phone: image composition/crop/orientation/colors remain correct.
+- [ ] Phone: compare wall-clock against v0.19.3 baseline of ~16 seconds.
+- [ ] If still too slow, move projectM readback off the synchronous per-frame CPU path rather than lowering final 30 FPS.

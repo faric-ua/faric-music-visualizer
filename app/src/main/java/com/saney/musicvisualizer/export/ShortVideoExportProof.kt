@@ -46,6 +46,8 @@ object ShortVideoExportProof {
         startMs: Long,
         cyberSharkConfig:
             CyberSharkExportConfig? = null,
+        compositionConfig:
+            CompositionExportConfig? = null,
         onProgress: (Int) -> Unit = {},
     ): Result {
         val (width, height) =
@@ -153,6 +155,15 @@ object ShortVideoExportProof {
             } else {
                 null
             }
+
+        val compositionRenderer =
+            compositionConfig
+                ?.let { config ->
+                    CompositionExportRenderer(
+                        context = context,
+                        config = config,
+                    )
+                }
 
         val pixels =
             IntArray(width * height)
@@ -295,6 +306,21 @@ object ShortVideoExportProof {
                     )
 
                 if (
+                    compositionRenderer != null
+                ) {
+                    compositionRenderer.render(
+                        canvas = canvas,
+                        width = width,
+                        height = height,
+                        timeMs = frameTimeMs,
+                        signal = signal,
+                        title = title,
+                        artist = artist,
+                        durationMs =
+                            analysis.durationMs,
+                        playing = true,
+                    )
+                } else if (
                     cyberSharkRenderer != null &&
                     cyberSharkConfig != null
                 ) {

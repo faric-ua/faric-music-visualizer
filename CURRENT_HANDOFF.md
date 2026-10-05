@@ -1485,3 +1485,23 @@ MP4 remains a 3-second proof at the existing proof resolution/FPS path with H.26
 
 Candidate: v0.18.7 / build 86.
 Phone acceptance should compare the exported composition against the live layer menu configuration. projectM mismatch is expected until the dedicated native-GL export step.
+
+## v0.18.9 — phone acceptance
+
+CI:
+- Validate #694 — PASS.
+- Android #421 — PASS.
+- Exact app/source SHA: `0f8dd2445970`.
+
+Phone evidence from exported `447712.mp4`:
+- 3.008 s, 1080×1920, 30 FPS;
+- H.264 video ~12.4 Mbps;
+- AAC stereo 48 kHz ~160 kbps;
+- Layer 0 contains the captured projectM image;
+- Layer 3 Cyber Shark and higher reactive/HUD elements continue changing during the clip;
+- projectM itself remains static across the clip, which matches the current snapshot-bridge contract.
+
+Interpretation:
+- v0.18.9 snapshot bridge = PASS for MP4 inclusion.
+- Remaining projectM gap is now specifically dynamic frame-by-frame projectM export, not missing projectM composition.
+- PNG exact-moment verification is still open.

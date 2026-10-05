@@ -33,6 +33,10 @@ object ShortVideoExportProof {
         val projectMFrameMs: Long,
         val compositionMs: Long,
         val encoderSubmitMs: Long,
+        val audioTranscodeMs: Long,
+        val muxMs: Long,
+        val publishMs: Long,
+        val totalMs: Long,
     )
 
     private const val MIME = "video/avc"
@@ -65,6 +69,9 @@ object ShortVideoExportProof {
         },
         onProgress: (Int) -> Unit = {},
     ): Result {
+        val totalStartedNs =
+            System.nanoTime()
+
         val (width, height) =
             proofSize(
                 project.aspectRatio.width,
@@ -525,6 +532,9 @@ object ShortVideoExportProof {
                 )
             }
 
+            val audioStartedNs =
+                System.nanoTime()
+
             AudioClipTranscoder.transcodeToAacMp4(
                 context = context,
                 sourceUri = sourceAudioUri,
@@ -533,7 +543,17 @@ object ShortVideoExportProof {
                 outputFile = audioTemp,
             )
 
+            val audioTranscodeMs =
+                (
+                    System.nanoTime() -
+                        audioStartedNs
+                    ) /
+                    1_000_000L
+
             onProgress(92)
+
+            val muxStartedNs =
+                System.nanoTime()
 
             Mp4AvMuxer.mux(
                 videoFile = videoTemp,
@@ -541,7 +561,17 @@ object ShortVideoExportProof {
                 outputFile = muxedTemp,
             )
 
+            val muxMs =
+                (
+                    System.nanoTime() -
+                        muxStartedNs
+                    ) /
+                    1_000_000L
+
             onProgress(100)
+
+            val publishStartedNs =
+                System.nanoTime()
 
             val uri =
                 publishMp4(
@@ -550,6 +580,13 @@ object ShortVideoExportProof {
                     displayName =
                         "$displayNamePrefix-${System.currentTimeMillis()}.mp4",
                 )
+
+            val publishMs =
+                (
+                    System.nanoTime() -
+                        publishStartedNs
+                    ) /
+                    1_000_000L
 
             return Result(
                 uri = uri,
@@ -566,6 +603,18 @@ object ShortVideoExportProof {
                         1_000_000L,
                 encoderSubmitMs =
                     encoderSubmitNs /
+                        1_000_000L,
+                audioTranscodeMs =
+                    audioTranscodeMs,
+                muxMs =
+                    muxMs,
+                publishMs =
+                    publishMs,
+                totalMs =
+                    (
+                        System.nanoTime() -
+                            totalStartedNs
+                        ) /
                         1_000_000L,
             )
         } finally {

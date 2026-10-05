@@ -1635,3 +1635,13 @@ Result:
 - export completes and publishes a 1080x1920 / 90-frame result.
 
 This is a meaningful PASS for the raw-readback optimization, but NOT a production-speed PASS. Next performance target: reduce the cost of offline projectM rendering/readback itself without changing preview semantics or the 30 fps final video contract.
+
+
+## v0.19.4 — export geometry performance candidate
+
+v0.19.3 phone evidence: the same 3-second / 90-frame preview improved from ~28 seconds to ~16 seconds after the raw projectM readback optimization.
+
+v0.19.4 targets wasted projectM pixels. Export Lab now requests a manual projectM surface matching the selected output geometry (9:16 / 16:9 / 1:1 / 4:5) before applying the existing projectM render scale, instead of inheriting the whole phone-screen geometry. This preserves 30 FPS and the deterministic timeline while reducing render/readback work that would otherwise be cropped away.
+
+Release candidate: v0.19.4 / build 93.
+Phone baseline to beat: ~16 seconds for the same 3-second preview.

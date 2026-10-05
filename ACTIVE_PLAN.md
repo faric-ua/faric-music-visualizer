@@ -1157,8 +1157,8 @@ Implementation:
 - [x] Pre-release Validate #759 — PASS on `73cd730ea9394dd550d3dd87d2de133dc0e7465e`.
 - [x] Pre-release Android #464 — PASS on the same source.
 - [x] Promote to v0.19.3 / build 92.
-- [ ] Exact release Android PASS for v0.19.3 / build 92.
-- [ ] Exact release Validate PASS for v0.19.3 documentation HEAD.
+- [x] Exact release Android PASS for v0.19.3 / build 92 — Android #465 PASS on `7add461579d259150f52e860d14ad6df226e2793`.
+- [x] Validate PASS for v0.19.3 documentation — #763 PASS on `5e653e9baf8b90959eb5016c73efd5f9977c8386`; later checkpoint docs only.
 - [ ] Phone: 3-second preview starts from current scrubber position.
 - [ ] Phone: orientation/colors remain correct.
 - [ ] Phone: compare 3-second export wall-clock time against the previous ~28 seconds.

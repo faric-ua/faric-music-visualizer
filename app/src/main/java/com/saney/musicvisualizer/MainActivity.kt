@@ -56,6 +56,7 @@ import com.saney.musicvisualizer.export.ShortVideoExportProof
 import com.saney.musicvisualizer.playback.PlaybackController
 import com.saney.musicvisualizer.playback.PlaybackSnapshot
 import com.saney.musicvisualizer.playback.QueueTrack
+import com.saney.musicvisualizer.projectm.ProjectMBridge
 import com.saney.musicvisualizer.projectm.ProjectMLibraryManager
 import com.saney.musicvisualizer.projectm.ProjectMPerformanceProfile
 import com.saney.musicvisualizer.projectm.ProjectMStateStore
@@ -4733,149 +4734,96 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
-    private fun captureProjectMExportFrames(
-        view: ProjectMView,
-        frameCount: Int,
-        fps: Int,
-    ): List<File> {
-        val directory =
-            File(
-                cacheDir,
-                "projectm-export-" +
-                    System.currentTimeMillis(),
-            )
+    private fun ensureOfflinePcmCache(
+        sourceUri: Uri,
+        cancelled: AtomicBoolean,
+        onProgress: (Int) -> Unit,
+    ): OfflinePcmCacheResult {
+        val key =
+            sourceUri.toString()
 
-        check(
-            directory.mkdirs() ||
-                directory.isDirectory,
-        ) {
-            "Не вдалося створити projectM cache"
-        }
-
-        val files =
-            ArrayList<File>(
-                frameCount,
-            )
-
-        val startedNs =
-            System.nanoTime()
-
-        try {
-            repeat(
-                frameCount,
-            ) { frameIndex ->
-                val targetNs =
-                    startedNs +
-                        frameIndex *
-                        1_000_000_000L /
-                        fps
-
-                while (true) {
-                    val remainingNs =
-                        targetNs -
-                            System.nanoTime()
-
-                    if (remainingNs <= 0L) {
-                        break
-                    }
-
-                    val sleepMs =
-                        remainingNs /
-                            1_000_000L
-                    val sleepNs =
-                        (
-                            remainingNs %
-                                1_000_000L
-                            )
-                            .toInt()
-
-                    Thread.sleep(
-                        sleepMs,
-                        sleepNs,
-                    )
-                }
-
-                val bitmap =
-                    view.captureFrameBlocking()
-                        ?: error(
-                            "projectM framebuffer capture failed at frame $frameIndex",
-                        )
-
-                val file =
-                    File(
-                        directory,
-                        "frame-" +
-                            frameIndex
-                                .toString()
-                                .padStart(
-                                    3,
-                                    '0',
-                                ) +
-                            ".jpg",
-                    )
-
-                FileOutputStream(
-                    file,
-                ).use { output ->
-                    check(
-                        bitmap.compress(
-                            Bitmap.CompressFormat.JPEG,
-                            95,
-                            output,
-                        ),
-                    ) {
-                        "projectM JPEG encode failed"
-                    }
-                }
-
-                bitmap.recycle()
-                files +=
-                    file
+        offlinePcmCache
+            ?.takeIf {
+                offlinePcmCacheUri ==
+                    key &&
+                    it.file.isFile
+            }
+            ?.let {
+                return it
             }
 
-            return files
-        } catch (error: Throwable) {
-            files.forEach { file ->
-                file.delete()
-            }
-            directory.delete()
-            throw error
-        }
-    }
+        offlinePcmCache
+            ?.file
+            ?.delete()
 
-    private fun deleteProjectMExportFrames(
-        files: List<File>,
-    ) {
-        val parent =
-            files
-                .firstOrNull()
-                ?.parentFile
+        offlinePcmCache =
+            null
+        offlinePcmCacheUri =
+            null
 
-        files.forEach { file ->
-            file.delete()
-        }
+        val result =
+            OfflinePcmCache.build(
+                context = this,
+                uri = sourceUri,
+                shouldCancel = {
+                    cancelled.get()
+                },
+                onProgress =
+                    onProgress,
+            )
 
-        parent?.delete()
+        offlinePcmCache =
+            result
+        offlinePcmCacheUri =
+            key
+
+        return result
     }
 
     private fun exportProofVideo() {
+        exportCompositionVideo(
+            fullSong = false,
+        )
+    }
+
+    private fun exportFullSongVideo() {
+        exportCompositionVideo(
+            fullSong = true,
+        )
+    }
+
+    private fun exportCompositionVideo(
+        fullSong: Boolean,
+    ) {
         val analysis =
             offlineAnalysis
                 ?: run {
-                    toast("Спочатку виконай offline analysis")
+                    toast(
+                        "Спочатку виконай offline analysis",
+                    )
+                    return
+                }
+
+        val sourceUri =
+            controller
+                .currentTrackUri()
+                ?: run {
+                    toast(
+                        "Поточний трек відсутній",
+                    )
                     return
                 }
 
         val currentUriKey =
-            controller
-                .currentTrackUri()
-                ?.toString()
+            sourceUri.toString()
 
         if (
             offlineAnalysisUri !=
             currentUriKey
         ) {
-            toast("Offline analysis не відповідає поточному треку")
+            toast(
+                "Offline analysis не відповідає поточному треку",
+            )
             return
         }
 
@@ -4887,31 +4835,42 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             currentCompositionExportConfig()
 
         val exportStartMs =
-            snapshot.positionMs
-                .coerceAtMost(
+            if (fullSong) {
+                0L
+            } else {
+                snapshot.positionMs
+                    .coerceAtMost(
+                        (
+                            analysis.durationMs -
+                                500L
+                            )
+                            .coerceAtLeast(
+                                0L,
+                            ),
+                    )
+            }
+
+        val requestedDurationMs =
+            if (fullSong) {
+                analysis.durationMs
+                    .coerceAtLeast(
+                        500L,
+                    )
+            } else {
+                minOf(
+                    PROJECTM_EXPORT_DURATION_MS,
                     (
                         analysis.durationMs -
-                            500L
+                            exportStartMs
                         )
                         .coerceAtLeast(
                             0L,
                         ),
                 )
-
-        val exportDurationMs =
-            minOf(
-                PROJECTM_EXPORT_DURATION_MS,
-                (
-                    analysis.durationMs -
-                        exportStartMs
-                    )
                     .coerceAtLeast(
-                        0L,
-                    ),
-            )
-                .coerceAtLeast(
-                    500L,
-                )
+                        500L,
+                    )
+            }
 
         val projectMView =
             projectMExportLiveView
@@ -4920,60 +4879,307 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         .projectMVisible
                 }
 
-        toast(
-            if (projectMView != null) {
-                "Захоплюю projectM і рендерю композицію…"
-            } else {
-                "Рендерю 3 с композиції H.264 + AAC…"
+        val cancelled =
+            AtomicBoolean(
+                false,
+            )
+
+        val dialog =
+            android.app.Dialog(
+                this,
+            ).apply {
+                requestWindowFeature(
+                    android.view.Window
+                        .FEATURE_NO_TITLE,
+                )
+                setCancelable(
+                    true,
+                )
+                setCanceledOnTouchOutside(
+                    false,
+                )
+                setOnCancelListener {
+                    cancelled.set(
+                        true,
+                    )
+                }
+            }
+
+        val panel =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.VERTICAL
+                setPadding(
+                    dp(18),
+                    dp(16),
+                    dp(18),
+                    dp(16),
+                )
+                background =
+                    panelDrawable(
+                        Color.argb(
+                            250,
+                            22,
+                            25,
+                            29,
+                        ),
+                        24,
+                        Color.argb(
+                            90,
+                            255,
+                            255,
+                            255,
+                        ),
+                        1,
+                    )
+            }
+
+        panel.addView(
+            label(
+                if (fullSong) {
+                    "Експорт усієї пісні"
+                } else {
+                    "Тестовий MP4 · 3 с"
+                },
+                20f,
+                Color.WHITE,
+                true,
+            ),
+        )
+
+        val progressStatus =
+            label(
+                "Підготовка…",
+                13f,
+                COLOR_MUTED,
+                false,
+            )
+
+        panel.addView(
+            progressStatus,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin =
+                    dp(8)
             },
         )
 
-        thread(name = "faric-h264-proof") {
-            var projectMFrames:
-                List<File> =
-                emptyList()
+        val progressBar =
+            ProgressBar(
+                this,
+                null,
+                android.R.attr
+                    .progressBarStyleHorizontal,
+            ).apply {
+                max =
+                    100
+                progress =
+                    0
+            }
+
+        panel.addView(
+            progressBar,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(12),
+            ).apply {
+                topMargin =
+                    dp(14)
+            },
+        )
+
+        panel.addView(
+            actionPill(
+                text =
+                    "Скасувати",
+                accent =
+                    false,
+            ) {
+                cancelled.set(
+                    true,
+                )
+                progressStatus.text =
+                    "Скасування…"
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(46),
+            ).apply {
+                topMargin =
+                    dp(14)
+            },
+        )
+
+        dialog.setContentView(
+            panel,
+        )
+        dialog.show()
+
+        dialog.window
+            ?.apply {
+                setBackgroundDrawable(
+                    android.graphics.drawable
+                        .ColorDrawable(
+                            Color.TRANSPARENT,
+                        ),
+                )
+                setLayout(
+                    (
+                        resources
+                            .displayMetrics
+                            .widthPixels *
+                            0.88f
+                        )
+                        .toInt(),
+                    ViewGroup.LayoutParams
+                        .WRAP_CONTENT,
+                )
+                setGravity(
+                    Gravity.CENTER,
+                )
+            }
+
+        window.addFlags(
+            android.view.WindowManager
+                .LayoutParams
+                .FLAG_KEEP_SCREEN_ON,
+        )
+
+        fun updateProgress(
+            progress: Int,
+            status: String,
+        ) {
+            runOnUiThread {
+                if (!isFinishing) {
+                    progressBar.progress =
+                        progress
+                            .coerceIn(
+                                0,
+                                100,
+                            )
+                    progressStatus.text =
+                        status
+                }
+            }
+        }
+
+        thread(
+            name =
+                if (fullSong) {
+                    "faric-full-song-export"
+                } else {
+                    "faric-preview-export"
+                },
+        ) {
+            var pcmReader:
+                com.saney.musicvisualizer.export
+                    .OfflinePcmReader? =
+                null
+
+            var offlineProjectM =
+                false
 
             runCatching {
-                if (projectMView != null) {
-                    val frameCount =
-                        maxOf(
-                            1,
-                            (
-                                exportDurationMs *
-                                    PROJECTM_EXPORT_FPS /
-                                    1000L
-                                )
-                                .toInt(),
-                        )
+                val needsProjectMPcm =
+                    projectMView !=
+                        null
 
-                    projectMFrames =
-                        captureProjectMExportFrames(
-                            view =
-                                projectMView,
-                            frameCount =
-                                frameCount,
-                            fps =
-                                PROJECTM_EXPORT_FPS,
-                        )
+                val pcmPrepWeight =
+                    if (
+                        needsProjectMPcm &&
+                        (
+                            offlinePcmCacheUri !=
+                                currentUriKey ||
+                                offlinePcmCache
+                                    ?.file
+                                    ?.isFile !=
+                                true
+                            )
+                    ) {
+                        10
+                    } else {
+                        0
+                    }
+
+                if (needsProjectMPcm) {
+                    updateProgress(
+                        0,
+                        "Готую PCM для projectM…",
+                    )
+
+                    val pcmCache =
+                        ensureOfflinePcmCache(
+                            sourceUri =
+                                sourceUri,
+                            cancelled =
+                                cancelled,
+                        ) { progress ->
+                            updateProgress(
+                                progress *
+                                    pcmPrepWeight /
+                                    100,
+                                "Готую PCM для projectM · " +
+                                    progress +
+                                    "%",
+                            )
+                        }
+
+                    pcmReader =
+                        pcmCache
+                            .openReader()
+
+                    check(
+                        projectMView
+                            .awaitReadyBlocking()
+                    ) {
+                        "projectM export surface не готовий"
+                    }
+
+                    ProjectMBridge
+                        .beginOfflineExport()
+
+                    offlineProjectM =
+                        true
                 }
+
+                updateProgress(
+                    pcmPrepWeight,
+                    if (fullSong) {
+                        "Рендерю від 0:00 до кінця…"
+                    } else {
+                        "Рендерю 3 секунди…"
+                    },
+                )
+
+                val renderSpan =
+                    100 -
+                        pcmPrepWeight
 
                 ShortVideoExportProof.export(
                     context = this,
                     sourceAudioUri =
-                        controller.currentTrackUri()
-                            ?: error("Current track URI missing"),
+                        sourceUri,
                     project =
                         MusicVideoProject(
                             themeId =
                                 PlaybackThemeId.CYBER_SHARK,
-                            aspectRatio = ratio,
-                            frameRate = 15,
+                            aspectRatio =
+                                ratio,
+                            frameRate =
+                                PROJECTM_EXPORT_FPS,
                         ),
-                    analysis = analysis,
+                    analysis =
+                        analysis,
                     title =
-                        snapshot.trackName.orEmpty(),
+                        snapshot.trackName
+                            .orEmpty(),
                     artist =
-                        if (snapshot.trackName == null) {
+                        if (
+                            snapshot.trackName ==
+                                null
+                        ) {
                             ""
                         } else {
                             "Невідомий виконавець"
@@ -4984,48 +5190,179 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         compositionConfig,
                     projectMFrameProvider =
                         if (
-                            projectMFrames.isNotEmpty()
+                            projectMView !=
+                            null &&
+                            pcmReader !=
+                            null
                         ) {
-                            { frameIndex, _ ->
-                                projectMFrames
-                                    .getOrNull(
-                                        frameIndex,
+                            {
+                                frameIndex,
+                                frameTimeMs,
+                            ->
+                                if (
+                                    cancelled.get()
+                                ) {
+                                    throw CancellationException(
+                                        "Export cancelled",
                                     )
-                                    ?.let { file ->
-                                        BitmapFactory
-                                            .decodeFile(
-                                                file.absolutePath,
-                                            )
-                                    }
+                                }
+
+                                val nextFrameTimeMs =
+                                    exportStartMs +
+                                        (
+                                            frameIndex +
+                                                1L
+                                            ) *
+                                        1000L /
+                                        PROJECTM_EXPORT_FPS
+
+                                val pcm =
+                                    pcmReader
+                                        ?.samplesBetween(
+                                            startMs =
+                                                frameTimeMs,
+                                            endMs =
+                                                nextFrameTimeMs,
+                                        )
+                                        ?: ShortArray(
+                                            0,
+                                        )
+
+                                val signal =
+                                    analysis
+                                        .signalAt(
+                                            frameTimeMs,
+                                        )
+
+                                projectMView
+                                    .renderOfflineFrameBlocking(
+                                        frameTimeSeconds =
+                                            frameIndex
+                                                .toDouble() /
+                                                PROJECTM_EXPORT_FPS,
+                                        pcm =
+                                            pcm,
+                                        signal =
+                                            signal,
+                                    )
+                                    ?: error(
+                                        "projectM offline frame " +
+                                            frameIndex +
+                                            " не відрендерився",
+                                    )
                             }
                         } else {
                             null
                         },
+                    requestedDurationMs =
+                        requestedDurationMs,
+                    fps =
+                        PROJECTM_EXPORT_FPS,
+                    displayNamePrefix =
+                        if (fullSong) {
+                            "FARIC-Full"
+                        } else {
+                            "FARIC-preview"
+                        },
+                    shouldCancel = {
+                        cancelled.get()
+                    },
+                    onProgress = {
+                            progress ->
+                        val mapped =
+                            pcmPrepWeight +
+                                progress *
+                                    renderSpan /
+                                    100
+
+                        updateProgress(
+                            mapped,
+                            (
+                                if (fullSong) {
+                                    "Експорт усієї пісні · "
+                                } else {
+                                    "Тестовий MP4 · "
+                                }
+                                ) +
+                                mapped +
+                                "%",
+                        )
+                    },
                 )
             }.onSuccess { result ->
-                deleteProjectMExportFrames(
-                    projectMFrames,
-                )
-
                 runOnUiThread {
-                    if (result.uri != null) {
+                    dialog.dismiss()
+                    window.clearFlags(
+                        android.view.WindowManager
+                            .LayoutParams
+                            .FLAG_KEEP_SCREEN_ON,
+                    )
+
+                    if (
+                        result.uri !=
+                        null
+                    ) {
                         toast(
-                            "Готово · ${result.width}×${result.height} · ${result.frameCount} кадрів · зі звуком · Movies/FARIC",
+                            if (fullSong) {
+                                "Готово · уся пісня · " +
+                                    result.width +
+                                    "×" +
+                                    result.height +
+                                    " · Movies/FARIC"
+                            } else {
+                                "Готово · " +
+                                    result.width +
+                                    "×" +
+                                    result.height +
+                                    " · " +
+                                    result.frameCount +
+                                    " кадрів · Movies/FARIC"
+                            },
                         )
                     } else {
-                        toast("Не вдалося зберегти MP4 proof")
+                        toast(
+                            "Не вдалося зберегти MP4",
+                        )
                     }
                 }
             }.onFailure { error ->
-                deleteProjectMExportFrames(
-                    projectMFrames,
-                )
-
                 runOnUiThread {
-                    toast(
-                        "MP4 proof: ${error.message ?: error.javaClass.simpleName}",
+                    dialog.dismiss()
+                    window.clearFlags(
+                        android.view.WindowManager
+                            .LayoutParams
+                            .FLAG_KEEP_SCREEN_ON,
                     )
+
+                    if (
+                        error is
+                            CancellationException
+                    ) {
+                        toast(
+                            "Експорт скасовано",
+                        )
+                    } else {
+                        toast(
+                            "MP4 export: " +
+                                (
+                                    error.message
+                                        ?: error
+                                            .javaClass
+                                            .simpleName
+                                    ),
+                        )
+                    }
                 }
+            }
+
+            runCatching {
+                pcmReader
+                    ?.close()
+            }
+
+            if (offlineProjectM) {
+                ProjectMBridge
+                    .endOfflineExport()
             }
         }
     }

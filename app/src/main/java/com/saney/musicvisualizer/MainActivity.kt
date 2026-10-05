@@ -50,6 +50,8 @@ import com.saney.musicvisualizer.export.CyberSharkExportConfig
 import com.saney.musicvisualizer.export.ExportFrameProof
 import com.saney.musicvisualizer.export.OfflineAnalysisResult
 import com.saney.musicvisualizer.export.OfflineAudioAnalyzer
+import com.saney.musicvisualizer.export.OfflinePcmCache
+import com.saney.musicvisualizer.export.OfflinePcmCacheResult
 import com.saney.musicvisualizer.export.ShortVideoExportProof
 import com.saney.musicvisualizer.playback.PlaybackController
 import com.saney.musicvisualizer.playback.PlaybackSnapshot
@@ -79,6 +81,8 @@ import com.saney.musicvisualizer.ui.ReactiveSceneView
 import java.io.File
 import java.io.FileOutputStream
 import java.util.Locale
+import java.util.concurrent.CancellationException
+import java.util.concurrent.atomic.AtomicBoolean
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.concurrent.thread
@@ -130,6 +134,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var offlineAnalysis: OfflineAnalysisResult? = null
     private var offlineAnalysisUri: String? = null
     private var offlineAnalysisRunning = false
+
+    private var offlinePcmCache: OfflinePcmCacheResult? = null
+    private var offlinePcmCacheUri: String? = null
 
     private var sceneView: ReactiveSceneView? = null
     private var projectMMainView: ProjectMView? = null
@@ -186,6 +193,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 offlineAnalysis = null
                 offlineAnalysisUri = null
                 offlineAnalysisRunning = false
+                offlinePcmCache
+                    ?.file
+                    ?.delete()
+                offlinePcmCache = null
+                offlinePcmCacheUri = null
 
                 controller.loadQueue(
                     uris.map { uri ->

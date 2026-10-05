@@ -1063,3 +1063,45 @@ Implementation:
 - [ ] Phone: no OOM, ANR, black projectM frames or GL teardown race when entering/leaving Export repeatedly.
 - [ ] Compare 9:16 quality against v0.18.9 static-snapshot MP4.
 - [ ] After phone PASS: consider a true fully-offscreen deterministic projectM renderer; v0.19.0 deliberately uses live GL capture because libprojectM currently advances on its own realtime clock.
+
+## PulseDeck v0.19.1 — offline full-song timeline export
+
+Goal: export the song from 0:00 to the end independently of the live player, with projectM and all deterministic layers driven by the same offline timeline.
+
+Architecture:
+- [x] Keep projectM pinned to stable libprojectM 4.1.7.
+- [x] Backport only the 4.2-style external frame-time API into 4.1.7 through a build-time compatibility patch.
+- [x] projectM export uses explicit `frameIndex / fps` time instead of wall-clock time.
+- [x] FARIC native foreground compositor uses the same explicit export time and export-frame delta.
+- [x] Suppress live-player PCM/signal while the manual projectM export engine is active.
+- [x] Decode the source audio into a reusable mono 16-bit PCM cache for projectM.
+- [x] Feed each projectM export frame only the PCM window and offline signal belonging to that song interval.
+- [x] Reset/recreate projectM before every export so the same preset starts from a clean 0.0-second export timeline.
+- [x] Keep the Export Lab projectM surface in manual/WHEN_DIRTY mode; no realtime draw loop is required during offline rendering.
+- [x] Generalize the MP4 encoder from fixed 3 seconds to a requested duration and FPS.
+- [x] Keep the existing 3-second button as a fast preview.
+- [x] Add `Експортувати всю пісню MP4`: start=0, duration=full source duration.
+- [x] Full-song export is independent of the main player's current position and play/pause state.
+- [x] Mux the original source audio range into AAC after video rendering; do not record speaker/system playback.
+- [x] Add progress dialog, keep-screen-on and explicit Cancel.
+- [x] Make PCM preparation and video rendering cancellable.
+- [x] Reuse 1080p-class / 30 FPS high-quality H.264 composition path.
+- [x] Document stable projectM 4.2 migration in `PROJECTM_4_2_MIGRATION.md`.
+- [x] Repair and apply the narrow frame-time backport using `git apply --unidiff-zero`.
+- [x] Validate #735 — PASS on `9123cbfbf61d`.
+- [x] Android #456 — PASS on `9123cbfbf61d` (unit tests, native/CMake build, APK, signer/zipalign verification and artifact upload all PASS).
+- [x] Candidate bumped to v0.19.1 / versionCode 90.
+- [ ] Exact-head Validate PASS for v0.19.1.
+- [ ] Exact-head Android PASS for v0.19.1.
+- [ ] Phone: 3-second preview works with projectM offline clock and does not wait for realtime capture.
+- [ ] Phone: full-song export starts at 0:00 even when the player is paused or currently near the middle/end.
+- [ ] Phone: exported MP4 duration matches source duration and audio begins at 0:00.
+- [ ] Phone: projectM reacts throughout the song and higher layers stay synchronized with the same timeline.
+- [ ] Phone: Cancel stops a long export without leaving a corrupt published MP4 or stale cache.
+- [ ] Phone: no black projectM frames, OOM or ANR on a several-minute song.
+- [ ] Performance follow-up: replace CPU Bitmap→ARGB→YUV path with a MediaCodec input Surface/EGL path if long-song export is too slow.
+
+projectM 4.2 policy:
+- do not move FARIC to an unreleased/moving projectM branch;
+- keep 4.1.7 + the narrow frame-time backport until an official stable >=4.2.0 is published and passes Android/arm64 regression;
+- migration/rollback checklist lives in `PROJECTM_4_2_MIGRATION.md`.

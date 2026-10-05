@@ -3687,6 +3687,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         enableImmersiveFullscreen()
     }
 
+    private fun exportProofThemeId():
+        PlaybackThemeId =
+        if (
+            layerVisible(
+                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+            )
+        ) {
+            PlaybackThemeId.CYBER_SHARK
+        } else {
+            selectedThemeId
+        }
+
     private fun showExportLab() {
         screen = Screen.EXPORT_LAB
         sceneOrchestrator.stop()
@@ -3739,14 +3751,30 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
         content.addView(header)
 
+        val proofThemeId =
+            exportProofThemeId()
+
         val themeTitle =
             PlaybackThemeRegistry
-                .byId(selectedThemeId)
+                .byId(proofThemeId)
                 .title
 
         content.addView(
             label(
-                "Тема: $themeTitle\nТрек: ${latestSnapshot.trackName ?: "—"}",
+                (
+                    if (
+                        proofThemeId ==
+                            PlaybackThemeId.CYBER_SHARK &&
+                        layerVisible(
+                            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                        )
+                    ) {
+                        "Proof: Layer 3 GF · $themeTitle"
+                    } else {
+                        "Тема: $themeTitle"
+                    }
+                    ) +
+                    "\nТрек: ${latestSnapshot.trackName ?: "—"}",
                 15f,
                 Color.WHITE,
                 true,
@@ -3886,7 +3914,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         val exportReady =
             isDeterministicExportReady(
-                selectedThemeId,
+                proofThemeId,
             )
 
         content.addView(
@@ -4352,8 +4380,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
 
         val snapshot = latestSnapshot
-        val theme = selectedThemeId
-        val ratio = exportAspectRatio
+        val theme =
+            exportProofThemeId()
+        val ratio =
+            exportAspectRatio
 
         if (!isDeterministicExportReady(theme)) {
             toast("Ця тема ще не підтримує H.264 proof")

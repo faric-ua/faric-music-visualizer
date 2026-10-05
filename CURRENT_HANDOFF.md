@@ -1550,6 +1550,9 @@ Compatibility:
 CI foundation:
 - Validate #735 — PASS on `9123cbfbf61d`.
 - Android #456 — PASS on the same SHA, including native build and signed APK verification.
+- Validate #738 — PASS on documentation HEAD `387401c29190b3553c823e1c72b17c32d41f98a4`.
+- Android #457 — PASS on v0.19.1 app/source SHA `fd4bf265436507d7126d390fc56824dca7e21e81`.
+- Signed/debug phone artifact: `FARIC-Music-Visualizer-v0.19.1-Debug` (artifact id `11356342984`); later commits after the release SHA are documentation-only.
 
 Release candidate: v0.19.1 / build 90.
-Next gate: exact-head CI for the version bump/docs, then phone testing of 3-second offline preview and full-song 0:00→end export.
+Next gate: phone testing only — 3-second offline preview first, then full-song 0:00→end export, cancellation and long-song stability.

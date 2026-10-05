@@ -44,6 +44,8 @@ object ShortVideoExportProof {
         title: String,
         artist: String,
         startMs: Long,
+        cyberSharkConfig:
+            CyberSharkExportConfig? = null,
         onProgress: (Int) -> Unit = {},
     ): Result {
         val (width, height) =
@@ -137,6 +139,20 @@ object ShortVideoExportProof {
                 height,
                 Bitmap.Config.ARGB_8888,
             )
+
+        val cyberSharkRenderer =
+            if (
+                project.themeId ==
+                    com.saney.musicvisualizer.theme
+                        .PlaybackThemeId.CYBER_SHARK &&
+                cyberSharkConfig != null
+            ) {
+                CyberSharkExportRenderer(
+                    context,
+                )
+            } else {
+                null
+            }
 
         val pixels =
             IntArray(width * height)
@@ -273,32 +289,51 @@ object ShortVideoExportProof {
                     android.graphics.Color.BLACK,
                 )
 
-                HeroThemeRenderer.render(
-                    canvas = Canvas(bitmap),
-                    width = width,
-                    height = height,
-                    timeMs = frameTimeMs,
-                    themeId = project.themeId,
-                    input =
-                        ThemeInput(
-                            title = title,
-                            artist = artist,
-                            durationMs =
-                                analysis.durationMs,
-                            positionMs =
-                                frameTimeMs,
-                            amplitude =
-                                signal.amplitude,
-                            bass =
-                                signal.bass,
-                            mid =
-                                signal.mid,
-                            high =
-                                signal.high,
-                            beat =
-                                signal.beatStrength,
-                        ),
-                )
+                val canvas =
+                    Canvas(
+                        bitmap,
+                    )
+
+                if (
+                    cyberSharkRenderer != null &&
+                    cyberSharkConfig != null
+                ) {
+                    cyberSharkRenderer.render(
+                        canvas = canvas,
+                        width = width,
+                        height = height,
+                        timeMs = frameTimeMs,
+                        signal = signal,
+                        config = cyberSharkConfig,
+                    )
+                } else {
+                    HeroThemeRenderer.render(
+                        canvas = canvas,
+                        width = width,
+                        height = height,
+                        timeMs = frameTimeMs,
+                        themeId = project.themeId,
+                        input =
+                            ThemeInput(
+                                title = title,
+                                artist = artist,
+                                durationMs =
+                                    analysis.durationMs,
+                                positionMs =
+                                    frameTimeMs,
+                                amplitude =
+                                    signal.amplitude,
+                                bass =
+                                    signal.bass,
+                                mid =
+                                    signal.mid,
+                                high =
+                                    signal.high,
+                                beat =
+                                    signal.beatStrength,
+                            ),
+                    )
+                }
 
                 bitmap.getPixels(
                     pixels,

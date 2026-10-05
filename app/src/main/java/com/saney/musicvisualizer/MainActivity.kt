@@ -4,6 +4,7 @@ import android.Manifest
 import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
+import android.graphics.Bitmap
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -130,6 +131,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var sceneView: ReactiveSceneView? = null
     private var projectMMainView: ProjectMView? = null
     private var projectMMainResumed = false
+    private var projectMExportSnapshot: Bitmap? = null
     private var effectsView: ReactiveSceneView? = null
     private var bigEqualizerView: BigEqualizerView? = null
     private var pulseDeckLayerStack: PulseDeckLayerStack? = null
@@ -477,6 +479,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onDestroy() {
         sceneOrchestrator.close()
+        projectMExportSnapshot
+            ?.recycle()
+        projectMExportSnapshot =
+            null
         super.onDestroy()
     }
 
@@ -1169,7 +1175,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         }
 
                         "export" ->
-                            showExportLab()
+                            openExportLabWithProjectMCapture()
                     }
 
                     scheduleNowControlsAutoHide()
@@ -3688,6 +3694,58 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         enableImmersiveFullscreen()
     }
 
+    private fun openExportLabWithProjectMCapture() {
+        val projectMVisible =
+            layerVisible(
+                PulseDeckLayerStack.Layer.VISUALIZER,
+            ) &&
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "projectm",
+                )
+
+        val liveView =
+            projectMMainView
+
+        if (
+            !projectMVisible ||
+            liveView == null
+        ) {
+            projectMExportSnapshot
+                ?.recycle()
+            projectMExportSnapshot =
+                null
+            showExportLab()
+            return
+        }
+
+        toast(
+            "Знімаю projectM кадр…",
+        )
+
+        liveView.captureFrame { bitmap ->
+            projectMExportSnapshot
+                ?.takeIf {
+                    it !== bitmap
+                }
+                ?.recycle()
+
+            projectMExportSnapshot =
+                bitmap
+
+            if (
+                projectMVisible &&
+                bitmap == null
+            ) {
+                toast(
+                    "projectM capture не вдався — експорт без нього",
+                )
+            }
+
+            showExportLab()
+        }
+    }
+
     private fun exportProofThemeId():
         PlaybackThemeId =
         if (
@@ -3767,7 +3825,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     compositionConfig
                         .projectMVisible
                 ) {
-                    add("L0 projectM*")
+                    add(
+                        if (
+                            compositionConfig
+                                .projectMFrame !=
+                            null
+                        ) {
+                            "L0 projectM snapshot"
+                        } else {
+                            "L0 projectM*"
+                        },
+                    )
                 }
                 if (
                     compositionConfig
@@ -3855,11 +3923,24 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             compositionConfig
                 .projectMVisible
         ) {
+            val hasSnapshot =
+                compositionConfig
+                    .projectMFrame !=
+                null
+
             content.addView(
                 label(
-                    "⚠ projectM preset поки не входить у deterministic export. Інші активні шари експортуються. Наступний етап — native GL capture для projectM.",
+                    if (hasSnapshot) {
+                        "✓ projectM GL snapshot додано в L0. У PNG він точний для моменту capture; у 3 с MP4 цей projectM кадр поки статичний, а інші шари залишаються реактивними."
+                    } else {
+                        "⚠ projectM увімкнений, але GL snapshot відсутній. Повернись у Now Playing і відкрий Export ще раз."
+                    },
                     12f,
-                    COLOR_ACCENT_ORANGE,
+                    if (hasSnapshot) {
+                        COLOR_ACCENT_CYAN
+                    } else {
+                        COLOR_ACCENT_ORANGE
+                    },
                     true,
                 ),
                 LinearLayout.LayoutParams(
@@ -4453,6 +4534,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ),
             projectMVisible =
                 projectMVisible,
+            projectMFrame =
+                if (projectMVisible) {
+                    projectMExportSnapshot
+                } else {
+                    null
+                },
             overVisualizationVisible =
                 layerVisible(
                     PulseDeckLayerStack.Layer.OVER_VISUALIZATION,

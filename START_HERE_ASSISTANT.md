@@ -23,23 +23,24 @@ The product direction now also includes a configurable multi-layer Board, a sepa
 ## Mandatory reading order
 
 1. `CURRENT_HANDOFF.md`
-2. `ACTIVE_PLAN.md`
-3. `docs/product/PRODUCT_VISION.md`
+2. `BUILD_CHECKPOINTS.md`
+3. `ACTIVE_PLAN.md`
+5. `docs/product/PRODUCT_VISION.md`
 4. `docs/architecture/ARCHITECTURE.md`
-5. `docs/architecture/FARIC_LAYERED_BOARD_VISION.md`
-6. `docs/visualizer/assets/ASSET_INDEX.md`
-7. `docs/diagrams/FARIC_PROJECT_ATLAS.md`
-8. `VISUALIZER_ASSISTANT_WORKFLOW.md`
-9. `PROJECT_STATUS.md`
-10. `BACKLOG.md`
-11. `OPEN_FINDINGS.md`
-12. `docs/assistant-kit/SIBLING_PROJECT_REFERENCE_RULE.md`
-13. `docs/assistant-kit/DOCUMENTATION_DISCIPLINE.md`
-14. `docs/assistant-kit/SYSTEM_BEHAVIOR_CONTRACT.md`
-15. `docs/assistant-kit/UI_CONTRACT.md`
-16. `docs/assistant-kit/AUDIO_VISUAL_CONTRACT.md`
-17. `docs/assistant-kit/APK_BUILD_CONTRACT.md`
-18. current release folder under `docs/v.*`
+6. `docs/architecture/FARIC_LAYERED_BOARD_VISION.md`
+7. `docs/visualizer/assets/ASSET_INDEX.md`
+8. `docs/diagrams/FARIC_PROJECT_ATLAS.md`
+9. `VISUALIZER_ASSISTANT_WORKFLOW.md`
+10. `PROJECT_STATUS.md`
+11. `BACKLOG.md`
+12. `OPEN_FINDINGS.md`
+13. `docs/assistant-kit/SIBLING_PROJECT_REFERENCE_RULE.md`
+14. `docs/assistant-kit/DOCUMENTATION_DISCIPLINE.md`
+15. `docs/assistant-kit/SYSTEM_BEHAVIOR_CONTRACT.md`
+16. `docs/assistant-kit/UI_CONTRACT.md`
+17. `docs/assistant-kit/AUDIO_VISUAL_CONTRACT.md`
+18. `docs/assistant-kit/APK_BUILD_CONTRACT.md`
+19. current release folder under `docs/v.*`
 
 ## Sources of truth
 

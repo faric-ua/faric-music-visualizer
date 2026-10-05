@@ -1137,3 +1137,30 @@ Implementation:
 - It MUST render the next 3 seconds from that position (clamped only by source end).
 - Do not change the preview to always start at 0:00.
 - Full-song export remains independent and MUST start at 0:00.
+
+
+## PulseDeck v0.19.3 — projectM raw readback acceleration
+
+Goal: reduce the remaining projectM bottleneck seen on-phone after v0.19.2 while preserving all export behavior.
+
+Contract:
+- 3-second preview starts at the current playback scrubber position and renders the next 3 seconds.
+- Full-song export starts at 0:00 and is independent from live player position/state.
+
+Implementation:
+- [x] Remove dynamic offline projectM Kotlin per-pixel RGBA->ARGB conversion loop.
+- [x] Remove explicit `glFinish()` from dynamic offline readback hot path.
+- [x] Copy reusable GL RGBA buffer directly into reusable Bitmap.
+- [x] Correct raw GL vertical orientation during composition.
+- [x] Correct R/B channel layout during composition.
+- [x] Keep EGL -> MediaCodec Surface output introduced in v0.19.2.
+- [x] Pre-release Validate #759 — PASS on `73cd730ea9394dd550d3dd87d2de133dc0e7465e`.
+- [x] Pre-release Android #464 — PASS on the same source.
+- [x] Promote to v0.19.3 / build 92.
+- [ ] Exact release Android PASS for v0.19.3 / build 92.
+- [ ] Exact release Validate PASS for v0.19.3 documentation HEAD.
+- [ ] Phone: 3-second preview starts from current scrubber position.
+- [ ] Phone: orientation/colors remain correct.
+- [ ] Phone: compare 3-second export wall-clock time against the previous ~28 seconds.
+- [ ] Phone: verify audio sync.
+- [ ] Phone: if preview speed is acceptable, repeat full-song test.

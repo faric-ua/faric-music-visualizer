@@ -183,3 +183,40 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   1. promote this optimization to the next build/version;
   2. build/sign exact release candidate;
   3. phone-test the same 3-second preview and compare wall-clock time against ~28 seconds.
+
+
+---
+
+## 2026-10-05 — v0.19.3 / build 92 — projectM raw readback acceleration — Android PASS
+
+- Status: BUILD PASS / phone performance QA pending.
+- App/source commit: `7add461579d259150f52e860d14ad6df226e2793`.
+- Android workflow: #465.
+- Workflow run id: `37356194982`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.3-Debug`.
+- Artifact id: `11364403633`.
+- Artifact digest: `sha256:0c15d5ae800ea295541a07b90837f79222e311e48481dd3c93366f71b9701cdc`.
+- Successfully completed in this build:
+  - preserves 3-second preview behavior: starts from the current playback scrubber position;
+  - keeps full-song export fixed at 0:00 -> source end;
+  - keeps EGL -> MediaCodec Surface encoding from v0.19.2;
+  - removes the dynamic projectM Kotlin per-pixel RGBA->ARGB conversion loop;
+  - removes the explicit `glFinish()` from the dynamic offline readback hot path;
+  - copies reusable GL RGBA data directly into the reusable projectM Bitmap;
+  - corrects vertical orientation and red/blue channel layout during composition draw.
+- Supporting CI:
+  - pre-release Validate #759 PASS and Android #464 PASS on implementation SHA `73cd730ea9394dd550d3dd87d2de133dc0e7465e`;
+  - documentation Validate #763 PASS on `5e653e9baf8b90959eb5016c73efd5f9977c8386`.
+- Baseline phone evidence before this build:
+  - 3.008-second / 90-frame preview took about 28 seconds wall-clock.
+- Phone QA:
+  - rerun the same 3-second preview;
+  - confirm it still starts at current scrubber position;
+  - confirm image is upright and colors are correct;
+  - measure wall-clock render time versus ~28 seconds;
+  - confirm audio remains synchronized.
+- Resume exactly here:
+  1. install `FARIC-Music-Visualizer-v0.19.3-Debug`;
+  2. rerun the same 3-second preview;
+  3. report wall-clock time + whether orientation/colors/audio are correct;
+  4. if PASS and materially faster, continue to full-song export.

@@ -3840,6 +3840,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     state.foregroundSample,
                 onTapNext = {},
                 manualFrameMode = true,
+                manualRenderWidth =
+                    exportAspectRatio.width,
+                manualRenderHeight =
+                    exportAspectRatio.height,
             )
 
         projectMExportLiveView =

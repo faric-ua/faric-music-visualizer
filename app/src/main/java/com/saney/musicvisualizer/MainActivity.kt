@@ -5146,8 +5146,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         "projectM export surface не готовий"
                     }
 
-                    ProjectMBridge
-                        .beginOfflineExport()
+                    check(
+                        projectMView
+                            .resetOfflineRendererBlocking()
+                    ) {
+                        "projectM offline renderer не скинувся"
+                    }
 
                     offlineProjectM =
                         true
@@ -5370,8 +5374,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
 
             if (offlineProjectM) {
-                ProjectMBridge
-                    .endOfflineExport()
+                // Keep Export Lab isolated from the live player's PCM.
+                // clearScreenRefs() restores normal live projectM mode.
             }
         }
     }

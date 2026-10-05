@@ -1441,3 +1441,27 @@ Export Lab:
 
 Candidate: v0.18.5 / build 84.
 Next gate: exact-head CI then phone QA of L3 hierarchy, live BG/Glow positioning over visualization, and folder opening.
+
+## v0.18.6 — reactive Cyber Shark proof export
+
+UI:
+- L3 keeps the parent checkbox and now has a compact gear button at the right edge for Background/Glow transform settings.
+- the old full-width `GF / Background · позиція / масштаб` row is removed.
+- Export folder chooser is now a custom styled PulseDeck dialog with:
+  - `Кадри PNG · Pictures/FARIC`;
+  - `Відео зі звуком · Movies/FARIC`;
+  - close X + explicit `Скасувати`;
+  - system Back/outside touch also dismisses.
+
+Export:
+- Cyber Shark is now a deterministic proof-capable scene.
+- renderer uses the real Cyber Shark frame / creature / wordmark resources plus reactive procedural GF background/FX.
+- saved GF group transform/reaction, each BoardLayerTransform and each GF child visibility are applied to PNG/MP4 proof.
+- Export Lab chooses Cyber Shark as the proof source whenever Layer 3 GF is enabled, regardless of the current Theme Picker id.
+- 3-second MP4 proof reacts to offline analysis and contains AAC audio in the MP4 container.
+
+Scope boundary:
+- this proof is the current GF/Cyber Shark renderer, not yet a full flattening of every PulseDeck layer. projectM / Layer 1 / Big EQ / locked PulseDeck HUD are not yet composited into this deterministic proof path.
+
+Candidate: v0.18.6 / build 85.
+Next gate: exact-head CI, then phone comparison of live GF vs PNG/MP4 proof.

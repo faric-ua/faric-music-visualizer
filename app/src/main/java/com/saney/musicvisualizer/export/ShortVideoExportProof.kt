@@ -104,13 +104,10 @@ object ShortVideoExportProof {
             )
 
         val encoderInfo =
-            findEncoder()
-                ?: error("H.264 encoder недоступний")
-
-        val colorFormat =
-            chooseColorFormat(
-                encoderInfo,
-            )
+            findSurfaceEncoder()
+                ?: error(
+                    "H.264 Surface encoder недоступний",
+                )
 
         val format =
             MediaFormat.createVideoFormat(
@@ -120,7 +117,9 @@ object ShortVideoExportProof {
             ).apply {
                 setInteger(
                     MediaFormat.KEY_COLOR_FORMAT,
-                    colorFormat,
+                    MediaCodecInfo
+                        .CodecCapabilities
+                        .COLOR_FormatSurface,
                 )
                 setInteger(
                     MediaFormat.KEY_BIT_RATE,
@@ -186,16 +185,9 @@ object ShortVideoExportProof {
                     )
                 }
 
-        val pixels =
-            IntArray(width * height)
-
-        val yuv =
-            ByteArray(
-                width *
-                    height *
-                    3 /
-                    2,
-            )
+        var encoderSurface:
+            EglBitmapEncoderSurface? =
+            null
 
         try {
             encoder.configure(
@@ -204,7 +196,18 @@ object ShortVideoExportProof {
                 null,
                 MediaCodec.CONFIGURE_FLAG_ENCODE,
             )
+
+            val codecInputSurface =
+                encoder.createInputSurface()
+
             encoder.start()
+
+            encoderSurface =
+                EglBitmapEncoderSurface(
+                    surface = codecInputSurface,
+                    width = width,
+                    height = height,
+                )
 
             fun drain(
                 waitForEos: Boolean,
@@ -408,79 +411,20 @@ object ShortVideoExportProof {
                     )
                 }
 
-                bitmap.getPixels(
-                    pixels,
-                    0,
-                    width,
-                    0,
-                    0,
-                    width,
-                    height,
-                )
-
                 dynamicProjectMFrame
                     ?.recycle()
 
-                convertArgbToYuv420(
-                    pixels = pixels,
-                    width = width,
-                    height = height,
-                    output = yuv,
-                    semiPlanar =
-                        colorFormat ==
-                            MediaCodecInfo
-                                .CodecCapabilities
-                                .COLOR_FormatYUV420SemiPlanar,
-                )
-
-                var queued = false
-
-                while (!queued) {
-                    val inputIndex =
-                        encoder.dequeueInputBuffer(
-                            TIMEOUT_US,
-                        )
-
-                    if (inputIndex >= 0) {
-                        val inputBuffer =
-                            encoder.getInputBuffer(
-                                inputIndex,
-                            )
-                                ?: error(
-                                    "Encoder input buffer unavailable",
-                                )
-
-                        inputBuffer.clear()
-
-                        check(
-                            inputBuffer.remaining() >=
-                                yuv.size,
-                        ) {
-                            "Encoder input buffer too small"
-                        }
-
-                        inputBuffer.put(yuv)
-
-                        val ptsUs =
+                encoderSurface
+                    ?.draw(
+                        bitmap = bitmap,
+                        presentationTimeNs =
                             frameIndex *
-                                1_000_000L /
-                                safeFps
-
-                        encoder.queueInputBuffer(
-                            inputIndex,
-                            0,
-                            yuv.size,
-                            ptsUs,
-                            0,
-                        )
-
-                        queued = true
-                    }
-
-                    drain(
-                        waitForEos = false,
+                                1_000_000_000L /
+                                safeFps,
                     )
-                }
+                    ?: error(
+                        "Encoder EGL surface unavailable",
+                    )
 
                 drain(
                     waitForEos = false,
@@ -498,31 +442,7 @@ object ShortVideoExportProof {
                 )
             }
 
-            var eosQueued = false
-
-            while (!eosQueued) {
-                val inputIndex =
-                    encoder.dequeueInputBuffer(
-                        TIMEOUT_US,
-                    )
-
-                if (inputIndex >= 0) {
-                    encoder.queueInputBuffer(
-                        inputIndex,
-                        0,
-                        0,
-                        frameCount *
-                            1_000_000L /
-                            safeFps,
-                        MediaCodec.BUFFER_FLAG_END_OF_STREAM,
-                    )
-                    eosQueued = true
-                }
-
-                drain(
-                    waitForEos = false,
-                )
-            }
+            encoder.signalEndOfInputStream()
 
             while (
                 !drain(
@@ -535,6 +455,11 @@ object ShortVideoExportProof {
             onProgress(78)
         } finally {
             bitmap.recycle()
+
+            runCatching {
+                encoderSurface
+                    ?.close()
+            }
 
             runCatching {
                 encoder.stop()
@@ -611,7 +536,7 @@ object ShortVideoExportProof {
         }
     }
 
-    private fun findEncoder():
+    private fun findSurfaceEncoder():
         MediaCodecInfo? {
         val list =
             MediaCodecList(
@@ -635,63 +560,18 @@ object ShortVideoExportProof {
             .firstOrNull {
                     info ->
                 runCatching {
-                    val formats =
-                        info
-                            .getCapabilitiesForType(
-                                MIME,
-                            )
-                            .colorFormats
-                            .toSet()
-
-                    formats.any {
-                        it in
-                            supportedColorFormats
-                    }
+                    info
+                        .getCapabilitiesForType(
+                            MIME,
+                        )
+                        .colorFormats
+                        .contains(
+                            MediaCodecInfo
+                                .CodecCapabilities
+                                .COLOR_FormatSurface,
+                        )
                 }.getOrDefault(false)
             }
-    }
-
-    private fun chooseColorFormat(
-        info: MediaCodecInfo,
-    ): Int {
-        val formats =
-            info
-                .getCapabilitiesForType(
-                    MIME,
-                )
-                .colorFormats
-                .toSet()
-
-        return when {
-            MediaCodecInfo
-                .CodecCapabilities
-                .COLOR_FormatYUV420Planar in
-                formats ->
-                MediaCodecInfo
-                    .CodecCapabilities
-                    .COLOR_FormatYUV420Planar
-
-            MediaCodecInfo
-                .CodecCapabilities
-                .COLOR_FormatYUV420SemiPlanar in
-                formats ->
-                MediaCodecInfo
-                    .CodecCapabilities
-                    .COLOR_FormatYUV420SemiPlanar
-
-            MediaCodecInfo
-                .CodecCapabilities
-                .COLOR_FormatYUV420Flexible in
-                formats ->
-                MediaCodecInfo
-                    .CodecCapabilities
-                    .COLOR_FormatYUV420Flexible
-
-            else ->
-                error(
-                    "Encoder does not expose supported YUV420 input",
-                )
-        }
     }
 
     private fun proofSize(
@@ -725,210 +605,6 @@ object ShortVideoExportProof {
                 )
                 .toInt()
                 .even()
-    }
-
-    private fun convertArgbToYuv420(
-        pixels: IntArray,
-        width: Int,
-        height: Int,
-        output: ByteArray,
-        semiPlanar: Boolean,
-    ) {
-        val frameSize =
-            width *
-                height
-
-        var yIndex = 0
-
-        val uPlane =
-            frameSize
-
-        val vPlane =
-            if (semiPlanar) {
-                frameSize +
-                    1
-            } else {
-                frameSize +
-                    frameSize /
-                        4
-            }
-
-        for (
-            y in
-            0 until height
-        ) {
-            for (
-                x in
-                0 until width
-            ) {
-                val color =
-                    pixels[
-                        y *
-                            width +
-                            x
-                    ]
-
-                val r =
-                    color shr 16 and
-                        0xff
-
-                val g =
-                    color shr 8 and
-                        0xff
-
-                val b =
-                    color and
-                        0xff
-
-                val yy =
-                    (
-                        0.257f *
-                            r +
-                            0.504f *
-                            g +
-                            0.098f *
-                            b +
-                            16f
-                        )
-                        .toInt()
-                        .coerceIn(
-                            0,
-                            255,
-                        )
-
-                output[yIndex++] =
-                    yy.toByte()
-            }
-        }
-
-        var chromaIndex = 0
-
-        for (
-            y in
-            0 until height
-            step 2
-        ) {
-            for (
-                x in
-                0 until width
-                step 2
-            ) {
-                var rSum = 0
-                var gSum = 0
-                var bSum = 0
-                var count = 0
-
-                for (
-                    dy in
-                    0..1
-                ) {
-                    for (
-                        dx in
-                        0..1
-                    ) {
-                        val px =
-                            x +
-                                dx
-                        val py =
-                            y +
-                                dy
-
-                        if (
-                            px >= width ||
-                            py >= height
-                        ) {
-                            continue
-                        }
-
-                        val color =
-                            pixels[
-                                py *
-                                    width +
-                                    px
-                            ]
-
-                        rSum +=
-                            color shr 16 and
-                                0xff
-                        gSum +=
-                            color shr 8 and
-                                0xff
-                        bSum +=
-                            color and
-                                0xff
-                        count++
-                    }
-                }
-
-                val r =
-                    rSum /
-                        count
-                val g =
-                    gSum /
-                        count
-                val b =
-                    bSum /
-                        count
-
-                val u =
-                    (
-                        -0.148f *
-                            r -
-                            0.291f *
-                            g +
-                            0.439f *
-                            b +
-                            128f
-                        )
-                        .toInt()
-                        .coerceIn(
-                            0,
-                            255,
-                        )
-
-                val v =
-                    (
-                        0.439f *
-                            r -
-                            0.368f *
-                            g -
-                            0.071f *
-                            b +
-                            128f
-                        )
-                        .toInt()
-                        .coerceIn(
-                            0,
-                            255,
-                        )
-
-                if (semiPlanar) {
-                    val index =
-                        frameSize +
-                            chromaIndex *
-                                2
-
-                    output[index] =
-                        u.toByte()
-                    output[index + 1] =
-                        v.toByte()
-                } else {
-                    output[
-                        uPlane +
-                            chromaIndex
-                    ] =
-                        u.toByte()
-
-                    output[
-                        vPlane +
-                            chromaIndex
-                    ] =
-                        v.toByte()
-                }
-
-                chromaIndex++
-            }
-        }
     }
 
     private fun publishMp4(
@@ -1044,19 +720,6 @@ object ShortVideoExportProof {
             Uri.fromFile(target)
         }
     }
-
-    private val supportedColorFormats =
-        setOf(
-            MediaCodecInfo
-                .CodecCapabilities
-                .COLOR_FormatYUV420Planar,
-            MediaCodecInfo
-                .CodecCapabilities
-                .COLOR_FormatYUV420SemiPlanar,
-            MediaCodecInfo
-                .CodecCapabilities
-                .COLOR_FormatYUV420Flexible,
-        )
 
     private fun Int.even(): Int =
         if (this % 2 == 0) {

@@ -114,3 +114,38 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   1. promote the combined optimization to v0.19.2 / build 91;
   2. build/sign that exact version;
   3. phone-test 3-second preview and then the same full song used for v0.19.1 timing.
+
+
+---
+
+## 2026-10-05 — v0.19.2 / build 91 — Fast full-song export — Android PASS
+
+- Status: BUILD PASS / phone QA pending.
+- App/source commit: `bcab5fc8a1910581627fc82737ab0528e976b702`.
+- Android workflow: #462.
+- Workflow run id: `37350082893`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.2-Debug`.
+- Artifact id: `11361439127`.
+- Artifact digest: `sha256:4549cdb9198d1abd8b8f2ca741146da547875051d2c30497a95ebce053438f75`.
+- Successfully completed in this build:
+  - promoted the fast offline export pipeline to v0.19.2 / versionCode 91;
+  - final video frames enter H.264 through EGL -> MediaCodec input Surface;
+  - explicit offline frame timestamps are preserved with `eglPresentationTimeANDROID`;
+  - removed CPU `Bitmap.getPixels -> IntArray -> Kotlin ARGB->YUV420` conversion;
+  - projectM offline export reuses its large RGBA readback buffer, IntArray and Bitmap;
+  - deterministic 0:00 -> end timeline, source PCM/projectM feed, FARIC/GF/EQ/FX/HUD composition and AAC source-audio mux remain intact.
+- Supporting CI:
+  - pre-release combined source Validate #749 — PASS on `09b0346310ef2164e0c565fac0866f2775d717ce`;
+  - pre-release Android #461 — PASS on the same source;
+  - documentation HEAD Validate #753 — PASS on `3e12cc87ed5e0d3ffa52eb13637660c70557b698`.
+- Not yet proven on phone:
+  - 3-second preview orientation/color correctness after EGL upload;
+  - A/V sync;
+  - actual full-song speedup compared with v0.19.1;
+  - cancellation cleanup;
+  - long-song heat/memory/black-frame stability.
+- Resume exactly here:
+  1. install `FARIC-Music-Visualizer-v0.19.2-Debug`;
+  2. run the 3-second MP4 preview and verify orientation/colors/audio;
+  3. if PASS, export the same full song that was slow in v0.19.1 and compare wall-clock time;
+  4. if still too slow, profile/replace synchronous projectM `glFinish + glReadPixels + RGBA->ARGB` readback.

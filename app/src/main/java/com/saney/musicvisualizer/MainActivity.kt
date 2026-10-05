@@ -43,6 +43,7 @@ import com.saney.musicvisualizer.board.BoardLayerTransform
 import com.saney.musicvisualizer.board.BoardLayerTransformStore
 import com.saney.musicvisualizer.board.BoardTransform
 import com.saney.musicvisualizer.board.BoardTransformStore
+import com.saney.musicvisualizer.export.CyberSharkExportConfig
 import com.saney.musicvisualizer.export.ExportFrameProof
 import com.saney.musicvisualizer.export.OfflineAnalysisResult
 import com.saney.musicvisualizer.export.OfflineAudioAnalyzer
@@ -3901,7 +3902,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 if (exportReady) {
                     exportProofFrame()
                 } else {
-                    toast("Обери Hero, Vinyl або Cassette")
+                    toast("Ця сцена ще не має export renderer")
                 }
             },
             LinearLayout.LayoutParams(
@@ -4295,6 +4296,40 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
+    private fun currentCyberSharkExportConfig():
+        CyberSharkExportConfig {
+        val gfThemeId =
+            GF_THEME_ID
+        val parentVisible =
+            layerVisible(
+                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+            )
+
+        return CyberSharkExportConfig(
+            groupTransform =
+                boardTransformStore.load(
+                    gfThemeId,
+                ),
+            groupReaction =
+                boardGroupReactionStore.load(
+                    gfThemeId,
+                ),
+            layerTransforms =
+                boardLayerTransformStore.loadAll(
+                    gfThemeId,
+                ),
+            visibility =
+                BoardLayerId.entries
+                    .associateWith { layerId ->
+                        parentVisible &&
+                            layerObjectVisible(
+                                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                                layerId.name.lowercase(),
+                            )
+                    },
+        )
+    }
+
     private fun exportProofVideo() {
         val analysis =
             offlineAnalysis
@@ -4355,6 +4390,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 (analysis.durationMs - 500L)
                                     .coerceAtLeast(0L),
                             ),
+                    cyberSharkConfig =
+                        if (
+                            theme ==
+                                PlaybackThemeId.CYBER_SHARK
+                        ) {
+                            currentCyberSharkExportConfig()
+                        } else {
+                            null
+                        },
                 )
             }.onSuccess { result ->
                 runOnUiThread {
@@ -4432,9 +4476,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
                 val bitmap =
                     ExportFrameProof.render(
+                        context = this,
                         project = project,
                         input = input,
                         timeMs = snapshot.positionMs,
+                        cyberSharkConfig =
+                            if (
+                                theme ==
+                                    PlaybackThemeId.CYBER_SHARK
+                            ) {
+                                currentCyberSharkExportConfig()
+                            } else {
+                                null
+                            },
                     )
 
                 val safeTheme =
@@ -4475,6 +4529,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         id: PlaybackThemeId,
     ): Boolean =
         id in setOf(
+            PlaybackThemeId.CYBER_SHARK,
             PlaybackThemeId.NEON_EMBLEM,
             PlaybackThemeId.ENERGY_CORE,
             PlaybackThemeId.ORBITAL_CROWN,

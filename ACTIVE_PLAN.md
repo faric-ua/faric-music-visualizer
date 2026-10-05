@@ -1105,3 +1105,27 @@ projectM 4.2 policy:
 - do not move FARIC to an unreleased/moving projectM branch;
 - keep 4.1.7 + the narrow frame-time backport until an official stable >=4.2.0 is published and passes Android/arm64 regression;
 - migration/rollback checklist lives in `PROJECTM_4_2_MIGRATION.md`.
+
+
+## PulseDeck v0.19.2 — Fast full-song export pipeline
+
+Goal: preserve the deterministic v0.19.1 offline timeline while removing the largest CPU/GC bottlenecks from full-song export.
+
+Implementation:
+- [x] Replace byte-buffer YUV encoder input with MediaCodec input Surface.
+- [x] Add EGL bridge that uploads the composited ARGB Bitmap directly to the H.264 encoder Surface.
+- [x] Submit explicit frame presentation timestamps through `eglPresentationTimeANDROID`.
+- [x] Remove per-frame `Bitmap.getPixels -> IntArray -> Kotlin ARGB->YUV420` conversion.
+- [x] Reuse projectM offline RGBA direct readback buffer.
+- [x] Reuse projectM offline pixel IntArray.
+- [x] Reuse one projectM offline readback Bitmap across export frames.
+- [x] Validate #749 — PASS on combined optimization source `09b0346310ef2164e0c565fac0866f2775d717ce`.
+- [x] Android #461 — PASS on the same source commit.
+- [x] Promote candidate to v0.19.2 / versionCode 91.
+- [ ] Exact-head Validate PASS for v0.19.2.
+- [ ] Exact-head Android PASS for v0.19.2.
+- [ ] Phone: 3-second preview orientation/colors/audio sync remain correct.
+- [ ] Phone: compare full-song wall-clock export time against v0.19.1 on the same track.
+- [ ] Phone: cancel leaves no corrupt published MP4.
+- [ ] Phone: several-minute export completes without OOM/ANR/black projectM frames.
+- [ ] Measure remaining bottleneck; synchronous projectM `glFinish + glReadPixels + RGBA->ARGB` is the expected next target if export remains too slow.

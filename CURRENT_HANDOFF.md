@@ -1575,3 +1575,19 @@ Known-good pre-version-bump source:
 
 Release candidate: v0.19.2 / build 91.
 Next gate: exact-head CI, then phone A/B timing using the same song that was slow on v0.19.1. First confirm the 3-second preview orientation/colors, then measure full-song export speed.
+
+
+### v0.19.2 CI closeout
+
+- Android #462 — PASS on v0.19.2 app/source `bcab5fc8a1910581627fc82737ab0528e976b702`.
+- Signed/debug artifact: `FARIC-Music-Visualizer-v0.19.2-Debug`, artifact id `11361439127`.
+- Artifact digest: `sha256:4549cdb9198d1abd8b8f2ca741146da547875051d2c30497a95ebce053438f75`.
+- Validate #753 — PASS on documentation HEAD `3e12cc87ed5e0d3ffa52eb13637660c70557b698`.
+
+Current gate is phone QA only. Do not change export architecture again before checking:
+1. 3-second preview orientation/colors/audio;
+2. same-song v0.19.1 vs v0.19.2 full-export wall-clock time;
+3. Cancel behavior;
+4. several-minute stability.
+
+If speed is still unacceptable, the next performance target is projectM synchronous framebuffer readback (`glFinish + glReadPixels + RGBA->ARGB`), not the H.264 YUV path that v0.19.2 already removed.

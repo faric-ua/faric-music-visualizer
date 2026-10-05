@@ -9,6 +9,8 @@ import android.view.MotionEvent
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.CountDownLatch
+import java.util.concurrent.TimeUnit
 import kotlin.math.roundToInt
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
@@ -121,116 +123,11 @@ class ProjectMView(
 
         queueEvent {
             val result =
-                runCatching {
-                    ProjectMBridge.render()
-                    GLES20.glFinish()
-
-                    val buffer =
-                        ByteBuffer
-                            .allocateDirect(
-                                width *
-                                    height *
-                                    4,
-                            )
-                            .order(
-                                ByteOrder.nativeOrder(),
-                            )
-
-                    GLES20.glReadPixels(
-                        0,
-                        0,
-                        width,
-                        height,
-                        GLES20.GL_RGBA,
-                        GLES20.GL_UNSIGNED_BYTE,
-                        buffer,
-                    )
-
-                    val pixels =
-                        IntArray(
-                            width *
-                                height,
-                        )
-
-                    for (
-                        y in
-                        0 until height
-                    ) {
-                        val sourceY =
-                            height -
-                                1 -
-                                y
-
-                        for (
-                            x in
-                            0 until width
-                        ) {
-                            val sourceIndex =
-                                (
-                                    sourceY *
-                                        width +
-                                        x
-                                    ) *
-                                    4
-
-                            val r =
-                                buffer
-                                    .get(
-                                        sourceIndex,
-                                    )
-                                    .toInt() and
-                                    0xff
-                            val g =
-                                buffer
-                                    .get(
-                                        sourceIndex +
-                                            1,
-                                    )
-                                    .toInt() and
-                                    0xff
-                            val b =
-                                buffer
-                                    .get(
-                                        sourceIndex +
-                                            2,
-                                    )
-                                    .toInt() and
-                                    0xff
-                            val a =
-                                buffer
-                                    .get(
-                                        sourceIndex +
-                                            3,
-                                    )
-                                    .toInt() and
-                                    0xff
-
-                            pixels[
-                                y *
-                                    width +
-                                    x
-                            ] =
-                                (
-                                    a shl 24
-                                    ) or
-                                    (
-                                        r shl 16
-                                        ) or
-                                    (
-                                        g shl 8
-                                        ) or
-                                    b
-                        }
-                    }
-
-                    Bitmap.createBitmap(
-                        pixels,
-                        width,
-                        height,
-                        Bitmap.Config.ARGB_8888,
-                    )
-                }
-                    .getOrNull()
+                readFramebuffer(
+                    width = width,
+                    height = height,
+                    renderFirst = true,
+                )
 
             post {
                 onCaptured(
@@ -239,6 +136,180 @@ class ProjectMView(
             }
         }
     }
+
+    /**
+     * Captures the currently rendered projectM framebuffer from a background
+     * export thread. The GLSurfaceView keeps rendering continuously; this call
+     * only samples the GL framebuffer and waits for that sample to complete.
+     */
+    fun captureFrameBlocking(
+        timeoutMs: Long = 1_500L,
+    ): Bitmap? {
+        val width =
+            glWidth
+        val height =
+            glHeight
+
+        if (
+            width <= 0 ||
+            height <= 0
+        ) {
+            return null
+        }
+
+        val latch =
+            CountDownLatch(
+                1,
+            )
+
+        var result: Bitmap? =
+            null
+
+        queueEvent {
+            result =
+                readFramebuffer(
+                    width = width,
+                    height = height,
+                    renderFirst = false,
+                )
+            latch.countDown()
+        }
+
+        val completed =
+            runCatching {
+                latch.await(
+                    timeoutMs,
+                    TimeUnit.MILLISECONDS,
+                )
+            }.getOrDefault(
+                false,
+            )
+
+        return if (completed) {
+            result
+        } else {
+            null
+        }
+    }
+
+    private fun readFramebuffer(
+        width: Int,
+        height: Int,
+        renderFirst: Boolean,
+    ): Bitmap? =
+        runCatching {
+            if (renderFirst) {
+                ProjectMBridge.render()
+            }
+
+            GLES20.glFinish()
+
+            val buffer =
+                ByteBuffer
+                    .allocateDirect(
+                        width *
+                            height *
+                            4,
+                    )
+                    .order(
+                        ByteOrder.nativeOrder(),
+                    )
+
+            GLES20.glReadPixels(
+                0,
+                0,
+                width,
+                height,
+                GLES20.GL_RGBA,
+                GLES20.GL_UNSIGNED_BYTE,
+                buffer,
+            )
+
+            val pixels =
+                IntArray(
+                    width *
+                        height,
+                )
+
+            for (
+                y in
+                0 until height
+            ) {
+                val sourceY =
+                    height -
+                        1 -
+                        y
+
+                for (
+                    x in
+                    0 until width
+                ) {
+                    val sourceIndex =
+                        (
+                            sourceY *
+                                width +
+                                x
+                            ) *
+                            4
+
+                    val r =
+                        buffer
+                            .get(
+                                sourceIndex,
+                            )
+                            .toInt() and
+                            0xff
+                    val g =
+                        buffer
+                            .get(
+                                sourceIndex +
+                                    1,
+                            )
+                            .toInt() and
+                            0xff
+                    val b =
+                        buffer
+                            .get(
+                                sourceIndex +
+                                    2,
+                            )
+                            .toInt() and
+                            0xff
+                    val a =
+                        buffer
+                            .get(
+                                sourceIndex +
+                                    3,
+                            )
+                            .toInt() and
+                            0xff
+
+                    pixels[
+                        y *
+                            width +
+                            x
+                    ] =
+                        (
+                            a shl 24
+                            ) or
+                            (
+                                r shl 16
+                                ) or
+                            (
+                                g shl 8
+                                ) or
+                            b
+                }
+            }
+
+            Bitmap.createBitmap(
+                pixels,
+                width,
+                height,
+                Bitmap.Config.ARGB_8888,
+            )
+        }
+            .getOrNull()
 
     private class Renderer(
         private val presetPath: String,

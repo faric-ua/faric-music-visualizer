@@ -4,6 +4,8 @@ import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.ColorMatrix
+import android.graphics.ColorMatrixColorFilter
 import android.graphics.Paint
 import android.graphics.RectF
 import android.view.View
@@ -63,6 +65,27 @@ class CompositionExportRenderer(
             Paint.ANTI_ALIAS_FLAG or
                 Paint.FILTER_BITMAP_FLAG,
         )
+
+    private val projectMRawGlPaint =
+        Paint(
+            Paint.ANTI_ALIAS_FLAG or
+                Paint.FILTER_BITMAP_FLAG,
+        ).apply {
+            // ProjectM offline fast readback copies GL_RGBA bytes directly
+            // into an Android ARGB_8888 bitmap on arm64 little-endian.
+            // Swap red/blue here instead of doing a CPU pass over every pixel.
+            colorFilter =
+                ColorMatrixColorFilter(
+                    ColorMatrix(
+                        floatArrayOf(
+                            0f, 0f, 1f, 0f, 0f,
+                            0f, 1f, 0f, 0f, 0f,
+                            1f, 0f, 0f, 0f, 0f,
+                            0f, 0f, 0f, 1f, 0f,
+                        ),
+                    ),
+                )
+        }
 
     private val pulseDeckView =
         if (config.pulseDeckVisible) {
@@ -137,6 +160,9 @@ class CompositionExportRenderer(
                 height = height,
                 bitmap =
                     projectMFrame,
+                rawGlFrame =
+                    projectMFrameOverride !=
+                        null,
             )
         }
 
@@ -292,6 +318,7 @@ class CompositionExportRenderer(
         width: Int,
         height: Int,
         bitmap: Bitmap,
+        rawGlFrame: Boolean,
     ) {
         if (
             bitmap.width <= 0 ||
@@ -330,9 +357,7 @@ class CompositionExportRenderer(
                 ) *
                 0.5f
 
-        canvas.drawBitmap(
-            bitmap,
-            null,
+        val destination =
             RectF(
                 left,
                 top,
@@ -340,9 +365,35 @@ class CompositionExportRenderer(
                     renderedWidth,
                 top +
                     renderedHeight,
-            ),
-            projectMPaint,
-        )
+            )
+
+        if (rawGlFrame) {
+            // glReadPixels returns framebuffer rows bottom-up. Flip only the
+            // dynamic offline frame at draw time, avoiding another CPU copy.
+            canvas.save()
+            canvas.scale(
+                1f,
+                -1f,
+                width *
+                    0.5f,
+                height *
+                    0.5f,
+            )
+            canvas.drawBitmap(
+                bitmap,
+                null,
+                destination,
+                projectMRawGlPaint,
+            )
+            canvas.restore()
+        } else {
+            canvas.drawBitmap(
+                bitmap,
+                null,
+                destination,
+                projectMPaint,
+            )
+        }
     }
 
     private fun signalForHud(

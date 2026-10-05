@@ -5333,7 +5333,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     result.height +
                                     " · " +
                                     result.frameCount +
-                                    " кадрів · Movies/FARIC"
+                                    " кадрів" +
+                                    "\nprojectM " +
+                                    result.projectMFrameMs +
+                                    " ms · comp " +
+                                    result.compositionMs +
+                                    " ms · enc " +
+                                    result.encoderSubmitMs +
+                                    " ms" +
+                                    "\nMovies/FARIC"
                             },
                         )
                     } else {

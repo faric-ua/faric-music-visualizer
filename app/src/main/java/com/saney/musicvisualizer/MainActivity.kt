@@ -4467,8 +4467,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     snapshot.positionMs,
                 )
                 ?: latestSignal
-        val theme = selectedThemeId
-        val ratio = exportAspectRatio
+        val theme =
+            exportProofThemeId()
+        val ratio =
+            exportAspectRatio
 
         if (!isDeterministicExportReady(theme)) {
             toast("Ця тема ще не підтримує export proof")

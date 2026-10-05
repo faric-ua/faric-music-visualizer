@@ -1645,3 +1645,30 @@ v0.19.4 targets wasted projectM pixels. Export Lab now requests a manual project
 
 Release candidate: v0.19.4 / build 93.
 Phone baseline to beat: ~16 seconds for the same 3-second preview.
+
+
+### v0.19.4 CI runner hold
+
+Implementation and release metadata are ready on main:
+- v0.19.4 / build 93;
+- export projectM surface matches the selected output geometry before applying the existing render scale;
+- 3-second preview contract remains current scrubber position -> next 3 seconds;
+- v0.19.3 phone baseline remains ~16 seconds for 3.008 seconds / 90 frames.
+
+Current infrastructure gate:
+- Android #468 for release source was queued and later cancelled while retrying the same workflow concurrency group.
+- Android #467 attempt 2 (geometry implementation SHA `2cfda7ccef77c4449ae60bb151d1d0e9905ee3c8`) was manually rerun and remains queued with no runner assigned.
+- Validate jobs are likewise queued/pending; no build/test failure has been reported.
+- Do NOT create a v0.19.4 BUILD_CHECKPOINT until an Android run actually completes PASS.
+
+Prepared separately without changing main:
+- branch `perf/export-stage-timing`;
+- head `5a48bf33b938858f715b2f7925bd309d25f8e37a`;
+- measures projectM frame-provider time, composition time, and encoder-submit time for the 3-second preview and exposes those numbers in the completion toast.
+- Use this only if v0.19.4 geometry optimization is still too slow after phone timing.
+
+Resume:
+1. check Android #467 attempt 2 / current main Android workflow state;
+2. if PASS, record BUILD_CHECKPOINT immediately;
+3. ensure exact v0.19.4 / build 93 signed artifact exists;
+4. phone A/B the same 3-second preview against the ~16-second v0.19.3 baseline.

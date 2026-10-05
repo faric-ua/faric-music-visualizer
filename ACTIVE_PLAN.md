@@ -982,3 +982,30 @@ Implementation:
 - [ ] Phone: with L3 GF enabled, PNG proof button is enabled and exports current Cyber Shark pose/visibility.
 - [ ] Phone: after offline analysis, MP4 proof button is enabled and exports a 3 s reactive Cyber Shark clip with audio.
 - [ ] Compare proof against live GF: object positions/scales/visibility should match closely. Full Layer 0/1/2/6 stack export remains a later composition-renderer step.
+
+## PulseDeck v0.18.7 — deterministic composition export v1
+
+Goal: export the same active PulseDeck composition instead of a standalone GF proof.
+
+Implemented:
+- [x] Add deterministic FARIC Layer 0 renderer for RADIAL / WAVE_RIBBON / SPECTRUM_BARS using explicit offline time + signal.
+- [x] Add deterministic Layer 1 renderer for 447504 with the same center-crop + 5% per-edge overscan contract.
+- [x] Add deterministic Layer 2 Big Equalizer renderer.
+- [x] Reuse Cyber Shark deterministic Layer 3 renderer with current GF group transform/reaction, per-object transforms and visibility.
+- [x] Render Layer 5 atmospheric FX using the current SceneSpec + offline signal.
+- [x] Render Layer 6 PulseDeck HUD from the modular skin, applying all 29 persisted object visibility switches plus track/progress/audio state.
+- [x] Preserve canonical Z-order in export: L0 → L1 → L2 → L3 → L5 → L6. L4 is still empty.
+- [x] PNG and 3 s MP4 now use the same CompositionExportRenderer.
+- [x] Export Lab shows the active layer summary and no longer depends on the old theme whitelist.
+- [x] Export filenames use `FARIC-Composition-...`.
+- [x] MP4 keeps offline signal analysis + H.264 + AAC audio.
+- [x] Explicitly flag the remaining gap: native projectM GLSurfaceView is not yet available in deterministic offline composition export.
+- [x] Use a main-looper GestureDetector handler so the offscreen PulseDeck HUD renderer can be safely constructed for export work.
+- [x] Bump candidate to v0.18.7 / versionCode 86.
+- [ ] Exact-head Validate PASS.
+- [ ] Exact-head Android workflow PASS.
+- [ ] Phone: export PNG with L1/L2/L3/L5/L6 combinations and compare against live composition.
+- [ ] Phone: export 3 s MP4 and verify reactive FARIC visualizer + EQ + GF + FX + HUD.
+- [ ] Phone: verify disabled PulseDeck child objects stay absent in exported PNG/MP4.
+- [ ] Phone: verify 9:16 / 16:9 / 1:1 / 4:5 composition geometry.
+- [ ] Next: native GL projectM frame capture/offscreen export so L0 projectM can join the deterministic stack.

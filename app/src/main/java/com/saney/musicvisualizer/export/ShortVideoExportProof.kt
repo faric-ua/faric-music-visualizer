@@ -48,6 +48,8 @@ object ShortVideoExportProof {
             CyberSharkExportConfig? = null,
         compositionConfig:
             CompositionExportConfig? = null,
+        projectMFrameProvider:
+            ((Int, Long) -> Bitmap?)? = null,
         onProgress: (Int) -> Unit = {},
     ): Result {
         val (width, height) =
@@ -305,6 +307,22 @@ object ShortVideoExportProof {
                         bitmap,
                     )
 
+                val dynamicProjectMFrame =
+                    if (
+                        compositionRenderer != null &&
+                        compositionConfig
+                            ?.projectMVisible ==
+                        true
+                    ) {
+                        projectMFrameProvider
+                            ?.invoke(
+                                frameIndex,
+                                frameTimeMs,
+                            )
+                    } else {
+                        null
+                    }
+
                 if (
                     compositionRenderer != null
                 ) {
@@ -319,6 +337,8 @@ object ShortVideoExportProof {
                         durationMs =
                             analysis.durationMs,
                         playing = true,
+                        projectMFrameOverride =
+                            dynamicProjectMFrame,
                     )
                 } else if (
                     cyberSharkRenderer != null &&
@@ -370,6 +390,9 @@ object ShortVideoExportProof {
                     width,
                     height,
                 )
+
+                dynamicProjectMFrame
+                    ?.recycle()
 
                 convertArgbToYuv420(
                     pixels = pixels,

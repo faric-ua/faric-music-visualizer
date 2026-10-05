@@ -22,6 +22,7 @@ class ProjectMView(
     private val profile: ProjectMPerformanceProfile = ProjectMPerformanceProfile.BALANCED_BACKGROUND,
     private var foregroundSample: FaricForegroundSample = FaricForegroundSample.PULSE_RAYS,
     private val onTapNext: () -> Unit = {},
+    private val manualFrameMode: Boolean = false,
 ) : GLSurfaceView(context) {
 
     @Volatile
@@ -44,7 +45,12 @@ class ProjectMView(
                 },
             ),
         )
-        renderMode = RENDERMODE_CONTINUOUSLY
+        renderMode =
+            if (manualFrameMode) {
+                RENDERMODE_WHEN_DIRTY
+            } else {
+                RENDERMODE_CONTINUOUSLY
+            }
         preserveEGLContextOnPause = true
     }
 
@@ -212,6 +218,77 @@ class ProjectMView(
             result
         } else {
             null
+        }
+    }
+
+    fun renderOfflineFrameBlocking(
+        frameTimeSeconds: Double,
+        pcm: ShortArray,
+        signal: com.saney.musicvisualizer.analysis.SceneSignal,
+        timeoutMs: Long = 4_000L,
+    ): Bitmap? {
+        val width =
+            glWidth
+        val height =
+            glHeight
+
+        if (
+            width <= 0 ||
+            height <= 0
+        ) {
+            return null
+        }
+
+        val latch =
+            CountDownLatch(
+                1,
+            )
+
+        var result: Bitmap? =
+            null
+
+        queueEvent {
+            ProjectMBridge.beginOfflineExport()
+            ProjectMBridge.setFrameTime(
+                frameTimeSeconds,
+            )
+            ProjectMBridge.pushOfflinePcm(
+                pcm,
+            )
+            ProjectMBridge.pushOfflineSignal(
+                signal,
+            )
+
+            result =
+                readFramebuffer(
+                    width = width,
+                    height = height,
+                    renderFirst = true,
+                )
+
+            latch.countDown()
+        }
+
+        val completed =
+            runCatching {
+                latch.await(
+                    timeoutMs,
+                    TimeUnit.MILLISECONDS,
+                )
+            }.getOrDefault(
+                false,
+            )
+
+        return if (completed) {
+            result
+        } else {
+            null
+        }
+    }
+
+    fun finishOfflineExport() {
+        queueEvent {
+            ProjectMBridge.endOfflineExport()
         }
     }
 

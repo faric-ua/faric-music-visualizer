@@ -35,8 +35,6 @@ class ProjectMView(
     // projectM sizes, allocating them for every frame creates severe GC pressure.
     private var offlineReadbackBuffer: ByteBuffer? =
         null
-    private var offlineReadbackPixels: IntArray? =
-        null
     private var offlineReadbackBitmap: Bitmap? =
         null
     private var offlineReadbackWidth =
@@ -409,8 +407,6 @@ class ProjectMView(
                 ProjectMBridge.render()
             }
 
-            GLES20.glFinish()
-
             val pixelCount =
                 width *
                     height
@@ -440,6 +436,15 @@ class ProjectMView(
                 0,
             )
 
+            if (!reuseOfflineBuffers) {
+                // Legacy snapshot path keeps the explicit finish + CPU channel
+                // conversion so PNG/static captures preserve their established
+                // orientation and color contract.
+                GLES20.glFinish()
+            }
+
+            // glReadPixels is synchronous for the requested framebuffer data,
+            // so the offline hot path does not need a separate glFinish().
             GLES20.glReadPixels(
                 0,
                 0,
@@ -450,89 +455,6 @@ class ProjectMView(
                 buffer,
             )
 
-            val pixels =
-                if (reuseOfflineBuffers) {
-                    offlineReadbackPixels
-                        ?: error(
-                            "Offline readback pixels unavailable",
-                        )
-                } else {
-                    IntArray(
-                        pixelCount,
-                    )
-                }
-
-            for (
-                y in
-                0 until height
-            ) {
-                val sourceY =
-                    height -
-                        1 -
-                        y
-
-                for (
-                    x in
-                    0 until width
-                ) {
-                    val sourceIndex =
-                        (
-                            sourceY *
-                                width +
-                                x
-                            ) *
-                            4
-
-                    val r =
-                        buffer
-                            .get(
-                                sourceIndex,
-                            )
-                            .toInt() and
-                            0xff
-                    val g =
-                        buffer
-                            .get(
-                                sourceIndex +
-                                    1,
-                            )
-                            .toInt() and
-                            0xff
-                    val b =
-                        buffer
-                            .get(
-                                sourceIndex +
-                                    2,
-                            )
-                            .toInt() and
-                            0xff
-                    val a =
-                        buffer
-                            .get(
-                                sourceIndex +
-                                    3,
-                            )
-                            .toInt() and
-                            0xff
-
-                    pixels[
-                        y *
-                            width +
-                            x
-                    ] =
-                        (
-                            a shl 24
-                            ) or
-                            (
-                                r shl 16
-                                ) or
-                            (
-                                g shl 8
-                                ) or
-                            b
-                }
-            }
-
             if (reuseOfflineBuffers) {
                 val bitmap =
                     offlineReadbackBitmap
@@ -540,17 +462,95 @@ class ProjectMView(
                             "Offline readback bitmap unavailable",
                         )
 
-                bitmap.setPixels(
-                    pixels,
+                // arm64 Android stores ARGB_8888 as native little-endian bytes.
+                // A direct RGBA copy therefore avoids the previous Kotlin
+                // per-pixel loop. The resulting offline frame is GL-oriented
+                // (bottom-up) with R/B swapped; CompositionExportRenderer fixes
+                // those two presentation details while drawing the frame.
+                buffer.position(
                     0,
-                    width,
-                    0,
-                    0,
-                    width,
-                    height,
+                )
+                bitmap.copyPixelsFromBuffer(
+                    buffer,
                 )
                 bitmap
             } else {
+                val pixels =
+                    IntArray(
+                        pixelCount,
+                    )
+
+                for (
+                    y in
+                    0 until height
+                ) {
+                    val sourceY =
+                        height -
+                            1 -
+                            y
+
+                    for (
+                        x in
+                        0 until width
+                    ) {
+                        val sourceIndex =
+                            (
+                                sourceY *
+                                    width +
+                                    x
+                                ) *
+                                4
+
+                        val r =
+                            buffer
+                                .get(
+                                    sourceIndex,
+                                )
+                                .toInt() and
+                                0xff
+                        val g =
+                            buffer
+                                .get(
+                                    sourceIndex +
+                                        1,
+                                )
+                                .toInt() and
+                                0xff
+                        val b =
+                            buffer
+                                .get(
+                                    sourceIndex +
+                                        2,
+                                )
+                                .toInt() and
+                                0xff
+                        val a =
+                            buffer
+                                .get(
+                                    sourceIndex +
+                                        3,
+                                )
+                                .toInt() and
+                                0xff
+
+                        pixels[
+                            y *
+                                width +
+                                x
+                        ] =
+                            (
+                                a shl 24
+                                ) or
+                                (
+                                    r shl 16
+                                    ) or
+                                (
+                                    g shl 8
+                                    ) or
+                                b
+                    }
+                }
+
                 Bitmap.createBitmap(
                     pixels,
                     width,
@@ -572,8 +572,6 @@ class ProjectMView(
                 height &&
             offlineReadbackBuffer !=
                 null &&
-            offlineReadbackPixels !=
-                null &&
             offlineReadbackBitmap
                 ?.isRecycled ==
                 false
@@ -593,11 +591,6 @@ class ProjectMView(
                 .order(
                     ByteOrder.nativeOrder(),
                 )
-        offlineReadbackPixels =
-            IntArray(
-                width *
-                    height,
-            )
         offlineReadbackBitmap =
             Bitmap.createBitmap(
                 width,
@@ -617,8 +610,6 @@ class ProjectMView(
             }
             ?.recycle()
         offlineReadbackBitmap =
-            null
-        offlineReadbackPixels =
             null
         offlineReadbackBuffer =
             null

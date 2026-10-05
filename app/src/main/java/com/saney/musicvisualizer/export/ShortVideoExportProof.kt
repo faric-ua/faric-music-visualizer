@@ -19,6 +19,7 @@ import com.saney.musicvisualizer.theme.ThemeInput
 import java.io.File
 import java.io.FileInputStream
 import java.io.FileOutputStream
+import java.util.concurrent.CancellationException
 import kotlin.math.max
 
 object ShortVideoExportProof {
@@ -32,8 +33,8 @@ object ShortVideoExportProof {
     )
 
     private const val MIME = "video/avc"
-    private const val PROOF_FPS = 30
-    private const val PROOF_DURATION_MS = 3_000L
+    private const val DEFAULT_FPS = 30
+    private const val DEFAULT_DURATION_MS = 3_000L
     private const val TIMEOUT_US = 10_000L
 
     fun export(
@@ -50,6 +51,15 @@ object ShortVideoExportProof {
             CompositionExportConfig? = null,
         projectMFrameProvider:
             ((Int, Long) -> Bitmap?)? = null,
+        requestedDurationMs: Long =
+            DEFAULT_DURATION_MS,
+        fps: Int =
+            DEFAULT_FPS,
+        displayNamePrefix: String =
+            "FARIC-proof",
+        shouldCancel: () -> Boolean = {
+            false
+        },
         onProgress: (Int) -> Unit = {},
     ): Result {
         val (width, height) =
@@ -62,9 +72,18 @@ object ShortVideoExportProof {
             (analysis.durationMs - startMs)
                 .coerceAtLeast(0L)
 
+        val safeFps =
+            fps.coerceIn(
+                1,
+                60,
+            )
+
         val durationMs =
             minOf(
-                PROOF_DURATION_MS,
+                requestedDurationMs
+                    .coerceAtLeast(
+                        500L,
+                    ),
                 availableMs,
             ).coerceAtLeast(500L)
 
@@ -73,7 +92,7 @@ object ShortVideoExportProof {
                 1,
                 (
                     durationMs *
-                        PROOF_FPS /
+                        safeFps /
                         1000L
                     ).toInt(),
             )
@@ -112,7 +131,7 @@ object ShortVideoExportProof {
                 )
                 setInteger(
                     MediaFormat.KEY_FRAME_RATE,
-                    PROOF_FPS,
+                    safeFps,
                 )
                 setInteger(
                     MediaFormat.KEY_I_FRAME_INTERVAL,
@@ -287,11 +306,19 @@ object ShortVideoExportProof {
                 frameIndex in
                 0 until frameCount
             ) {
+                if (
+                    shouldCancel()
+                ) {
+                    throw CancellationException(
+                        "Export cancelled",
+                    )
+                }
+
                 val frameTimeMs =
                     startMs +
                         frameIndex *
                         1000L /
-                        PROOF_FPS
+                        safeFps
 
                 val signal =
                     analysis.signalAt(
@@ -437,7 +464,7 @@ object ShortVideoExportProof {
                         val ptsUs =
                             frameIndex *
                                 1_000_000L /
-                                PROOF_FPS
+                                safeFps
 
                         encoder.queueInputBuffer(
                             inputIndex,
@@ -486,7 +513,7 @@ object ShortVideoExportProof {
                         0,
                         frameCount *
                             1_000_000L /
-                            PROOF_FPS,
+                            safeFps,
                         MediaCodec.BUFFER_FLAG_END_OF_STREAM,
                     )
                     eosQueued = true
@@ -535,6 +562,14 @@ object ShortVideoExportProof {
             )
 
         try {
+            if (
+                shouldCancel()
+            ) {
+                throw CancellationException(
+                    "Export cancelled",
+                )
+            }
+
             AudioClipTranscoder.transcodeToAacMp4(
                 context = context,
                 sourceUri = sourceAudioUri,
@@ -558,7 +593,7 @@ object ShortVideoExportProof {
                     context = context,
                     source = muxedTemp,
                     displayName =
-                        "FARIC-proof-${System.currentTimeMillis()}.mp4",
+                        "$displayNamePrefix-${System.currentTimeMillis()}.mp4",
                 )
 
             return Result(

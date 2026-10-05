@@ -11,6 +11,7 @@ import java.io.FileOutputStream
 import java.io.RandomAccessFile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.CancellationException
 
 data class OfflinePcmCacheResult(
     val file: File,
@@ -165,6 +166,9 @@ object OfflinePcmCache {
     fun build(
         context: Context,
         uri: Uri,
+        shouldCancel: () -> Boolean = {
+            false
+        },
         onProgress: (Int) -> Unit = {},
     ): OfflinePcmCacheResult {
         val target =
@@ -288,6 +292,14 @@ object OfflinePcmCache {
                     target,
                 ).use { output ->
                     while (!outputDone) {
+                        if (
+                            shouldCancel()
+                        ) {
+                            throw CancellationException(
+                                "PCM preparation cancelled",
+                            )
+                        }
+
                         if (!inputDone) {
                             val inputIndex =
                                 decoder

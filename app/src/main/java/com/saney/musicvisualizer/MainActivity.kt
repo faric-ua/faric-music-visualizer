@@ -4598,7 +4598,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             runCatching {
                 val project =
                     MusicVideoProject(
-                        themeId = theme,
+                        themeId =
+                            PlaybackThemeId.CYBER_SHARK,
                         aspectRatio = ratio,
                         frameRate = 30,
                     )
@@ -5387,6 +5388,39 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     companion object {
         private val GF_THEME_ID =
             PlaybackThemeId.CYBER_SHARK
+
+        private val PULSEDECK_EXPORT_OBJECT_IDS =
+            listOf(
+                "energy_waves",
+                "particles_orange_left",
+                "particles_blue_left",
+                "particles_blue_right",
+                "particles_orange_right",
+                "reactor_energy_ring",
+                "hero_frame",
+                "hero_core",
+                "favorite",
+                "track_more",
+                "waveform",
+                "progress_line",
+                "transport_rail",
+                "shuffle",
+                "previous",
+                "play_pause",
+                "next",
+                "repeat",
+                "quick_rail",
+                "theme",
+                "board",
+                "visualizer",
+                "export",
+                "back",
+                "menu",
+                "header_title",
+                "track_info",
+                "progress_time",
+                "progress_thumb",
+            )
 
         private const val PREFS_NAME =
             "faric.preferences"

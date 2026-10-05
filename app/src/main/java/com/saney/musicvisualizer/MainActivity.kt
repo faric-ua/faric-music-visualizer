@@ -3856,6 +3856,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val root = FrameLayout(this).apply {
             setBackgroundColor(COLOR_BG)
         }
+
+        attachExportProjectMPreview(
+            root,
+        )
         applySafeArea(root)
 
         val scroll = ScrollView(this).apply {
@@ -3916,14 +3920,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         .projectMVisible
                 ) {
                     add(
-                        if (
+                        when {
+                            projectMExportLiveView !=
+                                null ->
+                                "L0 projectM live"
+
                             compositionConfig
                                 .projectMFrame !=
-                            null
-                        ) {
-                            "L0 projectM snapshot"
-                        } else {
-                            "L0 projectM*"
+                                null ->
+                                "L0 projectM snapshot"
+
+                            else ->
+                                "L0 projectM*"
                         },
                     )
                 }
@@ -4013,6 +4021,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             compositionConfig
                 .projectMVisible
         ) {
+            val hasLiveCapture =
+                projectMExportLiveView !=
+                    null
             val hasSnapshot =
                 compositionConfig
                     .projectMFrame !=
@@ -4020,13 +4031,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
             content.addView(
                 label(
-                    if (hasSnapshot) {
-                        "✓ projectM GL snapshot додано в L0. У PNG він точний для моменту capture; у 3 с MP4 цей projectM кадр поки статичний, а інші шари залишаються реактивними."
-                    } else {
-                        "⚠ projectM увімкнений, але GL snapshot відсутній. Повернись у Now Playing і відкрий Export ще раз."
+                    when {
+                        hasLiveCapture ->
+                            "✓ projectM live capture готовий. MP4 захопить до 30 GL-кадрів/с протягом 3 секунд і збере їх разом з реактивними L0/L2/L3/L5/L6."
+
+                        hasSnapshot ->
+                            "✓ projectM GL snapshot є. PNG включить його точно; MP4 використає snapshot як fallback, якщо live capture недоступний."
+
+                        else ->
+                            "⚠ projectM увімкнений, але GL capture недоступний. Повернись у Now Playing і відкрий Export ще раз."
                     },
                     12f,
-                    if (hasSnapshot) {
+                    if (
+                        hasLiveCapture ||
+                        hasSnapshot
+                    ) {
                         COLOR_ACCENT_CYAN
                     } else {
                         COLOR_ACCENT_ORANGE

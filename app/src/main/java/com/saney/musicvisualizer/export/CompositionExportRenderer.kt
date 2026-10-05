@@ -199,7 +199,10 @@ class CompositionExportRenderer(
                 )
 
                 view.updateSignal(
-                    signal,
+                    signalForHud(
+                        signal = signal,
+                        timeMs = timeMs,
+                    ),
                 )
                 view.setPlaying(
                     playing,
@@ -255,6 +258,66 @@ class CompositionExportRenderer(
                     canvas,
                 )
             }
+    }
+
+    private fun signalForHud(
+        signal: SceneSignal,
+        timeMs: Long,
+    ): SceneSignal {
+        if (signal.spectrum.isNotEmpty()) {
+            return signal
+        }
+
+        val bins =
+            FloatArray(
+                48,
+            ) { index ->
+                val normalized =
+                    index /
+                        47f
+                val band =
+                    when {
+                        normalized < 0.34f ->
+                            signal.bass
+
+                        normalized < 0.68f ->
+                            signal.mid
+
+                        else ->
+                            signal.high
+                    }
+
+                val phase =
+                    timeMs /
+                        180.0 +
+                        index *
+                        0.73
+
+                (
+                    band *
+                        (
+                            0.72f +
+                                0.28f *
+                                kotlin.math.abs(
+                                    kotlin.math.sin(
+                                        phase,
+                                    ),
+                                )
+                            ) +
+                        signal.amplitude *
+                        0.08f +
+                        signal.beatStrength *
+                        0.10f
+                    )
+                    .coerceIn(
+                        0f,
+                        1f,
+                    )
+            }
+
+        return signal.copy(
+            spectrum = bins,
+        )
     }
 
     private fun ensurePulseDeckSize(

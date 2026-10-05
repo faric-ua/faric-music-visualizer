@@ -1672,3 +1672,28 @@ Resume:
 2. if PASS, record BUILD_CHECKPOINT immediately;
 3. ensure exact v0.19.4 / build 93 signed artifact exists;
 4. phone A/B the same 3-second preview against the ~16-second v0.19.3 baseline.
+
+
+### CI failure diagnosis — 2026-10-05
+
+The apparent failures around v0.19.4 are infrastructure startup failures, not source/build failures.
+
+Confirmed:
+- Android #467 attempt 2, SHA `2cfda7ccef77c4449ae60bb151d1d0e9905ee3c8`:
+  - run-level conclusion: failure;
+  - build job conclusion: cancelled;
+  - `runner_id = 0`, empty runner name;
+  - `steps = []`;
+  - billable Ubuntu time: 0 ms;
+  - queued/start window lasted about 15 minutes before GitHub ended it.
+- Validate #775, SHA `c5dc167a96ab70341142d13b0ffb0f510a2f5903`:
+  - run-level conclusion: failure;
+  - validate job conclusion: cancelled;
+  - `runner_id = 0`, empty runner name;
+  - `steps = []`;
+  - billable Ubuntu time: 0 ms;
+  - also lasted about 15 minutes without acquiring a runner.
+
+Therefore neither run reached Checkout, tests, Gradle, Android build, signing, or artifact upload. There is currently no evidence of a v0.19.4 code/compile/test failure.
+
+Do not mark v0.19.4 BUILD PASS until a real Android run receives a runner and completes successfully.

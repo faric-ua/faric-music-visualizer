@@ -19,7 +19,7 @@ FetchContent_Declare(
     GIT_SHALLOW TRUE
     PATCH_COMMAND
         ${CMAKE_COMMAND} -E chdir <SOURCE_DIR>
-        ${GIT_EXECUTABLE} apply --whitespace=nowarn
+        ${GIT_EXECUTABLE} apply --unidiff-zero --whitespace=nowarn
         "${CMAKE_CURRENT_LIST_DIR}/patches/projectm-4.1.7-frame-time.patch"
 )
 

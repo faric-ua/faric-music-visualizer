@@ -5669,23 +5669,23 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun clearScreenRefs() {
+        projectMExportLiveView
+            ?.releaseProjectMBlocking()
         if (projectMExportLiveResumed) {
             projectMExportLiveView
                 ?.onPause()
             projectMExportLiveResumed =
                 false
         }
-        projectMExportLiveView
-            ?.releaseProjectM()
         projectMExportLiveView =
             null
 
+        projectMMainView
+            ?.releaseProjectMBlocking()
         if (projectMMainResumed) {
             projectMMainView?.onPause()
             projectMMainResumed = false
         }
-        projectMMainView
-            ?.releaseProjectM()
         projectMMainView = null
 
         nowControlsLayer?.removeCallbacks(

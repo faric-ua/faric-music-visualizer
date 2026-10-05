@@ -1091,8 +1091,8 @@ Architecture:
 - [x] Validate #735 — PASS on `9123cbfbf61d`.
 - [x] Android #456 — PASS on `9123cbfbf61d` (unit tests, native/CMake build, APK, signer/zipalign verification and artifact upload all PASS).
 - [x] Candidate bumped to v0.19.1 / versionCode 90.
-- [ ] Exact-head Validate PASS for v0.19.1.
-- [ ] Exact-head Android PASS for v0.19.1.
+- [x] Exact-head Validate PASS for v0.19.1 — Validate #738 PASS on docs HEAD `387401c29190b3553c823e1c72b17c32d41f98a4`.
+- [x] Exact-head Android PASS for v0.19.1 app/source — Android #457 PASS on release SHA `fd4bf265436507d7126d390fc56824dca7e21e81`; later commits are documentation-only. Artifact: `FARIC-Music-Visualizer-v0.19.1-Debug`.
 - [ ] Phone: 3-second preview works with projectM offline clock and does not wait for realtime capture.
 - [ ] Phone: full-song export starts at 0:00 even when the player is paused or currently near the middle/end.
 - [ ] Phone: exported MP4 duration matches source duration and audio begins at 0:00.

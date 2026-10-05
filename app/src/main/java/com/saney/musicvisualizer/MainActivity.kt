@@ -479,8 +479,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onDestroy() {
         sceneOrchestrator.close()
-        projectMExportSnapshot
-            ?.recycle()
         projectMExportSnapshot =
             null
         super.onDestroy()
@@ -3711,8 +3709,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             !projectMVisible ||
             liveView == null
         ) {
-            projectMExportSnapshot
-                ?.recycle()
             projectMExportSnapshot =
                 null
             showExportLab()
@@ -3724,12 +3720,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         liveView.captureFrame { bitmap ->
-            projectMExportSnapshot
-                ?.takeIf {
-                    it !== bitmap
-                }
-                ?.recycle()
-
             projectMExportSnapshot =
                 bitmap
 

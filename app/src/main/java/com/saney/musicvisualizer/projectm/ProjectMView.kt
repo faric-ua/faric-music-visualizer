@@ -31,6 +31,19 @@ class ProjectMView(
     @Volatile
     private var glHeight = 0
 
+    // Offline export reuses these large buffers across frames. At 1080p-class
+    // projectM sizes, allocating them for every frame creates severe GC pressure.
+    private var offlineReadbackBuffer: ByteBuffer? =
+        null
+    private var offlineReadbackPixels: IntArray? =
+        null
+    private var offlineReadbackBitmap: Bitmap? =
+        null
+    private var offlineReadbackWidth =
+        0
+    private var offlineReadbackHeight =
+        0
+
     init {
         setEGLContextClientVersion(2)
         setRenderer(
@@ -107,7 +120,10 @@ class ProjectMView(
     }
 
     fun releaseProjectM() {
-        queueEvent { ProjectMBridge.destroy() }
+        queueEvent {
+            ProjectMBridge.destroy()
+            clearOfflineReadbackCache()
+        }
     }
 
     fun releaseProjectMBlocking(
@@ -120,6 +136,7 @@ class ProjectMView(
 
         queueEvent {
             ProjectMBridge.destroy()
+            clearOfflineReadbackCache()
             latch.countDown()
         }
 
@@ -352,6 +369,7 @@ class ProjectMView(
                     width = width,
                     height = height,
                     renderFirst = true,
+                    reuseOfflineBuffers = true,
                 )
 
             latch.countDown()
@@ -384,6 +402,7 @@ class ProjectMView(
         width: Int,
         height: Int,
         renderFirst: Boolean,
+        reuseOfflineBuffers: Boolean = false,
     ): Bitmap? =
         runCatching {
             if (renderFirst) {
@@ -392,16 +411,34 @@ class ProjectMView(
 
             GLES20.glFinish()
 
+            val pixelCount =
+                width *
+                    height
+
             val buffer =
-                ByteBuffer
-                    .allocateDirect(
-                        width *
-                            height *
-                            4,
+                if (reuseOfflineBuffers) {
+                    ensureOfflineReadbackCache(
+                        width = width,
+                        height = height,
                     )
-                    .order(
-                        ByteOrder.nativeOrder(),
-                    )
+                    offlineReadbackBuffer
+                        ?: error(
+                            "Offline readback buffer unavailable",
+                        )
+                } else {
+                    ByteBuffer
+                        .allocateDirect(
+                            pixelCount *
+                                4,
+                        )
+                        .order(
+                            ByteOrder.nativeOrder(),
+                        )
+                }
+
+            buffer.position(
+                0,
+            )
 
             GLES20.glReadPixels(
                 0,
@@ -414,10 +451,16 @@ class ProjectMView(
             )
 
             val pixels =
-                IntArray(
-                    width *
-                        height,
-                )
+                if (reuseOfflineBuffers) {
+                    offlineReadbackPixels
+                        ?: error(
+                            "Offline readback pixels unavailable",
+                        )
+                } else {
+                    IntArray(
+                        pixelCount,
+                    )
+                }
 
             for (
                 y in
@@ -490,14 +533,100 @@ class ProjectMView(
                 }
             }
 
+            if (reuseOfflineBuffers) {
+                val bitmap =
+                    offlineReadbackBitmap
+                        ?: error(
+                            "Offline readback bitmap unavailable",
+                        )
+
+                bitmap.setPixels(
+                    pixels,
+                    0,
+                    width,
+                    0,
+                    0,
+                    width,
+                    height,
+                )
+                bitmap
+            } else {
+                Bitmap.createBitmap(
+                    pixels,
+                    width,
+                    height,
+                    Bitmap.Config.ARGB_8888,
+                )
+            }
+        }
+            .getOrNull()
+
+    private fun ensureOfflineReadbackCache(
+        width: Int,
+        height: Int,
+    ) {
+        if (
+            offlineReadbackWidth ==
+                width &&
+            offlineReadbackHeight ==
+                height &&
+            offlineReadbackBuffer !=
+                null &&
+            offlineReadbackPixels !=
+                null &&
+            offlineReadbackBitmap
+                ?.isRecycled ==
+                false
+        ) {
+            return
+        }
+
+        clearOfflineReadbackCache()
+
+        offlineReadbackBuffer =
+            ByteBuffer
+                .allocateDirect(
+                    width *
+                        height *
+                        4,
+                )
+                .order(
+                    ByteOrder.nativeOrder(),
+                )
+        offlineReadbackPixels =
+            IntArray(
+                width *
+                    height,
+            )
+        offlineReadbackBitmap =
             Bitmap.createBitmap(
-                pixels,
                 width,
                 height,
                 Bitmap.Config.ARGB_8888,
             )
-        }
-            .getOrNull()
+        offlineReadbackWidth =
+            width
+        offlineReadbackHeight =
+            height
+    }
+
+    private fun clearOfflineReadbackCache() {
+        offlineReadbackBitmap
+            ?.takeIf {
+                !it.isRecycled
+            }
+            ?.recycle()
+        offlineReadbackBitmap =
+            null
+        offlineReadbackPixels =
+            null
+        offlineReadbackBuffer =
+            null
+        offlineReadbackWidth =
+            0
+        offlineReadbackHeight =
+            0
+    }
 
     private class Renderer(
         private val presetPath: String,

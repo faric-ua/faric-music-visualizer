@@ -1505,3 +1505,23 @@ Interpretation:
 - v0.18.9 snapshot bridge = PASS for MP4 inclusion.
 - Remaining projectM gap is now specifically dynamic frame-by-frame projectM export, not missing projectM composition.
 - PNG exact-moment verification is still open.
+
+## v0.19.0 — dynamic projectM export candidate
+
+The projectM export path is no longer limited to one static GL snapshot for MP4.
+
+Current flow:
+1. Now Playing → Export still captures one exact live projectM snapshot for PNG/fallback.
+2. Export Lab creates its own live projectM GLSurfaceView using the same selected preset.
+3. When the user starts the 3-second MP4 export, FARIC samples that live GL framebuffer at 30 FPS in real time.
+4. Frames are cached temporarily as JPEG quality 95 files rather than retained as raw Bitmaps.
+5. The H.264 composition pass reads frame N from that sequence and composites it as L0 below the normal FARIC/GF/FX/PulseDeck layers.
+6. Temporary frame files are removed after export.
+
+Important architecture note:
+- this is true moving projectM video in the exported MP4, but it is a **live GL capture pipeline**, not yet a deterministic offscreen projectM clock;
+- the selected preset receives the normal live projectM PCM/signal feed while capture is running;
+- static snapshot remains a fallback if the live export surface is unavailable.
+
+Release candidate: v0.19.0 / build 89.
+Phone acceptance is required before calling dynamic projectM export closed.

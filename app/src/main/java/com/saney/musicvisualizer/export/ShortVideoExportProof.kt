@@ -32,7 +32,7 @@ object ShortVideoExportProof {
     )
 
     private const val MIME = "video/avc"
-    private const val PROOF_FPS = 15
+    private const val PROOF_FPS = 30
     private const val PROOF_DURATION_MS = 3_000L
     private const val TIMEOUT_US = 10_000L
 
@@ -104,8 +104,8 @@ object ShortVideoExportProof {
                 setInteger(
                     MediaFormat.KEY_BIT_RATE,
                     max(
-                        1_500_000,
-                        width * height * 4,
+                        8_000_000,
+                        width * height * 6,
                     ),
                 )
                 setInteger(
@@ -646,13 +646,13 @@ object ShortVideoExportProof {
                 height,
             )
 
-        if (longEdge <= 960) {
+        if (longEdge <= 1920) {
             return width.even() to
                 height.even()
         }
 
         val scale =
-            960f /
+            1920f /
                 longEdge
 
         return (

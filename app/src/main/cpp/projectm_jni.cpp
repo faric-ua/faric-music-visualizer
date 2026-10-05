@@ -52,6 +52,9 @@ static float g_beat = 0.0f;
 static auto g_started_at = std::chrono::steady_clock::now();
 static auto g_last_frame_at = g_started_at;
 
+static double g_user_frame_time = -1.0;
+static double g_previous_user_frame_time = -1.0;
+
 static const char* kForegroundVertexShader = R"(
 attribute vec2 aPosition;
 varying vec2 vUv;
@@ -746,15 +749,34 @@ static void draw_foreground_locked() {
 
     const auto now = std::chrono::steady_clock::now();
 
-    const float dt = std::clamp(
-        std::chrono::duration<float>(
-            now - g_last_frame_at
-        ).count(),
-        0.001f,
-        0.050f
-    );
+    const bool offlineTime =
+        g_user_frame_time >= 0.0;
+
+    const float dt =
+        offlineTime
+        ? std::clamp(
+            static_cast<float>(
+                g_previous_user_frame_time >= 0.0
+                ? g_user_frame_time - g_previous_user_frame_time
+                : 1.0 / 30.0
+            ),
+            0.001f,
+            0.050f
+        )
+        : std::clamp(
+            std::chrono::duration<float>(
+                now - g_last_frame_at
+            ).count(),
+            0.001f,
+            0.050f
+        );
 
     g_last_frame_at = now;
+
+    if (offlineTime) {
+        g_previous_user_frame_time =
+            g_user_frame_time;
+    }
 
     g_amplitude = follow(
         g_amplitude,
@@ -803,7 +825,11 @@ static void draw_foreground_locked() {
     );
 
     const float timeSeconds =
-        std::chrono::duration<float>(
+        offlineTime
+        ? static_cast<float>(
+            g_user_frame_time
+        )
+        : std::chrono::duration<float>(
             now - g_started_at
         ).count();
 
@@ -896,6 +922,8 @@ static void destroy_locked() {
     }
 
     reset_signal_locked();
+    g_user_frame_time = -1.0;
+    g_previous_user_frame_time = -1.0;
 }
 
 extern "C" JNIEXPORT void JNICALL
@@ -1160,6 +1188,28 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeRender(
     );
 
     draw_foreground_locked();
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetFrameTime(
+        JNIEnv*,
+        jclass,
+        jdouble seconds) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
+    g_user_frame_time =
+        static_cast<double>(seconds);
+
+    if (g_user_frame_time < 0.0) {
+        g_previous_user_frame_time = -1.0;
+    }
+
+    if (g_projectm) {
+        projectm_set_frame_time(
+            g_projectm,
+            g_user_frame_time
+        );
+    }
 }
 
 extern "C" JNIEXPORT void JNICALL

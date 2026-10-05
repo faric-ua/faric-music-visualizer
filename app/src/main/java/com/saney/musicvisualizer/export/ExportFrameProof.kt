@@ -15,9 +15,12 @@ import java.io.FileOutputStream
 
 object ExportFrameProof {
     fun render(
+        context: Context,
         project: MusicVideoProject,
         input: ThemeInput,
         timeMs: Long,
+        cyberSharkConfig:
+            CyberSharkExportConfig? = null,
     ): Bitmap {
         val bitmap =
             Bitmap.createBitmap(
@@ -28,14 +31,41 @@ object ExportFrameProof {
 
         val canvas = Canvas(bitmap)
 
-        HeroThemeRenderer.render(
-            canvas = canvas,
-            width = bitmap.width,
-            height = bitmap.height,
-            timeMs = timeMs,
-            themeId = project.themeId,
-            input = input,
-        )
+        if (
+            project.themeId ==
+                com.saney.musicvisualizer.theme
+                    .PlaybackThemeId.CYBER_SHARK &&
+            cyberSharkConfig != null
+        ) {
+            CyberSharkExportRenderer(
+                context,
+            ).render(
+                canvas = canvas,
+                width = bitmap.width,
+                height = bitmap.height,
+                timeMs = timeMs,
+                signal =
+                    com.saney.musicvisualizer.analysis
+                        .SceneSignal(
+                            amplitude = input.amplitude,
+                            bass = input.bass,
+                            mid = input.mid,
+                            high = input.high,
+                            beatStrength = input.beat,
+                        ),
+                config =
+                    cyberSharkConfig,
+            )
+        } else {
+            HeroThemeRenderer.render(
+                canvas = canvas,
+                width = bitmap.width,
+                height = bitmap.height,
+                timeMs = timeMs,
+                themeId = project.themeId,
+                input = input,
+            )
+        }
 
         return bitmap
     }

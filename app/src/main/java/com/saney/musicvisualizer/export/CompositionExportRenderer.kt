@@ -1,12 +1,16 @@
 package com.saney.musicvisualizer.export
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Paint
+import android.graphics.RectF
 import android.view.View
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.scene.SceneSpec
 import com.saney.musicvisualizer.ui.PulseDeckMainSkinView
+import kotlin.math.max
 import kotlin.math.roundToLong
 
 /**
@@ -20,6 +24,7 @@ data class CompositionExportConfig(
     val scene: SceneSpec,
     val faricReactiveVisible: Boolean,
     val projectMVisible: Boolean,
+    val projectMFrame: Bitmap?,
     val overVisualizationVisible: Boolean,
     val bigEqualizerVisible: Boolean,
     val graphicFiguresVisible: Boolean,
@@ -51,6 +56,12 @@ class CompositionExportRenderer(
     private val cyberSharkRenderer =
         CyberSharkExportRenderer(
             context,
+        )
+
+    private val projectMPaint =
+        Paint(
+            Paint.ANTI_ALIAS_FLAG or
+                Paint.FILTER_BITMAP_FLAG,
         )
 
     private val pulseDeckView =
@@ -109,7 +120,21 @@ class CompositionExportRenderer(
             Color.BLACK,
         )
 
-        // Layer 0
+        // Layer 0 · projectM snapshot sits below FARIC reactive content.
+        if (
+            config.projectMVisible &&
+            config.projectMFrame != null
+        ) {
+            drawProjectMFrame(
+                canvas = canvas,
+                width = width,
+                height = height,
+                bitmap =
+                    config.projectMFrame,
+            )
+        }
+
+        // Layer 0 · FARIC reactive foreground.
         if (config.faricReactiveVisible) {
             sceneRenderer
                 .renderVisualizer(
@@ -121,10 +146,6 @@ class CompositionExportRenderer(
                     scene = config.scene,
                 )
         }
-
-        // projectM lives in the same Layer 0 slot but is not yet deterministic.
-        // The export UI exposes this limitation instead of silently pretending
-        // that the native GL preset was rendered.
 
         // Layer 1
         if (
@@ -258,6 +279,64 @@ class CompositionExportRenderer(
                     canvas,
                 )
             }
+    }
+
+    private fun drawProjectMFrame(
+        canvas: Canvas,
+        width: Int,
+        height: Int,
+        bitmap: Bitmap,
+    ) {
+        if (
+            bitmap.width <= 0 ||
+            bitmap.height <= 0 ||
+            width <= 0 ||
+            height <= 0
+        ) {
+            return
+        }
+
+        val scale =
+            max(
+                width.toFloat() /
+                    bitmap.width,
+                height.toFloat() /
+                    bitmap.height,
+            )
+
+        val renderedWidth =
+            bitmap.width *
+                scale
+        val renderedHeight =
+            bitmap.height *
+                scale
+
+        val left =
+            (
+                width -
+                    renderedWidth
+                ) *
+                0.5f
+        val top =
+            (
+                height -
+                    renderedHeight
+                ) *
+                0.5f
+
+        canvas.drawBitmap(
+            bitmap,
+            null,
+            RectF(
+                left,
+                top,
+                left +
+                    renderedWidth,
+                top +
+                    renderedHeight,
+            ),
+            projectMPaint,
+        )
     }
 
     private fun signalForHud(

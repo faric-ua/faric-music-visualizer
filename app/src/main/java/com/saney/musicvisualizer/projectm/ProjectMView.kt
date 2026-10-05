@@ -103,6 +103,29 @@ class ProjectMView(
         queueEvent { ProjectMBridge.destroy() }
     }
 
+    fun releaseProjectMBlocking(
+        timeoutMs: Long = 1_500L,
+    ): Boolean {
+        val latch =
+            CountDownLatch(
+                1,
+            )
+
+        queueEvent {
+            ProjectMBridge.destroy()
+            latch.countDown()
+        }
+
+        return runCatching {
+            latch.await(
+                timeoutMs,
+                TimeUnit.MILLISECONDS,
+            )
+        }.getOrDefault(
+            false,
+        )
+    }
+
     fun captureFrame(
         onCaptured: (Bitmap?) -> Unit,
     ) {

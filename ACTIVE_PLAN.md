@@ -1185,5 +1185,5 @@ Implementation:
 - [x] Validate #776 attempt 3 — PASS on `5cb4b1d36d42ac5f99d6b5e3efbe4182ac4e011b`.
 - [ ] Phone: same 3-second preview starts at current scrubber position.
 - [ ] Phone: image composition/crop/orientation/colors remain correct.
-- [ ] Phone: compare warm-cache wall-clock against v0.19.3 baseline of ~16 seconds. First v0.19.4 recording was cold-cache: PCM prep ~12-13 s + render ~15-16 s, so it is not a fair total-time comparison.
+- [x] Phone warm-cache retest: v0.19.4 render remains ~15.5-16 s for 3 s output, effectively unchanged from the v0.19.3 ~16 s baseline. Geometry optimization is visually correct but did not materially improve wall-clock speed.
 - [ ] If still too slow, move projectM readback off the synchronous per-frame CPU path rather than lowering final 30 FPS.

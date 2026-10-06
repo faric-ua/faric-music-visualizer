@@ -1,5 +1,18 @@
 # Active Plan
 
+## CURRENT PRIORITY — v0.19.15 cached radial glow
+
+- [x] v0.19.14 phone profile: background 1848 ms, glow 1755 ms.
+- [x] Confirmed glow is ~95% of background.
+- [x] Replace direct full-size software RadialGradient with reusable 512x512 glow bitmap + filtered final-size composite.
+- [x] Preserve 1080x1920-class final output, 30 FPS and all non-glow render paths.
+- [x] Add glow render/composite sub-timings.
+- [x] Bump v0.19.15 / build 104.
+- [ ] Validate + Android PASS.
+- [ ] Phone: same warm-cache 3-second / 90-frame preview.
+- [ ] Paste timing block.
+- [ ] Visually compare glow smoothness/brightness/shape against v0.19.14; reject if visible degradation is material.
+
 ## CURRENT PRIORITY — phone-measure v0.19.14 background internals
 
 - [x] v0.19.13 profile identified background as largest Cyber Shark sublayer: 1858 ms.

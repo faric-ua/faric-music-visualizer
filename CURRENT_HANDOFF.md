@@ -1,5 +1,13 @@
 # Current Handoff
 
+## LATEST CANDIDATE — v0.19.15 / build 104 — cached Cyber Shark glow
+
+- v0.19.14 phone diagnosis: background 1848 ms, of which radial glow alone is 1755 ms (~95%).
+- v0.19.15 keeps final 1080x1920-class / 30 FPS output and all existing Cyber Shark geometry/reactions.
+- The smooth radial glow is rasterized each frame into one reusable 512x512 ARGB bitmap, then bilinearly composited at the original output radius. No frame/FPS reduction and no changes to arcs, particles, frame, creature, wordmark, projectM, HUD or encoder.
+- New profiler fields: `glow render` and `glow composite`.
+- Phone visual QA is required because the glow's internal raster resolution changed even though final output resolution did not.
+
 ## LATEST CANDIDATE — v0.19.14 / build 103 — background profiler
 
 - App/source SHA: `5a7ca6a16b3387e17704d8ab9f9aba5499ec3a42`.

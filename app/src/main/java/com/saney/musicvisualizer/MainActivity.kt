@@ -6475,6 +6475,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     cyber.backgroundGlowMs,
                                 )
                                 append(" ms")
+                                append("\nglow render: ")
+                                append(
+                                    cyber.backgroundGlowRenderMs,
+                                )
+                                append(" ms")
+                                append("\nglow composite: ")
+                                append(
+                                    cyber.backgroundGlowCompositeMs,
+                                )
+                                append(" ms")
                                 append("\narcs: ")
                                 append(
                                     cyber.backgroundArcsMs,

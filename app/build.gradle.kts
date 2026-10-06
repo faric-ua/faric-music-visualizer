@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 103
-        versionName = "0.19.14"
-        // v0.19.14 profiles Cyber Shark background internals.
+        versionCode = 104
+        versionName = "0.19.15"
+        // v0.19.15 caches Cyber Shark radial glow at 512px.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

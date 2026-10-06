@@ -7,6 +7,7 @@ import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.PorterDuff
 import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
@@ -36,6 +37,8 @@ data class CyberSharkStageTiming(
     val backgroundMs: Long,
     val backgroundSetupMs: Long,
     val backgroundGlowMs: Long,
+    val backgroundGlowRenderMs: Long,
+    val backgroundGlowCompositeMs: Long,
     val backgroundArcsMs: Long,
     val backgroundParticlesMs: Long,
     val backgroundRestoreMs: Long,
@@ -64,11 +67,40 @@ class CyberSharkExportRenderer(
         }
     private val path = Path()
 
+    // The Cyber Shark background glow is a smooth radial field. Rendering the
+    // full ~1490 px diameter software RadialGradient directly into every
+    // 1080x1920 export frame is disproportionately expensive. Keep final
+    // output geometry unchanged, but rasterize the smooth field into a
+    // reusable 512x512 texture and bilinearly composite it at final size.
+    private val glowBitmap =
+        Bitmap.createBitmap(
+            GLOW_CACHE_SIZE,
+            GLOW_CACHE_SIZE,
+            Bitmap.Config.ARGB_8888,
+        )
+    private val glowCanvas =
+        Canvas(
+            glowBitmap,
+        )
+    private val glowFill =
+        Paint(
+            Paint.ANTI_ALIAS_FLAG,
+        )
+    private val glowBitmapPaint =
+        Paint(
+            Paint.ANTI_ALIAS_FLAG or
+                Paint.FILTER_BITMAP_FLAG,
+        )
+
     private var backgroundNs =
         0L
     private var backgroundSetupNs =
         0L
     private var backgroundGlowNs =
+        0L
+    private var backgroundGlowRenderNs =
+        0L
+    private var backgroundGlowCompositeNs =
         0L
     private var backgroundArcsNs =
         0L
@@ -96,6 +128,12 @@ class CyberSharkExportRenderer(
                     1_000_000L,
             backgroundGlowMs =
                 backgroundGlowNs /
+                    1_000_000L,
+            backgroundGlowRenderMs =
+                backgroundGlowRenderNs /
+                    1_000_000L,
+            backgroundGlowCompositeMs =
+                backgroundGlowCompositeNs /
                     1_000_000L,
             backgroundArcsMs =
                 backgroundArcsNs /
@@ -748,16 +786,33 @@ class CyberSharkExportRenderer(
 
         val glowStartedNs =
             System.nanoTime()
+        val glowRenderStartedNs =
+            glowStartedNs
 
-        fill.shader =
+        glowCanvas.drawColor(
+            Color.TRANSPARENT,
+            PorterDuff.Mode.CLEAR,
+        )
+
+        val glowHalf =
+            GLOW_CACHE_SIZE *
+                0.5f
+        val outputGlowRadius =
+            minSide *
+                0.69f
+        val gradientRadiusRatio =
+            (
+                0.62f +
+                    signal.bass * 0.07f
+                ) /
+                0.69f
+
+        glowFill.shader =
             RadialGradient(
-                cx,
-                cy,
-                minSide *
-                    (
-                        0.62f +
-                            signal.bass * 0.07f
-                        ),
+                glowHalf,
+                glowHalf,
+                glowHalf *
+                    gradientRadiusRatio,
                 intArrayOf(
                     Color.argb(
                         (
@@ -791,13 +846,41 @@ class CyberSharkExportRenderer(
                 ),
                 Shader.TileMode.CLAMP,
             )
-        canvas.drawCircle(
-            cx,
-            cy,
-            minSide * 0.69f,
-            fill,
+        glowCanvas.drawCircle(
+            glowHalf,
+            glowHalf,
+            glowHalf,
+            glowFill,
         )
-        fill.shader = null
+        glowFill.shader =
+            null
+
+        backgroundGlowRenderNs +=
+            System.nanoTime() -
+                glowRenderStartedNs
+
+        val glowCompositeStartedNs =
+            System.nanoTime()
+
+        canvas.drawBitmap(
+            glowBitmap,
+            null,
+            RectF(
+                cx -
+                    outputGlowRadius,
+                cy -
+                    outputGlowRadius,
+                cx +
+                    outputGlowRadius,
+                cy +
+                    outputGlowRadius,
+            ),
+            glowBitmapPaint,
+        )
+
+        backgroundGlowCompositeNs +=
+            System.nanoTime() -
+                glowCompositeStartedNs
 
         backgroundGlowNs +=
             System.nanoTime() -
@@ -964,6 +1047,11 @@ class CyberSharkExportRenderer(
         backgroundRestoreNs +=
             System.nanoTime() -
                 restoreStartedNs
+    }
+
+    companion object {
+        private const val GLOW_CACHE_SIZE =
+            512
     }
 
     private fun decode(

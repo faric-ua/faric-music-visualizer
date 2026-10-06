@@ -719,3 +719,26 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Single next resume step:
   - install v0.19.14 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, copy the full timing text including `background internals`, and paste it into chat.
 
+---
+
+## 2026-10-06 — v0.19.14 phone background profile
+
+- App/source SHA: `5a7ca6a16b3387e17704d8ab9f9aba5499ec3a42`.
+- Phone: 1080x1920 / 90 frames.
+- projectM 105 ms; composition 7591 ms; total 9510 ms; BGRA yes.
+- projectM internals: queue 13 ms; native render 738 ms; glReadPixels 4412 ms; bitmap copy 96 ms.
+- Cyber Shark 4160 ms.
+- Cyber Shark internals:
+  - background 1848 ms;
+  - setup/save 1 ms;
+  - glow 1755 ms;
+  - arcs 61 ms;
+  - particles 28 ms;
+  - restore 0 ms;
+  - frame 1145 ms;
+  - FX 239 ms;
+  - creature 492 ms;
+  - wordmark 423 ms.
+- Diagnosis: radial glow alone is ~95% of Cyber Shark background and ~42% of the entire Cyber Shark layer.
+- Next: replace full-resolution software radial-gradient rasterization with a reusable 512x512 glow texture while keeping final 1080x1920 output and 30 FPS unchanged.
+

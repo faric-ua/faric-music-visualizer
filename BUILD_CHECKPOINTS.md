@@ -220,3 +220,36 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   2. rerun the same 3-second preview;
   3. report wall-clock time + whether orientation/colors/audio are correct;
   4. if PASS and materially faster, continue to full-song export.
+
+
+---
+
+## 2026-10-06 — v0.19.4 / build 93 — export geometry optimization — Android PASS
+
+- Status: BUILD PASS / phone QA in progress.
+- App/source commit: `c43f8f9b10d3a8c6969d3da8514a3509da350e55`.
+- Android workflow: #469, attempt 3.
+- Workflow run id: `37362315944`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.4-Debug`.
+- Artifact id: `11384577679`.
+- Artifact digest: `sha256:8bc92761876496e90df2b9decec283c50677cce8031d4ea07d7db1300a63dcb5`.
+- Validate #776 attempt 3 — PASS on `5cb4b1d36d42ac5f99d6b5e3efbe4182ac4e011b`.
+- Successfully completed in this build:
+  - preserves the current-position 3-second preview contract;
+  - preserves 30 FPS final output;
+  - projectM manual export surface now matches the selected output geometry before applying the existing render scale;
+  - keeps raw GL readback acceleration from v0.19.3;
+  - keeps EGL -> MediaCodec Surface encoding from v0.19.2.
+- Phone QA evidence received:
+  - screen recording `447892.mp4` shows a cold-cache preview;
+  - PCM preparation consumed roughly 12-13 seconds;
+  - actual 3-second rendering then consumed roughly 15-16 seconds;
+  - completion produced 1080x1920 / 90 frames.
+- Interpretation:
+  - this cold run is not directly comparable to the v0.19.3 ~16-second warm-cache baseline because v0.19.4 rebuilt the PCM cache first;
+  - a second immediate preview on the same song without restarting the app is required for an apples-to-apples timing comparison.
+- Resume exactly here:
+  1. rerun the same 3-second preview immediately on the same track, without app restart and without rerunning offline analysis;
+  2. confirm that PCM preparation is skipped;
+  3. measure wall-clock render time from `Рендерю 3 секунди…` to `Готово`;
+  4. upload the resulting 3-second MP4 to verify orientation/colors/audio/crop.

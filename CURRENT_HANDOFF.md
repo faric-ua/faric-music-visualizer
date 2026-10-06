@@ -1,16 +1,18 @@
 # Current Handoff
 
-## LATEST CANDIDATE — v0.19.21 / build 110 — projectM direct GPU FBO
+## LATEST READY CANDIDATE — v0.19.21 / build 110 — projectM direct GPU FBO
 
-- v0.19.20 proves the pipeline has crossed from CPU-composition-bound to projectM-readback-bound: frame moved to GPU successfully, but total stayed ~7.25 s because projectM provider wait rose to 1716 ms while glReadPixels remained 4787 ms.
-- v0.19.21 backports projectM's target-framebuffer render parameter into pinned 4.1.7.
-- For the currently tested qualifying composition only, the hidden GLSurfaceView projectM instance is released before export and the same preset/profile/foreground/timeline is recreated inside the MediaCodec encoder EGL context.
-- projectM renders directly into an RGBA texture-backed FBO at the same BALANCED 0.78 render geometry; the encoder later samples that texture with the established scale-to-fill/center-crop.
-- No `glReadPixels`, ByteBuffer-to-Bitmap copy, or projectM Bitmap upload occurs on this direct path.
-- PCM, SceneSignal, deterministic `frameIndex / fps` time, preset lock, foreground sample, final output size/FPS, Cyber Shark GPU glow/frame, audio and mux contracts are unchanged.
-- Non-qualifying layer configurations retain the v0.19.20 readback fallback.
-- Timing UI reports `projectM BGRA: GPU direct` on the new path; readback internals disappear because no readback is performed.
-- After export, Export Lab's hidden projectM renderer is recreated in its original context.
+- Exact APK source SHA: `95bcd5f65075c308dde8d7b41cb3db783038506d`.
+- Android #499 PASS, run `37542386259`; Validate #839 PASS.
+- Artifact: `FARIC-Music-Visualizer-v0.19.21-Debug`, id `11449526827`, digest `sha256:f19df4633bcf6e4b5ff8fa0ada957a027601f5e3d44c16bf02eec77f34786ce8`.
+- v0.19.20 phone baseline: total 7258 ms, projectM provider 1716 ms, glReadPixels 4787 ms, composition 3228 ms.
+- v0.19.21 backports projectM target-FBO rendering and recreates the guarded offline projectM instance directly inside the MediaCodec encoder EGL context.
+- The same deterministic PCM/SceneSignal/frameIndex-fps feed now renders into an RGBA texture-backed FBO; encoder composition samples that texture directly.
+- The guarded direct path performs no projectM GPU->CPU readback, Bitmap copy, or projectM Bitmap upload.
+- v0.19.20 GPU glow/frame and the non-qualifying readback fallback remain.
+- Timing should show `projectM BGRA: GPU direct`; old readback internals should disappear on the direct path.
+- BUILD_CHECKPOINT recorded.
+- Next phone action: Termux 3 -> 10 -> 8; same warm-cache 3-second / 90-frame preview; paste full timing and report any projectM/crop/color/foreground/glow/frame difference.
 
 ## LATEST READY CANDIDATE — v0.19.20 / build 109 — GPU Cyber Shark frame
 

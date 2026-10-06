@@ -1,6 +1,6 @@
 # Active Plan
 
-## CURRENT PRIORITY — v0.19.21 remove projectM readback
+## CURRENT PRIORITY — phone-test v0.19.21 direct projectM FBO
 
 - [x] v0.19.20 phone result: GPU frame PASS, wall-time neutral.
 - [x] Diagnose new limiter: glReadPixels = 4787 ms; queue wait only 7 ms.
@@ -13,9 +13,14 @@
 - [x] Sample projectM FBO texture directly in encoder composition.
 - [x] Preserve old readback pipeline as fallback for non-qualifying scenes.
 - [x] Restore hidden Export Lab projectM instance after export.
-- [x] Bump v0.19.21 / build 110.
-- [ ] Validate + Android PASS.
-- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [x] v0.19.21 / build 110.
+- [x] Final exact APK source SHA `95bcd5f65075c308dde8d7b41cb3db783038506d`.
+- [x] Validate #839 PASS.
+- [x] Android #499 PASS, run `37542386259`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.21-Debug`, id `11449526827`.
+- [x] BUILD_CHECKPOINT recorded.
+- [ ] Phone: Termux 3 -> 10 -> 8.
+- [ ] Same warm-cache 3-second / 90-frame preview.
 - [ ] Require timing text to show `projectM BGRA: GPU direct` and no glReadPixels block.
 - [ ] Compare projectM / composition / encoder / total.
 - [ ] Visual QA: projectM preset, orientation, crop, colors, foreground reaction, Cyber Shark glow/frame and z-order.

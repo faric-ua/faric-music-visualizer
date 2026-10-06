@@ -1105,3 +1105,41 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   - the next real bottleneck is `glReadPixels`, not HUD/frame/creature.
 - Visual equivalence still requires explicit phone confirmation.
 
+---
+
+## 2026-10-07 — v0.19.21 / build 110 — projectM direct GPU FBO — Android PASS
+
+- Status: BUILD PASS / phone performance + visual QA pending.
+- Exact app/source commit that produced the APK: `95bcd5f65075c308dde8d7b41cb3db783038506d`.
+- Android workflow: #499, attempt 1.
+- Workflow run id: `37542386259`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.21-Debug`.
+- Artifact id: `11449526827`.
+- Artifact digest: `sha256:f19df4633bcf6e4b5ff8fa0ada957a027601f5e3d44c16bf02eec77f34786ce8`.
+- Validate #839 — PASS on the same final app/source SHA.
+- Earlier build attempts #497/#498 did not produce artifacts; both exposed patch-location/format issues and were repaired before this successful SHA.
+- Successfully compiled and linked:
+  - FARIC backport of projectM 4.1.7 target-framebuffer rendering;
+  - JNI + ProjectMBridge FBO render entry point;
+  - projectM creation inside the MediaCodec encoder EGL context for the guarded export path;
+  - direct render into a texture-backed FBO with deterministic frameIndex/fps time and the same PCM/SceneSignal feed;
+  - direct sampling of that projectM texture during encoder composition;
+  - no Bitmap/readback requirement on the guarded direct path;
+  - v0.19.20 GPU glow + GPU frame path remains intact;
+  - legacy readback path remains as fallback for non-qualifying compositions;
+  - hidden Export Lab projectM renderer is recreated after export.
+- Phone baseline from v0.19.20:
+  - total 7258 ms;
+  - projectM provider 1716 ms;
+  - projectM internals: native render 833 ms, glReadPixels 4787 ms, bitmap copy 103 ms;
+  - composition 3228 ms;
+  - encoder 862 ms;
+  - GPU projectM 135 ms; GPU glow 6 ms; GPU frame 12 ms; GPU overlay 529 ms.
+- Phone acceptance:
+  - timing should report `projectM BGRA: GPU direct`;
+  - the old `projectM internals` block / `glReadPixels` should be absent on this path;
+  - compare projectM / composition / encoder / total;
+  - visually verify the exact projectM preset, colors, orientation, scale/crop, FARIC foreground reaction, Cyber Shark glow/frame and z-order.
+- Single next resume step:
+  - install v0.19.21 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste the full timing block and report any visual difference.
+

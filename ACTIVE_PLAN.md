@@ -1,5 +1,20 @@
 # Active Plan
 
+## CURRENT PRIORITY — v0.19.18 direct GPU projectM base
+
+- [x] v0.19.17 phone performance PASS: total 8263 ms.
+- [x] GPU glow reduced CPU glow 1662 -> 0 ms; GPU glow = 6 ms.
+- [x] Identify next measured bottleneck: software projectM draw = 1708 ms.
+- [x] Confirm offline ProjectMView uses exact export aspect dimensions.
+- [x] Add guarded direct raw-projectM GPU base path with GL-orientation correction.
+- [x] Keep CPU fallback for channel/dimension/layer-order cases that do not qualify.
+- [x] Add `GPU projectM` timing.
+- [x] Bump v0.19.18 / build 107.
+- [ ] Validate + Android PASS.
+- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [ ] Compare projectM draw / GPU projectM / composition / encoder / total.
+- [ ] Visual QA: projectM orientation, colors and framing; also re-check v0.19.17 GPU glow equivalence.
+
 ## CURRENT PRIORITY — phone-test v0.19.17 hybrid GPU glow
 
 - [x] v0.19.16 phone result: glow composite 1396 ms, no improvement vs filtered 1397 ms.

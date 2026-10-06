@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 106
-        versionName = "0.19.17"
-        // v0.19.17 composites Cyber Shark glow on the encoder GPU surface.
+        versionCode = 107
+        versionName = "0.19.18"
+        // v0.19.18 draws raw offline projectM directly on the encoder GPU path.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

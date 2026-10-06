@@ -6401,11 +6401,23 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 )
                 append(" ms")
                 if (
+                    result.gpuProjectMMs >
+                        0L ||
                     result.gpuGlowMs >
                         0L ||
                     result.gpuOverlayMs >
                         0L
                 ) {
+                    if (
+                        result.gpuProjectMMs >
+                            0L
+                    ) {
+                        append("\nGPU projectM: ")
+                        append(
+                            result.gpuProjectMMs,
+                        )
+                        append(" ms")
+                    }
                     append("\nGPU glow: ")
                     append(
                         result.gpuGlowMs,

@@ -1,5 +1,20 @@
 # Current Handoff
 
+## LATEST CANDIDATE — v0.19.18 / build 107 — direct GPU projectM base
+
+- v0.19.17 phone performance PASS: total 8263 ms, composition 6028 ms, GPU glow 6 ms.
+- Largest current CPU composition cost is projectM draw = 1708 ms.
+- Export ProjectMView uses the exact export aspect dimensions through `manualRenderWidth/Height`, so the offline framebuffer already matches the encoder frame.
+- v0.19.18 directly uploads/draws the raw offline projectM Bitmap as the encoder GPU base when:
+  - Cyber Shark GPU-glow path is active;
+  - BGRA direct readback reports correct channels;
+  - projectM Bitmap dimensions equal export dimensions;
+  - FARIC reactive, over-visualization and Big EQ lower layers are all disabled.
+- Raw projectM uses GL-oriented texture coordinates, avoiding the CPU Canvas vertical flip.
+- If any condition is not met, the existing CPU projectM composition path remains the fallback.
+- New metric: `GPU projectM`.
+- GPU glow implementation from v0.19.17 is otherwise unchanged.
+
 ## LATEST READY CANDIDATE — v0.19.17 / build 106 — hybrid GPU Cyber Shark glow
 
 - App/source SHA: `5b1c14122d7f887b6f29f0e7391c59b9e9a7b2e6`.

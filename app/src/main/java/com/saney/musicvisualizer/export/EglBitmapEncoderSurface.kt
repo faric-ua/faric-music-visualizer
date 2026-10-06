@@ -22,6 +22,7 @@ import java.nio.FloatBuffer
  * performs its own hardware-native color conversion.
  */
 data class EglCompositeDrawTiming(
+    val projectMNs: Long,
     val glowNs: Long,
     val overlayNs: Long,
 )
@@ -67,6 +68,16 @@ class EglBitmapEncoderSurface(
             1f, 1f,
             0f, 0f,
             1f, 0f,
+        )
+
+    // Offline projectM readback is already GL-oriented (bottom-up), so direct
+    // GPU composition must not apply the Android-Bitmap V flip a second time.
+    private val rawGlTexCoordBuffer: FloatBuffer =
+        floatBufferOf(
+            0f, 0f,
+            1f, 0f,
+            0f, 1f,
+            1f, 1f,
         )
 
     init {
@@ -325,6 +336,69 @@ class EglBitmapEncoderSurface(
         )
 
         return EglCompositeDrawTiming(
+            projectMNs = 0L,
+            glowNs = glowNs,
+            overlayNs = overlayNs,
+        )
+    }
+
+    fun drawProjectMComposite(
+        projectMBitmap: Bitmap,
+        overlayBitmap: Bitmap,
+        glow: CyberSharkGpuGlow,
+        presentationTimeNs: Long,
+    ): EglCompositeDrawTiming {
+        validateBitmap(
+            projectMBitmap,
+        )
+        validateBitmap(
+            overlayBitmap,
+        )
+        makeCurrent()
+        beginFrame()
+
+        val projectMStartedNs =
+            System.nanoTime()
+
+        drawBitmapLayer(
+            bitmap = projectMBitmap,
+            alphaBlend = false,
+            rawGlOrientation = true,
+        )
+
+        val projectMNs =
+            System.nanoTime() -
+                projectMStartedNs
+
+        val glowStartedNs =
+            System.nanoTime()
+
+        drawGlow(
+            glow,
+        )
+
+        val glowNs =
+            System.nanoTime() -
+                glowStartedNs
+
+        val overlayStartedNs =
+            System.nanoTime()
+
+        drawBitmapLayer(
+            bitmap = overlayBitmap,
+            alphaBlend = true,
+        )
+
+        val overlayNs =
+            System.nanoTime() -
+                overlayStartedNs
+
+        finishFrame(
+            presentationTimeNs,
+        )
+
+        return EglCompositeDrawTiming(
+            projectMNs = projectMNs,
             glowNs = glowNs,
             overlayNs = overlayNs,
         )
@@ -370,6 +444,8 @@ class EglBitmapEncoderSurface(
     private fun drawBitmapLayer(
         bitmap: Bitmap,
         alphaBlend: Boolean,
+        rawGlOrientation:
+            Boolean = false,
     ) {
         if (alphaBlend) {
             GLES20.glEnable(
@@ -406,6 +482,11 @@ class EglBitmapEncoderSurface(
         bindQuad(
             positionHandle,
             texCoordHandle,
+            if (rawGlOrientation) {
+                rawGlTexCoordBuffer
+            } else {
+                texCoordBuffer
+            },
         )
 
         GLES20.glUniform1i(
@@ -512,6 +593,7 @@ class EglBitmapEncoderSurface(
         bindQuad(
             glowPositionHandle,
             glowTexCoordHandle,
+            texCoordBuffer,
         )
         GLES20.glUniform2f(
             glowCenterHandle,
@@ -556,6 +638,7 @@ class EglBitmapEncoderSurface(
     private fun bindQuad(
         position: Int,
         texCoord: Int,
+        coordinates: FloatBuffer,
     ) {
         vertexBuffer.position(
             0,
@@ -572,7 +655,7 @@ class EglBitmapEncoderSurface(
             vertexBuffer,
         )
 
-        texCoordBuffer.position(
+        coordinates.position(
             0,
         )
         GLES20.glEnableVertexAttribArray(
@@ -584,7 +667,7 @@ class EglBitmapEncoderSurface(
             GLES20.GL_FLOAT,
             false,
             0,
-            texCoordBuffer,
+            coordinates,
         )
     }
 

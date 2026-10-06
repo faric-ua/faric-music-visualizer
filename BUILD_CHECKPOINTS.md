@@ -880,3 +880,32 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Single next resume step:
   - install v0.19.17 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste the full timing block and report any visible glow/order difference.
 
+---
+
+## 2026-10-06 — v0.19.17 phone hybrid-GPU-glow result — PERFORMANCE PASS
+
+- App/source SHA: `5b1c14122d7f887b6f29f0e7391c59b9e9a7b2e6`.
+- Phone: 1080x1920 / 90 frames.
+- projectM provider 90 ms; composition 6028 ms; encoder 606 ms; total 8263 ms.
+- projectM internals: queue 13 ms; native 768 ms; glReadPixels 4814 ms; bitmap copy 98 ms.
+- GPU glow 6 ms; GPU upper-overlay upload/draw 252 ms.
+- Cyber Shark 2388 ms:
+  - background 95 ms;
+  - CPU glow 0 ms;
+  - arcs 57 ms;
+  - particles 30 ms;
+  - frame 1170 ms;
+  - FX 232 ms;
+  - creature 449 ms;
+  - wordmark 430 ms.
+- Other composition: projectM draw 1708 ms; effects 424 ms; HUD draw 1243 ms.
+- Compare v0.19.16:
+  - total 9450 -> 8263 ms (-1187 ms / ~12.6%);
+  - composition 7379 -> 6028 ms (-1351 ms / ~18.3%);
+  - CPU glow 1662 -> 0 ms;
+  - encoder 427 -> 606 ms (+179 ms), while the GPU glow itself costs only 6 ms.
+- Compare v0.19.11 baseline: total 14925 -> 8263 ms (~44.6% faster in wall time).
+- Performance status: PASS.
+- Visual equivalence was not explicitly reported in the timing message; visual QA for v0.19.17 remains pending.
+- Next measured bottleneck: software Canvas projectM draw = 1708 ms.
+

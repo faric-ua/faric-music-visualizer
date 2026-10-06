@@ -35,6 +35,7 @@ object ShortVideoExportProof {
         val projectMFrameMs: Long,
         val compositionMs: Long,
         val encoderSubmitMs: Long,
+        val gpuProjectMMs: Long,
         val gpuGlowMs: Long,
         val gpuOverlayMs: Long,
         val audioTranscodeMs: Long,
@@ -244,6 +245,8 @@ object ShortVideoExportProof {
             0L
         var encoderSubmitNs =
             0L
+        var gpuProjectMNs =
+            0L
         var gpuGlowNs =
             0L
         var gpuOverlayNs =
@@ -390,15 +393,6 @@ object ShortVideoExportProof {
                         frameTimeMs,
                     )
 
-                bitmap.eraseColor(
-                    android.graphics.Color.BLACK,
-                )
-
-                val canvas =
-                    Canvas(
-                        bitmap,
-                    )
-
                 val projectMStartedNs =
                     System.nanoTime()
 
@@ -427,6 +421,39 @@ object ShortVideoExportProof {
                         ?.invoke() ==
                     true
 
+                val directGpuProjectMBase =
+                    useGpuCyberSharkGlow &&
+                        overlayBitmap != null &&
+                        dynamicProjectMFrame !=
+                            null &&
+                        projectMDirectBgra &&
+                        dynamicProjectMFrame
+                            .width ==
+                            width &&
+                        dynamicProjectMFrame
+                            .height ==
+                            height &&
+                        compositionConfig
+                            ?.faricReactiveVisible ==
+                            false &&
+                        compositionConfig
+                            .overVisualizationVisible ==
+                            false &&
+                        compositionConfig
+                            .bigEqualizerVisible ==
+                            false
+
+                if (!directGpuProjectMBase) {
+                    bitmap.eraseColor(
+                        Color.BLACK,
+                    )
+                }
+
+                val canvas =
+                    Canvas(
+                        bitmap,
+                    )
+
                 val compositionStartedNs =
                     System.nanoTime()
 
@@ -441,19 +468,21 @@ object ShortVideoExportProof {
                         useGpuCyberSharkGlow &&
                         overlayBitmap != null
                     ) {
-                        compositionRenderer
-                            .renderBeforeCyberShark(
-                                canvas = canvas,
-                                width = width,
-                                height = height,
-                                timeMs =
-                                    frameTimeMs,
-                                signal = signal,
-                                projectMFrameOverride =
-                                    dynamicProjectMFrame,
-                                projectMRawChannelsCorrect =
-                                    projectMDirectBgra,
-                            )
+                        if (!directGpuProjectMBase) {
+                            compositionRenderer
+                                .renderBeforeCyberShark(
+                                    canvas = canvas,
+                                    width = width,
+                                    height = height,
+                                    timeMs =
+                                        frameTimeMs,
+                                    signal = signal,
+                                    projectMFrameOverride =
+                                        dynamicProjectMFrame,
+                                    projectMRawChannelsCorrect =
+                                        projectMDirectBgra,
+                                )
+                        }
 
                         overlayBitmap.eraseColor(
                             Color.TRANSPARENT,
@@ -591,18 +620,38 @@ object ShortVideoExportProof {
                     overlayBitmap != null
                 ) {
                     val gpuTiming =
-                        activeEncoderSurface
-                            .drawComposite(
-                                baseBitmap =
-                                    bitmap,
-                                overlayBitmap =
-                                    overlayBitmap,
-                                glow =
-                                    gpuGlow,
-                                presentationTimeNs =
-                                    presentationTimeNs,
-                            )
+                        if (
+                            directGpuProjectMBase &&
+                            dynamicProjectMFrame !=
+                                null
+                        ) {
+                            activeEncoderSurface
+                                .drawProjectMComposite(
+                                    projectMBitmap =
+                                        dynamicProjectMFrame,
+                                    overlayBitmap =
+                                        overlayBitmap,
+                                    glow =
+                                        gpuGlow,
+                                    presentationTimeNs =
+                                        presentationTimeNs,
+                                )
+                        } else {
+                            activeEncoderSurface
+                                .drawComposite(
+                                    baseBitmap =
+                                        bitmap,
+                                    overlayBitmap =
+                                        overlayBitmap,
+                                    glow =
+                                        gpuGlow,
+                                    presentationTimeNs =
+                                        presentationTimeNs,
+                                )
+                        }
 
+                    gpuProjectMNs +=
+                        gpuTiming.projectMNs
                     gpuGlowNs +=
                         gpuTiming.glowNs
                     gpuOverlayNs +=
@@ -762,6 +811,9 @@ object ShortVideoExportProof {
                         1_000_000L,
                 encoderSubmitMs =
                     encoderSubmitNs /
+                        1_000_000L,
+                gpuProjectMMs =
+                    gpuProjectMNs /
                         1_000_000L,
                 gpuGlowMs =
                     gpuGlowNs /

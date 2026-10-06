@@ -5271,6 +5271,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         } else {
                             null
                         },
+                    projectMRawChannelsCorrectProvider = {
+                        projectMView
+                            ?.offlineReadbackChannelsAreCorrect() ==
+                            true
+                    },
                     requestedDurationMs =
                         requestedDurationMs,
                     fps =
@@ -6230,6 +6235,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     result.compositionMs,
                 )
                 append(" ms")
+                append("\nprojectM BGRA: ")
+                append(
+                    if (
+                        result.projectMDirectBgra
+                    ) {
+                        "yes"
+                    } else {
+                        "fallback"
+                    },
+                )
                 append("\nencoder: ")
                 append(
                     result.encoderSubmitMs,

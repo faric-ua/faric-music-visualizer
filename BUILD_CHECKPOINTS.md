@@ -478,3 +478,50 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   - largest remaining single stage is now projectM generation/readback (~5.0 s), followed by Cyber Shark (~3.5 s), projectM draw (~1.64 s), HUD draw (~1.18 s).
 - Single next resume step:
   - split projectM generation/readback timing into native render, glReadPixels, Bitmap.copyPixelsFromBuffer, and queue/wait overhead before changing the readback path again.
+
+
+---
+
+## 2026-10-06 — v0.19.10 / build 99 — projectM offline stage profiler — Android PASS
+
+- Status: BUILD PASS / phone QA measured.
+- App/source commit: `722534375a25f973e396e7b99139dd0263406e5a`.
+- Android workflow: #486, attempt 1.
+- Workflow run id: `37410199916`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.10-Debug`.
+- Artifact id: `11389315330`.
+- Artifact digest: `sha256:b97b503ec5e0defeb6f03b1e66c7978ea34839b3af1e07933954e7a0cbe25255`.
+- Validate #811 — PASS on the same source SHA.
+- Successfully completed in this build:
+  - preserves BGRA projectM fast path;
+  - profiles projectM offline generation into queue wait, native render, glReadPixels, and Bitmap copy.
+- Phone QA exact timing:
+  - projectM total: 5270 ms;
+  - queue wait: 16 ms;
+  - native render: 730 ms;
+  - glReadPixels: 4361 ms;
+  - bitmap copy: 97 ms;
+  - composition: 7781 ms;
+  - encoder: 528 ms;
+  - audio: 522 ms;
+  - mux: 99 ms;
+  - save: 204 ms;
+  - total: 15287 ms.
+- Composition layers:
+  - clear: 80 ms;
+  - projectM draw: 1651 ms;
+  - FARIC reactive: 0 ms;
+  - overlay: 0 ms;
+  - Big EQ: 0 ms;
+  - Cyber Shark: 4314 ms;
+  - effects: 448 ms;
+  - HUD update: 28 ms;
+  - HUD draw: 1255 ms.
+- Performance conclusion:
+  - glReadPixels is the dominant projectM bottleneck: ~82.8% of projectM provider time and ~28.5% of total export wall-clock;
+  - queue wait, native render, and Bitmap copy are comparatively small;
+  - next projectM optimization should target GPU->CPU readback itself, not native projectM rendering.
+- Phone UX finding:
+  - timing dialog should have a `Копіювати текст` action so results can be pasted directly into chat without screenshots.
+- Single next resume step:
+  - ship the copy-to-clipboard timing-dialog action as a separate build, then pursue glReadPixels optimization independently.

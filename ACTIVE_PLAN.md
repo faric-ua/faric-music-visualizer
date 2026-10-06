@@ -1,15 +1,19 @@
 # Active Plan
 
-## CURRENT PRIORITY — v0.19.16 unfiltered glow composite
+## CURRENT PRIORITY — phone-test v0.19.16 unfiltered glow
 
 - [x] v0.19.15 phone profile received.
 - [x] Glow 1663 ms = render 265 ms + composite 1397 ms.
 - [x] Identified filtered software scaling as dominant glow cost.
 - [x] Remove FILTER_BITMAP_FLAG from only the cached glow composite.
 - [x] Keep 512x512 glow raster and all final output settings unchanged.
-- [x] Bump v0.19.16 / build 105.
-- [ ] Validate + Android PASS.
-- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [x] v0.19.16 / build 105.
+- [x] Validate #826 PASS on `ae32d61ae81b178e8437adf9fdc85e037c6df189`.
+- [x] Android #492 PASS, run `37514357810`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.16-Debug`, id `11436347682`.
+- [x] BUILD_CHECKPOINT recorded.
+- [ ] Phone: Termux 3 -> 10 -> 8.
+- [ ] Same warm-cache 3-second / 90-frame preview.
 - [ ] Compare glow composite / glow / Cyber Shark / composition / total.
 - [ ] Visual QA: reject if rings, stair-stepping or obvious pixelation appear in the glow.
 

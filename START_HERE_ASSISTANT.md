@@ -1,12 +1,16 @@
 # FARIC Music Visualizer — START HERE
 
-## LATEST CANDIDATE — v0.19.16 / build 105 — unfiltered cached glow
+## LATEST READY CANDIDATE — v0.19.16 / build 105 — unfiltered cached glow
 
+- App/source SHA: `ae32d61ae81b178e8437adf9fdc85e037c6df189`.
+- Android #492 PASS, run `37514357810`; Validate #826 PASS.
+- Artifact: `FARIC-Music-Visualizer-v0.19.16-Debug`, id `11436347682`, digest `sha256:4f33e9699f20ea41519a5bb2429b469152198551762647f666a4f38b37a4324c`.
 - v0.19.15 phone result: glow 1663 ms = render 265 + filtered composite 1397 ms; total 9454 ms.
 - Diagnosis: software filtered scaling is now the dominant glow operation.
 - v0.19.16 keeps the same 512x512 dynamic glow cache and final output geometry, but removes `FILTER_BITMAP_FLAG` from the glow composite only.
 - No changes to final 1080x1920-class / 30 FPS output, projectM, arcs, particles, frame, FX, creature, wordmark, HUD, encoder or audio.
-- Phone acceptance must compare both performance and visual smoothness. If nearest-neighbor scaling is visibly objectionable, reject this candidate even if it is faster.
+- BUILD_CHECKPOINT is recorded.
+- Next phone action: Termux 3 -> 10 -> 8; same warm-cache 3-second / 90-frame preview; paste full timing and report whether the radial glow still looks smooth. Reject if rings, stair-stepping or obvious pixelation are visible.
 
 ## LATEST READY CANDIDATE — v0.19.15 / build 104 — cached radial glow
 

@@ -1,5 +1,19 @@
 # Active Plan
 
+## CURRENT PRIORITY — measure Cyber Shark sublayers on v0.19.13
+
+- [x] v0.19.12 performance PASS: total 9915 ms, projectM provider 107 ms.
+- [x] Added Cyber Shark sublayer profiler without intended visual changes.
+- [x] v0.19.13 / build 102.
+- [x] Validate #820 PASS on `8f374445a0dc566a924c5a275f42c9914664eba9`.
+- [x] Android #489 PASS, run `37501072748`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.13-Debug`, id `11429668183`.
+- [x] BUILD_CHECKPOINT recorded.
+- [ ] Phone: install through Termux 3 -> 10 -> 8.
+- [ ] Run same warm-cache 3-second / 90-frame preview.
+- [ ] Paste full timing block including `Cyber Shark internals`.
+- [ ] Optimize only the largest measured Cyber Shark sublayer.
+
 ## CURRENT PRIORITY — Cyber Shark sublayer profiler after v0.19.12 PASS
 
 - [x] v0.19.12 phone performance benchmark received.

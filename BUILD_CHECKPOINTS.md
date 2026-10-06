@@ -647,3 +647,33 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Single next engineering step:
   - instrument Cyber Shark export internally (background / frame / FX / creature / wordmark) before changing rendering behavior, then optimize the measured dominant sublayer.
 
+---
+
+## 2026-10-06 — v0.19.13 / build 102 — Cyber Shark sublayer profiler — Android PASS
+
+- Status: BUILD PASS / phone diagnostic QA pending.
+- App/source commit: `8f374445a0dc566a924c5a275f42c9914664eba9`.
+- Android workflow: #489, attempt 1.
+- Workflow run id: `37501072748`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.13-Debug`.
+- Artifact id: `11429668183`.
+- Artifact digest: `sha256:47d279c73ee4ab920c784a4f6a6491d823c4637a42834b32ef4864dfe30d46d4`.
+- Validate #820 — PASS on the same app/source SHA.
+- Purpose:
+  - preserve the successful v0.19.12 two-slot projectM overlap pipeline;
+  - add timing only, with no intended visual/render behavior change;
+  - split Cyber Shark export time into background, frame, FX, creature and wordmark.
+- Phone baseline immediately before this build:
+  - v0.19.12 total 9915 ms;
+  - projectM provider wait 107 ms;
+  - composition 7829 ms;
+  - Cyber Shark 4382 ms;
+  - projectM draw 1729 ms;
+  - HUD draw 1167 ms.
+- Success criterion:
+  - same output behavior and roughly comparable total/composition timing;
+  - result text contains `Cyber Shark internals` with five sublayer timings;
+  - choose the next optimization from the largest measured sublayer rather than guessing.
+- Single next resume step:
+  - install v0.19.13 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, copy the timing text and paste it into chat.
+

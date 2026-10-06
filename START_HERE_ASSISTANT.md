@@ -1,5 +1,15 @@
 # FARIC Music Visualizer — START HERE
 
+## LATEST CANDIDATE — v0.19.13 / build 102 — Cyber Shark profiler
+
+- App/source SHA: `8f374445a0dc566a924c5a275f42c9914664eba9`.
+- Android #489 PASS, run `37501072748`; Validate #820 PASS.
+- Artifact: `FARIC-Music-Visualizer-v0.19.13-Debug`, id `11429668183`, digest `sha256:47d279c73ee4ab920c784a4f6a6491d823c4637a42834b32ef4864dfe30d46d4`.
+- v0.19.12 phone performance PASS: projectM provider 5295 -> 107 ms; total 14925 -> 9915 ms (-33.57%); glReadPixels remained ~4.42 s, confirming successful overlap.
+- v0.19.13 makes no intended visual change. It adds `Cyber Shark internals`: background, frame, FX, creature, wordmark.
+- Next phone action: Termux 3 -> 10 -> 8; install v0.19.13; run the same warm-cache 3-second / 90-frame preview; paste the full copied timing block.
+- Do not optimize Cyber Shark further until the sublayer numbers are measured.
+
 ## LATEST RESULT — v0.19.12 phone performance PASS — 2026-10-06
 
 - 1080x1920 / 90 frames.

@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 96
-        versionName = "0.19.7"
-        // v0.19.7 composition-layer timing diagnostic candidate.
+        versionCode = 97
+        versionName = "0.19.8"
+        // v0.19.8 projectM BGRA readback optimization candidate.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

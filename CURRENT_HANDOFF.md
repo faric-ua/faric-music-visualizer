@@ -1697,3 +1697,18 @@ Confirmed:
 Therefore neither run reached Checkout, tests, Gradle, Android build, signing, or artifact upload. There is currently no evidence of a v0.19.4 code/compile/test failure.
 
 Do not mark v0.19.4 BUILD PASS until a real Android run receives a runner and completes successfully.
+
+
+### v0.19.4 phone QA — cold-cache observation
+
+User recording `447892.mp4` starts with PCM preparation and therefore cannot be compared directly with the prior v0.19.3 warm-cache timing.
+
+Observed:
+- PCM preparation: roughly 12-13 seconds;
+- transition to `Рендерю 3 секунди…`;
+- render phase: roughly 15-16 seconds;
+- completion: 1080x1920 / 90 frames.
+
+Required next phone test: immediately rerun the same 3-second preview on the same track without restarting the app or rerunning offline analysis. The second run should reuse PCM cache and give an apples-to-apples comparison with the v0.19.3 ~16-second render baseline.
+
+Also upload the finished 3-second MP4 for orientation/color/audio/crop inspection.

@@ -1211,3 +1211,13 @@ Implementation:
 - v0.19.8 / build 97 adds a safe GL_EXT_read_format_bgra fast path. Compatible GPUs bypass the per-frame R/B ColorMatrix; unsupported GPUs keep the established RGBA + ColorMatrix fallback.
 - Result dialog reports `projectM BGRA: yes` or `fallback`.
 - Next phone test after Android PASS: one warm-cache 3-second preview; compare projectM draw, composition, and total against v0.19.7.
+
+
+### v0.19.8 phone result / v0.19.9 next
+- v0.19.8 phone evidence: `447934.mp4` + `447935.mp4`.
+- BGRA fast path active: `projectM BGRA: yes`.
+- v0.19.8 exact timing: projectM 5318; composition 8077; encoder 450; audio 396; mux 93; save 124; total 15118 ms.
+- Composition layers: clear 77; projectM draw 1643; Cyber Shark 4676; effects 428; HUD update 25; HUD draw 1222 ms.
+- Compared with v0.19.7: projectM draw -74.6%, composition -37.9%, total -11.1%; colors/orientation remain correct.
+- v0.19.9 / build 98 optimizes Cyber Shark by bypassing full-screen saveLayerAlpha when effective opacity is 100%, preserving the previous path for partial opacity.
+- Next: wait for Android #485 PASS, checkpoint it, then phone test one 3-second preview and compare Cyber Shark/composition/total against v0.19.8.

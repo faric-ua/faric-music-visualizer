@@ -560,3 +560,46 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   - paste the copied block into chat and confirm the dialog stays open.
 - Single next resume step:
   - phone-accept the copy-to-clipboard UX, then continue performance work specifically on GPU->CPU projectM readback / `glReadPixels`.
+
+---
+
+## 2026-10-06 — v0.19.12 / build 101 — projectM readback/composition overlap — Android PASS
+
+- Status: BUILD PASS / phone performance QA pending.
+- App/source commit: `86750315d89c6ebb3b332e912ddc92a1759b3cbb`.
+- Android workflow: #488, attempt 1.
+- Workflow run id: `37490177560`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.12-Debug`.
+- Artifact id: `11425346915`.
+- Artifact digest: `sha256:9e347528bef24ab8e5a9f706542ef7e5548222ba8ebe187703d70f3f58c57d03`.
+- Validate #816 — PASS on the same app/source SHA.
+- Successfully completed in this build:
+  - preserves the existing deterministic GLES2 projectM offline renderer and synchronous `glReadPixels` pixel contract;
+  - adds two reusable projectM readback ByteBuffer/Bitmap slots;
+  - pipelines frames so projectM render/readback for frame N+1 can run on the GL thread while CPU Canvas composition/encoder submission processes frame N;
+  - preserves frame-specific PCM, SceneSignal, projectM frame time, BGRA fast path, 1080x1920-class output and 30 FPS;
+  - does not intentionally change visuals, preview/full-song timeline semantics, encoder format or audio mux.
+- Baseline phone timing from v0.19.11 before this optimization:
+  - 1080x1920, 90 frames;
+  - projectM provider wall time: 5295 ms;
+  - projectM internals: queue 11 ms, native render 714 ms, glReadPixels 4421 ms, bitmap copy 87 ms;
+  - composition: 7468 ms;
+  - Cyber Shark: 4093 ms;
+  - HUD draw: 1191 ms;
+  - total: 14925 ms;
+  - projectM BGRA: yes.
+- Expected measurement behavior:
+  - accumulated projectM internal `glReadPixels` time may remain near the previous ~4.4 s because the readback operation itself is not yet removed;
+  - success is primarily measured by lower top-level projectM provider wait and lower total export wall-clock, because readback should overlap CPU composition;
+  - output orientation, colors, frame order and A/V sync must remain unchanged.
+- Not yet proven on phone:
+  - real overlap/speedup on Galaxy A54;
+  - no frame corruption or slot overwrite;
+  - no frame-order/pacing regression;
+  - same visual orientation/colors/audio and deterministic preview behavior.
+- Single next resume step:
+  1. install v0.19.12 via Termux `3 -> 10 -> 8`;
+  2. run the same warm-cache 3-second / 90-frame preview;
+  3. paste the copied timing block;
+  4. compare top-level `projectM:`, `composition:`, `total:` and verify the picture/audio are correct.
+

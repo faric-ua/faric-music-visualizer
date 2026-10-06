@@ -370,3 +370,62 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   - Cyber Shark is second-largest and should be optimized after projectM draw.
 - Single next resume step:
   - implement a safe BGRA-capable offline readback path so compatible GPUs can feed ARGB_8888 without the per-frame R/B ColorMatrix, keeping the current RGBA + ColorMatrix fallback for unsupported devices; then measure one 3-second preview again.
+
+
+---
+
+## 2026-10-06 — v0.19.8 / build 97 — projectM BGRA fast path — Android PASS
+
+- Status: BUILD PASS / phone QA measured.
+- App/source commit: `83512d24b74962ea7a93757577149b0c0e6aa7f8`.
+- Android workflow: #483, attempt 1.
+- Workflow run id: `37405470037`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.8-Debug`.
+- Artifact id: `11387256864`.
+- Artifact digest: `sha256:8703188f1a9377ae9c1ac36a4117ee358f186312c5873f5e9ecc8ccc4f4897f3`.
+- Validate #802 — PASS on the same source SHA.
+- Successfully completed in this build:
+  - uses GL_EXT_read_format_bgra when supported;
+  - bypasses the projectM R/B ColorMatrix in Canvas when BGRA readback succeeds;
+  - preserves RGBA + ColorMatrix fallback for unsupported/failed BGRA readback.
+- Phone QA evidence:
+  - screen recording `447934.mp4`;
+  - exported preview `447935.mp4`.
+- Exact timing:
+  - projectM generation/readback: 5318 ms;
+  - composition: 8077 ms;
+  - encoder: 450 ms;
+  - audio: 396 ms;
+  - mux: 93 ms;
+  - save: 124 ms;
+  - total: 15118 ms.
+- Result dialog: `projectM BGRA: yes`.
+- Composition breakdown:
+  - clear: 77 ms;
+  - projectM draw: 1643 ms;
+  - FARIC reactive: 0 ms;
+  - overlay: 0 ms;
+  - Big EQ: 0 ms;
+  - Cyber Shark: 4676 ms;
+  - effects: 428 ms;
+  - HUD update: 25 ms;
+  - HUD draw: 1222 ms.
+- Comparison with v0.19.7:
+  - projectM draw 6471 -> 1643 ms (~74.6% reduction);
+  - composition 12998 -> 8077 ms (~37.9% reduction);
+  - combined projectM generation + draw 8534 -> 6961 ms (~18.4% reduction);
+  - total 17008 -> 15118 ms (~11.1% reduction).
+- Output verification:
+  - 1080x1920;
+  - 30 FPS;
+  - 90 frames;
+  - video duration 3.000 s / audio-container duration 3.008 s;
+  - H.264 High ~12.43 Mbps;
+  - AAC LC stereo 48 kHz ~160.9 kbps;
+  - colors/orientation/composition appear correct.
+- Performance conclusion:
+  - BGRA fast path is valid and materially reduces Canvas projectM draw cost;
+  - projectM readback/generation became more expensive, partially offsetting the gain;
+  - Cyber Shark (~4.7 s) is now the largest single composition target.
+- Single next resume step:
+  - optimize Cyber Shark background/compositing first, starting with avoiding full-screen saveLayerAlpha when effective background opacity is 1.0, then retest one 3-second preview.

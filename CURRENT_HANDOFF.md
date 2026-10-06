@@ -1,5 +1,59 @@
 # Current Handoff
 
+## LATEST HANDOFF — v0.19.12 / build 101 — 2026-10-06
+
+**Authoritative current state. The older resume block below is historical.**
+
+### Exact candidate
+
+- App/source SHA: `86750315d89c6ebb3b332e912ddc92a1759b3cbb`.
+- Android #488: PASS, run `37490177560`.
+- Validate #816: PASS on the same app/source SHA.
+- Artifact: `FARIC-Music-Visualizer-v0.19.12-Debug`.
+- Artifact id: `11425346915`.
+- Artifact digest: `sha256:9e347528bef24ab8e5a9f706542ef7e5548222ba8ebe187703d70f3f58c57d03`.
+- BUILD_CHECKPOINT has been written.
+
+### Change under test
+
+v0.19.12 does not attempt to make `glReadPixels` itself faster. It overlaps projectM render/readback for frame N+1 on the GLSurfaceView GL thread with CPU Canvas composition/encoder submission of frame N. Two reusable readback ByteBuffer/Bitmap slots prevent the next GL readback from overwriting the Bitmap currently being composed.
+
+This intentionally preserves GLES2, the BGRA fast path/fallback, frame-specific PCM and SceneSignal, deterministic `frameIndex / fps` timing, output resolution/FPS, H.264/AAC and preview/full-song timeline semantics.
+
+### Latest phone baseline
+
+Copied directly from the v0.19.11 timing dialog:
+- 1080x1920 / 90 frames;
+- projectM: 5295 ms;
+- queue wait: 11 ms;
+- native render: 714 ms;
+- glReadPixels: 4421 ms;
+- bitmap copy: 87 ms;
+- composition: 7468 ms;
+- Cyber Shark: 4093 ms;
+- HUD draw: 1191 ms;
+- encoder: 494 ms;
+- audio: 544 ms;
+- mux: 104 ms;
+- save: 221 ms;
+- total: 14925 ms;
+- projectM BGRA: yes.
+
+The successful paste proves the v0.19.11 clipboard action copies the complete timing block on the real phone. The separate requirement that the dialog remain open after copying was not explicitly confirmed.
+
+### Phone acceptance now required
+
+Use Termux **3 -> 10 -> 8**, install v0.19.12, then run the same warm-cache 3-second / 90-frame preview and paste the timing text.
+
+Primary comparison:
+- top-level `projectM:` provider wait;
+- `total:` export wall-clock;
+- composition timing for regression context.
+
+Do not reject the optimization merely because accumulated projectM-internal `glReadPixels` remains near ~4.4 s; that work is expected to remain but should be overlapped. Also verify frame order, colors/orientation and audio remain correct.
+
+No further performance code should be stacked on this candidate before phone measurement.
+
 ## NEW CHAT RESUME — 2026-10-06
 
 **Authoritative current state. Historical handoff entries below are retained only for provenance.**

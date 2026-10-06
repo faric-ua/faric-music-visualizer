@@ -1,5 +1,19 @@
 # FARIC Music Visualizer — START HERE
 
+## LATEST RESUME — v0.19.12 / build 101 — 2026-10-06
+
+**This block overrides the older NEW CHAT RESUME below.**
+
+- App/source SHA: `86750315d89c6ebb3b332e912ddc92a1759b3cbb`.
+- Android #488 PASS, run `37490177560`; Validate #816 PASS.
+- Artifact: `FARIC-Music-Visualizer-v0.19.12-Debug`, id `11425346915`, digest `sha256:9e347528bef24ab8e5a9f706542ef7e5548222ba8ebe187703d70f3f58c57d03`.
+- v0.19.11 clipboard action is phone-proven to copy the complete timing block because the user pasted the result directly into chat. Whether the timing dialog remained open after copying was not explicitly confirmed.
+- Latest phone baseline before v0.19.12: 1080x1920, 90 frames; projectM 5295 ms; queue 11; native render 714; glReadPixels 4421; bitmap copy 87; composition 7468; Cyber Shark 4093; HUD draw 1191; total 14925 ms; projectM BGRA yes.
+- v0.19.12 keeps the GLES2/synchronous glReadPixels pixel path but adds two reusable readback slots and pipelines projectM frame N+1 on the GL thread while CPU Canvas composes frame N.
+- Measurement rule: glReadPixels accumulated time may remain near ~4.4 s; success is lower top-level `projectM:` provider wait and lower `total:` through overlap, with unchanged picture/audio/frame order.
+- Next user step: Termux **3 -> 10 -> 8**, install v0.19.12, run the same warm-cache 3-second preview, paste the copied timing block, and visually verify colors/orientation/audio.
+- Preserve 3-second current-position preview, full-song 0:00 start, 1080x1920-class / 30 FPS / H.264 + AAC, deterministic projectM timing, and immutable `PULSEDECK_CENTER_CALIBRATION`.
+
 ## NEW CHAT RESUME — 2026-10-06
 
 **Read this block first. It overrides stale historical sections below.**

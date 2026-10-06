@@ -1,5 +1,25 @@
 # Active Plan
 
+## CURRENT PRIORITY — v0.19.12 readback/composition overlap
+
+- [x] v0.19.11 clipboard action copied the complete phone timing block into chat.
+- [ ] Dialog-stays-open behavior after copy was not explicitly confirmed.
+- [x] Phone baseline captured: 1080x1920 / 90 frames; projectM 5295 ms; glReadPixels 4421 ms; composition 7468 ms; total 14925 ms; BGRA yes.
+- [x] Implement two-slot projectM offline readback cache.
+- [x] Pipeline frame N+1 projectM render/readback while frame N is CPU-composited.
+- [x] Bump to v0.19.12 / build 101.
+- [x] Validate #816 PASS on `86750315d89c6ebb3b332e912ddc92a1759b3cbb`.
+- [x] Android #488 PASS, run `37490177560`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.12-Debug`, id `11425346915`.
+- [x] BUILD_CHECKPOINT recorded.
+- [ ] Phone: Termux 3 -> 10 -> 8 and install v0.19.12.
+- [ ] Phone: same warm-cache 3-second / 90-frame preview.
+- [ ] Paste timing text and compare top-level projectM + total against 5295 / 14925 ms baseline.
+- [ ] Verify picture, frame order, colors/orientation and audio.
+- [ ] Do not stack another performance optimization until this measurement is accepted.
+
+Expected profiler signature: accumulated `glReadPixels` can stay around the old ~4.4 s because this candidate overlaps work rather than eliminating readback. The win should appear primarily in provider wait and total wall-clock.
+
 ## CURRENT PRIORITY — NEW CHAT RESUME 2026-10-06
 
 - [x] v0.19.11 / build 100 source complete.

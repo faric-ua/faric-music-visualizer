@@ -319,3 +319,54 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   - encoder/audio/mux/save are minor.
 - Single next resume step:
   - instrument `CompositionExportRenderer` internally (projectM draw / background layers / GF-Cyber-Shark / PulseDeck-HUD / overlays or equivalent actual render groups) and run one more 3-second preview before choosing the next optimization.
+
+
+---
+
+## 2026-10-06 — v0.19.7 / build 96 — composition layer profiler — Android PASS
+
+- Status: BUILD PASS / phone QA measured.
+- App/source commit: `a5f7ac9c4baa6d670afe1879f217838ff51b5a7d`.
+- Android workflow: #478, attempt 1.
+- Workflow run id: `37403965479`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.7-Debug`.
+- Artifact id: `11386582510`.
+- Artifact digest: `sha256:d498a4ba8b6d0fa2d210f6eff0c236fe37f62d2c4e1c3e62b3f9d6d27c31872c`.
+- Validate #794 — PASS on the same source SHA.
+- Successfully completed in this build:
+  - preserves all prior export behavior and output geometry;
+  - profiles CompositionExportRenderer internally by layer/group.
+- Phone QA evidence:
+  - screen recording `447926.mp4`;
+  - exported preview `447927.mp4`.
+- Exact 3-second / 90-frame timing:
+  - projectM frame generation: 2063 ms;
+  - composition: 12998 ms;
+  - encoder: 453 ms;
+  - audio: 475 ms;
+  - mux: 140 ms;
+  - save: 199 ms;
+  - total: 17008 ms.
+- Composition layer timing:
+  - clear: 85 ms;
+  - projectM draw: 6471 ms;
+  - FARIC reactive: 0 ms;
+  - overlay: 0 ms;
+  - Big EQ: 0 ms;
+  - Cyber Shark: 4691 ms;
+  - effects: 450 ms;
+  - HUD update: 26 ms;
+  - HUD draw: 1270 ms.
+- Output verification:
+  - 1080x1920;
+  - 30 FPS;
+  - 90 frames;
+  - H.264 High ~12.45 Mbps;
+  - AAC LC stereo 48 kHz ~160.8 kbps;
+  - visual orientation/colors/composition appear correct.
+- Performance conclusion:
+  - projectM draw and Cyber Shark are the two dominant composition costs;
+  - projectM draw likely pays for per-frame software Canvas scaling + R/B ColorMatrix + vertical flip;
+  - Cyber Shark is second-largest and should be optimized after projectM draw.
+- Single next resume step:
+  - implement a safe BGRA-capable offline readback path so compatible GPUs can feed ARGB_8888 without the per-frame R/B ColorMatrix, keeping the current RGBA + ColorMatrix fallback for unsupported devices; then measure one 3-second preview again.

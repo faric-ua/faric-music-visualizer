@@ -1,5 +1,18 @@
 # Active Plan
 
+## CURRENT PRIORITY — phone-measure v0.19.14 background internals
+
+- [x] v0.19.13 profile identified background as largest Cyber Shark sublayer: 1858 ms.
+- [x] v0.19.14 / build 103 background subprofiler implemented.
+- [x] Validate #822 PASS on `5a7ca6a16b3387e17704d8ab9f9aba5499ec3a42`.
+- [x] Android #490 PASS, run `37510375626`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.14-Debug`, id `11435801494`.
+- [x] BUILD_CHECKPOINT recorded.
+- [ ] Phone: Termux 3 -> 10 -> 8.
+- [ ] Same warm-cache 3-second / 90-frame preview.
+- [ ] Paste full timing including background internals: setup/save / glow / arcs / particles / restore.
+- [ ] Optimize only the largest measured component, preserving final output quality.
+
 ## CURRENT PRIORITY — v0.19.14 Cyber Shark background profiler
 
 - [x] v0.19.13 phone sublayer profile received.

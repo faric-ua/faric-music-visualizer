@@ -690,3 +690,32 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Performance conclusion: background is the largest measured Cyber Shark sublayer; frame is second.
 - Next: profile background internals before modifying its visuals or quality.
 
+---
+
+## 2026-10-06 — v0.19.14 / build 103 — Cyber Shark background profiler — Android PASS
+
+- Status: BUILD PASS / phone diagnostic QA pending.
+- App/source commit: `5a7ca6a16b3387e17704d8ab9f9aba5499ec3a42`.
+- Android workflow: #490, attempt 1.
+- Workflow run id: `37510375626`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.14-Debug`.
+- Artifact id: `11435801494`.
+- Artifact digest: `sha256:fd17fd1949b01a0d0ff0eedb08072322c3ca2389af710985857a839434eeab3b`.
+- Validate #822 — PASS on the same app/source SHA.
+- Purpose:
+  - preserve the v0.19.12 overlap pipeline and v0.19.13 Cyber Shark profiler;
+  - add timing only inside Cyber Shark background;
+  - split background into setup/save, radial glow, arcs, particles and restore.
+- Last phone baseline from v0.19.13:
+  - total 10069 ms;
+  - composition 7971 ms;
+  - Cyber Shark 4487 ms;
+  - background 1858 ms;
+  - frame 1475 ms;
+  - FX 273 ms;
+  - creature 445 ms;
+  - wordmark 423 ms.
+- No intended visual/render quality change in this build.
+- Single next resume step:
+  - install v0.19.14 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, copy the full timing text including `background internals`, and paste it into chat.
+

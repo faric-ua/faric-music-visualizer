@@ -1,5 +1,15 @@
 # Current Handoff
 
+## LATEST CANDIDATE — v0.19.14 / build 103 — background profiler
+
+- App/source SHA: `5a7ca6a16b3387e17704d8ab9f9aba5499ec3a42`.
+- Android #490 PASS, run `37510375626`; Validate #822 PASS.
+- Artifact: `FARIC-Music-Visualizer-v0.19.14-Debug`, id `11435801494`, digest `sha256:fd17fd1949b01a0d0ff0eedb08072322c3ca2389af710985857a839434eeab3b`.
+- v0.19.13 phone profile: Cyber Shark 4487 ms = background 1858 + frame 1475 + FX 273 + creature 445 + wordmark 423.
+- v0.19.14 makes no intended visual change. It splits background into setup/save, glow, arcs, particles and restore.
+- Next phone action: Termux 3 -> 10 -> 8; same warm-cache 3-second / 90-frame preview; paste the full timing block including `background internals`.
+- After that, optimize only the largest measured background component.
+
 ## LATEST RESULT — v0.19.13 Cyber Shark sublayer profile — 2026-10-06
 
 - Phone: 1080x1920 / 90 frames.

@@ -1201,3 +1201,13 @@ Implementation:
 - Composition is ~75.8% of total and is now the clear dominant bottleneck.
 - v0.19.7 / build 96 instruments composition internally: clear, projectM draw, FARIC reactive, overlay, big EQ, Cyber Shark, effects, HUD update, HUD draw.
 - Next phone action after Android PASS: one 3-second preview and send the result dialog.
+
+
+### v0.19.7 composition-layer profile
+- Phone evidence: `447926.mp4` + `447927.mp4`.
+- Total: 17008 ms; composition: 12998 ms.
+- Composition layers: clear 85; projectM draw 6471; reactive 0; overlay 0; Big EQ 0; Cyber Shark 4691; effects 450; HUD update 26; HUD draw 1270 ms.
+- Dominant costs: projectM draw first, Cyber Shark second.
+- v0.19.8 / build 97 adds a safe GL_EXT_read_format_bgra fast path. Compatible GPUs bypass the per-frame R/B ColorMatrix; unsupported GPUs keep the established RGBA + ColorMatrix fallback.
+- Result dialog reports `projectM BGRA: yes` or `fallback`.
+- Next phone test after Android PASS: one warm-cache 3-second preview; compare projectM draw, composition, and total against v0.19.7.

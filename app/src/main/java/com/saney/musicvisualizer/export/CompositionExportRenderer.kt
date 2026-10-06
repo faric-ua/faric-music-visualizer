@@ -37,6 +37,18 @@ data class CompositionExportConfig(
         Map<String, Boolean>,
 )
 
+data class CompositionStageTiming(
+    val clearMs: Long,
+    val projectMDrawMs: Long,
+    val faricReactiveMs: Long,
+    val overVisualizationMs: Long,
+    val bigEqualizerMs: Long,
+    val cyberSharkMs: Long,
+    val effectsMs: Long,
+    val pulseDeckUpdateMs: Long,
+    val pulseDeckDrawMs: Long,
+)
+
 class CompositionExportRenderer(
     context: Context,
     private val config:
@@ -128,6 +140,47 @@ class CompositionExportRenderer(
     private var measuredHeight =
         -1
 
+    private var clearNs =
+        0L
+    private var projectMDrawNs =
+        0L
+    private var faricReactiveNs =
+        0L
+    private var overVisualizationNs =
+        0L
+    private var bigEqualizerNs =
+        0L
+    private var cyberSharkNs =
+        0L
+    private var effectsNs =
+        0L
+    private var pulseDeckUpdateNs =
+        0L
+    private var pulseDeckDrawNs =
+        0L
+
+    fun timingSnapshot():
+        CompositionStageTiming =
+        CompositionStageTiming(
+            clearMs = clearNs / 1_000_000L,
+            projectMDrawMs =
+                projectMDrawNs / 1_000_000L,
+            faricReactiveMs =
+                faricReactiveNs / 1_000_000L,
+            overVisualizationMs =
+                overVisualizationNs / 1_000_000L,
+            bigEqualizerMs =
+                bigEqualizerNs / 1_000_000L,
+            cyberSharkMs =
+                cyberSharkNs / 1_000_000L,
+            effectsMs =
+                effectsNs / 1_000_000L,
+            pulseDeckUpdateMs =
+                pulseDeckUpdateNs / 1_000_000L,
+            pulseDeckDrawMs =
+                pulseDeckDrawNs / 1_000_000L,
+        )
+
     fun render(
         canvas: Canvas,
         width: Int,
@@ -141,9 +194,16 @@ class CompositionExportRenderer(
         projectMFrameOverride:
             Bitmap? = null,
     ) {
+        val clearStartedNs =
+            System.nanoTime()
+
         canvas.drawColor(
             Color.BLACK,
         )
+
+        clearNs +=
+            System.nanoTime() -
+                clearStartedNs
 
         // Layer 0 · projectM snapshot sits below FARIC reactive content.
         val projectMFrame =
@@ -154,6 +214,9 @@ class CompositionExportRenderer(
             config.projectMVisible &&
             projectMFrame != null
         ) {
+            val startedNs =
+                System.nanoTime()
+
             drawProjectMFrame(
                 canvas = canvas,
                 width = width,
@@ -164,10 +227,17 @@ class CompositionExportRenderer(
                     projectMFrameOverride !=
                         null,
             )
+
+            projectMDrawNs +=
+                System.nanoTime() -
+                    startedNs
         }
 
         // Layer 0 · FARIC reactive foreground.
         if (config.faricReactiveVisible) {
+            val startedNs =
+                System.nanoTime()
+
             sceneRenderer
                 .renderVisualizer(
                     canvas = canvas,
@@ -177,6 +247,10 @@ class CompositionExportRenderer(
                     signal = signal,
                     scene = config.scene,
                 )
+
+            faricReactiveNs +=
+                System.nanoTime() -
+                    startedNs
         }
 
         // Layer 1
@@ -184,12 +258,19 @@ class CompositionExportRenderer(
             config
                 .overVisualizationVisible
         ) {
+            val startedNs =
+                System.nanoTime()
+
             overVisualizationRenderer
                 .render(
                     canvas = canvas,
                     width = width,
                     height = height,
                 )
+
+            overVisualizationNs +=
+                System.nanoTime() -
+                    startedNs
         }
 
         // Layer 2
@@ -197,6 +278,9 @@ class CompositionExportRenderer(
             config
                 .bigEqualizerVisible
         ) {
+            val startedNs =
+                System.nanoTime()
+
             bigEqualizerRenderer
                 .render(
                     canvas = canvas,
@@ -204,6 +288,10 @@ class CompositionExportRenderer(
                     height = height,
                     signal = signal,
                 )
+
+            bigEqualizerNs +=
+                System.nanoTime() -
+                    startedNs
         }
 
         // Layer 3
@@ -211,6 +299,9 @@ class CompositionExportRenderer(
             config
                 .graphicFiguresVisible
         ) {
+            val startedNs =
+                System.nanoTime()
+
             cyberSharkRenderer
                 .render(
                     canvas = canvas,
@@ -222,6 +313,10 @@ class CompositionExportRenderer(
                         config
                             .cyberSharkConfig,
                 )
+
+            cyberSharkNs +=
+                System.nanoTime() -
+                    startedNs
         }
 
         // Layer 4 is currently an empty GIF/animation slot.
@@ -231,6 +326,9 @@ class CompositionExportRenderer(
             config
                 .effectsVisible
         ) {
+            val startedNs =
+                System.nanoTime()
+
             sceneRenderer
                 .renderEffects(
                     canvas = canvas,
@@ -240,11 +338,18 @@ class CompositionExportRenderer(
                     signal = signal,
                     scene = config.scene,
                 )
+
+            effectsNs +=
+                System.nanoTime() -
+                    startedNs
         }
 
         // Layer 6
         pulseDeckView
             ?.let { view ->
+                val updateStartedNs =
+                    System.nanoTime()
+
                 ensurePulseDeckSize(
                     view = view,
                     width = width,
@@ -307,9 +412,20 @@ class CompositionExportRenderer(
                             ),
                 )
 
+                pulseDeckUpdateNs +=
+                    System.nanoTime() -
+                        updateStartedNs
+
+                val drawStartedNs =
+                    System.nanoTime()
+
                 view.draw(
                     canvas,
                 )
+
+                pulseDeckDrawNs +=
+                    System.nanoTime() -
+                        drawStartedNs
             }
     }
 

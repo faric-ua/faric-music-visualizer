@@ -22,6 +22,19 @@ data class ProjectMOfflineTiming(
     val bitmapCopyMs: Long,
 )
 
+class ProjectMOfflineFrameRequest internal constructor(
+    internal val slotIndex: Int,
+) {
+    internal val latch =
+        CountDownLatch(
+            1,
+        )
+
+    @Volatile
+    internal var result: Bitmap? =
+        null
+}
+
 class ProjectMView(
     context: Context,
     private val initialPreset: File,
@@ -40,12 +53,18 @@ class ProjectMView(
     @Volatile
     private var glHeight = 0
 
-    // Offline export reuses these large buffers across frames. At 1080p-class
-    // projectM sizes, allocating them for every frame creates severe GC pressure.
-    private var offlineReadbackBuffer: ByteBuffer? =
-        null
-    private var offlineReadbackBitmap: Bitmap? =
-        null
+    // Offline export reuses two large readback slots. While Canvas composes
+    // frame N, the GL thread may render/read frame N+1 into the other slot.
+    // This preserves exact pixels while overlapping GPU->CPU readback with CPU
+    // composition instead of serializing both stages for every frame.
+    private val offlineReadbackBuffers =
+        arrayOfNulls<ByteBuffer>(
+            OFFLINE_READBACK_SLOT_COUNT,
+        )
+    private val offlineReadbackBitmaps =
+        arrayOfNulls<Bitmap>(
+            OFFLINE_READBACK_SLOT_COUNT,
+        )
     private var offlineReadbackWidth =
         0
     private var offlineReadbackHeight =
@@ -494,6 +513,89 @@ class ProjectMView(
         }
     }
 
+    fun queueOfflineFrame(
+        frameIndex: Int,
+        frameTimeSeconds: Double,
+        pcm: ShortArray,
+        signal: com.saney.musicvisualizer.analysis.SceneSignal,
+    ): ProjectMOfflineFrameRequest? {
+        val width =
+            glWidth
+        val height =
+            glHeight
+
+        if (
+            width <= 0 ||
+            height <= 0
+        ) {
+            return null
+        }
+
+        val requestStartedNs =
+            System.nanoTime()
+
+        val request =
+            ProjectMOfflineFrameRequest(
+                slotIndex =
+                    frameIndex %
+                        OFFLINE_READBACK_SLOT_COUNT,
+            )
+
+        queueEvent {
+            try {
+                offlineQueueWaitNs +=
+                    System.nanoTime() -
+                        requestStartedNs
+
+                ProjectMBridge.beginOfflineExport()
+                ProjectMBridge.setFrameTime(
+                    frameTimeSeconds,
+                )
+                ProjectMBridge.pushOfflinePcm(
+                    pcm,
+                )
+                ProjectMBridge.pushOfflineSignal(
+                    signal,
+                )
+
+                request.result =
+                    readFramebuffer(
+                        width = width,
+                        height = height,
+                        renderFirst = true,
+                        reuseOfflineBuffers = true,
+                        offlineSlot =
+                            request.slotIndex,
+                    )
+            } finally {
+                request.latch.countDown()
+            }
+        }
+
+        return request
+    }
+
+    fun awaitOfflineFrame(
+        request: ProjectMOfflineFrameRequest,
+        timeoutMs: Long = 4_000L,
+    ): Bitmap? {
+        val completed =
+            runCatching {
+                request.latch.await(
+                    timeoutMs,
+                    TimeUnit.MILLISECONDS,
+                )
+            }.getOrDefault(
+                false,
+            )
+
+        return if (completed) {
+            request.result
+        } else {
+            null
+        }
+    }
+
     fun finishOfflineExport() {
         queueEvent {
             ProjectMBridge.endOfflineExport()
@@ -505,6 +607,7 @@ class ProjectMView(
         height: Int,
         renderFirst: Boolean,
         reuseOfflineBuffers: Boolean = false,
+        offlineSlot: Int = 0,
     ): Bitmap? =
         runCatching {
             if (renderFirst) {
@@ -524,13 +627,22 @@ class ProjectMView(
                 width *
                     height
 
+            val safeOfflineSlot =
+                offlineSlot.coerceIn(
+                    0,
+                    OFFLINE_READBACK_SLOT_COUNT -
+                        1,
+                )
+
             val buffer =
                 if (reuseOfflineBuffers) {
                     ensureOfflineReadbackCache(
                         width = width,
                         height = height,
                     )
-                    offlineReadbackBuffer
+                    offlineReadbackBuffers[
+                        safeOfflineSlot
+                    ]
                         ?: error(
                             "Offline readback buffer unavailable",
                         )
@@ -628,7 +740,9 @@ class ProjectMView(
 
             if (reuseOfflineBuffers) {
                 val bitmap =
-                    offlineReadbackBitmap
+                    offlineReadbackBitmaps[
+                        safeOfflineSlot
+                    ]
                         ?: error(
                             "Offline readback bitmap unavailable",
                         )
@@ -791,33 +905,42 @@ class ProjectMView(
                 width &&
             offlineReadbackHeight ==
                 height &&
-            offlineReadbackBuffer !=
-                null &&
-            offlineReadbackBitmap
-                ?.isRecycled ==
-                false
+            offlineReadbackBuffers
+                .all {
+                    it != null
+                } &&
+            offlineReadbackBitmaps
+                .all {
+                    it?.isRecycled ==
+                        false
+                }
         ) {
             return
         }
 
         clearOfflineReadbackCache()
 
-        offlineReadbackBuffer =
-            ByteBuffer
-                .allocateDirect(
-                    width *
-                        height *
-                        4,
+        repeat(
+            OFFLINE_READBACK_SLOT_COUNT,
+        ) { index ->
+            offlineReadbackBuffers[index] =
+                ByteBuffer
+                    .allocateDirect(
+                        width *
+                            height *
+                            4,
+                    )
+                    .order(
+                        ByteOrder.nativeOrder(),
+                    )
+            offlineReadbackBitmaps[index] =
+                Bitmap.createBitmap(
+                    width,
+                    height,
+                    Bitmap.Config.ARGB_8888,
                 )
-                .order(
-                    ByteOrder.nativeOrder(),
-                )
-        offlineReadbackBitmap =
-            Bitmap.createBitmap(
-                width,
-                height,
-                Bitmap.Config.ARGB_8888,
-            )
+        }
+
         offlineReadbackWidth =
             width
         offlineReadbackHeight =
@@ -825,15 +948,26 @@ class ProjectMView(
     }
 
     private fun clearOfflineReadbackCache() {
-        offlineReadbackBitmap
-            ?.takeIf {
-                !it.isRecycled
+        offlineReadbackBitmaps
+            .forEach {
+                    bitmap ->
+                bitmap
+                    ?.takeIf {
+                        !it.isRecycled
+                    }
+                    ?.recycle()
             }
-            ?.recycle()
-        offlineReadbackBitmap =
-            null
-        offlineReadbackBuffer =
-            null
+
+        offlineReadbackBitmaps
+            .indices
+            .forEach {
+                    index ->
+                offlineReadbackBitmaps[index] =
+                    null
+                offlineReadbackBuffers[index] =
+                    null
+            }
+
         offlineReadbackWidth =
             0
         offlineReadbackHeight =
@@ -908,5 +1042,7 @@ class ProjectMView(
         private const val TAG = "FARIC-projectM"
         private const val GL_BGRA_EXT =
             0x80E1
+        private const val OFFLINE_READBACK_SLOT_COUNT =
+            2
     }
 }

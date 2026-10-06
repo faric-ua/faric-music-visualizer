@@ -57,6 +57,7 @@ import com.saney.musicvisualizer.playback.PlaybackSnapshot
 import com.saney.musicvisualizer.playback.QueueTrack
 import com.saney.musicvisualizer.projectm.ProjectMBridge
 import com.saney.musicvisualizer.projectm.ProjectMLibraryManager
+import com.saney.musicvisualizer.projectm.ProjectMOfflineFrameRequest
 import com.saney.musicvisualizer.projectm.ProjectMPerformanceProfile
 import com.saney.musicvisualizer.projectm.ProjectMStateStore
 import com.saney.musicvisualizer.projectm.ProjectMView
@@ -5174,6 +5175,100 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     100 -
                         pcmPrepWeight
 
+                val projectMAvailableMs =
+                    (
+                        analysis.durationMs -
+                            exportStartMs
+                        )
+                        .coerceAtLeast(
+                            0L,
+                        )
+                val projectMRenderDurationMs =
+                    minOf(
+                        requestedDurationMs
+                            .coerceAtLeast(
+                                500L,
+                            ),
+                        projectMAvailableMs,
+                    ).coerceAtLeast(
+                        500L,
+                    )
+                val projectMFrameCount =
+                    (
+                        projectMRenderDurationMs *
+                            PROJECTM_EXPORT_FPS /
+                            1000L
+                        )
+                        .toInt()
+                        .coerceAtLeast(
+                            1,
+                        )
+
+                var pendingProjectMFrame:
+                    ProjectMOfflineFrameRequest? =
+                    null
+                var pendingProjectMFrameIndex =
+                    -1
+
+                fun queueProjectMFrame(
+                    frameIndex: Int,
+                    frameTimeMs: Long,
+                ): ProjectMOfflineFrameRequest {
+                    val activeView =
+                        projectMView
+                            ?: error(
+                                "projectM export view unavailable",
+                            )
+                    val activePcmReader =
+                        pcmReader
+                            ?: error(
+                                "projectM PCM reader unavailable",
+                            )
+
+                    val nextFrameTimeMs =
+                        exportStartMs +
+                            (
+                                frameIndex +
+                                    1L
+                                ) *
+                            1000L /
+                            PROJECTM_EXPORT_FPS
+
+                    val pcm =
+                        activePcmReader
+                            .samplesBetween(
+                                startMs =
+                                    frameTimeMs,
+                                endMs =
+                                    nextFrameTimeMs,
+                            )
+
+                    val signal =
+                        analysis
+                            .signalAt(
+                                frameTimeMs,
+                            )
+
+                    return activeView
+                        .queueOfflineFrame(
+                            frameIndex =
+                                frameIndex,
+                            frameTimeSeconds =
+                                frameIndex
+                                    .toDouble() /
+                                    PROJECTM_EXPORT_FPS,
+                            pcm =
+                                pcm,
+                            signal =
+                                signal,
+                        )
+                        ?: error(
+                            "projectM offline frame " +
+                                frameIndex +
+                                " не поставлено в чергу",
+                        )
+                }
+
                 ShortVideoExportProof.export(
                     context = this,
                     sourceAudioUri =
@@ -5224,49 +5319,74 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     )
                                 }
 
-                                val nextFrameTimeMs =
-                                    exportStartMs +
-                                        (
-                                            frameIndex +
-                                                1L
-                                            ) *
-                                        1000L /
-                                        PROJECTM_EXPORT_FPS
+                                val queued =
+                                    pendingProjectMFrame
 
-                                val pcm =
-                                    pcmReader
-                                        ?.samplesBetween(
-                                            startMs =
+                                if (
+                                    queued != null &&
+                                    pendingProjectMFrameIndex !=
+                                    frameIndex
+                                ) {
+                                    error(
+                                        "projectM pipeline desync: " +
+                                            pendingProjectMFrameIndex +
+                                            " != " +
+                                            frameIndex,
+                                    )
+                                }
+
+                                val request =
+                                    queued
+                                        ?: queueProjectMFrame(
+                                            frameIndex =
+                                                frameIndex,
+                                            frameTimeMs =
                                                 frameTimeMs,
-                                            endMs =
+                                        )
+
+                                pendingProjectMFrame =
+                                    null
+                                pendingProjectMFrameIndex =
+                                    -1
+
+                                val frame =
+                                    projectMView
+                                        .awaitOfflineFrame(
+                                            request,
+                                        )
+                                        ?: error(
+                                            "projectM offline frame " +
+                                                frameIndex +
+                                                " не відрендерився",
+                                        )
+
+                                val nextFrameIndex =
+                                    frameIndex +
+                                        1
+
+                                if (
+                                    !cancelled.get() &&
+                                    nextFrameIndex <
+                                    projectMFrameCount
+                                ) {
+                                    val nextFrameTimeMs =
+                                        exportStartMs +
+                                            nextFrameIndex *
+                                            1000L /
+                                            PROJECTM_EXPORT_FPS
+
+                                    pendingProjectMFrame =
+                                        queueProjectMFrame(
+                                            frameIndex =
+                                                nextFrameIndex,
+                                            frameTimeMs =
                                                 nextFrameTimeMs,
                                         )
-                                        ?: ShortArray(
-                                            0,
-                                        )
+                                    pendingProjectMFrameIndex =
+                                        nextFrameIndex
+                                }
 
-                                val signal =
-                                    analysis
-                                        .signalAt(
-                                            frameTimeMs,
-                                        )
-
-                                projectMView
-                                    .renderOfflineFrameBlocking(
-                                        frameTimeSeconds =
-                                            frameIndex
-                                                .toDouble() /
-                                                PROJECTM_EXPORT_FPS,
-                                        pcm =
-                                            pcm,
-                                        signal =
-                                            signal,
-                                    )
-                                    ?: error(
-                                        "projectM offline frame " +
-                                            frameIndex +
-                                            " не відрендерився",
-                                    )
+                                frame
                             }
                         } else {
                             null

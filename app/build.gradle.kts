@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 100
-        versionName = "0.19.11"
-        // v0.19.11 timing dialog copy-to-clipboard candidate.
+        versionCode = 101
+        versionName = "0.19.12"
+        // v0.19.12 overlaps projectM readback with CPU composition.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

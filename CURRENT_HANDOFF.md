@@ -1808,3 +1808,48 @@ Current candidate:
 - source SHA `a5f7ac9c4baa6d670afe1879f217838ff51b5a7d`;
 - adds internal composition timing for clear, projectM draw, FARIC reactive, overlay, Big Equalizer, Cyber Shark, effects, PulseDeck update, and PulseDeck draw;
 - next: wait for Android #478 PASS, checkpoint it, then phone test one 3-second preview.
+
+
+### v0.19.7 layer-level bottleneck confirmed
+
+Phone evidence:
+- screen recording `447926.mp4`;
+- exported preview `447927.mp4`.
+
+Exact timing:
+- projectM generation 2063 ms;
+- composition 12998 ms;
+- encoder 453 ms;
+- audio 475 ms;
+- mux 140 ms;
+- save 199 ms;
+- total 17008 ms.
+
+Composition breakdown:
+- clear 85 ms;
+- projectM draw 6471 ms;
+- FARIC reactive 0 ms;
+- overlay 0 ms;
+- Big EQ 0 ms;
+- Cyber Shark 4691 ms;
+- effects 450 ms;
+- HUD update 26 ms;
+- HUD draw 1270 ms.
+
+Current candidate:
+- v0.19.8 / build 97;
+- source SHA `83512d24b74962ea7a93757577149b0c0e6aa7f8`;
+- uses BGRA readback on GPUs advertising `GL_EXT_read_format_bgra`;
+- compatible path lets ARGB_8888 receive B,G,R,A bytes directly and bypasses the software R/B ColorMatrix during projectM Canvas draw;
+- fallback remains the v0.19.7 RGBA + ColorMatrix path;
+- result dialog shows whether BGRA fast path was active.
+- Android #483 / Validate #802 are the exact CI runs to watch.
+
+Resume:
+1. wait for Android #483 PASS;
+2. checkpoint immediately;
+3. user Termux 3 -> 10 -> 8;
+4. install v0.19.8;
+5. run one warm-cache 3-second preview;
+6. compare projectM draw / composition / total and verify colors/orientation;
+7. if BGRA is active and projectM draw drops materially, optimize Cyber Shark next.

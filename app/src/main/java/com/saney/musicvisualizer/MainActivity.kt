@@ -6255,6 +6255,57 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     result.totalMs,
                 )
                 append(" ms")
+
+                result.compositionStages
+                    ?.let { stages ->
+                        append("\n\ncomposition layers")
+                        append("\nclear: ")
+                        append(
+                            stages.clearMs,
+                        )
+                        append(" ms")
+                        append("\nprojectM draw: ")
+                        append(
+                            stages.projectMDrawMs,
+                        )
+                        append(" ms")
+                        append("\nreactive: ")
+                        append(
+                            stages.faricReactiveMs,
+                        )
+                        append(" ms")
+                        append("\noverlay: ")
+                        append(
+                            stages.overVisualizationMs,
+                        )
+                        append(" ms")
+                        append("\nbig EQ: ")
+                        append(
+                            stages.bigEqualizerMs,
+                        )
+                        append(" ms")
+                        append("\nCyber Shark: ")
+                        append(
+                            stages.cyberSharkMs,
+                        )
+                        append(" ms")
+                        append("\neffects: ")
+                        append(
+                            stages.effectsMs,
+                        )
+                        append(" ms")
+                        append("\nHUD update: ")
+                        append(
+                            stages.pulseDeckUpdateMs,
+                        )
+                        append(" ms")
+                        append("\nHUD draw: ")
+                        append(
+                            stages.pulseDeckDrawMs,
+                        )
+                        append(" ms")
+                    }
+
                 append("\n\nMovies/FARIC")
             }
 

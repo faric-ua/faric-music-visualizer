@@ -1181,9 +1181,9 @@ Implementation:
 - [x] Export Lab projectM surface now uses the selected output dimensions/aspect ratio instead of the full phone-screen geometry.
 - [x] Keep the existing projectM performance profile scale after applying output geometry.
 - [x] Promote to v0.19.4 / build 93.
-- [ ] Android PASS for exact v0.19.4 source.
-- [ ] Validate PASS for current v0.19.4 HEAD.
+- [x] Android PASS for exact v0.19.4 source — #469 attempt 3 PASS on `c43f8f9b10d3a8c6969d3da8514a3509da350e55`.
+- [x] Validate #776 attempt 3 — PASS on `5cb4b1d36d42ac5f99d6b5e3efbe4182ac4e011b`.
 - [ ] Phone: same 3-second preview starts at current scrubber position.
 - [ ] Phone: image composition/crop/orientation/colors remain correct.
-- [ ] Phone: compare wall-clock against v0.19.3 baseline of ~16 seconds.
+- [ ] Phone: compare warm-cache wall-clock against v0.19.3 baseline of ~16 seconds. First v0.19.4 recording was cold-cache: PCM prep ~12-13 s + render ~15-16 s, so it is not a fair total-time comparison.
 - [ ] If still too slow, move projectM readback off the synchronous per-frame CPU path rather than lowering final 30 FPS.

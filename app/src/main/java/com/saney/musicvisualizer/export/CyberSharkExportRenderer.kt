@@ -591,20 +591,32 @@ class CyberSharkExportRenderer(
                 h *
                     layerTransform.offsetYFraction
 
+        val layerAlpha =
+            (
+                255f *
+                    transform.opacity *
+                    layerTransform.opacity
+                )
+                .toInt()
+                .coerceIn(0, 255)
+
         val saveCount =
-            canvas.saveLayerAlpha(
-                0f,
-                0f,
-                w,
-                h,
-                (
-                    255f *
-                        transform.opacity *
-                        layerTransform.opacity
-                    )
-                    .toInt()
-                    .coerceIn(0, 255),
-            )
+            if (
+                layerAlpha >=
+                    255
+            ) {
+                // Avoid allocating/compositing a full-screen offscreen layer
+                // when opacity is already fully opaque.
+                canvas.save()
+            } else {
+                canvas.saveLayerAlpha(
+                    0f,
+                    0f,
+                    w,
+                    h,
+                    layerAlpha,
+                )
+            }
 
         canvas.translate(
             layerCx - cx,

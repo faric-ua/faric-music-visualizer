@@ -13,7 +13,9 @@ import android.view.Surface
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import kotlin.math.cos
 import kotlin.math.max
+import kotlin.math.sin
 
 /**
  * Uploads already-composited ARGB frames directly to a MediaCodec input Surface.
@@ -25,6 +27,7 @@ import kotlin.math.max
 data class EglCompositeDrawTiming(
     val projectMNs: Long,
     val glowNs: Long,
+    val frameNs: Long,
     val overlayNs: Long,
 )
 
@@ -40,6 +43,9 @@ class EglBitmapEncoderSurface(
     private val program: Int
     private val textureId: Int
     private val projectMTextureId: Int
+    private val frameTextureId: Int
+    private var frameTextureLoaded =
+        false
     private var projectMTextureWidth =
         0
     private var projectMTextureHeight =
@@ -47,6 +53,12 @@ class EglBitmapEncoderSurface(
     private val positionHandle: Int
     private val texCoordHandle: Int
     private val samplerHandle: Int
+
+    private val frameProgram: Int
+    private val framePositionHandle: Int
+    private val frameTexCoordHandle: Int
+    private val frameSamplerHandle: Int
+    private val frameAlphaHandle: Int
 
     private val glowProgram: Int
     private val glowPositionHandle: Int
@@ -92,6 +104,14 @@ class EglBitmapEncoderSurface(
             1f, 0f,
             0f, 1f,
             1f, 1f,
+        )
+
+    private val frameVertexBuffer: FloatBuffer =
+        floatBufferOf(
+            0f, 0f,
+            0f, 0f,
+            0f, 0f,
+            0f, 0f,
         )
 
     init {
@@ -186,6 +206,32 @@ class EglBitmapEncoderSurface(
                 "uTexture",
             )
 
+        frameProgram =
+            createProgram(
+                VERTEX_SHADER,
+                ALPHA_FRAGMENT_SHADER,
+            )
+        framePositionHandle =
+            GLES20.glGetAttribLocation(
+                frameProgram,
+                "aPosition",
+            )
+        frameTexCoordHandle =
+            GLES20.glGetAttribLocation(
+                frameProgram,
+                "aTexCoord",
+            )
+        frameSamplerHandle =
+            GLES20.glGetUniformLocation(
+                frameProgram,
+                "uTexture",
+            )
+        frameAlphaHandle =
+            GLES20.glGetUniformLocation(
+                frameProgram,
+                "uAlpha",
+            )
+
         glowProgram =
             createProgram(
                 VERTEX_SHADER,
@@ -234,10 +280,10 @@ class EglBitmapEncoderSurface(
 
         val textureIds =
             IntArray(
-                2,
+                3,
             )
         GLES20.glGenTextures(
-            2,
+            3,
             textureIds,
             0,
         )
@@ -245,6 +291,8 @@ class EglBitmapEncoderSurface(
             textureIds[0]
         projectMTextureId =
             textureIds[1]
+        frameTextureId =
+            textureIds[2]
 
         GLES20.glBindTexture(
             GLES20.GL_TEXTURE_2D,
@@ -311,6 +359,34 @@ class EglBitmapEncoderSurface(
         )
         checkGl(
             "projectM texture setup",
+        )
+
+        GLES20.glBindTexture(
+            GLES20.GL_TEXTURE_2D,
+            frameTextureId,
+        )
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_MIN_FILTER,
+            GLES20.GL_LINEAR,
+        )
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_MAG_FILTER,
+            GLES20.GL_LINEAR,
+        )
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_WRAP_S,
+            GLES20.GL_CLAMP_TO_EDGE,
+        )
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_WRAP_T,
+            GLES20.GL_CLAMP_TO_EDGE,
+        )
+        checkGl(
+            "frame texture setup",
         )
     }
 
@@ -382,6 +458,7 @@ class EglBitmapEncoderSurface(
         return EglCompositeDrawTiming(
             projectMNs = 0L,
             glowNs = glowNs,
+            frameNs = 0L,
             overlayNs = overlayNs,
         )
     }
@@ -445,6 +522,91 @@ class EglBitmapEncoderSurface(
         return EglCompositeDrawTiming(
             projectMNs = projectMNs,
             glowNs = glowNs,
+            frameNs = 0L,
+            overlayNs = overlayNs,
+        )
+    }
+
+    fun drawProjectMFrameComposite(
+        projectMBitmap: Bitmap,
+        lowerOverlayBitmap: Bitmap,
+        frame: CyberSharkGpuFrame,
+        upperOverlayBitmap: Bitmap,
+        glow: CyberSharkGpuGlow,
+        presentationTimeNs: Long,
+    ): EglCompositeDrawTiming {
+        check(
+            projectMBitmap.width > 0 &&
+                projectMBitmap.height > 0,
+        ) {
+            "ProjectM frame is empty"
+        }
+        validateBitmap(
+            lowerOverlayBitmap,
+        )
+        validateBitmap(
+            upperOverlayBitmap,
+        )
+        makeCurrent()
+        beginFrame()
+
+        val projectMStartedNs =
+            System.nanoTime()
+        drawProjectMRawLayer(
+            projectMBitmap,
+        )
+        val projectMNs =
+            System.nanoTime() -
+                projectMStartedNs
+
+        val glowStartedNs =
+            System.nanoTime()
+        drawGlow(
+            glow,
+        )
+        val glowNs =
+            System.nanoTime() -
+                glowStartedNs
+
+        val lowerOverlayStartedNs =
+            System.nanoTime()
+        drawBitmapLayer(
+            bitmap =
+                lowerOverlayBitmap,
+            alphaBlend = true,
+        )
+        var overlayNs =
+            System.nanoTime() -
+                lowerOverlayStartedNs
+
+        val frameStartedNs =
+            System.nanoTime()
+        drawFrame(
+            frame,
+        )
+        val frameNs =
+            System.nanoTime() -
+                frameStartedNs
+
+        val upperOverlayStartedNs =
+            System.nanoTime()
+        drawBitmapLayer(
+            bitmap =
+                upperOverlayBitmap,
+            alphaBlend = true,
+        )
+        overlayNs +=
+            System.nanoTime() -
+                upperOverlayStartedNs
+
+        finishFrame(
+            presentationTimeNs,
+        )
+
+        return EglCompositeDrawTiming(
+            projectMNs = projectMNs,
+            glowNs = glowNs,
+            frameNs = frameNs,
             overlayNs = overlayNs,
         )
     }
@@ -688,6 +850,161 @@ class EglBitmapEncoderSurface(
         )
     }
 
+    private fun drawFrame(
+        frame: CyberSharkGpuFrame,
+    ) {
+        if (
+            frame.size <= 0f ||
+            frame.alpha <= 0f
+        ) {
+            return
+        }
+
+        GLES20.glEnable(
+            GLES20.GL_BLEND,
+        )
+        GLES20.glBlendFunc(
+            GLES20.GL_ONE,
+            GLES20.GL_ONE_MINUS_SRC_ALPHA,
+        )
+
+        GLES20.glUseProgram(
+            frameProgram,
+        )
+        GLES20.glActiveTexture(
+            GLES20.GL_TEXTURE0,
+        )
+        GLES20.glBindTexture(
+            GLES20.GL_TEXTURE_2D,
+            frameTextureId,
+        )
+
+        if (!frameTextureLoaded) {
+            GLUtils.texImage2D(
+                GLES20.GL_TEXTURE_2D,
+                0,
+                frame.bitmap,
+                0,
+            )
+            frameTextureLoaded =
+                true
+        }
+
+        val half =
+            frame.size *
+                0.5f
+        val radians =
+            Math.toRadians(
+                frame
+                    .rotationDegrees
+                    .toDouble(),
+            )
+        val c =
+            cos(
+                radians,
+            )
+                .toFloat()
+        val sn =
+            sin(
+                radians,
+            )
+                .toFloat()
+
+        fun point(
+            dx: Float,
+            dy: Float,
+        ): Pair<Float, Float> {
+            val screenX =
+                frame.centerX +
+                    dx * c -
+                    dy * sn
+            val screenY =
+                frame.centerY +
+                    dx * sn +
+                    dy * c
+            val ndcX =
+                screenX /
+                    width *
+                    2f -
+                    1f
+            val ndcY =
+                1f -
+                    screenY /
+                        height *
+                        2f
+            return Pair(
+                ndcX,
+                ndcY,
+            )
+        }
+
+        val bottomLeft =
+            point(
+                -half,
+                half,
+            )
+        val bottomRight =
+            point(
+                half,
+                half,
+            )
+        val topLeft =
+            point(
+                -half,
+                -half,
+            )
+        val topRight =
+            point(
+                half,
+                -half,
+            )
+
+        frameVertexBuffer
+            .position(
+                0,
+            )
+        frameVertexBuffer
+            .put(
+                floatArrayOf(
+                    bottomLeft.first,
+                    bottomLeft.second,
+                    bottomRight.first,
+                    bottomRight.second,
+                    topLeft.first,
+                    topLeft.second,
+                    topRight.first,
+                    topRight.second,
+                ),
+            )
+        frameVertexBuffer
+            .position(
+                0,
+            )
+
+        bindQuad(
+            framePositionHandle,
+            frameTexCoordHandle,
+            texCoordBuffer,
+            frameVertexBuffer,
+        )
+        GLES20.glUniform1i(
+            frameSamplerHandle,
+            0,
+        )
+        GLES20.glUniform1f(
+            frameAlphaHandle,
+            frame.alpha,
+        )
+        GLES20.glDrawArrays(
+            GLES20.GL_TRIANGLE_STRIP,
+            0,
+            4,
+        )
+        checkGl(
+            "GPU frame draw",
+        )
+    }
+
     private fun drawGlow(
         glow: CyberSharkGpuGlow,
     ) {
@@ -820,8 +1137,11 @@ class EglBitmapEncoderSurface(
         position: Int,
         texCoord: Int,
         coordinates: FloatBuffer,
+        positions:
+            FloatBuffer =
+            vertexBuffer,
     ) {
-        vertexBuffer.position(
+        positions.position(
             0,
         )
         GLES20.glEnableVertexAttribArray(
@@ -833,7 +1153,7 @@ class EglBitmapEncoderSurface(
             GLES20.GL_FLOAT,
             false,
             0,
-            vertexBuffer,
+            positions,
         )
 
         coordinates.position(
@@ -899,15 +1219,19 @@ class EglBitmapEncoderSurface(
         runCatching {
             makeCurrent()
             GLES20.glDeleteTextures(
-                2,
+                3,
                 intArrayOf(
                     textureId,
                     projectMTextureId,
+                    frameTextureId,
                 ),
                 0,
             )
             GLES20.glDeleteProgram(
                 program,
+            )
+            GLES20.glDeleteProgram(
+                frameProgram,
             )
             GLES20.glDeleteProgram(
                 glowProgram,
@@ -1140,6 +1464,23 @@ class EglBitmapEncoderSurface(
 
             void main() {
                 gl_FragColor = texture2D(uTexture, vTexCoord);
+            }
+            """
+
+        private const val ALPHA_FRAGMENT_SHADER =
+            """
+            precision mediump float;
+            uniform sampler2D uTexture;
+            uniform float uAlpha;
+            varying vec2 vTexCoord;
+
+            void main() {
+                gl_FragColor =
+                    texture2D(
+                        uTexture,
+                        vTexCoord
+                    ) *
+                    uAlpha;
             }
             """
 

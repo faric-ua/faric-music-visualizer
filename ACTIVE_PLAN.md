@@ -1,5 +1,22 @@
 # Active Plan
 
+## CURRENT PRIORITY — v0.19.20 GPU Cyber Shark frame
+
+- [x] v0.19.19 phone performance PASS: total 7224 ms.
+- [x] projectM draw 1710 -> 0 ms; GPU projectM 134 ms.
+- [x] Identify next single CPU bottleneck: Cyber Shark frame = 1560 ms.
+- [x] Add exact GPU frame transform spec (center/size/rotation/alpha).
+- [x] Split transparent composition around frame to preserve z-order.
+- [x] Add static EGL frame texture + transformed premultiplied-alpha draw.
+- [x] Keep direct GPU projectM and GPU glow unchanged.
+- [x] Add `GPU frame` timing.
+- [x] Bump v0.19.20 / build 109.
+- [ ] Validate + Android PASS.
+- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [ ] Require Cyber Shark frame = 0 ms and GPU frame > 0 ms.
+- [ ] Compare composition / encoder / GPU overlay / total.
+- [ ] Visual QA: frame size, rotation, opacity, position and z-order; projectM/glow still correct.
+
 ## CURRENT PRIORITY — phone-test v0.19.19 GPU-scale projectM
 
 - [x] v0.19.18 phone test: branch did not activate; projectM draw 1710 ms, no GPU projectM metric.

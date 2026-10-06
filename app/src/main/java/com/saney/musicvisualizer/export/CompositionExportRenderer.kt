@@ -10,6 +10,7 @@ import android.graphics.Paint
 import android.graphics.RectF
 import android.view.View
 import com.saney.musicvisualizer.analysis.SceneSignal
+import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.scene.SceneSpec
 import com.saney.musicvisualizer.ui.PulseDeckMainSkinView
 import kotlin.math.max
@@ -299,6 +300,257 @@ class CompositionExportRenderer(
                 System.nanoTime() -
                     startedNs
         }
+    }
+
+    fun gpuCyberSharkFrame(
+        width: Int,
+        height: Int,
+        timeMs: Long,
+        signal: SceneSignal,
+    ): CyberSharkGpuFrame? =
+        if (
+            config
+                .graphicFiguresVisible
+        ) {
+            cyberSharkRenderer
+                .gpuFrame(
+                    width = width,
+                    height = height,
+                    timeMs = timeMs,
+                    signal = signal,
+                    config =
+                        config
+                            .cyberSharkConfig,
+                )
+        } else {
+            null
+        }
+
+    fun renderCyberSharkBackgroundAfterGlow(
+        canvas: Canvas,
+        width: Int,
+        height: Int,
+        timeMs: Long,
+        signal: SceneSignal,
+    ) {
+        if (
+            !config
+                .graphicFiguresVisible
+        ) {
+            return
+        }
+
+        val visibility =
+            config
+                .cyberSharkConfig
+                .visibility
+                .toMutableMap()
+                .apply {
+                    this[
+                        BoardLayerId.FRAME
+                    ] =
+                        false
+                    this[
+                        BoardLayerId.FX
+                    ] =
+                        false
+                    this[
+                        BoardLayerId.CREATURE
+                    ] =
+                        false
+                    this[
+                        BoardLayerId.WORDMARK
+                    ] =
+                        false
+                }
+
+        val startedNs =
+            System.nanoTime()
+
+        cyberSharkRenderer
+            .render(
+                canvas = canvas,
+                width = width,
+                height = height,
+                timeMs = timeMs,
+                signal = signal,
+                config =
+                    config
+                        .cyberSharkConfig
+                        .copy(
+                            visibility =
+                                visibility,
+                        ),
+                skipBackgroundGlow =
+                    true,
+            )
+
+        cyberSharkNs +=
+            System.nanoTime() -
+                startedNs
+    }
+
+    fun renderAfterCyberSharkFrame(
+        canvas: Canvas,
+        width: Int,
+        height: Int,
+        timeMs: Long,
+        signal: SceneSignal,
+        title: String,
+        artist: String,
+        durationMs: Long,
+        playing: Boolean = true,
+    ) {
+        if (
+            config
+                .graphicFiguresVisible
+        ) {
+            val visibility =
+                config
+                    .cyberSharkConfig
+                    .visibility
+                    .toMutableMap()
+                    .apply {
+                        this[
+                            BoardLayerId.BACKGROUND
+                        ] =
+                            false
+                        this[
+                            BoardLayerId.FRAME
+                        ] =
+                            false
+                    }
+
+            val startedNs =
+                System.nanoTime()
+
+            cyberSharkRenderer
+                .render(
+                    canvas = canvas,
+                    width = width,
+                    height = height,
+                    timeMs = timeMs,
+                    signal = signal,
+                    config =
+                        config
+                            .cyberSharkConfig
+                            .copy(
+                                visibility =
+                                    visibility,
+                            ),
+                    skipBackgroundGlow =
+                        true,
+                )
+
+            cyberSharkNs +=
+                System.nanoTime() -
+                    startedNs
+        }
+
+        if (
+            config
+                .effectsVisible
+        ) {
+            val startedNs =
+                System.nanoTime()
+
+            sceneRenderer
+                .renderEffects(
+                    canvas = canvas,
+                    width = width,
+                    height = height,
+                    timeMs = timeMs,
+                    signal = signal,
+                    scene = config.scene,
+                )
+
+            effectsNs +=
+                System.nanoTime() -
+                    startedNs
+        }
+
+        pulseDeckView
+            ?.let { view ->
+                val updateStartedNs =
+                    System.nanoTime()
+
+                ensurePulseDeckSize(
+                    view = view,
+                    width = width,
+                    height = height,
+                )
+
+                view.updateSignal(
+                    signalForHud(
+                        signal = signal,
+                        timeMs = timeMs,
+                    ),
+                )
+                view.setPlaying(
+                    playing,
+                )
+
+                val safeDuration =
+                    durationMs
+                        .coerceAtLeast(
+                            1L,
+                        )
+
+                val safePosition =
+                    timeMs.coerceIn(
+                        0L,
+                        safeDuration,
+                    )
+
+                view.setPlaybackContent(
+                    title =
+                        title.ifBlank {
+                            "FARIC"
+                        },
+                    artist = artist,
+                    status =
+                        if (playing) {
+                            "Playing"
+                        } else {
+                            "Paused"
+                        },
+                    elapsed =
+                        formatTime(
+                            safePosition,
+                        ),
+                    total =
+                        formatTime(
+                            safeDuration,
+                        ),
+                    progressFraction =
+                        (
+                            safePosition
+                                .toDouble() /
+                                safeDuration
+                                    .toDouble()
+                            )
+                            .toFloat()
+                            .coerceIn(
+                                0f,
+                                1f,
+                            ),
+                )
+
+                pulseDeckUpdateNs +=
+                    System.nanoTime() -
+                        updateStartedNs
+
+                val drawStartedNs =
+                    System.nanoTime()
+
+                view.draw(
+                    canvas,
+                )
+
+                pulseDeckDrawNs +=
+                    System.nanoTime() -
+                        drawStartedNs
+            }
     }
 
     fun renderAfterCyberSharkGlow(

@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 108
-        versionName = "0.19.19"
-        // v0.19.19 GPU-scales the 0.78x offline projectM framebuffer directly.
+        versionCode = 109
+        versionName = "0.19.20"
+        // v0.19.20 composites the Cyber Shark frame on the encoder GPU surface.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

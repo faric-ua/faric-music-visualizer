@@ -1001,3 +1001,36 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Single next resume step:
   - install v0.19.19 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste full timing and report any projectM/glow visual difference.
 
+---
+
+## 2026-10-06 — v0.19.19 phone GPU-projectM result — PERFORMANCE PASS
+
+- App/source SHA: `adf26b803daf283cda51faaed9ebe51cf855e7fd`.
+- Phone: 1080x1920 / 90 frames.
+- projectM provider 632 ms; composition 4543 ms; encoder 586 ms; total 7224 ms.
+- GPU projectM 134 ms; GPU glow 7 ms; GPU overlay 259 ms.
+- projectM internals: queue 7 ms; native render 757 ms; glReadPixels 4802 ms; bitmap copy 114 ms.
+- Composition layers:
+  - clear 0 ms;
+  - projectM draw 0 ms;
+  - Cyber Shark 2809 ms;
+  - effects 417 ms;
+  - HUD update 25 ms;
+  - HUD draw 1178 ms.
+- Cyber Shark internals:
+  - background 99 ms;
+  - CPU glow 0 ms;
+  - frame 1560 ms;
+  - FX 255 ms;
+  - creature 459 ms;
+  - wordmark 423 ms.
+- Compare v0.19.18:
+  - total 8275 -> 7224 ms (-1051 ms / ~12.7%);
+  - composition 5999 -> 4543 ms (-1456 ms / ~24.3%);
+  - projectM draw 1710 -> 0 ms;
+  - GPU projectM = 134 ms.
+- Compare v0.19.11 baseline: total 14925 -> 7224 ms (~51.6% faster wall time).
+- Performance status: PASS.
+- Visual equivalence still requires explicit phone confirmation for projectM orientation/colors/framing and GPU glow.
+- Next measured CPU bottleneck: Cyber Shark frame = 1560 ms; HUD draw = 1178 ms.
+

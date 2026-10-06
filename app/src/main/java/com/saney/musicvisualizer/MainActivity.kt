@@ -6405,6 +6405,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         0L ||
                     result.gpuGlowMs >
                         0L ||
+                    result.gpuFrameMs >
+                        0L ||
                     result.gpuOverlayMs >
                         0L
                 ) {
@@ -6423,6 +6425,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         result.gpuGlowMs,
                     )
                     append(" ms")
+                    if (
+                        result.gpuFrameMs >
+                            0L
+                    ) {
+                        append("\nGPU frame: ")
+                        append(
+                            result.gpuFrameMs,
+                        )
+                        append(" ms")
+                    }
                     append("\nGPU overlay: ")
                     append(
                         result.gpuOverlayMs,

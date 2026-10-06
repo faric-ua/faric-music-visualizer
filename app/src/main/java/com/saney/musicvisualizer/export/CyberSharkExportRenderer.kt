@@ -44,6 +44,15 @@ data class CyberSharkGpuGlow(
     val midAlpha: Float,
 )
 
+data class CyberSharkGpuFrame(
+    val bitmap: Bitmap,
+    val centerX: Float,
+    val centerY: Float,
+    val size: Float,
+    val rotationDegrees: Float,
+    val alpha: Float,
+)
+
 data class CyberSharkStageTiming(
     val backgroundMs: Long,
     val backgroundSetupMs: Long,
@@ -226,6 +235,182 @@ class CyberSharkExportRenderer(
             baseAlpha = 1f,
             beatTranslateYFraction = 0.004f,
         )
+
+    fun gpuFrame(
+        width: Int,
+        height: Int,
+        timeMs: Long,
+        signal: SceneSignal,
+        config: CyberSharkExportConfig,
+    ): CyberSharkGpuFrame? {
+        val bitmap =
+            frameBitmap
+                ?: return null
+
+        if (
+            width <= 0 ||
+            height <= 0 ||
+            config.visibility[
+                BoardLayerId.FRAME
+            ] == false
+        ) {
+            return null
+        }
+
+        val w =
+            width.toFloat()
+        val h =
+            height.toFloat()
+        val minSide =
+            min(
+                w,
+                h,
+            )
+        val transform =
+            config
+                .groupTransform
+                .sanitized()
+        val reaction =
+            config
+                .groupReaction
+                .sanitized()
+        val timeSeconds =
+            timeMs /
+                1000f
+        val stereoPan =
+            signal.stereoPan
+                .coerceIn(
+                    -1f,
+                    1f,
+                )
+        val cx =
+            w *
+                transform.xFraction +
+                w *
+                    stereoPan *
+                    reaction
+                        .stereoShiftFraction
+        val cy =
+            h *
+                transform.yFraction +
+                minSide *
+                    reaction
+                        .bassFloatFraction *
+                    signal.bass *
+                    sin(
+                        (
+                            timeSeconds *
+                                (
+                                    2f +
+                                        signal.bass *
+                                            2.2f
+                                    )
+                            ).toDouble(),
+                    )
+                        .toFloat()
+        val rotationSway =
+            reaction
+                .rotationSwayDegrees *
+                (
+                    0.20f +
+                        signal.mid * 0.55f +
+                        signal.bass * 0.25f
+                    )
+                    .coerceIn(
+                        0f,
+                        1f,
+                    ) *
+                sin(
+                    (
+                        timeSeconds *
+                            (
+                                1.15f +
+                                    signal.mid *
+                                        1.35f
+                                ) +
+                            stereoPan *
+                                0.75f
+                        ).toDouble(),
+                )
+                    .toFloat()
+        val groupRotation =
+            transform.rotationDegrees +
+                rotationSway
+        val baseSize =
+            minSide *
+                transform.sizeFraction
+        val audio =
+            BoardAudioState(
+                amplitude =
+                    signal.amplitude,
+                bass =
+                    signal.bass,
+                mid =
+                    signal.mid,
+                high =
+                    signal.high,
+                beat =
+                    signal.beatStrength,
+            )
+        val motion =
+            BoardLayerMotionEvaluator
+                .evaluate(
+                    frameReaction,
+                    audio,
+                    timeSeconds,
+                )
+        val layerTransform =
+            (
+                config
+                    .layerTransforms[
+                        BoardLayerId.FRAME
+                    ]
+                    ?: BoardLayerTransform
+                        .default()
+                )
+                .sanitized()
+        val size =
+            baseSize *
+                motion.scale *
+                layerTransform.scale
+        val layerCx =
+            cx +
+                w *
+                    layerTransform
+                        .offsetXFraction
+        val layerCy =
+            cy +
+                h *
+                    layerTransform
+                        .offsetYFraction +
+                baseSize *
+                    motion
+                        .translateYFraction
+        val alpha =
+            (
+                motion.alpha *
+                    transform.opacity *
+                    layerTransform.opacity
+                )
+                .coerceIn(
+                    0f,
+                    1f,
+                )
+
+        return CyberSharkGpuFrame(
+            bitmap = bitmap,
+            centerX = layerCx,
+            centerY = layerCy,
+            size = size,
+            rotationDegrees =
+                groupRotation +
+                    layerTransform
+                        .rotationDegrees +
+                    motion
+                        .rotationDegrees,
+            alpha = alpha,
+        )
+    }
 
     fun render(
         canvas: Canvas,

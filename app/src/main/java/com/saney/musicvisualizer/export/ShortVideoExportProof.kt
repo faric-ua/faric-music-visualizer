@@ -37,6 +37,7 @@ object ShortVideoExportProof {
         val encoderSubmitMs: Long,
         val gpuProjectMMs: Long,
         val gpuGlowMs: Long,
+        val gpuFrameMs: Long,
         val gpuOverlayMs: Long,
         val audioTranscodeMs: Long,
         val muxMs: Long,
@@ -212,6 +213,30 @@ object ShortVideoExportProof {
                 null
             }
 
+        val useGpuCyberSharkFrame =
+            compositionConfig
+                ?.let { config ->
+                    useGpuCyberSharkGlow &&
+                        config
+                            .cyberSharkConfig
+                            .visibility[
+                                com.saney.musicvisualizer.board
+                                    .BoardLayerId.FRAME
+                            ] != false
+                } ==
+                true
+
+        val postFrameOverlayBitmap =
+            if (useGpuCyberSharkFrame) {
+                Bitmap.createBitmap(
+                    width,
+                    height,
+                    Bitmap.Config.ARGB_8888,
+                )
+            } else {
+                null
+            }
+
         val cyberSharkRenderer =
             if (
                 project.themeId ==
@@ -248,6 +273,8 @@ object ShortVideoExportProof {
         var gpuProjectMNs =
             0L
         var gpuGlowNs =
+            0L
+        var gpuFrameNs =
             0L
         var gpuOverlayNs =
             0L
@@ -460,6 +487,9 @@ object ShortVideoExportProof {
                 var gpuGlow:
                     CyberSharkGpuGlow? =
                     null
+                var gpuFrame:
+                    CyberSharkGpuFrame? =
+                    null
 
                 if (
                     compositionRenderer != null
@@ -484,31 +514,97 @@ object ShortVideoExportProof {
                                 )
                         }
 
-                        overlayBitmap.eraseColor(
-                            Color.TRANSPARENT,
-                        )
+                        if (
+                            directGpuProjectMBase &&
+                            useGpuCyberSharkFrame &&
+                            postFrameOverlayBitmap !=
+                                null
+                        ) {
+                            gpuFrame =
+                                compositionRenderer
+                                    .gpuCyberSharkFrame(
+                                        width = width,
+                                        height = height,
+                                        timeMs =
+                                            frameTimeMs,
+                                        signal = signal,
+                                    )
 
-                        compositionRenderer
-                            .renderAfterCyberSharkGlow(
-                                canvas =
-                                    Canvas(
-                                        overlayBitmap,
-                                    ),
-                                width = width,
-                                height = height,
-                                timeMs =
-                                    frameTimeMs,
-                                signal = signal,
-                                title = title,
-                                artist = artist,
-                                durationMs =
-                                    analysis.durationMs,
-                                playing = true,
+                            if (gpuFrame != null) {
+                                overlayBitmap
+                                    .eraseColor(
+                                        Color.TRANSPARENT,
+                                    )
+
+                                compositionRenderer
+                                    .renderCyberSharkBackgroundAfterGlow(
+                                        canvas =
+                                            Canvas(
+                                                overlayBitmap,
+                                            ),
+                                        width = width,
+                                        height = height,
+                                        timeMs =
+                                            frameTimeMs,
+                                        signal = signal,
+                                    )
+
+                                gpuGlow =
+                                    compositionRenderer
+                                        .gpuCyberSharkGlow()
+
+                                postFrameOverlayBitmap
+                                    .eraseColor(
+                                        Color.TRANSPARENT,
+                                    )
+
+                                compositionRenderer
+                                    .renderAfterCyberSharkFrame(
+                                        canvas =
+                                            Canvas(
+                                                postFrameOverlayBitmap,
+                                            ),
+                                        width = width,
+                                        height = height,
+                                        timeMs =
+                                            frameTimeMs,
+                                        signal = signal,
+                                        title = title,
+                                        artist = artist,
+                                        durationMs =
+                                            analysis.durationMs,
+                                        playing = true,
+                                    )
+                            }
+                        }
+
+                        if (gpuFrame == null) {
+                            overlayBitmap.eraseColor(
+                                Color.TRANSPARENT,
                             )
 
-                        gpuGlow =
                             compositionRenderer
-                                .gpuCyberSharkGlow()
+                                .renderAfterCyberSharkGlow(
+                                    canvas =
+                                        Canvas(
+                                            overlayBitmap,
+                                        ),
+                                    width = width,
+                                    height = height,
+                                    timeMs =
+                                        frameTimeMs,
+                                    signal = signal,
+                                    title = title,
+                                    artist = artist,
+                                    durationMs =
+                                        analysis.durationMs,
+                                    playing = true,
+                                )
+
+                            gpuGlow =
+                                compositionRenderer
+                                    .gpuCyberSharkGlow()
+                        }
 
                         if (gpuGlow == null) {
                             bitmap.eraseColor(
@@ -623,6 +719,29 @@ object ShortVideoExportProof {
                         if (
                             directGpuProjectMBase &&
                             dynamicProjectMFrame !=
+                                null &&
+                            gpuFrame != null &&
+                            postFrameOverlayBitmap !=
+                                null
+                        ) {
+                            activeEncoderSurface
+                                .drawProjectMFrameComposite(
+                                    projectMBitmap =
+                                        dynamicProjectMFrame,
+                                    lowerOverlayBitmap =
+                                        overlayBitmap,
+                                    frame =
+                                        gpuFrame,
+                                    upperOverlayBitmap =
+                                        postFrameOverlayBitmap,
+                                    glow =
+                                        gpuGlow,
+                                    presentationTimeNs =
+                                        presentationTimeNs,
+                                )
+                        } else if (
+                            directGpuProjectMBase &&
+                            dynamicProjectMFrame !=
                                 null
                         ) {
                             activeEncoderSurface
@@ -654,6 +773,8 @@ object ShortVideoExportProof {
                         gpuTiming.projectMNs
                     gpuGlowNs +=
                         gpuTiming.glowNs
+                    gpuFrameNs +=
+                        gpuTiming.frameNs
                     gpuOverlayNs +=
                         gpuTiming.overlayNs
                 } else {
@@ -699,6 +820,8 @@ object ShortVideoExportProof {
         } finally {
             bitmap.recycle()
             overlayBitmap
+                ?.recycle()
+            postFrameOverlayBitmap
                 ?.recycle()
 
             runCatching {
@@ -817,6 +940,9 @@ object ShortVideoExportProof {
                         1_000_000L,
                 gpuGlowMs =
                     gpuGlowNs /
+                        1_000_000L,
+                gpuFrameMs =
+                    gpuFrameNs /
                         1_000_000L,
                 gpuOverlayMs =
                     gpuOverlayNs /

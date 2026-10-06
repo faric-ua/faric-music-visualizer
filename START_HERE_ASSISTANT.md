@@ -1,5 +1,19 @@
 # FARIC Music Visualizer — START HERE
 
+## LATEST CANDIDATE — v0.19.20 / build 109 — GPU Cyber Shark frame
+
+- v0.19.19 phone performance PASS: total 7224 ms; projectM draw 0 ms; GPU projectM 134 ms.
+- Largest current single CPU draw is Cyber Shark frame = 1560 ms.
+- v0.19.20 preserves the exact layer order by splitting the existing transparent upper composition into:
+  1. lower overlay: Cyber Shark background arcs/particles after the GPU glow;
+  2. GPU Cyber Shark frame bitmap with the same center/size/rotation/opacity reaction;
+  3. upper overlay: FX + creature + wordmark + global effects + HUD.
+- The static frame bitmap is uploaded to its own EGL texture once and then reused; per-frame work updates only the transformed quad and alpha.
+- Existing direct GPU projectM and GPU glow paths remain unchanged.
+- New metric: `GPU frame`. `GPU overlay` now includes both lower + upper overlay uploads.
+- CPU fallback paths remain for non-qualifying scenes.
+- Expected qualifying result: Cyber Shark `frame: 0 ms` and nonzero `GPU frame`.
+
 ## LATEST READY CANDIDATE — v0.19.19 / build 108 — GPU-scale real projectM framebuffer
 
 - App/source SHA: `adf26b803daf283cda51faaed9ebe51cf855e7fd`.

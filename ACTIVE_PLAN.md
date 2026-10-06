@@ -1187,3 +1187,10 @@ Implementation:
 - [ ] Phone: image composition/crop/orientation/colors remain correct.
 - [x] Phone warm-cache retest: v0.19.4 render remains ~15.5-16 s for 3 s output, effectively unchanged from the v0.19.3 ~16 s baseline. Geometry optimization is visually correct but did not materially improve wall-clock speed.
 - [ ] If still too slow, move projectM readback off the synchronous per-frame CPU path rather than lowering final 30 FPS.
+
+
+### v0.19.5 phone QA / v0.19.6 next
+- v0.19.5 output: PASS for 1080x1920, 30 FPS, 90 frames, 3.008 s and visual orientation/colors/composition.
+- Exact timing values were hidden because Android truncated the multi-line Toast.
+- v0.19.6 changes timing results to a persistent dialog.
+- Next: install v0.19.6 after Android PASS and rerun one 3-second preview.

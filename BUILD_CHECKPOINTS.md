@@ -797,3 +797,33 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Visual acceptance of the 512x512 cached glow was not explicitly reported by the user in the timing message.
 - Next: keep the same 512x512 cache and disable bitmap filtering for a controlled performance/visual experiment.
 
+---
+
+## 2026-10-06 — v0.19.16 / build 105 — unfiltered cached glow — Android PASS
+
+- Status: BUILD PASS / phone performance + visual QA pending.
+- App/source commit: `ae32d61ae81b178e8437adf9fdc85e037c6df189`.
+- Android workflow: #492, attempt 1.
+- Workflow run id: `37514357810`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.16-Debug`.
+- Artifact id: `11436347682`.
+- Artifact digest: `sha256:4f33e9699f20ea41519a5bb2429b469152198551762647f666a4f38b37a4324c`.
+- Validate #826 — PASS on the same app/source SHA.
+- Implemented:
+  - keeps the v0.19.15 reusable 512x512 dynamic Cyber Shark glow cache;
+  - removes `FILTER_BITMAP_FLAG` only from the cached glow composite;
+  - preserves final 1080x1920-class / 30 FPS output and all other projectM/Cyber Shark/HUD/encoder/audio behavior.
+- Baseline from v0.19.15:
+  - total 9454 ms;
+  - composition 7541 ms;
+  - Cyber Shark 4113 ms;
+  - background 1749 ms;
+  - glow 1663 ms;
+  - glow render 265 ms;
+  - glow composite 1397 ms.
+- Acceptance rule:
+  - performance: glow composite / glow / Cyber Shark / composition / total should materially decrease;
+  - visual: reject if the enlarged 512x512 glow shows obvious blockiness, rings, stair-stepping or other visible quality loss.
+- Single next resume step:
+  - install v0.19.16 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste the timing block, and report whether the glow still looks smooth.
+

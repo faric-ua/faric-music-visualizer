@@ -1,18 +1,19 @@
 # Current Handoff
 
-## LATEST CANDIDATE — v0.19.22 / build 111 — GPU Cyber Shark creature + wordmark
+## LATEST READY CANDIDATE — v0.19.22 / build 111 — GPU Cyber Shark creature + wordmark
 
-- v0.19.21 phone performance PASS: total 6483 ms, direct projectM FBO active, no glReadPixels block.
-- Current CPU composition remains ~3255 ms; measured Cyber Shark creature = 450 ms and wordmark = 430 ms.
-- v0.19.22 keeps projectM direct FBO, GPU glow and GPU frame unchanged.
-- Creature and wordmark now reuse the exact same BoardLayerMotion / group transform / layer transform values as the software renderer, but their original bitmaps are uploaded once as dedicated EGL textures.
-- Per frame, creature and wordmark update only center, size, rotation and alpha on transformed GPU quads.
-- Layer order is preserved exactly as: projectM -> glow -> background -> frame -> FX -> creature -> wordmark -> effects -> HUD.
-- To preserve that order, FX gets its own transparent CPU overlay and effects+HUD remain the final transparent overlay.
-- Advanced path is guarded: if direct projectM, frame, creature or wordmark GPU data is unavailable, export falls back to the proven v0.19.21 frame-only path.
-- New phone metrics: `GPU creature` and `GPU wordmark`.
-- Expected qualifying result: CPU `creature: 0 ms`, CPU `wordmark: 0 ms`, with nonzero GPU creature/wordmark timings.
-- Visual QA required for creature/wordmark position, scale, rotation, opacity and z-order.
+- Exact APK source SHA: `1bf20367c15f109b934980bbccc64a2d74c59bea`.
+- Validate #841 PASS, run `37544681053`.
+- Android #500 PASS, run `37544681027`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.22-Debug`, id `11450845435`, digest `sha256:c48e0a57ebbb45011f3a07f47aa3049fbd0aa400a5df53d47deea6dc3aa4bd0a`.
+- v0.19.21 phone performance PASS: total 6483 ms, projectM 808 ms, composition 3255 ms, direct projectM FBO active and no glReadPixels block.
+- v0.19.22 moves measured CPU creature 450 ms + wordmark 430 ms to dedicated static EGL textures while preserving their exact existing transforms.
+- Z-order remains projectM -> glow -> background -> frame -> FX -> creature -> wordmark -> effects -> HUD.
+- Direct projectM FBO, GPU glow and GPU frame are unchanged; advanced path has a v0.19.21 frame-only fallback.
+- New metrics: `GPU creature` and `GPU wordmark`.
+- BUILD_CHECKPOINT recorded.
+- Next phone action: Termux 3 -> 10 -> 8; same warm-cache 3-second / 90-frame preview; paste full timing and report any creature/wordmark visual difference.
+
 
 ## LATEST READY CANDIDATE — v0.19.21 / build 110 — projectM direct GPU FBO
 

@@ -1,21 +1,24 @@
 # Active Plan
 
-## CURRENT PRIORITY — v0.19.22 GPU creature + wordmark
+## CURRENT PRIORITY — phone-test v0.19.22 GPU creature + wordmark
 
 - [x] v0.19.21 phone performance PASS: total 6483 ms.
-- [x] Confirm projectM direct-FBO branch active: `projectM BGRA: GPU direct`.
-- [x] Confirm old glReadPixels/readback metrics absent.
-- [x] Identify current CPU composition targets: HUD draw 1162 ms; creature 450 ms; wordmark 430 ms.
-- [x] Defer HUD GPU rewrite because its modular SCREEN/text/spectrum/progress path is higher-risk.
-- [x] Reuse exact Cyber Shark bitmap-layer transform math for creature and wordmark.
-- [x] Add dedicated static EGL textures for creature and wordmark.
+- [x] Confirm projectM direct-FBO branch active and old glReadPixels block absent.
+- [x] Identify CPU targets: HUD draw 1162 ms; creature 450 ms; wordmark 430 ms.
+- [x] Defer HUD rewrite as higher-risk.
+- [x] Reuse exact Cyber Shark transform math for creature and wordmark.
+- [x] Add dedicated static EGL textures.
 - [x] Preserve z-order with separate FX and final effects+HUD overlays.
-- [x] Add guarded fallback to v0.19.21 frame-only path.
+- [x] Add v0.19.21 frame-only fallback.
 - [x] Add `GPU creature` / `GPU wordmark` timings.
-- [x] Bump v0.19.22 / build 111.
-- [ ] Validate + Android PASS.
-- [ ] Write BUILD_CHECKPOINT immediately after successful Android build.
-- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [x] v0.19.22 / build 111.
+- [x] Exact APK source SHA `1bf20367c15f109b934980bbccc64a2d74c59bea`.
+- [x] Validate #841 PASS, run `37544681053`.
+- [x] Android #500 PASS, run `37544681027`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.22-Debug`, id `11450845435`.
+- [x] BUILD_CHECKPOINT recorded.
+- [ ] Phone: Termux 3 -> 10 -> 8.
+- [ ] Same warm-cache 3-second / 90-frame preview.
 - [ ] Require CPU creature = 0 ms and wordmark = 0 ms, with GPU creature/wordmark > 0.
 - [ ] Compare composition / GPU overlay / encoder / total.
 - [ ] Visual QA: creature and wordmark position, scale, rotation, opacity, reaction and z-order.

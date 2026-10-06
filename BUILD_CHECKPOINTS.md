@@ -1179,3 +1179,39 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Overall visual acceptance remains pending because this phone report contained timings only.
 - New measured CPU target: Cyber Shark creature + wordmark = 880 ms combined; HUD draw = 1162 ms remains the largest individual layer.
 
+---
+
+## 2026-10-07 — v0.19.22 / build 111 — GPU creature + wordmark — Android PASS
+
+- Status: BUILD PASS / phone performance + visual QA pending.
+- Exact app/source commit that produced the APK: `1bf20367c15f109b934980bbccc64a2d74c59bea`.
+- Validate #841 — PASS, run `37544681053`.
+- Android #500 — PASS, run `37544681027`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.22-Debug`.
+- Artifact id: `11450845435`.
+- Artifact digest: `sha256:c48e0a57ebbb45011f3a07f47aa3049fbd0aa400a5df53d47deea6dc3aa4bd0a`.
+- Baseline phone result is v0.19.21:
+  - total 6483 ms;
+  - projectM 808 ms;
+  - composition 3255 ms;
+  - encoder 597 ms;
+  - Cyber Shark 1282 ms;
+  - creature 450 ms;
+  - wordmark 430 ms;
+  - HUD draw 1162 ms.
+- v0.19.22 changes:
+  - dedicated EGL textures for Cyber Shark creature and wordmark;
+  - exact existing BoardLayerMotion/group/layer transforms reused for GPU quads;
+  - z-order preserved: background -> frame -> FX -> creature -> wordmark -> effects -> HUD;
+  - FX and final effects+HUD are split into separate transparent overlays;
+  - v0.19.21 direct-projectM FBO, GPU glow and GPU frame remain;
+  - guarded fallback retains v0.19.21 frame-only composition if advanced GPU-layer prerequisites fail.
+- New timing metrics: `GPU creature`, `GPU wordmark`.
+- Phone acceptance target:
+  - CPU creature = 0 ms;
+  - CPU wordmark = 0 ms;
+  - GPU creature > 0 ms;
+  - GPU wordmark > 0 ms;
+  - compare composition / GPU overlay / encoder / total;
+  - visually verify creature/wordmark position, size, rotation, opacity, reaction and z-order.
+

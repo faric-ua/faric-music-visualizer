@@ -71,7 +71,9 @@ class CyberSharkExportRenderer(
     // full ~1490 px diameter software RadialGradient directly into every
     // 1080x1920 export frame is disproportionately expensive. Keep final
     // output geometry unchanged, but rasterize the smooth field into a
-    // reusable 512x512 texture and bilinearly composite it at final size.
+    // reusable 512x512 texture and composite it at final size. v0.19.16
+    // intentionally avoids FILTER_BITMAP_FLAG because phone profiling showed
+    // filtered software scaling dominated the glow cost.
     private val glowBitmap =
         Bitmap.createBitmap(
             GLOW_CACHE_SIZE,
@@ -88,8 +90,7 @@ class CyberSharkExportRenderer(
         )
     private val glowBitmapPaint =
         Paint(
-            Paint.ANTI_ALIAS_FLAG or
-                Paint.FILTER_BITMAP_FLAG,
+            Paint.ANTI_ALIAS_FLAG,
         )
 
     private var backgroundNs =

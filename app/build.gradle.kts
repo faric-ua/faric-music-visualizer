@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 104
-        versionName = "0.19.15"
-        // v0.19.15 caches Cyber Shark radial glow at 512px.
+        versionCode = 105
+        versionName = "0.19.16"
+        // v0.19.16 avoids filtered software scaling for cached Cyber Shark glow.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

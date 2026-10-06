@@ -1,5 +1,18 @@
 # Active Plan
 
+## CURRENT PRIORITY — v0.19.16 unfiltered glow composite
+
+- [x] v0.19.15 phone profile received.
+- [x] Glow 1663 ms = render 265 ms + composite 1397 ms.
+- [x] Identified filtered software scaling as dominant glow cost.
+- [x] Remove FILTER_BITMAP_FLAG from only the cached glow composite.
+- [x] Keep 512x512 glow raster and all final output settings unchanged.
+- [x] Bump v0.19.16 / build 105.
+- [ ] Validate + Android PASS.
+- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [ ] Compare glow composite / glow / Cyber Shark / composition / total.
+- [ ] Visual QA: reject if rings, stair-stepping or obvious pixelation appear in the glow.
+
 ## CURRENT PRIORITY — phone-test v0.19.15 cached glow
 
 - [x] v0.19.14 identified glow = 1755 ms of background = 1848 ms.

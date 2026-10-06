@@ -777,3 +777,23 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Single next resume step:
   - install v0.19.15 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste the timing block, and report whether the glow looks the same/smooth.
 
+---
+
+## 2026-10-06 — v0.19.15 phone cached-glow profile
+
+- App/source SHA: `9fbb48d5023a2e12de59356ed148fa04a3b34258`.
+- Phone: 1080x1920 / 90 frames.
+- projectM 107 ms; composition 7541 ms; total 9454 ms; BGRA yes.
+- projectM internals: queue 16 ms; native render 737 ms; glReadPixels 4502 ms; bitmap copy 101 ms.
+- Cyber Shark 4113 ms.
+- Cyber Shark background 1749 ms.
+- Glow 1663 ms = render 265 ms + composite 1397 ms.
+- Frame 1166 ms; FX 246 ms; creature 498 ms; wordmark 439 ms.
+- Comparison with v0.19.14:
+  - total 9510 -> 9454 ms (~0.6% faster);
+  - glow 1755 -> 1663 ms (~5.2% faster);
+  - rasterization became cheap, but filtered software bitmap composite alone costs 1397 ms.
+- Conclusion: the 512x512 cache is not enough while FILTER_BITMAP_FLAG scaling remains active. The dominant glow cost is now destination composite/filtering, not gradient generation.
+- Visual acceptance of the 512x512 cached glow was not explicitly reported by the user in the timing message.
+- Next: keep the same 512x512 cache and disable bitmap filtering for a controlled performance/visual experiment.
+

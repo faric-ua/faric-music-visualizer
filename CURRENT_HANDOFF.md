@@ -1,5 +1,13 @@
 # Current Handoff
 
+## LATEST CANDIDATE — v0.19.16 / build 105 — unfiltered cached glow
+
+- v0.19.15 phone result: glow 1663 ms = render 265 + filtered composite 1397 ms; total 9454 ms.
+- Diagnosis: software filtered scaling is now the dominant glow operation.
+- v0.19.16 keeps the same 512x512 dynamic glow cache and final output geometry, but removes `FILTER_BITMAP_FLAG` from the glow composite only.
+- No changes to final 1080x1920-class / 30 FPS output, projectM, arcs, particles, frame, FX, creature, wordmark, HUD, encoder or audio.
+- Phone acceptance must compare both performance and visual smoothness. If nearest-neighbor scaling is visibly objectionable, reject this candidate even if it is faster.
+
 ## LATEST READY CANDIDATE — v0.19.15 / build 104 — cached radial glow
 
 - App/source SHA: `9fbb48d5023a2e12de59356ed148fa04a3b34258`.

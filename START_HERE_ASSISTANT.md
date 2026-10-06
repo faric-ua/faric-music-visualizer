@@ -1,5 +1,25 @@
 # FARIC Music Visualizer — START HERE
 
+## NEW CHAT RESUME — 2026-10-06
+
+**Read this block first. It overrides stale historical sections below.**
+
+- Project/repo: `faric-ua/faric-music-visualizer`, branch `main`.
+- Current release: **v0.19.11 / build 100**.
+- Exact app/source SHA: `5b9c00b45993a01fe0be0922de8714db1c758e97`.
+- Android #487: **PASS**; Validate #813: **PASS**.
+- Artifact: `FARIC-Music-Visualizer-v0.19.11-Debug`, id `11423002180`, digest `sha256:1b4ccb6c9619073f8629082819cc521abe8a98f766f87df2e3f853a8cf9bc897`.
+- v0.19.11 change: export timing dialog now has **«Копіювати текст»**. It copies the complete timing block to Android clipboard and must keep the dialog open. Phone acceptance of this button is still pending.
+- User's normal Termux path is **3 → 10 → 8**: update repo → Android build status → download APK/open folder. Do not tell the user to use item 9 unless a new build actually needs to be dispatched.
+- Immediate user action in the next chat: install v0.19.11 via **3 → 10 → 8**, run one 3-second preview, tap **«Копіювати текст»**, paste the result into chat, and confirm the dialog stays open.
+- Last accepted performance diagnosis (v0.19.10): projectM total **5270 ms** = queue wait **16**, native render **730**, **glReadPixels 4361**, bitmap copy **97**. Total export **15287 ms**.
+- Therefore the next engineering target after clipboard UX PASS is specifically **GPU→CPU projectM readback / glReadPixels**, not native projectM render.
+- Last composition profile: projectM draw ~**1651 ms**, Cyber Shark ~**4314 ms**, effects ~**448 ms**, HUD draw ~**1255 ms**.
+- Preserve export contracts: 3-second preview starts at the current playback scrubber position; full-song export starts at 0:00; final target remains 1080×1920-class / 30 FPS / H.264 + AAC. Do not reduce final FPS/quality just to improve speed without explicit discussion.
+- Keep `PULSEDECK_CENTER_CALIBRATION` immutable. Template Constructor work must not modify the calibration baseline.
+- After every successful Android build of our work, write `BUILD_CHECKPOINTS.md` immediately before proceeding.
+- This is PulseDeck/music visualizer, **not YTM importer**; do not apply the YTM visible 3-part work rule here.
+
 Canonical entry point for every new assistant/session.
 
 The repository must be sufficient to recover project context without relying on old chat memory.

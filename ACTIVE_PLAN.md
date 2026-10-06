@@ -1,5 +1,23 @@
 # Active Plan
 
+## CURRENT PRIORITY — NEW CHAT RESUME 2026-10-06
+
+- [x] v0.19.11 / build 100 source complete.
+- [x] Android #487 PASS on `5b9c00b45993a01fe0be0922de8714db1c758e97`.
+- [x] Validate #813 PASS.
+- [x] Artifact recorded in `BUILD_CHECKPOINTS.md`.
+- [ ] **Phone QA v0.19.11:** install via Termux **3 → 10 → 8**.
+- [ ] Run one 3-second preview.
+- [ ] Tap **«Копіювати текст»**.
+- [ ] Confirm full timing text is copied and dialog remains open.
+- [ ] Paste copied timing text into chat; screenshots should no longer be needed.
+- [ ] After clipboard UX PASS, continue performance work on **projectM GPU→CPU readback / glReadPixels**.
+- [ ] Preserve current preview/full-song semantics and final 30 FPS quality.
+
+Measured reason for next performance target:
+`projectM 5270 ms = queue 16 + native render 730 + glReadPixels 4361 + bitmap copy 97`.
+The dominant cost is **glReadPixels**. Do not optimize unrelated stages first.
+
 ## Verified foundation
 
 - [x] Public repository + Termux workflow.

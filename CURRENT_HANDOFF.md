@@ -1,5 +1,88 @@
 # Current Handoff
 
+## NEW CHAT RESUME — 2026-10-06
+
+**Authoritative current state. Historical handoff entries below are retained only for provenance.**
+
+### Exact current build
+
+- Release: **v0.19.11 / build 100**.
+- App/source SHA: `5b9c00b45993a01fe0be0922de8714db1c758e97`.
+- Android workflow: **#487 PASS**, run `37485263497`.
+- Validate: **#813 PASS**.
+- Artifact: `FARIC-Music-Visualizer-v0.19.11-Debug`.
+- Artifact id: `11423002180`.
+- Digest: `sha256:1b4ccb6c9619073f8629082819cc521abe8a98f766f87df2e3f853a8cf9bc897`.
+- BUILD_CHECKPOINT for v0.19.11 already exists.
+
+### What v0.19.11 does
+
+The export timing dialog now has **«Копіювати текст»**. It copies the entire timing report to Android clipboard and intentionally does **not** dismiss the dialog. `OK` remains the explicit close action. There are no intended render/performance changes versus v0.19.10.
+
+### Phone acceptance still pending
+
+The user has **not yet phone-accepted v0.19.11**. The installed/tested screenshot immediately before this handoff is from v0.19.10.
+
+Next user flow:
+1. Termux **3 — Оновити репозиторій з GitHub**.
+2. Termux **10 — Статус Android build**.
+3. Termux **8 — Завантажити APK і відкрити папку**.
+4. Install v0.19.11.
+5. Run one 3-second preview.
+6. Tap **«Копіювати текст»**.
+7. Paste the copied block directly into chat.
+8. Confirm the dialog remains open after copying.
+
+Do not ask for another screenshot if clipboard copy works.
+
+### Current performance evidence
+
+v0.19.10 phone profile:
+- projectM total: **5270 ms**;
+- queue wait: **16 ms**;
+- native projectM render: **730 ms**;
+- **glReadPixels: 4361 ms**;
+- bitmap copy: **97 ms**;
+- composition: **7781 ms**;
+- encoder: **528 ms**;
+- audio: **522 ms**;
+- mux: **99 ms**;
+- save: **204 ms**;
+- total: **15287 ms**.
+
+Composition layers in that run:
+- clear 80 ms;
+- projectM draw 1651 ms;
+- Cyber Shark 4314 ms;
+- effects 448 ms;
+- HUD update 28 ms;
+- HUD draw 1255 ms.
+
+Key diagnosis: **glReadPixels is the dominant projectM bottleneck** (~83% of projectM provider time). Do not spend the next optimization on queue wait, native render, bitmap copy, encoder, mux, or audio.
+
+### Performance history that matters
+
+- v0.19.3: raw RGBA readback removed Kotlin per-pixel conversion; ~16 s warm-cache preview.
+- v0.19.8: BGRA fast path active on Galaxy A54; projectM Canvas draw **6471 → 1643 ms**, total **17008 → 15118 ms**.
+- v0.19.9: avoided opaque full-screen Cyber Shark `saveLayerAlpha`; Cyber Shark **4676 → 3523 ms**, total **15118 → 14031 ms**.
+- v0.19.10: profiler proved GPU→CPU `glReadPixels` is now the largest single readback cost.
+
+### Next engineering step after v0.19.11 phone UX PASS
+
+Research/implement a **safe reduction or elimination of synchronous per-frame glReadPixels** while preserving deterministic offline projectM frames and visual correctness. Prefer a measured path, e.g. direct GPU composition / shared texture or framebuffer into the encoder pipeline, or an asynchronous readback approach only if compatible with the current GLES/context architecture. Do not blindly lower final output FPS or quality.
+
+### Contracts / guardrails
+
+- 3-second preview: **current playback position → next 3 seconds**.
+- Full-song export: **0:00 → end**, independent of player scrubber.
+- Current output contract: 1080×1920-class, 30 FPS, H.264 + AAC.
+- projectM timing is deterministic/offline.
+- `PULSEDECK_CENTER_CALIBRATION` is immutable.
+- User Termux path: **3 → 10 → 8**.
+- Do not recommend item 9 when a build already exists or is running.
+- After every successful Android build, immediately write `BUILD_CHECKPOINTS.md`.
+- PulseDeck does not use the YTM Importer 3-visible-parts rule.
+
 Project: FARIC Music Visualizer / PulseDeck
 
 Verified:

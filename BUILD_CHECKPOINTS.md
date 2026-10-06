@@ -1074,3 +1074,34 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Single next resume step:
   - install v0.19.20 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste the full timing block and report any frame/projectM/glow visual difference.
 
+---
+
+## 2026-10-07 — v0.19.20 phone GPU-frame result — GPU FRAME PASS / WALL-TIME NEUTRAL
+
+- App/source SHA: `c1438b06a0b604bde457be2ef5d54ec40cf1216d`.
+- Phone: 1080x1920 / 90 frames.
+- projectM provider 1716 ms; composition 3228 ms; encoder 862 ms; total 7258 ms.
+- GPU projectM 135 ms; GPU glow 6 ms; GPU frame 12 ms; GPU overlay 529 ms.
+- projectM internals: queue wait 7 ms; native render 833 ms; glReadPixels 4787 ms; bitmap copy 103 ms.
+- Composition:
+  - projectM draw 0 ms;
+  - Cyber Shark 1384 ms;
+  - Cyber Shark frame 0 ms;
+  - FX 274 ms;
+  - creature 537 ms;
+  - wordmark 470 ms;
+  - effects 443 ms;
+  - HUD draw 1147 ms.
+- Compare v0.19.19:
+  - composition 4543 -> 3228 ms (-1315 ms / ~28.9%);
+  - Cyber Shark frame 1560 -> 0 ms;
+  - GPU frame = 12 ms;
+  - GPU overlay 259 -> 529 ms because the transparent composition is now split into lower + upper uploads;
+  - projectM provider 632 -> 1716 ms because shorter CPU composition no longer hides the synchronous readback;
+  - total 7224 -> 7258 ms (effectively unchanged).
+- Conclusion:
+  - GPU-frame implementation itself is successful;
+  - further CPU-layer migration will not materially lower wall time while projectM still performs ~4.8 s of synchronous GPU->CPU readback;
+  - the next real bottleneck is `glReadPixels`, not HUD/frame/creature.
+- Visual equivalence still requires explicit phone confirmation.
+

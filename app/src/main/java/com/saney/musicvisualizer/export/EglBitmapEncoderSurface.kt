@@ -10,6 +10,10 @@ import android.opengl.EGLSurface
 import android.opengl.GLES20
 import android.opengl.GLUtils
 import android.view.Surface
+import com.saney.musicvisualizer.analysis.SceneSignal
+import com.saney.musicvisualizer.projectm.FaricForegroundSample
+import com.saney.musicvisualizer.projectm.ProjectMBridge
+import com.saney.musicvisualizer.projectm.ProjectMPerformanceProfile
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
@@ -50,6 +54,10 @@ class EglBitmapEncoderSurface(
         0
     private var projectMTextureHeight =
         0
+    private var projectMFramebufferId =
+        0
+    private var directProjectMActive =
+        false
     private val positionHandle: Int
     private val texCoordHandle: Int
     private val samplerHandle: Int
@@ -390,6 +398,168 @@ class EglBitmapEncoderSurface(
         )
     }
 
+    fun initializeOfflineProjectM(
+        renderWidth: Int,
+        renderHeight: Int,
+        presetPath: String,
+        texturePath: String,
+        profile:
+            ProjectMPerformanceProfile,
+        foregroundSample:
+            FaricForegroundSample,
+    ) {
+        check(
+            renderWidth > 0 &&
+                renderHeight > 0,
+        ) {
+            "Invalid projectM GPU render size"
+        }
+
+        makeCurrent()
+
+        ensureProjectMTextureStorage(
+            renderWidth,
+            renderHeight,
+        )
+
+        if (
+            projectMFramebufferId ==
+                0
+        ) {
+            val ids =
+                IntArray(
+                    1,
+                )
+            GLES20.glGenFramebuffers(
+                1,
+                ids,
+                0,
+            )
+            projectMFramebufferId =
+                ids[0]
+        }
+
+        GLES20.glBindFramebuffer(
+            GLES20.GL_FRAMEBUFFER,
+            projectMFramebufferId,
+        )
+        GLES20.glFramebufferTexture2D(
+            GLES20.GL_FRAMEBUFFER,
+            GLES20.GL_COLOR_ATTACHMENT0,
+            GLES20.GL_TEXTURE_2D,
+            projectMTextureId,
+            0,
+        )
+        check(
+            GLES20.glCheckFramebufferStatus(
+                GLES20.GL_FRAMEBUFFER,
+            ) ==
+                GLES20.GL_FRAMEBUFFER_COMPLETE,
+        ) {
+            "projectM GPU framebuffer incomplete"
+        }
+        GLES20.glBindFramebuffer(
+            GLES20.GL_FRAMEBUFFER,
+            0,
+        )
+
+        ProjectMBridge.destroy()
+        ProjectMBridge.beginOfflineExport()
+        ProjectMBridge.create(
+            width = renderWidth,
+            height = renderHeight,
+            presetPath = presetPath,
+            texturePath = texturePath,
+            profile = profile,
+        )
+        ProjectMBridge
+            .enableAutoPresetSwitching(
+                false,
+            )
+        ProjectMBridge
+            .setForegroundSample(
+                foregroundSample,
+            )
+        ProjectMBridge
+            .setFrameTime(
+                0.0,
+            )
+
+        directProjectMActive =
+            true
+    }
+
+    fun renderOfflineProjectM(
+        frameTimeSeconds: Double,
+        pcm: ShortArray,
+        signal: SceneSignal,
+    ): Long {
+        check(
+            directProjectMActive &&
+                projectMFramebufferId !=
+                0,
+        ) {
+            "Direct GPU projectM is not initialized"
+        }
+
+        makeCurrent()
+
+        ProjectMBridge
+            .beginOfflineExport()
+        ProjectMBridge
+            .setFrameTime(
+                frameTimeSeconds,
+            )
+        ProjectMBridge
+            .pushOfflinePcm(
+                pcm,
+            )
+        ProjectMBridge
+            .pushOfflineSignal(
+                signal,
+            )
+
+        GLES20.glBindFramebuffer(
+            GLES20.GL_FRAMEBUFFER,
+            projectMFramebufferId,
+        )
+        GLES20.glViewport(
+            0,
+            0,
+            projectMTextureWidth,
+            projectMTextureHeight,
+        )
+
+        val startedNs =
+            System.nanoTime()
+
+        ProjectMBridge
+            .renderToFramebuffer(
+                projectMFramebufferId,
+            )
+
+        val elapsedNs =
+            System.nanoTime() -
+                startedNs
+
+        GLES20.glBindFramebuffer(
+            GLES20.GL_FRAMEBUFFER,
+            0,
+        )
+        GLES20.glViewport(
+            0,
+            0,
+            width,
+            height,
+        )
+
+        return elapsedNs
+    }
+
+    fun hasDirectProjectM():
+        Boolean =
+        directProjectMActive
+
     fun draw(
         bitmap: Bitmap,
         presentationTimeNs: Long,
@@ -611,6 +781,140 @@ class EglBitmapEncoderSurface(
         )
     }
 
+    fun drawGpuProjectMComposite(
+        overlayBitmap: Bitmap,
+        glow: CyberSharkGpuGlow,
+        presentationTimeNs: Long,
+    ): EglCompositeDrawTiming {
+        check(
+            directProjectMActive,
+        ) {
+            "Direct GPU projectM is not initialized"
+        }
+        validateBitmap(
+            overlayBitmap,
+        )
+        makeCurrent()
+        beginFrame()
+
+        val projectMStartedNs =
+            System.nanoTime()
+        drawProjectMTextureLayer()
+        val projectMNs =
+            System.nanoTime() -
+                projectMStartedNs
+
+        val glowStartedNs =
+            System.nanoTime()
+        drawGlow(
+            glow,
+        )
+        val glowNs =
+            System.nanoTime() -
+                glowStartedNs
+
+        val overlayStartedNs =
+            System.nanoTime()
+        drawBitmapLayer(
+            bitmap = overlayBitmap,
+            alphaBlend = true,
+        )
+        val overlayNs =
+            System.nanoTime() -
+                overlayStartedNs
+
+        finishFrame(
+            presentationTimeNs,
+        )
+
+        return EglCompositeDrawTiming(
+            projectMNs = projectMNs,
+            glowNs = glowNs,
+            frameNs = 0L,
+            overlayNs = overlayNs,
+        )
+    }
+
+    fun drawGpuProjectMFrameComposite(
+        lowerOverlayBitmap: Bitmap,
+        frame: CyberSharkGpuFrame,
+        upperOverlayBitmap: Bitmap,
+        glow: CyberSharkGpuGlow,
+        presentationTimeNs: Long,
+    ): EglCompositeDrawTiming {
+        check(
+            directProjectMActive,
+        ) {
+            "Direct GPU projectM is not initialized"
+        }
+        validateBitmap(
+            lowerOverlayBitmap,
+        )
+        validateBitmap(
+            upperOverlayBitmap,
+        )
+        makeCurrent()
+        beginFrame()
+
+        val projectMStartedNs =
+            System.nanoTime()
+        drawProjectMTextureLayer()
+        val projectMNs =
+            System.nanoTime() -
+                projectMStartedNs
+
+        val glowStartedNs =
+            System.nanoTime()
+        drawGlow(
+            glow,
+        )
+        val glowNs =
+            System.nanoTime() -
+                glowStartedNs
+
+        val lowerOverlayStartedNs =
+            System.nanoTime()
+        drawBitmapLayer(
+            bitmap =
+                lowerOverlayBitmap,
+            alphaBlend = true,
+        )
+        var overlayNs =
+            System.nanoTime() -
+                lowerOverlayStartedNs
+
+        val frameStartedNs =
+            System.nanoTime()
+        drawFrame(
+            frame,
+        )
+        val frameNs =
+            System.nanoTime() -
+                frameStartedNs
+
+        val upperOverlayStartedNs =
+            System.nanoTime()
+        drawBitmapLayer(
+            bitmap =
+                upperOverlayBitmap,
+            alphaBlend = true,
+        )
+        overlayNs +=
+            System.nanoTime() -
+                upperOverlayStartedNs
+
+        finishFrame(
+            presentationTimeNs,
+        )
+
+        return EglCompositeDrawTiming(
+            projectMNs = projectMNs,
+            glowNs = glowNs,
+            frameNs = frameNs,
+            overlayNs = overlayNs,
+        )
+    }
+
     private fun validateBitmap(
         bitmap: Bitmap,
     ) {
@@ -714,64 +1018,59 @@ class EglBitmapEncoderSurface(
         )
     }
 
-    private fun drawProjectMRawLayer(
-        bitmap: Bitmap,
+    private fun ensureProjectMTextureStorage(
+        sourceWidth: Int,
+        sourceHeight: Int,
     ) {
-        GLES20.glDisable(
-            GLES20.GL_BLEND,
-        )
-        GLES20.glUseProgram(
-            program,
-        )
-        GLES20.glActiveTexture(
-            GLES20.GL_TEXTURE0,
-        )
+        if (
+            projectMTextureWidth ==
+                sourceWidth &&
+            projectMTextureHeight ==
+                sourceHeight
+        ) {
+            return
+        }
+
         GLES20.glBindTexture(
             GLES20.GL_TEXTURE_2D,
             projectMTextureId,
         )
+        GLES20.glTexImage2D(
+            GLES20.GL_TEXTURE_2D,
+            0,
+            GLES20.GL_RGBA,
+            sourceWidth,
+            sourceHeight,
+            0,
+            GLES20.GL_RGBA,
+            GLES20.GL_UNSIGNED_BYTE,
+            null,
+        )
+        projectMTextureWidth =
+            sourceWidth
+        projectMTextureHeight =
+            sourceHeight
+        checkGl(
+            "projectM texture storage",
+        )
+    }
 
-        if (
-            projectMTextureWidth !=
-                bitmap.width ||
-            projectMTextureHeight !=
-                bitmap.height
-        ) {
-            GLUtils.texImage2D(
-                GLES20.GL_TEXTURE_2D,
-                0,
-                bitmap,
-                0,
-            )
-            projectMTextureWidth =
-                bitmap.width
-            projectMTextureHeight =
-                bitmap.height
-        } else {
-            GLUtils.texSubImage2D(
-                GLES20.GL_TEXTURE_2D,
-                0,
-                0,
-                0,
-                bitmap,
-            )
-        }
-
-        // Match CompositionExportRenderer.drawProjectMFrame(): scale-to-fill
-        // then center-crop. The source is still GL-oriented, so V remains
-        // unflipped while the cropped texture coordinates are applied.
+    private fun updateProjectMTexCoords(
+        sourceWidth: Int,
+        sourceHeight: Int,
+    ) {
         val scale =
             max(
                 width.toFloat() /
-                    bitmap.width,
+                    sourceWidth,
                 height.toFloat() /
-                    bitmap.height,
+                    sourceHeight,
             )
         val renderedWidth =
-            bitmap.width *
+            sourceWidth *
                 scale
         val renderedHeight =
-            bitmap.height *
+            sourceHeight *
                 scale
         val cropX =
             (
@@ -830,6 +1129,98 @@ class EglBitmapEncoderSurface(
             .position(
                 0,
             )
+    }
+
+    private fun drawProjectMTextureLayer() {
+        GLES20.glDisable(
+            GLES20.GL_BLEND,
+        )
+        GLES20.glUseProgram(
+            program,
+        )
+        GLES20.glActiveTexture(
+            GLES20.GL_TEXTURE0,
+        )
+        GLES20.glBindTexture(
+            GLES20.GL_TEXTURE_2D,
+            projectMTextureId,
+        )
+        updateProjectMTexCoords(
+            projectMTextureWidth,
+            projectMTextureHeight,
+        )
+        bindQuad(
+            positionHandle,
+            texCoordHandle,
+            projectMTexCoordBuffer,
+        )
+        GLES20.glUniform1i(
+            samplerHandle,
+            0,
+        )
+        GLES20.glDrawArrays(
+            GLES20.GL_TRIANGLE_STRIP,
+            0,
+            4,
+        )
+        checkGl(
+            "projectM direct GPU draw",
+        )
+    }
+
+    private fun drawProjectMRawLayer(
+        bitmap: Bitmap,
+    ) {
+        GLES20.glDisable(
+            GLES20.GL_BLEND,
+        )
+        GLES20.glUseProgram(
+            program,
+        )
+        GLES20.glActiveTexture(
+            GLES20.GL_TEXTURE0,
+        )
+        GLES20.glBindTexture(
+            GLES20.GL_TEXTURE_2D,
+            projectMTextureId,
+        )
+
+        val sizeChanged =
+            projectMTextureWidth !=
+                bitmap.width ||
+                projectMTextureHeight !=
+                bitmap.height
+
+        ensureProjectMTextureStorage(
+            bitmap.width,
+            bitmap.height,
+        )
+
+        if (sizeChanged) {
+            GLUtils.texSubImage2D(
+                GLES20.GL_TEXTURE_2D,
+                0,
+                0,
+                0,
+                bitmap,
+            )
+        } else {
+            GLUtils.texSubImage2D(
+                GLES20.GL_TEXTURE_2D,
+                0,
+                0,
+                0,
+                bitmap,
+            )
+        }
+
+        // Match CompositionExportRenderer.drawProjectMFrame(): scale-to-fill
+        // then center-crop. The source is still GL-oriented, so V remains
+        // unflipped while the cropped texture coordinates are applied.
+        updateProjectMTexCoords(
+            bitmap.width,
+            bitmap.height,
+        )
 
         bindQuad(
             positionHandle,
@@ -1218,6 +1609,31 @@ class EglBitmapEncoderSurface(
     override fun close() {
         runCatching {
             makeCurrent()
+
+            if (directProjectMActive) {
+                ProjectMBridge
+                    .endOfflineExport()
+                ProjectMBridge
+                    .destroy()
+                directProjectMActive =
+                    false
+            }
+
+            if (
+                projectMFramebufferId !=
+                    0
+            ) {
+                GLES20.glDeleteFramebuffers(
+                    1,
+                    intArrayOf(
+                        projectMFramebufferId,
+                    ),
+                    0,
+                )
+                projectMFramebufferId =
+                    0
+            }
+
             GLES20.glDeleteTextures(
                 3,
                 intArrayOf(

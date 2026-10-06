@@ -85,6 +85,7 @@ import java.util.concurrent.atomic.AtomicBoolean
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.concurrent.thread
+import kotlin.math.roundToInt
 
 @UnstableApi
 class MainActivity : ComponentActivity(), PlaybackController.Listener {
@@ -4893,6 +4894,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         .projectMVisible
                 }
 
+        val directGpuProjectMEligible =
+            projectMView !=
+                null &&
+                compositionConfig
+                    .projectMVisible &&
+                !compositionConfig
+                    .faricReactiveVisible &&
+                !compositionConfig
+                    .overVisualizationVisible &&
+                !compositionConfig
+                    .bigEqualizerVisible &&
+                compositionConfig
+                    .graphicFiguresVisible &&
+                compositionConfig
+                    .cyberSharkConfig
+                    .visibility[
+                        BoardLayerId.BACKGROUND
+                    ] !=
+                    false
+
         val cancelled =
             AtomicBoolean(
                 false,
@@ -5151,11 +5172,22 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         "projectM export surface не готовий"
                     }
 
-                    check(
-                        projectMView
-                            .resetOfflineRendererBlocking()
+                    if (
+                        directGpuProjectMEligible
                     ) {
-                        "projectM offline renderer не скинувся"
+                        check(
+                            projectMView
+                                .releaseProjectMBlocking()
+                        ) {
+                            "projectM export renderer не звільнив GL-контекст"
+                        }
+                    } else {
+                        check(
+                            projectMView
+                                .resetOfflineRendererBlocking()
+                        ) {
+                            "projectM offline renderer не скинувся"
+                        }
                     }
 
                     offlineProjectM =
@@ -5203,6 +5235,105 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         .coerceAtLeast(
                             1,
                         )
+
+                val directGpuProjectMConfig =
+                    if (
+                        directGpuProjectMEligible &&
+                        pcmReader !=
+                            null
+                    ) {
+                        val profile =
+                            ProjectMPerformanceProfile
+                                .BALANCED_BACKGROUND
+                        val state =
+                            ProjectMStateStore(
+                                this,
+                            )
+                        val preset =
+                            state
+                                .lastPresetFileOrNull()
+                                ?: error(
+                                    "projectM preset missing for direct GPU export",
+                                )
+                        val textureDirectory =
+                            ProjectMLibraryManager
+                                .textureDir(
+                                    this,
+                                )
+
+                        check(
+                            textureDirectory
+                                .isDirectory
+                        ) {
+                            "projectM texture directory missing"
+                        }
+
+                        ShortVideoExportProof
+                            .DirectGpuProjectMConfig(
+                                renderWidth =
+                                    (
+                                        ratio.width *
+                                            profile.renderScale
+                                        )
+                                        .roundToInt()
+                                        .coerceAtLeast(
+                                            1,
+                                        ),
+                                renderHeight =
+                                    (
+                                        ratio.height *
+                                            profile.renderScale
+                                        )
+                                        .roundToInt()
+                                        .coerceAtLeast(
+                                            1,
+                                        ),
+                                presetPath =
+                                    preset.absolutePath,
+                                texturePath =
+                                    textureDirectory
+                                        .absolutePath,
+                                profile =
+                                    profile,
+                                foregroundSample =
+                                    state
+                                        .foregroundSample,
+                                pcmProvider = {
+                                        frameIndex,
+                                        frameTimeMs,
+                                    ->
+                                    if (
+                                        cancelled.get()
+                                    ) {
+                                        throw CancellationException(
+                                            "Export cancelled",
+                                        )
+                                    }
+
+                                    val nextFrameTimeMs =
+                                        exportStartMs +
+                                            (
+                                                frameIndex +
+                                                    1L
+                                                ) *
+                                            1000L /
+                                            PROJECTM_EXPORT_FPS
+
+                                    pcmReader
+                                        ?.samplesBetween(
+                                            startMs =
+                                                frameTimeMs,
+                                            endMs =
+                                                nextFrameTimeMs,
+                                        )
+                                        ?: error(
+                                            "projectM PCM reader unavailable",
+                                        )
+                                },
+                            )
+                    } else {
+                        null
+                    }
 
                 var pendingProjectMFrame:
                     ProjectMOfflineFrameRequest? =
@@ -5300,12 +5431,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         exportStartMs,
                     compositionConfig =
                         compositionConfig,
+                    directGpuProjectMConfig =
+                        directGpuProjectMConfig,
                     projectMFrameProvider =
                         if (
+                            directGpuProjectMConfig ==
+                                null &&
                             projectMView !=
-                            null &&
+                                null &&
                             pcmReader !=
-                            null
+                                null
                         ) {
                             {
                                 frameIndex,
@@ -5391,15 +5526,31 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         } else {
                             null
                         },
-                    projectMRawChannelsCorrectProvider = {
-                        projectMView
-                            ?.offlineReadbackChannelsAreCorrect() ==
-                            true
-                    },
-                    projectMOfflineTimingProvider = {
-                        projectMView
-                            ?.offlineTimingSnapshot()
-                    },
+                    projectMRawChannelsCorrectProvider =
+                        if (
+                            directGpuProjectMConfig ==
+                                null
+                        ) {
+                            {
+                                projectMView
+                                    ?.offlineReadbackChannelsAreCorrect() ==
+                                    true
+                            }
+                        } else {
+                            null
+                        },
+                    projectMOfflineTimingProvider =
+                        if (
+                            directGpuProjectMConfig ==
+                                null
+                        ) {
+                            {
+                                projectMView
+                                    ?.offlineTimingSnapshot()
+                            }
+                        } else {
+                            null
+                        },
                     requestedDurationMs =
                         requestedDurationMs,
                     fps =
@@ -5502,9 +5653,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ?.close()
             }
 
-            if (offlineProjectM) {
-                // Keep Export Lab isolated from the live player's PCM.
-                // clearScreenRefs() restores normal live projectM mode.
+            if (
+                offlineProjectM &&
+                directGpuProjectMEligible
+            ) {
+                runCatching {
+                    projectMView
+                        ?.resetOfflineRendererBlocking()
+                }
             }
         }
     }
@@ -6361,12 +6517,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 append(" ms")
                 append("\nprojectM BGRA: ")
                 append(
-                    if (
-                        result.projectMDirectBgra
-                    ) {
-                        "yes"
-                    } else {
-                        "fallback"
+                    when {
+                        result
+                            .projectMGpuDirect ->
+                            "GPU direct"
+
+                        result
+                            .projectMDirectBgra ->
+                            "yes"
+
+                        else ->
+                            "fallback"
                     },
                 )
 

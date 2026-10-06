@@ -1,5 +1,17 @@
 # FARIC Music Visualizer — START HERE
 
+## LATEST CANDIDATE — v0.19.21 / build 110 — projectM direct GPU FBO
+
+- v0.19.20 proves the pipeline has crossed from CPU-composition-bound to projectM-readback-bound: frame moved to GPU successfully, but total stayed ~7.25 s because projectM provider wait rose to 1716 ms while glReadPixels remained 4787 ms.
+- v0.19.21 backports projectM's target-framebuffer render parameter into pinned 4.1.7.
+- For the currently tested qualifying composition only, the hidden GLSurfaceView projectM instance is released before export and the same preset/profile/foreground/timeline is recreated inside the MediaCodec encoder EGL context.
+- projectM renders directly into an RGBA texture-backed FBO at the same BALANCED 0.78 render geometry; the encoder later samples that texture with the established scale-to-fill/center-crop.
+- No `glReadPixels`, ByteBuffer-to-Bitmap copy, or projectM Bitmap upload occurs on this direct path.
+- PCM, SceneSignal, deterministic `frameIndex / fps` time, preset lock, foreground sample, final output size/FPS, Cyber Shark GPU glow/frame, audio and mux contracts are unchanged.
+- Non-qualifying layer configurations retain the v0.19.20 readback fallback.
+- Timing UI reports `projectM BGRA: GPU direct` on the new path; readback internals disappear because no readback is performed.
+- After export, Export Lab's hidden projectM renderer is recreated in its original context.
+
 ## LATEST READY CANDIDATE — v0.19.20 / build 109 — GPU Cyber Shark frame
 
 - App/source SHA: `c1438b06a0b604bde457be2ef5d54ec40cf1216d`.

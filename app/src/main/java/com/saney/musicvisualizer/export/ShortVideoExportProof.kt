@@ -14,7 +14,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import com.saney.musicvisualizer.projectm.FaricForegroundSample
 import com.saney.musicvisualizer.projectm.ProjectMOfflineTiming
+import com.saney.musicvisualizer.projectm.ProjectMPerformanceProfile
 import com.saney.musicvisualizer.theme.HeroThemeRenderer
 import com.saney.musicvisualizer.theme.MusicVideoProject
 import com.saney.musicvisualizer.theme.ThemeInput
@@ -25,6 +27,19 @@ import java.util.concurrent.CancellationException
 import kotlin.math.max
 
 object ShortVideoExportProof {
+    data class DirectGpuProjectMConfig(
+        val renderWidth: Int,
+        val renderHeight: Int,
+        val presetPath: String,
+        val texturePath: String,
+        val profile:
+            ProjectMPerformanceProfile,
+        val foregroundSample:
+            FaricForegroundSample,
+        val pcmProvider:
+            (Int, Long) -> ShortArray,
+    )
+
     data class Result(
         val uri: Uri?,
         val frameCount: Int,
@@ -47,6 +62,8 @@ object ShortVideoExportProof {
             CompositionStageTiming?,
         val projectMDirectBgra:
             Boolean,
+        val projectMGpuDirect:
+            Boolean,
         val projectMOfflineStages:
             ProjectMOfflineTiming?,
     )
@@ -68,6 +85,8 @@ object ShortVideoExportProof {
             CyberSharkExportConfig? = null,
         compositionConfig:
             CompositionExportConfig? = null,
+        directGpuProjectMConfig:
+            DirectGpuProjectMConfig? = null,
         projectMFrameProvider:
             ((Int, Long) -> Bitmap?)? = null,
         projectMRawChannelsCorrectProvider:
@@ -280,6 +299,8 @@ object ShortVideoExportProof {
             0L
         var projectMDirectBgra =
             false
+        var projectMGpuDirect =
+            false
 
         try {
             encoder.configure(
@@ -300,6 +321,35 @@ object ShortVideoExportProof {
                     width = width,
                     height = height,
                 )
+
+            directGpuProjectMConfig
+                ?.let { gpuConfig ->
+                    encoderSurface
+                        ?.initializeOfflineProjectM(
+                            renderWidth =
+                                gpuConfig
+                                    .renderWidth,
+                            renderHeight =
+                                gpuConfig
+                                    .renderHeight,
+                            presetPath =
+                                gpuConfig
+                                    .presetPath,
+                            texturePath =
+                                gpuConfig
+                                    .texturePath,
+                            profile =
+                                gpuConfig
+                                    .profile,
+                            foregroundSample =
+                                gpuConfig
+                                    .foregroundSample,
+                        )
+                    projectMGpuDirect =
+                        encoderSurface
+                            ?.hasDirectProjectM() ==
+                            true
+                }
 
             fun drain(
                 waitForEos: Boolean,
@@ -423,12 +473,50 @@ object ShortVideoExportProof {
                 val projectMStartedNs =
                     System.nanoTime()
 
-                val dynamicProjectMFrame =
-                    if (
-                        compositionRenderer != null &&
+                val directGpuProjectMForFrame =
+                    projectMGpuDirect &&
+                        compositionRenderer !=
+                            null &&
                         compositionConfig
                             ?.projectMVisible ==
-                        true
+                            true
+
+                val dynamicProjectMFrame =
+                    if (
+                        directGpuProjectMForFrame
+                    ) {
+                        val gpuConfig =
+                            directGpuProjectMConfig
+                                ?: error(
+                                    "Direct GPU projectM config missing",
+                                )
+                        val pcm =
+                            gpuConfig
+                                .pcmProvider(
+                                    frameIndex,
+                                    frameTimeMs,
+                                )
+
+                        encoderSurface
+                            ?.renderOfflineProjectM(
+                                frameTimeSeconds =
+                                    frameIndex
+                                        .toDouble() /
+                                        safeFps,
+                                pcm = pcm,
+                                signal = signal,
+                            )
+                            ?: error(
+                                "Direct GPU projectM surface unavailable",
+                            )
+
+                        null
+                    } else if (
+                        compositionRenderer !=
+                            null &&
+                        compositionConfig
+                            ?.projectMVisible ==
+                            true
                     ) {
                         projectMFrameProvider
                             ?.invoke(
@@ -444,22 +532,33 @@ object ShortVideoExportProof {
                         projectMStartedNs
 
                 projectMDirectBgra =
-                    projectMRawChannelsCorrectProvider
-                        ?.invoke() ==
-                    true
+                    if (
+                        directGpuProjectMForFrame
+                    ) {
+                        true
+                    } else {
+                        projectMRawChannelsCorrectProvider
+                            ?.invoke() ==
+                            true
+                    }
 
                 val directGpuProjectMBase =
                     useGpuCyberSharkGlow &&
                         overlayBitmap != null &&
-                        dynamicProjectMFrame !=
-                            null &&
-                        projectMDirectBgra &&
-                        dynamicProjectMFrame
-                            .width >
-                            0 &&
-                        dynamicProjectMFrame
-                            .height >
-                            0 &&
+                        (
+                            directGpuProjectMForFrame ||
+                                (
+                                    dynamicProjectMFrame !=
+                                        null &&
+                                        projectMDirectBgra &&
+                                        dynamicProjectMFrame
+                                            .width >
+                                            0 &&
+                                        dynamicProjectMFrame
+                                            .height >
+                                            0
+                                    )
+                            ) &&
                         compositionConfig
                             ?.faricReactiveVisible ==
                             false &&
@@ -717,6 +816,37 @@ object ShortVideoExportProof {
                 ) {
                     val gpuTiming =
                         if (
+                            directGpuProjectMForFrame &&
+                            gpuFrame != null &&
+                            postFrameOverlayBitmap !=
+                                null
+                        ) {
+                            activeEncoderSurface
+                                .drawGpuProjectMFrameComposite(
+                                    lowerOverlayBitmap =
+                                        overlayBitmap,
+                                    frame =
+                                        gpuFrame,
+                                    upperOverlayBitmap =
+                                        postFrameOverlayBitmap,
+                                    glow =
+                                        gpuGlow,
+                                    presentationTimeNs =
+                                        presentationTimeNs,
+                                )
+                        } else if (
+                            directGpuProjectMForFrame
+                        ) {
+                            activeEncoderSurface
+                                .drawGpuProjectMComposite(
+                                    overlayBitmap =
+                                        overlayBitmap,
+                                    glow =
+                                        gpuGlow,
+                                    presentationTimeNs =
+                                        presentationTimeNs,
+                                )
+                        } else if (
                             directGpuProjectMBase &&
                             dynamicProjectMFrame !=
                                 null &&
@@ -964,6 +1094,8 @@ object ShortVideoExportProof {
                         ?.timingSnapshot(),
                 projectMDirectBgra =
                     projectMDirectBgra,
+                projectMGpuDirect =
+                    projectMGpuDirect,
                 projectMOfflineStages =
                     projectMOfflineTimingProvider
                         ?.invoke(),

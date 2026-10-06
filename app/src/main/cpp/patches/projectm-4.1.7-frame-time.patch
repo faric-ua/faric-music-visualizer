@@ -22,6 +22,22 @@ diff --git a/src/api/include/projectM-4/parameters.h b/src/api/include/projectM-
 + */
 +PROJECTM_EXPORT double projectm_get_last_frame_time(projectm_handle instance);
 +
+
+diff --git a/src/api/include/projectM-4/render_opengl.h b/src/api/include/projectM-4/render_opengl.h
+--- a/src/api/include/projectM-4/render_opengl.h
++++ b/src/api/include/projectM-4/render_opengl.h
+@@ -42,0 +43,10 @@
++
++/**
++ * @brief Renders a single frame into a caller-provided framebuffer object.
++ *
++ * FARIC backport of the newer projectM target-FBO render path.
++ *
++ * @param instance The projectM instance handle.
++ * @param framebuffer_object OpenGL framebuffer object receiving the final frame.
++ */
++PROJECTM_EXPORT void projectm_opengl_render_frame_fbo(projectm_handle instance, unsigned int framebuffer_object);
+
 diff --git a/src/libprojectM/TimeKeeper.hpp b/src/libprojectM/TimeKeeper.hpp
 --- a/src/libprojectM/TimeKeeper.hpp
 +++ b/src/libprojectM/TimeKeeper.hpp
@@ -62,6 +78,10 @@ diff --git a/src/libprojectM/TimeKeeper.cpp b/src/libprojectM/TimeKeeper.cpp
 diff --git a/src/libprojectM/ProjectM.hpp b/src/libprojectM/ProjectM.hpp
 --- a/src/libprojectM/ProjectM.hpp
 +++ b/src/libprojectM/ProjectM.hpp
+@@ -104 +104 @@
+-    void RenderFrame();
++    void RenderFrame(uint32_t targetFramebufferObject = 0);
++
 @@ -104,0 +105,4 @@
 +    void SetFrameTime(double secondsSinceStart);
 +
@@ -70,6 +90,29 @@ diff --git a/src/libprojectM/ProjectM.hpp b/src/libprojectM/ProjectM.hpp
 diff --git a/src/libprojectM/ProjectM.cpp b/src/libprojectM/ProjectM.cpp
 --- a/src/libprojectM/ProjectM.cpp
 +++ b/src/libprojectM/ProjectM.cpp
+@@ -93 +93 @@
+-void ProjectM::RenderFrame()
++void ProjectM::RenderFrame(uint32_t targetFramebufferObject)
++
+@@ -169,10 +169,12 @@
+-    // ToDo: Allow external apps to provide a custom target framebuffer.
+-    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
++    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(targetFramebufferObject));
+     glViewport(0, 0, renderContext.viewportSizeX, renderContext.viewportSizeY);
+ 
+ #ifdef USE_GLES
+     // On WebGL2 / Chrome ANGLE, the default framebuffer's draw buffer must
+     // be explicitly set to GL_BACK after preset rendering, which may leave
+     // per-FBO draw buffer state that leaks into FBO 0 on some drivers.
+-    GLenum backBuf = GL_BACK;
+-    glDrawBuffers(1, &backBuf);
++    if (targetFramebufferObject == 0)
++    {
++        GLenum backBuf = GL_BACK;
++        glDrawBuffers(1, &backBuf);
++    }
+ #endif
++
 @@ -292,0 +293,10 @@
 +void ProjectM::SetFrameTime(double secondsSinceStart)
 +{
@@ -84,7 +127,13 @@ diff --git a/src/libprojectM/ProjectM.cpp b/src/libprojectM/ProjectM.cpp
 diff --git a/src/libprojectM/ProjectMCWrapper.cpp b/src/libprojectM/ProjectMCWrapper.cpp
 --- a/src/libprojectM/ProjectMCWrapper.cpp
 +++ b/src/libprojectM/ProjectMCWrapper.cpp
-@@ -172,0 +173,12 @@
+@@ -172,0 +173,18 @@
++void projectm_opengl_render_frame_fbo(projectm_handle instance, unsigned int framebuffer_object)
++{
++    auto projectMInstance = handle_to_instance(instance);
++    projectMInstance->RenderFrame(framebuffer_object);
++}
++
 +void projectm_set_frame_time(projectm_handle instance, double seconds_since_first_frame)
 +{
 +    auto projectMInstance = handle_to_instance(instance);

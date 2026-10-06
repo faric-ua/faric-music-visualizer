@@ -41,6 +41,16 @@ object ProjectMBridge {
         if (active) nativeRender()
     }
 
+    fun renderToFramebuffer(
+        framebuffer: Int,
+    ) {
+        if (active) {
+            nativeRenderToFramebuffer(
+                framebuffer,
+            )
+        }
+    }
+
     fun loadPreset(
         path: String,
         smoothTransition: Boolean = true,
@@ -161,6 +171,9 @@ object ProjectMBridge {
 
     private external fun nativeResize(width: Int, height: Int)
     private external fun nativeRender()
+    private external fun nativeRenderToFramebuffer(
+        framebuffer: Int,
+    )
     private external fun nativeSetFrameTime(
         seconds: Double,
     )

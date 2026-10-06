@@ -742,7 +742,7 @@ static float follow(
     return current + (target - current) * factor;
 }
 
-static void draw_foreground_locked() {
+static void draw_foreground_locked(GLuint targetFramebuffer = 0) {
     if (!g_foreground_program || !g_foreground_vbo) {
         return;
     }
@@ -833,7 +833,7 @@ static void draw_foreground_locked() {
             now - g_started_at
         ).count();
 
-    glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    glBindFramebuffer(GL_FRAMEBUFFER, targetFramebuffer);
     glViewport(0, 0, g_width, g_height);
 
     glDisable(GL_DEPTH_TEST);
@@ -1187,7 +1187,43 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeRender(
         g_projectm
     );
 
-    draw_foreground_locked();
+    draw_foreground_locked(
+        0
+    );
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeRenderToFramebuffer(
+        JNIEnv*,
+        jclass,
+        jint framebuffer) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
+    if (!g_projectm) return;
+
+    const GLuint target =
+        static_cast<GLuint>(
+            std::max(
+                0,
+                static_cast<int>(
+                    framebuffer
+                )
+            )
+        );
+
+    projectm_opengl_render_frame_fbo(
+        g_projectm,
+        target
+    );
+
+    draw_foreground_locked(
+        target
+    );
+
+    glBindFramebuffer(
+        GL_FRAMEBUFFER,
+        0
+    );
 }
 
 extern "C" JNIEXPORT void JNICALL

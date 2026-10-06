@@ -1,5 +1,25 @@
 # Active Plan
 
+## CURRENT PRIORITY — v0.19.21 remove projectM readback
+
+- [x] v0.19.20 phone result: GPU frame PASS, wall-time neutral.
+- [x] Diagnose new limiter: glReadPixels = 4787 ms; queue wait only 7 ms.
+- [x] Reject deeper prefetch as the primary fix: producer throughput itself is the limit.
+- [x] Backport target-FBO render entry point into pinned projectM 4.1.7.
+- [x] Add JNI/ProjectMBridge target-FBO render call.
+- [x] Add encoder-context projectM FBO + texture.
+- [x] Recreate deterministic offline projectM in encoder EGL context for qualifying scene.
+- [x] Feed same per-frame PCM + SceneSignal + frameIndex/fps clock.
+- [x] Sample projectM FBO texture directly in encoder composition.
+- [x] Preserve old readback pipeline as fallback for non-qualifying scenes.
+- [x] Restore hidden Export Lab projectM instance after export.
+- [x] Bump v0.19.21 / build 110.
+- [ ] Validate + Android PASS.
+- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [ ] Require timing text to show `projectM BGRA: GPU direct` and no glReadPixels block.
+- [ ] Compare projectM / composition / encoder / total.
+- [ ] Visual QA: projectM preset, orientation, crop, colors, foreground reaction, Cyber Shark glow/frame and z-order.
+
 ## CURRENT PRIORITY — phone-test v0.19.20 GPU Cyber Shark frame
 
 - [x] v0.19.19 phone performance PASS: total 7224 ms.

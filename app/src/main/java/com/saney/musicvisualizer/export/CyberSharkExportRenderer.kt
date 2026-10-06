@@ -32,6 +32,14 @@ data class CyberSharkExportConfig(
     val visibility: Map<BoardLayerId, Boolean>,
 )
 
+data class CyberSharkStageTiming(
+    val backgroundMs: Long,
+    val frameMs: Long,
+    val fxMs: Long,
+    val creatureMs: Long,
+    val wordmarkMs: Long,
+)
+
 class CyberSharkExportRenderer(
     context: Context,
 ) {
@@ -50,6 +58,37 @@ class CyberSharkExportRenderer(
             strokeJoin = Paint.Join.ROUND
         }
     private val path = Path()
+
+    private var backgroundNs =
+        0L
+    private var frameNs =
+        0L
+    private var fxNs =
+        0L
+    private var creatureNs =
+        0L
+    private var wordmarkNs =
+        0L
+
+    fun timingSnapshot():
+        CyberSharkStageTiming =
+        CyberSharkStageTiming(
+            backgroundMs =
+                backgroundNs /
+                    1_000_000L,
+            frameMs =
+                frameNs /
+                    1_000_000L,
+            fxMs =
+                fxNs /
+                    1_000_000L,
+            creatureMs =
+                creatureNs /
+                    1_000_000L,
+            wordmarkMs =
+                wordmarkNs /
+                    1_000_000L,
+        )
 
     private val frameBitmap =
         decode(R.drawable.cyber_shark_frame)
@@ -186,6 +225,9 @@ class CyberSharkExportRenderer(
                 BoardLayerId.BACKGROUND
             ] != false
         ) {
+            val startedNs =
+                System.nanoTime()
+
             drawBackground(
                 canvas,
                 w,
@@ -201,6 +243,10 @@ class CyberSharkExportRenderer(
                     BoardLayerId.BACKGROUND,
                 ),
             )
+
+            backgroundNs +=
+                System.nanoTime() -
+                    startedNs
         }
 
         if (
@@ -208,6 +254,9 @@ class CyberSharkExportRenderer(
                 BoardLayerId.FRAME
             ] != false
         ) {
+            val startedNs =
+                System.nanoTime()
+
             drawBitmapLayer(
                 canvas,
                 frameBitmap,
@@ -228,6 +277,10 @@ class CyberSharkExportRenderer(
                 ),
                 groupRotation,
             )
+
+            frameNs +=
+                System.nanoTime() -
+                    startedNs
         }
 
         if (
@@ -235,6 +288,9 @@ class CyberSharkExportRenderer(
                 BoardLayerId.FX
             ] != false
         ) {
+            val startedNs =
+                System.nanoTime()
+
             drawFx(
                 canvas,
                 BoardLayerMotionEvaluator
@@ -256,6 +312,10 @@ class CyberSharkExportRenderer(
                 ),
                 groupRotation,
             )
+
+            fxNs +=
+                System.nanoTime() -
+                    startedNs
         }
 
         if (
@@ -263,6 +323,9 @@ class CyberSharkExportRenderer(
                 BoardLayerId.CREATURE
             ] != false
         ) {
+            val startedNs =
+                System.nanoTime()
+
             drawBitmapLayer(
                 canvas,
                 creatureBitmap,
@@ -283,6 +346,10 @@ class CyberSharkExportRenderer(
                 ),
                 groupRotation,
             )
+
+            creatureNs +=
+                System.nanoTime() -
+                    startedNs
         }
 
         if (
@@ -290,6 +357,9 @@ class CyberSharkExportRenderer(
                 BoardLayerId.WORDMARK
             ] != false
         ) {
+            val startedNs =
+                System.nanoTime()
+
             drawBitmapLayer(
                 canvas,
                 wordmarkBitmap,
@@ -310,6 +380,10 @@ class CyberSharkExportRenderer(
                 ),
                 groupRotation,
             )
+
+            wordmarkNs +=
+                System.nanoTime() -
+                    startedNs
         }
 
         bitmapPaint.alpha = 255

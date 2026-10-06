@@ -44,6 +44,8 @@ data class CompositionStageTiming(
     val overVisualizationMs: Long,
     val bigEqualizerMs: Long,
     val cyberSharkMs: Long,
+    val cyberSharkStages:
+        CyberSharkStageTiming?,
     val effectsMs: Long,
     val pulseDeckUpdateMs: Long,
     val pulseDeckDrawMs: Long,
@@ -173,6 +175,9 @@ class CompositionExportRenderer(
                 bigEqualizerNs / 1_000_000L,
             cyberSharkMs =
                 cyberSharkNs / 1_000_000L,
+            cyberSharkStages =
+                cyberSharkRenderer
+                    .timingSnapshot(),
             effectsMs =
                 effectsNs / 1_000_000L,
             pulseDeckUpdateMs =

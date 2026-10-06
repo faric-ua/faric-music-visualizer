@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 101
-        versionName = "0.19.12"
-        // v0.19.12 overlaps projectM readback with CPU composition.
+        versionCode = 102
+        versionName = "0.19.13"
+        // v0.19.13 profiles Cyber Shark export sublayers.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

@@ -6454,6 +6454,38 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             stages.cyberSharkMs,
                         )
                         append(" ms")
+
+                        stages.cyberSharkStages
+                            ?.let {
+                                    cyber ->
+                                append("\nCyber Shark internals")
+                                append("\nbackground: ")
+                                append(
+                                    cyber.backgroundMs,
+                                )
+                                append(" ms")
+                                append("\nframe: ")
+                                append(
+                                    cyber.frameMs,
+                                )
+                                append(" ms")
+                                append("\nFX: ")
+                                append(
+                                    cyber.fxMs,
+                                )
+                                append(" ms")
+                                append("\ncreature: ")
+                                append(
+                                    cyber.creatureMs,
+                                )
+                                append(" ms")
+                                append("\nwordmark: ")
+                                append(
+                                    cyber.wordmarkMs,
+                                )
+                                append(" ms")
+                            }
+
                         append("\neffects: ")
                         append(
                             stages.effectsMs,

@@ -1,6 +1,6 @@
 # Active Plan
 
-## CURRENT PRIORITY — v0.19.17 hybrid GPU glow
+## CURRENT PRIORITY — phone-test v0.19.17 hybrid GPU glow
 
 - [x] v0.19.16 phone result: glow composite 1396 ms, no improvement vs filtered 1397 ms.
 - [x] Reject unfiltered CPU composite as performance no-op.
@@ -8,9 +8,13 @@
 - [x] Draw Cyber Shark radial glow on existing encoder EGL/GLES2 surface between the two CPU textures.
 - [x] Preserve layer order and keep a correctness fallback.
 - [x] Add GPU glow / GPU overlay timings.
-- [x] Bump v0.19.17 / build 106.
-- [ ] Validate + Android PASS.
-- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [x] v0.19.17 / build 106.
+- [x] Validate #829 PASS on `5b1c14122d7f887b6f29f0e7391c59b9e9a7b2e6`.
+- [x] Android #493 PASS, run `37519271112`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.17-Debug`, id `11437784670`.
+- [x] BUILD_CHECKPOINT recorded.
+- [ ] Phone: Termux 3 -> 10 -> 8.
+- [ ] Same warm-cache 3-second / 90-frame preview.
 - [ ] Compare composition / encoder / GPU glow / GPU overlay / total.
 - [ ] Visual QA: glow color, brightness, radius, placement and ordering match previous output.
 

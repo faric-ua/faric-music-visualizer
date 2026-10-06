@@ -847,3 +847,36 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Visual QA for unfiltered scaling was not explicitly reported; the candidate is rejected on performance grounds regardless.
 - Next: move only the radial glow between CPU base/overlay passes onto the existing encoder EGL/GLES2 surface.
 
+---
+
+## 2026-10-06 — v0.19.17 / build 106 — hybrid GPU Cyber Shark glow — Android PASS
+
+- Status: BUILD PASS / phone performance + visual QA pending.
+- App/source commit: `5b1c14122d7f887b6f29f0e7391c59b9e9a7b2e6`.
+- Android workflow: #493, attempt 1.
+- Workflow run id: `37519271112`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.17-Debug`.
+- Artifact id: `11437784670`.
+- Artifact digest: `sha256:de0c9e01f5a6d780e7691eef077ed7fb5484f598573355914f069046f513389b`.
+- Validate #829 — PASS on the same app/source SHA.
+- Successfully compiled/tested:
+  - split CPU composition into a base pass and a transparent upper pass;
+  - preserve all pre-Cyber-Shark layers below the glow and all later layers above it;
+  - export Cyber Shark radial-glow geometry/alpha as a GPU spec;
+  - draw the radial glow on the existing encoder EGL/GLES2 surface between base and upper-overlay textures;
+  - use premultiplied-alpha blending for the Android Bitmap overlay;
+  - keep a full-CPU correctness fallback if a GPU glow spec is unavailable;
+  - add `GPU glow` and `GPU overlay` timing fields.
+- Final export resolution/FPS, H.264/AAC behavior, projectM two-slot overlap pipeline and PulseDeck calibration geometry are unchanged.
+- Phone baseline from v0.19.16:
+  - total 9450 ms;
+  - composition 7379 ms;
+  - Cyber Shark 3927 ms;
+  - background 1754 ms;
+  - CPU glow 1662 ms = render 265 + composite 1396 ms.
+- Phone acceptance:
+  - performance: compare composition, encoder, GPU glow, GPU overlay and total;
+  - visual: verify glow color, brightness, radius, placement, audio reaction and correct ordering below frame/FX/creature/wordmark/effects/HUD.
+- Single next resume step:
+  - install v0.19.17 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste the full timing block and report any visible glow/order difference.
+

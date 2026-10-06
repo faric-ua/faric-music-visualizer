@@ -39,6 +39,8 @@ object ShortVideoExportProof {
         val totalMs: Long,
         val compositionStages:
             CompositionStageTiming?,
+        val projectMDirectBgra:
+            Boolean,
     )
 
     private const val MIME = "video/avc"
@@ -60,6 +62,8 @@ object ShortVideoExportProof {
             CompositionExportConfig? = null,
         projectMFrameProvider:
             ((Int, Long) -> Bitmap?)? = null,
+        projectMRawChannelsCorrectProvider:
+            (() -> Boolean)? = null,
         requestedDurationMs: Long =
             DEFAULT_DURATION_MS,
         fps: Int =
@@ -207,6 +211,8 @@ object ShortVideoExportProof {
             0L
         var encoderSubmitNs =
             0L
+        var projectMDirectBgra =
+            false
 
         try {
             encoder.configure(
@@ -379,6 +385,11 @@ object ShortVideoExportProof {
                     System.nanoTime() -
                         projectMStartedNs
 
+                projectMDirectBgra =
+                    projectMRawChannelsCorrectProvider
+                        ?.invoke() ==
+                    true
+
                 val compositionStartedNs =
                     System.nanoTime()
 
@@ -398,6 +409,8 @@ object ShortVideoExportProof {
                         playing = true,
                         projectMFrameOverride =
                             dynamicProjectMFrame,
+                        projectMRawChannelsCorrect =
+                            projectMDirectBgra,
                     )
                 } else if (
                     cyberSharkRenderer != null &&
@@ -621,6 +634,8 @@ object ShortVideoExportProof {
                 compositionStages =
                     compositionRenderer
                         ?.timingSnapshot(),
+                projectMDirectBgra =
+                    projectMDirectBgra,
             )
         } finally {
             videoTemp.delete()

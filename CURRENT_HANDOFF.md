@@ -1775,3 +1775,36 @@ Resume:
 3. user workflow: Termux 3 -> 10 -> 8;
 4. install v0.19.6 and run one 3-second preview;
 5. send a screenshot/recording of the result dialog; use exact numbers to choose the next performance optimization.
+
+
+### v0.19.6 exact stage profile
+
+Phone evidence:
+- `447915.mp4` screen recording;
+- `447916.mp4` exported preview.
+
+Exact export timings shown by the v0.19.6 result dialog:
+- projectM frame generation: 1896 ms;
+- composition: 11808 ms;
+- encoder submit: 435 ms;
+- audio transcode: 424 ms;
+- mux: 112 ms;
+- save/publish: 215 ms;
+- total: 15575 ms.
+
+Share of total:
+- composition ~75.8%;
+- projectM ~12.2%;
+- encoder ~2.8%;
+- audio ~2.7%;
+- mux ~0.7%;
+- save ~1.4%;
+- unclassified setup/finalization ~4.4%.
+
+Conclusion: stop optimizing encoder/audio/mux for now. Composition is the dominant bottleneck.
+
+Current candidate:
+- v0.19.7 / build 96;
+- source SHA `a5f7ac9c4baa6d670afe1879f217838ff51b5a7d`;
+- adds internal composition timing for clear, projectM draw, FARIC reactive, overlay, Big Equalizer, Cyber Shark, effects, PulseDeck update, and PulseDeck draw;
+- next: wait for Android #478 PASS, checkpoint it, then phone test one 3-second preview.

@@ -943,3 +943,21 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Single next resume step:
   - install v0.19.18 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste the full timing block and report any visual orientation/color/glow issue.
 
+---
+
+## 2026-10-06 — v0.19.18 phone direct-GPU-projectM result — GUARD DID NOT ACTIVATE
+
+- App/source SHA: `655b367118787ca07d0d2654c56b12723005c3c6`.
+- Phone: 1080x1920 / 90 frames.
+- projectM 91 ms; composition 5999 ms; encoder 623 ms; total 8275 ms.
+- GPU glow 6 ms; GPU overlay 256 ms.
+- projectM draw remained 1710 ms and no `GPU projectM` line appeared.
+- Therefore the v0.19.18 direct-GPU-projectM branch did not activate.
+- Root cause confirmed in code:
+  - export ProjectMView uses `BALANCED_BACKGROUND`;
+  - `BALANCED_BACKGROUND.renderScale = 0.78f`;
+  - the 1080x1920 base export geometry therefore produces an offline framebuffer of about 842x1498 after `roundToInt()`;
+  - v0.19.18 incorrectly required projectM Bitmap dimensions to equal 1080x1920 exactly.
+- Performance is effectively unchanged from v0.19.17 (8263 -> 8275 ms).
+- Next: allocate a dedicated projectM GPU texture at the actual framebuffer size and scale/center-crop it on GPU to match the established Canvas behavior.
+

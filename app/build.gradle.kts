@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 107
-        versionName = "0.19.18"
-        // v0.19.18 draws raw offline projectM directly on the encoder GPU path.
+        versionCode = 108
+        versionName = "0.19.19"
+        // v0.19.19 GPU-scales the 0.78x offline projectM framebuffer directly.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

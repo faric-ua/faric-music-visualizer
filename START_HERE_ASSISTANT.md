@@ -1,5 +1,15 @@
 # FARIC Music Visualizer — START HERE
 
+## LATEST CANDIDATE — v0.19.19 / build 108 — GPU-scale real projectM framebuffer
+
+- v0.19.18 phone result proved the direct GPU branch never activated: projectM draw stayed 1710 ms and `GPU projectM` was absent.
+- Root cause: `BALANCED_BACKGROUND.renderScale = 0.78`, so a 1080x1920 export uses an offline projectM framebuffer of about 842x1498, not 1080x1920.
+- v0.19.19 removes the exact-size guard.
+- Encoder EGL now owns a dedicated projectM texture allocated lazily at the actual framebuffer dimensions; subsequent frames reuse it with `texSubImage2D`.
+- GPU texture coordinates reproduce the established scale-to-fill + center-crop behavior while preserving raw GL vertical orientation.
+- BGRA/channel and lower-layer safety guards remain unchanged.
+- Expected qualifying phone result: CPU `projectM draw = 0 ms` and a nonzero `GPU projectM` line.
+
 ## LATEST READY CANDIDATE — v0.19.18 / build 107 — direct GPU projectM base
 
 - App/source SHA: `655b367118787ca07d0d2654c56b12723005c3c6`.

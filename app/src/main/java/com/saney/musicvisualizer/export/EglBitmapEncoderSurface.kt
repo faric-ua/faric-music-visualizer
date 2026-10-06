@@ -13,6 +13,7 @@ import android.view.Surface
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.FloatBuffer
+import kotlin.math.max
 
 /**
  * Uploads already-composited ARGB frames directly to a MediaCodec input Surface.
@@ -38,6 +39,11 @@ class EglBitmapEncoderSurface(
 
     private val program: Int
     private val textureId: Int
+    private val projectMTextureId: Int
+    private var projectMTextureWidth =
+        0
+    private var projectMTextureHeight =
+        0
     private val positionHandle: Int
     private val texCoordHandle: Int
     private val samplerHandle: Int
@@ -73,6 +79,14 @@ class EglBitmapEncoderSurface(
     // Offline projectM readback is already GL-oriented (bottom-up), so direct
     // GPU composition must not apply the Android-Bitmap V flip a second time.
     private val rawGlTexCoordBuffer: FloatBuffer =
+        floatBufferOf(
+            0f, 0f,
+            1f, 0f,
+            0f, 1f,
+            1f, 1f,
+        )
+
+    private val projectMTexCoordBuffer: FloatBuffer =
         floatBufferOf(
             0f, 0f,
             1f, 0f,
@@ -220,15 +234,17 @@ class EglBitmapEncoderSurface(
 
         val textureIds =
             IntArray(
-                1,
+                2,
             )
         GLES20.glGenTextures(
-            1,
+            2,
             textureIds,
             0,
         )
         textureId =
             textureIds[0]
+        projectMTextureId =
+            textureIds[1]
 
         GLES20.glBindTexture(
             GLES20.GL_TEXTURE_2D,
@@ -267,6 +283,34 @@ class EglBitmapEncoderSurface(
         )
         checkGl(
             "texture allocation",
+        )
+
+        GLES20.glBindTexture(
+            GLES20.GL_TEXTURE_2D,
+            projectMTextureId,
+        )
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_MIN_FILTER,
+            GLES20.GL_LINEAR,
+        )
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_MAG_FILTER,
+            GLES20.GL_LINEAR,
+        )
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_WRAP_S,
+            GLES20.GL_CLAMP_TO_EDGE,
+        )
+        GLES20.glTexParameteri(
+            GLES20.GL_TEXTURE_2D,
+            GLES20.GL_TEXTURE_WRAP_T,
+            GLES20.GL_CLAMP_TO_EDGE,
+        )
+        checkGl(
+            "projectM texture setup",
         )
     }
 
@@ -348,9 +392,12 @@ class EglBitmapEncoderSurface(
         glow: CyberSharkGpuGlow,
         presentationTimeNs: Long,
     ): EglCompositeDrawTiming {
-        validateBitmap(
-            projectMBitmap,
-        )
+        check(
+            projectMBitmap.width > 0 &&
+                projectMBitmap.height > 0,
+        ) {
+            "ProjectM frame is empty"
+        }
         validateBitmap(
             overlayBitmap,
         )
@@ -360,10 +407,8 @@ class EglBitmapEncoderSurface(
         val projectMStartedNs =
             System.nanoTime()
 
-        drawBitmapLayer(
-            bitmap = projectMBitmap,
-            alphaBlend = false,
-            rawGlOrientation = true,
+        drawProjectMRawLayer(
+            projectMBitmap,
         )
 
         val projectMNs =
@@ -504,6 +549,142 @@ class EglBitmapEncoderSurface(
             } else {
                 "frame draw"
             },
+        )
+    }
+
+    private fun drawProjectMRawLayer(
+        bitmap: Bitmap,
+    ) {
+        GLES20.glDisable(
+            GLES20.GL_BLEND,
+        )
+        GLES20.glUseProgram(
+            program,
+        )
+        GLES20.glActiveTexture(
+            GLES20.GL_TEXTURE0,
+        )
+        GLES20.glBindTexture(
+            GLES20.GL_TEXTURE_2D,
+            projectMTextureId,
+        )
+
+        if (
+            projectMTextureWidth !=
+                bitmap.width ||
+            projectMTextureHeight !=
+                bitmap.height
+        ) {
+            GLUtils.texImage2D(
+                GLES20.GL_TEXTURE_2D,
+                0,
+                bitmap,
+                0,
+            )
+            projectMTextureWidth =
+                bitmap.width
+            projectMTextureHeight =
+                bitmap.height
+        } else {
+            GLUtils.texSubImage2D(
+                GLES20.GL_TEXTURE_2D,
+                0,
+                0,
+                0,
+                bitmap,
+            )
+        }
+
+        // Match CompositionExportRenderer.drawProjectMFrame(): scale-to-fill
+        // then center-crop. The source is still GL-oriented, so V remains
+        // unflipped while the cropped texture coordinates are applied.
+        val scale =
+            max(
+                width.toFloat() /
+                    bitmap.width,
+                height.toFloat() /
+                    bitmap.height,
+            )
+        val renderedWidth =
+            bitmap.width *
+                scale
+        val renderedHeight =
+            bitmap.height *
+                scale
+        val cropX =
+            (
+                (
+                    renderedWidth -
+                        width
+                    ) /
+                    (
+                        2f *
+                            renderedWidth
+                        )
+                )
+                .coerceAtLeast(
+                    0f,
+                )
+        val cropY =
+            (
+                (
+                    renderedHeight -
+                        height
+                    ) /
+                    (
+                        2f *
+                            renderedHeight
+                        )
+                )
+                .coerceAtLeast(
+                    0f,
+                )
+
+        val u0 =
+            cropX
+        val u1 =
+            1f -
+                cropX
+        val v0 =
+            cropY
+        val v1 =
+            1f -
+                cropY
+
+        projectMTexCoordBuffer
+            .position(
+                0,
+            )
+        projectMTexCoordBuffer
+            .put(
+                floatArrayOf(
+                    u0, v0,
+                    u1, v0,
+                    u0, v1,
+                    u1, v1,
+                ),
+            )
+        projectMTexCoordBuffer
+            .position(
+                0,
+            )
+
+        bindQuad(
+            positionHandle,
+            texCoordHandle,
+            projectMTexCoordBuffer,
+        )
+        GLES20.glUniform1i(
+            samplerHandle,
+            0,
+        )
+        GLES20.glDrawArrays(
+            GLES20.GL_TRIANGLE_STRIP,
+            0,
+            4,
+        )
+        checkGl(
+            "projectM GPU base draw",
         )
     }
 
@@ -718,9 +899,10 @@ class EglBitmapEncoderSurface(
         runCatching {
             makeCurrent()
             GLES20.glDeleteTextures(
-                1,
+                2,
                 intArrayOf(
                     textureId,
+                    projectMTextureId,
                 ),
                 0,
             )

@@ -1,5 +1,20 @@
 # Active Plan
 
+## CURRENT PRIORITY — v0.19.19 GPU-scale projectM
+
+- [x] v0.19.18 phone test: branch did not activate; projectM draw 1710 ms, no GPU projectM metric.
+- [x] Confirm root cause: BALANCED_BACKGROUND renderScale = 0.78.
+- [x] Remove exact framebuffer-size requirement.
+- [x] Add dedicated variable-size projectM EGL texture.
+- [x] Reproduce Canvas scale-to-fill + center-crop on GPU.
+- [x] Preserve raw GL orientation and BGRA/layer-order guards.
+- [x] Bump v0.19.19 / build 108.
+- [ ] Validate + Android PASS.
+- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [ ] Require projectM draw = 0 ms and GPU projectM > 0 ms in the qualifying scene.
+- [ ] Compare composition / encoder / total.
+- [ ] Visual QA: projectM orientation, colors, framing/crop; GPU glow still correct.
+
 ## CURRENT PRIORITY — phone-test v0.19.18 direct GPU projectM base
 
 - [x] v0.19.17 phone performance PASS: total 8263 ms.

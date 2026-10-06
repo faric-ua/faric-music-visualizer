@@ -428,11 +428,11 @@ object ShortVideoExportProof {
                             null &&
                         projectMDirectBgra &&
                         dynamicProjectMFrame
-                            .width ==
-                            width &&
+                            .width >
+                            0 &&
                         dynamicProjectMFrame
-                            .height ==
-                            height &&
+                            .height >
+                            0 &&
                         compositionConfig
                             ?.faricReactiveVisible ==
                             false &&

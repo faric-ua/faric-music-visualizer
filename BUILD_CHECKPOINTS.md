@@ -429,3 +429,52 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   - Cyber Shark (~4.7 s) is now the largest single composition target.
 - Single next resume step:
   - optimize Cyber Shark background/compositing first, starting with avoiding full-screen saveLayerAlpha when effective background opacity is 1.0, then retest one 3-second preview.
+
+
+---
+
+## 2026-10-06 — v0.19.9 / build 98 — Cyber Shark opaque saveLayer optimization — Android PASS
+
+- Status: BUILD PASS / phone QA measured.
+- App/source commit: `5bd6945f43fb3f4348085e008ff490a20468c9ab`.
+- Android workflow: #485, attempt 1.
+- Workflow run id: `37406936003`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.9-Debug`.
+- Artifact id: `11387855203`.
+- Artifact digest: `sha256:2141bf82509426cd8a27d74b8a17cdc9cf15157ce6d465904aa020dbf1ab01c4`.
+- Validate #807 — PASS on the same source SHA.
+- Successfully completed in this build:
+  - keeps projectM BGRA fast path active;
+  - Cyber Shark background avoids full-screen `saveLayerAlpha` when effective alpha is fully opaque;
+  - partial-opacity path remains unchanged.
+- Phone QA evidence:
+  - result screenshot `1791257969388.jpeg`.
+- Exact timing:
+  - projectM generation/readback: 5005 ms;
+  - composition: 6860 ms;
+  - projectM BGRA: yes;
+  - encoder: 539 ms;
+  - audio: 498 ms;
+  - mux: 103 ms;
+  - save: 240 ms;
+  - total: 14031 ms.
+- Composition layers:
+  - clear: 58 ms;
+  - projectM draw: 1640 ms;
+  - FARIC reactive: 0 ms;
+  - overlay: 0 ms;
+  - Big EQ: 0 ms;
+  - Cyber Shark: 3523 ms;
+  - effects: 432 ms;
+  - HUD update: 24 ms;
+  - HUD draw: 1176 ms.
+- Comparison with v0.19.8:
+  - Cyber Shark 4676 -> 3523 ms (~24.7% reduction);
+  - composition 8077 -> 6860 ms (~15.1% reduction);
+  - total 15118 -> 14031 ms (~7.2% reduction);
+  - projectM BGRA remains active and projectM draw is essentially unchanged (1643 -> 1640 ms).
+- Performance conclusion:
+  - Cyber Shark saveLayer optimization is effective and visually safe;
+  - largest remaining single stage is now projectM generation/readback (~5.0 s), followed by Cyber Shark (~3.5 s), projectM draw (~1.64 s), HUD draw (~1.18 s).
+- Single next resume step:
+  - split projectM generation/readback timing into native render, glReadPixels, Bitmap.copyPixelsFromBuffer, and queue/wait overhead before changing the readback path again.

@@ -30,6 +30,13 @@ object ShortVideoExportProof {
         val height: Int,
         val durationMs: Long,
         val hasAudio: Boolean,
+        val projectMFrameMs: Long,
+        val compositionMs: Long,
+        val encoderSubmitMs: Long,
+        val audioTranscodeMs: Long,
+        val muxMs: Long,
+        val publishMs: Long,
+        val totalMs: Long,
     )
 
     private const val MIME = "video/avc"
@@ -62,6 +69,9 @@ object ShortVideoExportProof {
         },
         onProgress: (Int) -> Unit = {},
     ): Result {
+        val totalStartedNs =
+            System.nanoTime()
+
         val (width, height) =
             proofSize(
                 project.aspectRatio.width,
@@ -188,6 +198,13 @@ object ShortVideoExportProof {
         var encoderSurface:
             EglBitmapEncoderSurface? =
             null
+
+        var projectMFrameNs =
+            0L
+        var compositionNs =
+            0L
+        var encoderSubmitNs =
+            0L
 
         try {
             encoder.configure(
@@ -337,6 +354,9 @@ object ShortVideoExportProof {
                         bitmap,
                     )
 
+                val projectMStartedNs =
+                    System.nanoTime()
+
                 val dynamicProjectMFrame =
                     if (
                         compositionRenderer != null &&
@@ -352,6 +372,13 @@ object ShortVideoExportProof {
                     } else {
                         null
                     }
+
+                projectMFrameNs +=
+                    System.nanoTime() -
+                        projectMStartedNs
+
+                val compositionStartedNs =
+                    System.nanoTime()
 
                 if (
                     compositionRenderer != null
@@ -411,8 +438,15 @@ object ShortVideoExportProof {
                     )
                 }
 
+                compositionNs +=
+                    System.nanoTime() -
+                        compositionStartedNs
+
                 // Offline projectM returns a reusable framebuffer bitmap.
                 // Do not recycle it here; the GL view owns and reuses it.
+                val encoderStartedNs =
+                    System.nanoTime()
+
                 encoderSurface
                     ?.draw(
                         bitmap = bitmap,
@@ -428,6 +462,10 @@ object ShortVideoExportProof {
                 drain(
                     waitForEos = false,
                 )
+
+                encoderSubmitNs +=
+                    System.nanoTime() -
+                        encoderStartedNs
 
                 onProgress(
                     (
@@ -494,6 +532,9 @@ object ShortVideoExportProof {
                 )
             }
 
+            val audioStartedNs =
+                System.nanoTime()
+
             AudioClipTranscoder.transcodeToAacMp4(
                 context = context,
                 sourceUri = sourceAudioUri,
@@ -502,7 +543,17 @@ object ShortVideoExportProof {
                 outputFile = audioTemp,
             )
 
+            val audioTranscodeMs =
+                (
+                    System.nanoTime() -
+                        audioStartedNs
+                    ) /
+                    1_000_000L
+
             onProgress(92)
+
+            val muxStartedNs =
+                System.nanoTime()
 
             Mp4AvMuxer.mux(
                 videoFile = videoTemp,
@@ -510,7 +561,17 @@ object ShortVideoExportProof {
                 outputFile = muxedTemp,
             )
 
+            val muxMs =
+                (
+                    System.nanoTime() -
+                        muxStartedNs
+                    ) /
+                    1_000_000L
+
             onProgress(100)
+
+            val publishStartedNs =
+                System.nanoTime()
 
             val uri =
                 publishMp4(
@@ -520,6 +581,13 @@ object ShortVideoExportProof {
                         "$displayNamePrefix-${System.currentTimeMillis()}.mp4",
                 )
 
+            val publishMs =
+                (
+                    System.nanoTime() -
+                        publishStartedNs
+                    ) /
+                    1_000_000L
+
             return Result(
                 uri = uri,
                 frameCount = frameCount,
@@ -527,6 +595,27 @@ object ShortVideoExportProof {
                 height = height,
                 durationMs = durationMs,
                 hasAudio = true,
+                projectMFrameMs =
+                    projectMFrameNs /
+                        1_000_000L,
+                compositionMs =
+                    compositionNs /
+                        1_000_000L,
+                encoderSubmitMs =
+                    encoderSubmitNs /
+                        1_000_000L,
+                audioTranscodeMs =
+                    audioTranscodeMs,
+                muxMs =
+                    muxMs,
+                publishMs =
+                    publishMs,
+                totalMs =
+                    (
+                        System.nanoTime() -
+                            totalStartedNs
+                        ) /
+                        1_000_000L,
             )
         } finally {
             videoTemp.delete()

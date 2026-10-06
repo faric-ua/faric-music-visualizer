@@ -110,7 +110,12 @@ diff --git a/src/libprojectM/ProjectM.cpp b/src/libprojectM/ProjectM.cpp
 +        glDrawBuffers(1, &backBuf);
 +    }
  #endif
-@@ -292,0 +293,10 @@
+@@ -289,6 +289,16 @@
+ auto ProjectM::PresetLocked() const -> bool
+ {
+     return m_presetLocked;
+ }
+ 
 +void ProjectM::SetFrameTime(double secondsSinceStart)
 +{
 +    m_timeKeeper->SetFrameTime(secondsSinceStart);
@@ -121,6 +126,7 @@ diff --git a/src/libprojectM/ProjectM.cpp b/src/libprojectM/ProjectM.cpp
 +    return m_timeKeeper->GetFrameTime();
 +}
 +
+ void ProjectM::SetBeatSensitivity(float sensitivity)
 diff --git a/src/libprojectM/ProjectMCWrapper.cpp b/src/libprojectM/ProjectMCWrapper.cpp
 --- a/src/libprojectM/ProjectMCWrapper.cpp
 +++ b/src/libprojectM/ProjectMCWrapper.cpp

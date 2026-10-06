@@ -37,6 +37,8 @@ object ShortVideoExportProof {
         val muxMs: Long,
         val publishMs: Long,
         val totalMs: Long,
+        val compositionStages:
+            CompositionStageTiming?,
     )
 
     private const val MIME = "video/avc"
@@ -616,6 +618,9 @@ object ShortVideoExportProof {
                             totalStartedNs
                         ) /
                         1_000_000L,
+                compositionStages =
+                    compositionRenderer
+                        ?.timingSnapshot(),
             )
         } finally {
             videoTemp.delete()

@@ -1743,3 +1743,35 @@ Output verification:
 
 Next resume step:
 use the prepared `perf/export-stage-timing` instrumentation to measure projectM, composition, encoder submit, audio transcode, mux, publish, and total times before choosing the next optimization.
+
+
+### v0.19.5 phone QA — timing UI finding
+
+Evidence:
+- screen recording: `447911.mp4`;
+- exported preview: `FARIC-preview-1791252342014.mp4`.
+
+Observed:
+- first run after installing v0.19.5 rebuilt PCM cache (~12-13 s);
+- export phase remained roughly ~16-17 s wall-clock;
+- output verified as 1080x1920, 30 FPS, 90 frames, 3.008 s, H.264 + AAC 48 kHz stereo;
+- orientation, colors, moving projectM, HUD/layer composition, and current-position preview behavior appear correct.
+
+Diagnostic UI defect:
+- v0.19.5 correctly computes per-stage timings internally;
+- Android system Toast truncates the multi-line result after the first visible lines;
+- therefore exact projectM/composition/encoder/audio/mux/save/total values could not be read from the phone recording.
+
+Current candidate:
+- v0.19.6 / build 95;
+- source SHA `a4309529161e40bc0e8dca3bf1686ee4807bd608`;
+- replaces the truncated Toast with a persistent `AlertDialog` containing the full timing breakdown;
+- Validate #787 PASS;
+- Android #474 pending at time of this handoff update.
+
+Resume:
+1. wait for Android #474 PASS;
+2. record BUILD_CHECKPOINT immediately;
+3. user workflow: Termux 3 -> 10 -> 8;
+4. install v0.19.6 and run one 3-second preview;
+5. send a screenshot/recording of the result dialog; use exact numbers to choose the next performance optimization.

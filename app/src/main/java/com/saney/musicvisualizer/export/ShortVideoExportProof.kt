@@ -53,6 +53,8 @@ object ShortVideoExportProof {
         val gpuProjectMMs: Long,
         val gpuGlowMs: Long,
         val gpuFrameMs: Long,
+        val gpuCreatureMs: Long,
+        val gpuWordmarkMs: Long,
         val gpuOverlayMs: Long,
         val audioTranscodeMs: Long,
         val muxMs: Long,
@@ -256,6 +258,38 @@ object ShortVideoExportProof {
                 null
             }
 
+        val useGpuCyberSharkCreatureWordmark =
+            compositionConfig
+                ?.let { config ->
+                    useGpuCyberSharkFrame &&
+                        config
+                            .cyberSharkConfig
+                            .visibility[
+                                com.saney.musicvisualizer.board
+                                    .BoardLayerId.CREATURE
+                            ] != false &&
+                        config
+                            .cyberSharkConfig
+                            .visibility[
+                                com.saney.musicvisualizer.board
+                                    .BoardLayerId.WORDMARK
+                            ] != false
+                } ==
+                true
+
+        val postWordmarkOverlayBitmap =
+            if (
+                useGpuCyberSharkCreatureWordmark
+            ) {
+                Bitmap.createBitmap(
+                    width,
+                    height,
+                    Bitmap.Config.ARGB_8888,
+                )
+            } else {
+                null
+            }
+
         val cyberSharkRenderer =
             if (
                 project.themeId ==
@@ -294,6 +328,10 @@ object ShortVideoExportProof {
         var gpuGlowNs =
             0L
         var gpuFrameNs =
+            0L
+        var gpuCreatureNs =
+            0L
+        var gpuWordmarkNs =
             0L
         var gpuOverlayNs =
             0L
@@ -589,6 +627,12 @@ object ShortVideoExportProof {
                 var gpuFrame:
                     CyberSharkGpuFrame? =
                     null
+                var gpuCreature:
+                    CyberSharkGpuFrame? =
+                    null
+                var gpuWordmark:
+                    CyberSharkGpuFrame? =
+                    null
 
                 if (
                     compositionRenderer != null
@@ -652,28 +696,102 @@ object ShortVideoExportProof {
                                     compositionRenderer
                                         .gpuCyberSharkGlow()
 
-                                postFrameOverlayBitmap
-                                    .eraseColor(
-                                        Color.TRANSPARENT,
-                                    )
+                                if (
+                                    directGpuProjectMForFrame &&
+                                    useGpuCyberSharkCreatureWordmark &&
+                                    postWordmarkOverlayBitmap !=
+                                        null
+                                ) {
+                                    gpuCreature =
+                                        compositionRenderer
+                                            .gpuCyberSharkCreature(
+                                                width = width,
+                                                height = height,
+                                                timeMs =
+                                                    frameTimeMs,
+                                                signal = signal,
+                                            )
+                                    gpuWordmark =
+                                        compositionRenderer
+                                            .gpuCyberSharkWordmark(
+                                                width = width,
+                                                height = height,
+                                                timeMs =
+                                                    frameTimeMs,
+                                                signal = signal,
+                                            )
+                                }
 
-                                compositionRenderer
-                                    .renderAfterCyberSharkFrame(
-                                        canvas =
-                                            Canvas(
-                                                postFrameOverlayBitmap,
-                                            ),
-                                        width = width,
-                                        height = height,
-                                        timeMs =
-                                            frameTimeMs,
-                                        signal = signal,
-                                        title = title,
-                                        artist = artist,
-                                        durationMs =
-                                            analysis.durationMs,
-                                        playing = true,
-                                    )
+                                if (
+                                    gpuCreature != null &&
+                                    gpuWordmark != null &&
+                                    postWordmarkOverlayBitmap !=
+                                        null
+                                ) {
+                                    postFrameOverlayBitmap
+                                        .eraseColor(
+                                            Color.TRANSPARENT,
+                                        )
+
+                                    compositionRenderer
+                                        .renderCyberSharkFxAfterFrame(
+                                            canvas =
+                                                Canvas(
+                                                    postFrameOverlayBitmap,
+                                                ),
+                                            width = width,
+                                            height = height,
+                                            timeMs =
+                                                frameTimeMs,
+                                            signal = signal,
+                                        )
+
+                                    postWordmarkOverlayBitmap
+                                        .eraseColor(
+                                            Color.TRANSPARENT,
+                                        )
+
+                                    compositionRenderer
+                                        .renderAfterCyberSharkWordmark(
+                                            canvas =
+                                                Canvas(
+                                                    postWordmarkOverlayBitmap,
+                                                ),
+                                            width = width,
+                                            height = height,
+                                            timeMs =
+                                                frameTimeMs,
+                                            signal = signal,
+                                            title = title,
+                                            artist = artist,
+                                            durationMs =
+                                                analysis.durationMs,
+                                            playing = true,
+                                        )
+                                } else {
+                                    postFrameOverlayBitmap
+                                        .eraseColor(
+                                            Color.TRANSPARENT,
+                                        )
+
+                                    compositionRenderer
+                                        .renderAfterCyberSharkFrame(
+                                            canvas =
+                                                Canvas(
+                                                    postFrameOverlayBitmap,
+                                                ),
+                                            width = width,
+                                            height = height,
+                                            timeMs =
+                                                frameTimeMs,
+                                            signal = signal,
+                                            title = title,
+                                            artist = artist,
+                                            durationMs =
+                                                analysis.durationMs,
+                                            playing = true,
+                                        )
+                                }
                             }
                         }
 
@@ -818,6 +936,35 @@ object ShortVideoExportProof {
                         if (
                             directGpuProjectMForFrame &&
                             gpuFrame != null &&
+                            gpuCreature != null &&
+                            gpuWordmark != null &&
+                            postFrameOverlayBitmap !=
+                                null &&
+                            postWordmarkOverlayBitmap !=
+                                null
+                        ) {
+                            activeEncoderSurface
+                                .drawGpuProjectMCyberSharkComposite(
+                                    lowerOverlayBitmap =
+                                        overlayBitmap,
+                                    frame =
+                                        gpuFrame,
+                                    fxOverlayBitmap =
+                                        postFrameOverlayBitmap,
+                                    creature =
+                                        gpuCreature,
+                                    wordmark =
+                                        gpuWordmark,
+                                    topOverlayBitmap =
+                                        postWordmarkOverlayBitmap,
+                                    glow =
+                                        gpuGlow,
+                                    presentationTimeNs =
+                                        presentationTimeNs,
+                                )
+                        } else if (
+                            directGpuProjectMForFrame &&
+                            gpuFrame != null &&
                             postFrameOverlayBitmap !=
                                 null
                         ) {
@@ -905,6 +1052,10 @@ object ShortVideoExportProof {
                         gpuTiming.glowNs
                     gpuFrameNs +=
                         gpuTiming.frameNs
+                    gpuCreatureNs +=
+                        gpuTiming.creatureNs
+                    gpuWordmarkNs +=
+                        gpuTiming.wordmarkNs
                     gpuOverlayNs +=
                         gpuTiming.overlayNs
                 } else {
@@ -952,6 +1103,8 @@ object ShortVideoExportProof {
             overlayBitmap
                 ?.recycle()
             postFrameOverlayBitmap
+                ?.recycle()
+            postWordmarkOverlayBitmap
                 ?.recycle()
 
             runCatching {
@@ -1073,6 +1226,12 @@ object ShortVideoExportProof {
                         1_000_000L,
                 gpuFrameMs =
                     gpuFrameNs /
+                        1_000_000L,
+                gpuCreatureMs =
+                    gpuCreatureNs /
+                        1_000_000L,
+                gpuWordmarkMs =
+                    gpuWordmarkNs /
                         1_000_000L,
                 gpuOverlayMs =
                     gpuOverlayNs /

@@ -6568,6 +6568,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         0L ||
                     result.gpuFrameMs >
                         0L ||
+                    result.gpuCreatureMs >
+                        0L ||
+                    result.gpuWordmarkMs >
+                        0L ||
                     result.gpuOverlayMs >
                         0L
                 ) {
@@ -6593,6 +6597,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         append("\nGPU frame: ")
                         append(
                             result.gpuFrameMs,
+                        )
+                        append(" ms")
+                    }
+                    if (
+                        result.gpuCreatureMs >
+                            0L
+                    ) {
+                        append("\nGPU creature: ")
+                        append(
+                            result.gpuCreatureMs,
+                        )
+                        append(" ms")
+                    }
+                    if (
+                        result.gpuWordmarkMs >
+                            0L
+                    ) {
+                        append("\nGPU wordmark: ")
+                        append(
+                            result.gpuWordmarkMs,
                         )
                         append(" ms")
                     }

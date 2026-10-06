@@ -1,5 +1,19 @@
 # Current Handoff
 
+## LATEST CANDIDATE — v0.19.22 / build 111 — GPU Cyber Shark creature + wordmark
+
+- v0.19.21 phone performance PASS: total 6483 ms, direct projectM FBO active, no glReadPixels block.
+- Current CPU composition remains ~3255 ms; measured Cyber Shark creature = 450 ms and wordmark = 430 ms.
+- v0.19.22 keeps projectM direct FBO, GPU glow and GPU frame unchanged.
+- Creature and wordmark now reuse the exact same BoardLayerMotion / group transform / layer transform values as the software renderer, but their original bitmaps are uploaded once as dedicated EGL textures.
+- Per frame, creature and wordmark update only center, size, rotation and alpha on transformed GPU quads.
+- Layer order is preserved exactly as: projectM -> glow -> background -> frame -> FX -> creature -> wordmark -> effects -> HUD.
+- To preserve that order, FX gets its own transparent CPU overlay and effects+HUD remain the final transparent overlay.
+- Advanced path is guarded: if direct projectM, frame, creature or wordmark GPU data is unavailable, export falls back to the proven v0.19.21 frame-only path.
+- New phone metrics: `GPU creature` and `GPU wordmark`.
+- Expected qualifying result: CPU `creature: 0 ms`, CPU `wordmark: 0 ms`, with nonzero GPU creature/wordmark timings.
+- Visual QA required for creature/wordmark position, scale, rotation, opacity and z-order.
+
 ## LATEST READY CANDIDATE — v0.19.21 / build 110 — projectM direct GPU FBO
 
 - Exact APK source SHA: `95bcd5f65075c308dde8d7b41cb3db783038506d`.

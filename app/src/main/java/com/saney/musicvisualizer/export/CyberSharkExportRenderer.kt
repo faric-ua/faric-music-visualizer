@@ -242,16 +242,73 @@ class CyberSharkExportRenderer(
         timeMs: Long,
         signal: SceneSignal,
         config: CyberSharkExportConfig,
+    ): CyberSharkGpuFrame? =
+        gpuBitmapLayer(
+            bitmap = frameBitmap,
+            layerId = BoardLayerId.FRAME,
+            layerReaction = frameReaction,
+            width = width,
+            height = height,
+            timeMs = timeMs,
+            signal = signal,
+            config = config,
+        )
+
+    fun gpuCreature(
+        width: Int,
+        height: Int,
+        timeMs: Long,
+        signal: SceneSignal,
+        config: CyberSharkExportConfig,
+    ): CyberSharkGpuFrame? =
+        gpuBitmapLayer(
+            bitmap = creatureBitmap,
+            layerId = BoardLayerId.CREATURE,
+            layerReaction = creatureReaction,
+            width = width,
+            height = height,
+            timeMs = timeMs,
+            signal = signal,
+            config = config,
+        )
+
+    fun gpuWordmark(
+        width: Int,
+        height: Int,
+        timeMs: Long,
+        signal: SceneSignal,
+        config: CyberSharkExportConfig,
+    ): CyberSharkGpuFrame? =
+        gpuBitmapLayer(
+            bitmap = wordmarkBitmap,
+            layerId = BoardLayerId.WORDMARK,
+            layerReaction = wordmarkReaction,
+            width = width,
+            height = height,
+            timeMs = timeMs,
+            signal = signal,
+            config = config,
+        )
+
+    private fun gpuBitmapLayer(
+        bitmap: Bitmap?,
+        layerId: BoardLayerId,
+        layerReaction: BoardLayerReaction,
+        width: Int,
+        height: Int,
+        timeMs: Long,
+        signal: SceneSignal,
+        config: CyberSharkExportConfig,
     ): CyberSharkGpuFrame? {
-        val bitmap =
-            frameBitmap
+        val activeBitmap =
+            bitmap
                 ?: return null
 
         if (
             width <= 0 ||
             height <= 0 ||
             config.visibility[
-                BoardLayerId.FRAME
+                layerId
             ] == false
         ) {
             return null
@@ -355,7 +412,7 @@ class CyberSharkExportRenderer(
         val motion =
             BoardLayerMotionEvaluator
                 .evaluate(
-                    frameReaction,
+                    layerReaction,
                     audio,
                     timeSeconds,
                 )
@@ -363,7 +420,7 @@ class CyberSharkExportRenderer(
             (
                 config
                     .layerTransforms[
-                        BoardLayerId.FRAME
+                        layerId
                     ]
                     ?: BoardLayerTransform
                         .default()
@@ -398,7 +455,7 @@ class CyberSharkExportRenderer(
                 )
 
         return CyberSharkGpuFrame(
-            bitmap = bitmap,
+            bitmap = activeBitmap,
             centerX = layerCx,
             centerY = layerCy,
             size = size,

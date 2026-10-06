@@ -33,6 +33,8 @@ data class EglCompositeDrawTiming(
     val glowNs: Long,
     val frameNs: Long,
     val overlayNs: Long,
+    val creatureNs: Long = 0L,
+    val wordmarkNs: Long = 0L,
 )
 
 class EglBitmapEncoderSurface(
@@ -48,7 +50,13 @@ class EglBitmapEncoderSurface(
     private val textureId: Int
     private val projectMTextureId: Int
     private val frameTextureId: Int
+    private val creatureTextureId: Int
+    private val wordmarkTextureId: Int
     private var frameTextureLoaded =
+        false
+    private var creatureTextureLoaded =
+        false
+    private var wordmarkTextureLoaded =
         false
     private var projectMTextureWidth =
         0
@@ -288,10 +296,10 @@ class EglBitmapEncoderSurface(
 
         val textureIds =
             IntArray(
-                3,
+                5,
             )
         GLES20.glGenTextures(
-            3,
+            5,
             textureIds,
             0,
         )
@@ -301,6 +309,10 @@ class EglBitmapEncoderSurface(
             textureIds[1]
         frameTextureId =
             textureIds[2]
+        creatureTextureId =
+            textureIds[3]
+        wordmarkTextureId =
+            textureIds[4]
 
         GLES20.glBindTexture(
             GLES20.GL_TEXTURE_2D,
@@ -369,9 +381,27 @@ class EglBitmapEncoderSurface(
             "projectM texture setup",
         )
 
+        configureLayerTexture(
+            frameTextureId,
+            "frame",
+        )
+        configureLayerTexture(
+            creatureTextureId,
+            "creature",
+        )
+        configureLayerTexture(
+            wordmarkTextureId,
+            "wordmark",
+        )
+    }
+
+    private fun configureLayerTexture(
+        texture: Int,
+        label: String,
+    ) {
         GLES20.glBindTexture(
             GLES20.GL_TEXTURE_2D,
-            frameTextureId,
+            texture,
         )
         GLES20.glTexParameteri(
             GLES20.GL_TEXTURE_2D,
@@ -394,7 +424,7 @@ class EglBitmapEncoderSurface(
             GLES20.GL_CLAMP_TO_EDGE,
         )
         checkGl(
-            "frame texture setup",
+            "$label texture setup",
         )
     }
 
@@ -915,6 +945,125 @@ class EglBitmapEncoderSurface(
         )
     }
 
+    fun drawGpuProjectMCyberSharkComposite(
+        lowerOverlayBitmap: Bitmap,
+        frame: CyberSharkGpuFrame,
+        fxOverlayBitmap: Bitmap,
+        creature: CyberSharkGpuFrame,
+        wordmark: CyberSharkGpuFrame,
+        topOverlayBitmap: Bitmap,
+        glow: CyberSharkGpuGlow,
+        presentationTimeNs: Long,
+    ): EglCompositeDrawTiming {
+        check(
+            directProjectMActive,
+        ) {
+            "Direct GPU projectM is not initialized"
+        }
+        validateBitmap(
+            lowerOverlayBitmap,
+        )
+        validateBitmap(
+            fxOverlayBitmap,
+        )
+        validateBitmap(
+            topOverlayBitmap,
+        )
+        makeCurrent()
+        beginFrame()
+
+        val projectMStartedNs =
+            System.nanoTime()
+        drawProjectMTextureLayer()
+        val projectMNs =
+            System.nanoTime() -
+                projectMStartedNs
+
+        val glowStartedNs =
+            System.nanoTime()
+        drawGlow(
+            glow,
+        )
+        val glowNs =
+            System.nanoTime() -
+                glowStartedNs
+
+        val lowerOverlayStartedNs =
+            System.nanoTime()
+        drawBitmapLayer(
+            bitmap =
+                lowerOverlayBitmap,
+            alphaBlend = true,
+        )
+        var overlayNs =
+            System.nanoTime() -
+                lowerOverlayStartedNs
+
+        val frameStartedNs =
+            System.nanoTime()
+        drawFrame(
+            frame,
+        )
+        val frameNs =
+            System.nanoTime() -
+                frameStartedNs
+
+        val fxOverlayStartedNs =
+            System.nanoTime()
+        drawBitmapLayer(
+            bitmap =
+                fxOverlayBitmap,
+            alphaBlend = true,
+        )
+        overlayNs +=
+            System.nanoTime() -
+                fxOverlayStartedNs
+
+        val creatureStartedNs =
+            System.nanoTime()
+        drawCreature(
+            creature,
+        )
+        val creatureNs =
+            System.nanoTime() -
+                creatureStartedNs
+
+        val wordmarkStartedNs =
+            System.nanoTime()
+        drawWordmark(
+            wordmark,
+        )
+        val wordmarkNs =
+            System.nanoTime() -
+                wordmarkStartedNs
+
+        val topOverlayStartedNs =
+            System.nanoTime()
+        drawBitmapLayer(
+            bitmap =
+                topOverlayBitmap,
+            alphaBlend = true,
+        )
+        overlayNs +=
+            System.nanoTime() -
+                topOverlayStartedNs
+
+        finishFrame(
+            presentationTimeNs,
+        )
+
+        return EglCompositeDrawTiming(
+            projectMNs = projectMNs,
+            glowNs = glowNs,
+            frameNs = frameNs,
+            overlayNs = overlayNs,
+            creatureNs =
+                creatureNs,
+            wordmarkNs =
+                wordmarkNs,
+        )
+    }
+
     private fun validateBitmap(
         bitmap: Bitmap,
     ) {
@@ -1244,11 +1393,55 @@ class EglBitmapEncoderSurface(
     private fun drawFrame(
         frame: CyberSharkGpuFrame,
     ) {
+        frameTextureLoaded =
+            drawStaticBitmapLayer(
+                layer = frame,
+                texture = frameTextureId,
+                textureLoaded =
+                    frameTextureLoaded,
+                label = "frame",
+            )
+    }
+
+    private fun drawCreature(
+        creature: CyberSharkGpuFrame,
+    ) {
+        creatureTextureLoaded =
+            drawStaticBitmapLayer(
+                layer = creature,
+                texture =
+                    creatureTextureId,
+                textureLoaded =
+                    creatureTextureLoaded,
+                label = "creature",
+            )
+    }
+
+    private fun drawWordmark(
+        wordmark: CyberSharkGpuFrame,
+    ) {
+        wordmarkTextureLoaded =
+            drawStaticBitmapLayer(
+                layer = wordmark,
+                texture =
+                    wordmarkTextureId,
+                textureLoaded =
+                    wordmarkTextureLoaded,
+                label = "wordmark",
+            )
+    }
+
+    private fun drawStaticBitmapLayer(
+        layer: CyberSharkGpuFrame,
+        texture: Int,
+        textureLoaded: Boolean,
+        label: String,
+    ): Boolean {
         if (
-            frame.size <= 0f ||
-            frame.alpha <= 0f
+            layer.size <= 0f ||
+            layer.alpha <= 0f
         ) {
-            return
+            return textureLoaded
         }
 
         GLES20.glEnable(
@@ -1267,26 +1460,28 @@ class EglBitmapEncoderSurface(
         )
         GLES20.glBindTexture(
             GLES20.GL_TEXTURE_2D,
-            frameTextureId,
+            texture,
         )
 
-        if (!frameTextureLoaded) {
+        var loaded =
+            textureLoaded
+        if (!loaded) {
             GLUtils.texImage2D(
                 GLES20.GL_TEXTURE_2D,
                 0,
-                frame.bitmap,
+                layer.bitmap,
                 0,
             )
-            frameTextureLoaded =
+            loaded =
                 true
         }
 
         val half =
-            frame.size *
+            layer.size *
                 0.5f
         val radians =
             Math.toRadians(
-                frame
+                layer
                     .rotationDegrees
                     .toDouble(),
             )
@@ -1306,11 +1501,11 @@ class EglBitmapEncoderSurface(
             dy: Float,
         ): Pair<Float, Float> {
             val screenX =
-                frame.centerX +
+                layer.centerX +
                     dx * c -
                     dy * sn
             val screenY =
-                frame.centerY +
+                layer.centerY +
                     dx * sn +
                     dy * c
             val ndcX =
@@ -1384,7 +1579,7 @@ class EglBitmapEncoderSurface(
         )
         GLES20.glUniform1f(
             frameAlphaHandle,
-            frame.alpha,
+            layer.alpha,
         )
         GLES20.glDrawArrays(
             GLES20.GL_TRIANGLE_STRIP,
@@ -1392,8 +1587,10 @@ class EglBitmapEncoderSurface(
             4,
         )
         checkGl(
-            "GPU frame draw",
+            "GPU $label draw",
         )
+
+        return loaded
     }
 
     private fun drawGlow(
@@ -1635,11 +1832,13 @@ class EglBitmapEncoderSurface(
             }
 
             GLES20.glDeleteTextures(
-                3,
+                5,
                 intArrayOf(
                     textureId,
                     projectMTextureId,
                     frameTextureId,
+                    creatureTextureId,
+                    wordmarkTextureId,
                 ),
                 0,
             )

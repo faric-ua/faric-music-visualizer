@@ -1143,3 +1143,39 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Single next resume step:
   - install v0.19.21 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste the full timing block and report any visual difference.
 
+---
+
+## 2026-10-07 — v0.19.21 phone direct-FBO result — PERFORMANCE PASS / VISUAL QA PENDING
+
+- Phone: 1080x1920 / 90 frames.
+- projectM BGRA: GPU direct.
+- projectM provider: 808 ms.
+- composition: 3255 ms.
+- encoder: 597 ms.
+- GPU projectM: 13 ms.
+- GPU glow: 6 ms.
+- GPU frame: 11 ms.
+- GPU overlay: 394 ms.
+- audio: 432 ms; mux: 101 ms; save: 115 ms.
+- total: 6483 ms.
+- CPU composition:
+  - Cyber Shark 1282 ms;
+  - background 130 ms;
+  - frame 0 ms;
+  - FX 256 ms;
+  - creature 450 ms;
+  - wordmark 430 ms;
+  - effects 428 ms;
+  - HUD update 24 ms;
+  - HUD draw 1162 ms.
+- Compare v0.19.20:
+  - total 7258 -> 6483 ms (-775 ms / -10.7%);
+  - projectM provider 1716 -> 808 ms (-908 ms / -52.9%);
+  - encoder 862 -> 597 ms (-265 ms / -30.7%);
+  - composition 3228 -> 3255 ms (+27 ms / +0.8%, effectively unchanged);
+  - GPU projectM 135 -> 13 ms.
+- The old projectM readback block is absent, confirming the direct-FBO path and removal of glReadPixels from the guarded export path.
+- Performance conclusion: direct projectM FBO is accepted.
+- Overall visual acceptance remains pending because this phone report contained timings only.
+- New measured CPU target: Cyber Shark creature + wordmark = 880 ms combined; HUD draw = 1162 ms remains the largest individual layer.
+

@@ -1,5 +1,25 @@
 # Active Plan
 
+## CURRENT PRIORITY — v0.19.22 GPU creature + wordmark
+
+- [x] v0.19.21 phone performance PASS: total 6483 ms.
+- [x] Confirm projectM direct-FBO branch active: `projectM BGRA: GPU direct`.
+- [x] Confirm old glReadPixels/readback metrics absent.
+- [x] Identify current CPU composition targets: HUD draw 1162 ms; creature 450 ms; wordmark 430 ms.
+- [x] Defer HUD GPU rewrite because its modular SCREEN/text/spectrum/progress path is higher-risk.
+- [x] Reuse exact Cyber Shark bitmap-layer transform math for creature and wordmark.
+- [x] Add dedicated static EGL textures for creature and wordmark.
+- [x] Preserve z-order with separate FX and final effects+HUD overlays.
+- [x] Add guarded fallback to v0.19.21 frame-only path.
+- [x] Add `GPU creature` / `GPU wordmark` timings.
+- [x] Bump v0.19.22 / build 111.
+- [ ] Validate + Android PASS.
+- [ ] Write BUILD_CHECKPOINT immediately after successful Android build.
+- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [ ] Require CPU creature = 0 ms and wordmark = 0 ms, with GPU creature/wordmark > 0.
+- [ ] Compare composition / GPU overlay / encoder / total.
+- [ ] Visual QA: creature and wordmark position, scale, rotation, opacity, reaction and z-order.
+
 ## CURRENT PRIORITY — phone-test v0.19.21 direct projectM FBO
 
 - [x] v0.19.20 phone result: GPU frame PASS, wall-time neutral.

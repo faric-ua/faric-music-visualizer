@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 110
-        versionName = "0.19.21"
-        // v0.19.21 renders offline projectM directly into an encoder-context FBO.
+        versionCode = 111
+        versionName = "0.19.22"
+        // v0.19.22 composites Cyber Shark creature + wordmark on the encoder GPU surface.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

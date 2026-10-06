@@ -253,3 +253,26 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   2. confirm that PCM preparation is skipped;
   3. measure wall-clock render time from `Рендерю 3 секунди…` to `Готово`;
   4. upload the resulting 3-second MP4 to verify orientation/colors/audio/crop.
+
+
+---
+
+## 2026-10-06 — v0.19.5 / build 94 — export-stage timing diagnostics — Android PASS
+
+- Status: BUILD PASS / phone QA evidence received and analysis pending.
+- App/source commit: `44e8e6b17b9351a9799e6aaa080912f216d937bc`.
+- Android workflow: #472, attempt 1.
+- Workflow run id: `37401600257`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.5-Debug`.
+- Artifact id: `11385169289`.
+- Artifact digest: `sha256:5fe39a6870aa25c3c65dfba33765fc0e54f9ccd316faa59d0bdd89f72ea55f67`.
+- Validate: #784 — PASS on the same source SHA.
+- Successfully completed in this build:
+  - preserves v0.19.4 export geometry and current-position 3-second preview semantics;
+  - adds per-stage timings for projectM frame generation, composition, encoder submission, audio transcode, mux, publish/save, and total export wall-clock;
+  - surfaces the timing breakdown in the completion UI for phone-side bottleneck diagnosis.
+- Unverified at checkpoint time:
+  - exact timing values from the phone recording;
+  - whether projectM, composition, encoder, audio, mux, or save is the dominant stage.
+- Single next resume step:
+  - inspect phone evidence `447911.mp4` and `FARIC-preview-1791252342014.mp4`, record exact stage timings, verify output integrity, then choose the next optimization from measured bottleneck data.

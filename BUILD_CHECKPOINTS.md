@@ -276,3 +276,46 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   - whether projectM, composition, encoder, audio, mux, or save is the dominant stage.
 - Single next resume step:
   - inspect phone evidence `447911.mp4` and `FARIC-preview-1791252342014.mp4`, record exact stage timings, verify output integrity, then choose the next optimization from measured bottleneck data.
+
+
+---
+
+## 2026-10-06 — v0.19.6 / build 95 — persistent export timing dialog — Android PASS
+
+- Status: BUILD PASS / phone QA measured.
+- App/source commit: `a4309529161e40bc0e8dca3bf1686ee4807bd608`.
+- Android workflow: #474, attempt 1.
+- Workflow run id: `37402845096`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.6-Debug`.
+- Artifact id: `11385957232`.
+- Artifact digest: `sha256:0668f1aec77d529d4e0e3183d30fccd9c8fd7e6f8c93c09343a5e530278a0306`.
+- Validate #787 — PASS on the same source SHA.
+- Successfully completed in this build:
+  - replaces truncated timing Toast with a persistent result dialog;
+  - preserves v0.19.5 stage timing instrumentation;
+  - preserves v0.19.4 export geometry and current-position preview behavior.
+- Phone QA evidence:
+  - screen recording `447915.mp4`;
+  - exported preview `447916.mp4`.
+- Exact measured timings for a 3-second / 90-frame export:
+  - projectM: 1896 ms;
+  - composition: 11808 ms;
+  - encoder: 435 ms;
+  - audio: 424 ms;
+  - mux: 112 ms;
+  - save: 215 ms;
+  - total: 15575 ms.
+- Output verification:
+  - 1080x1920;
+  - 30 FPS;
+  - 90 frames;
+  - 3.000 s container duration;
+  - H.264 High ~12.4 Mbps;
+  - AAC LC stereo 48 kHz ~160 kbps;
+  - orientation/colors/composition appear correct.
+- Performance conclusion:
+  - composition is the dominant bottleneck (~75.8% of total wall-clock);
+  - projectM is secondary (~12.2%);
+  - encoder/audio/mux/save are minor.
+- Single next resume step:
+  - instrument `CompositionExportRenderer` internally (projectM draw / background layers / GF-Cyber-Shark / PulseDeck-HUD / overlays or equivalent actual render groups) and run one more 3-second preview before choosing the next optimization.

@@ -1712,3 +1712,34 @@ Observed:
 Required next phone test: immediately rerun the same 3-second preview on the same track without restarting the app or rerunning offline analysis. The second run should reuse PCM cache and give an apples-to-apples comparison with the v0.19.3 ~16-second render baseline.
 
 Also upload the finished 3-second MP4 for orientation/color/audio/crop inspection.
+
+
+### v0.19.4 phone QA — warm-cache result
+
+Evidence:
+- screen recording: `447899.mp4`;
+- exported preview: `FARIC-preview-1791251406632.mp4`.
+
+Observed warm-cache path:
+- PCM preparation is only a brief transition;
+- `Рендерю 3 секунди…` starts at roughly 2 s in the screen recording;
+- completion appears at roughly 18 s;
+- effective render wall-clock is about 15.5-16 s.
+
+Conclusion:
+- no meaningful speed improvement versus v0.19.3 (~16 s);
+- export-geometry optimization is visually correct but is not the dominant bottleneck.
+
+Output verification:
+- 1080x1920;
+- 30 FPS;
+- 90 video frames;
+- video duration 3.000 s;
+- container/audio duration 3.008 s;
+- H.264 High, ~12.45 Mbps;
+- AAC LC stereo 48 kHz, ~160.8 kbps;
+- preview starts at the current playback position (~0:31) and advances to ~0:34;
+- orientation/colors/crop appear correct.
+
+Next resume step:
+use the prepared `perf/export-stage-timing` instrumentation to measure projectM, composition, encoder submit, audio transcode, mux, publish, and total times before choosing the next optimization.

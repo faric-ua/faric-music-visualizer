@@ -5276,6 +5276,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             ?.offlineReadbackChannelsAreCorrect() ==
                             true
                     },
+                    projectMOfflineTimingProvider = {
+                        projectMView
+                            ?.offlineTimingSnapshot()
+                    },
                     requestedDurationMs =
                         requestedDurationMs,
                     fps =
@@ -6245,6 +6249,32 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         "fallback"
                     },
                 )
+
+                result.projectMOfflineStages
+                    ?.let { stages ->
+                        append("\nprojectM internals")
+                        append("\nqueue wait: ")
+                        append(
+                            stages.queueWaitMs,
+                        )
+                        append(" ms")
+                        append("\nnative render: ")
+                        append(
+                            stages.nativeRenderMs,
+                        )
+                        append(" ms")
+                        append("\nglReadPixels: ")
+                        append(
+                            stages.readPixelsMs,
+                        )
+                        append(" ms")
+                        append("\nbitmap copy: ")
+                        append(
+                            stages.bitmapCopyMs,
+                        )
+                        append(" ms")
+                    }
+
                 append("\nencoder: ")
                 append(
                     result.encoderSubmitMs,

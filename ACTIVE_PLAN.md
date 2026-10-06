@@ -1221,3 +1221,12 @@ Implementation:
 - Compared with v0.19.7: projectM draw -74.6%, composition -37.9%, total -11.1%; colors/orientation remain correct.
 - v0.19.9 / build 98 optimizes Cyber Shark by bypassing full-screen saveLayerAlpha when effective opacity is 100%, preserving the previous path for partial opacity.
 - Next: wait for Android #485 PASS, checkpoint it, then phone test one 3-second preview and compare Cyber Shark/composition/total against v0.19.8.
+
+
+### v0.19.9 phone result / v0.19.10 next
+- v0.19.9 phone timing: projectM 5005; composition 6860; encoder 539; audio 498; mux 103; save 240; total 14031 ms.
+- Composition layers: clear 58; projectM draw 1640; Cyber Shark 3523; effects 432; HUD update 24; HUD draw 1176 ms.
+- Compared with v0.19.8: Cyber Shark 4676 -> 3523 ms (~24.7% faster); composition 8077 -> 6860 ms (~15.1% faster); total 15118 -> 14031 ms (~7.2% faster).
+- Largest remaining stage is projectM generation/readback (~5.0 s).
+- v0.19.10 / build 99 splits projectM provider cost into queue wait, native render, glReadPixels, and Bitmap.copyPixelsFromBuffer.
+- Next phone test after Android PASS: one warm-cache 3-second preview and send the timing dialog.

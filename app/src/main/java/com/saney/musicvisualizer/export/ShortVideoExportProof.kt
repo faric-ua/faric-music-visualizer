@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import com.saney.musicvisualizer.projectm.ProjectMOfflineTiming
 import com.saney.musicvisualizer.theme.HeroThemeRenderer
 import com.saney.musicvisualizer.theme.MusicVideoProject
 import com.saney.musicvisualizer.theme.ThemeInput
@@ -41,6 +42,8 @@ object ShortVideoExportProof {
             CompositionStageTiming?,
         val projectMDirectBgra:
             Boolean,
+        val projectMOfflineStages:
+            ProjectMOfflineTiming?,
     )
 
     private const val MIME = "video/avc"
@@ -64,6 +67,8 @@ object ShortVideoExportProof {
             ((Int, Long) -> Bitmap?)? = null,
         projectMRawChannelsCorrectProvider:
             (() -> Boolean)? = null,
+        projectMOfflineTimingProvider:
+            (() -> ProjectMOfflineTiming?)? = null,
         requestedDurationMs: Long =
             DEFAULT_DURATION_MS,
         fps: Int =
@@ -636,6 +641,9 @@ object ShortVideoExportProof {
                         ?.timingSnapshot(),
                 projectMDirectBgra =
                     projectMDirectBgra,
+                projectMOfflineStages =
+                    projectMOfflineTimingProvider
+                        ?.invoke(),
             )
         } finally {
             videoTemp.delete()

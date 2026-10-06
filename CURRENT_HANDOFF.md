@@ -1883,3 +1883,21 @@ Resume:
 5. run one warm-cache 3-second preview;
 6. compare Cyber Shark / composition / total against v0.19.8 values 4676 / 8077 / 15118 ms;
 7. if Cyber Shark remains dominant, profile/optimize its background vs bitmap layers vs FX next.
+
+
+### Current resume point — v0.19.10 projectM offline profiler
+
+v0.19.9 is phone-accepted for performance:
+- projectM 5005 ms;
+- composition 6860 ms;
+- projectM draw 1640 ms;
+- Cyber Shark 3523 ms;
+- HUD draw 1176 ms;
+- total 14031 ms.
+- Cyber Shark opaque saveLayer optimization reduced Cyber Shark by ~24.7% and total by ~7.2%.
+
+Current candidate:
+- v0.19.10 / build 99;
+- adds projectM offline internals: queue wait, native render, glReadPixels, Bitmap copy;
+- no intentional visual/export behavior change;
+- after build PASS, one warm-cache 3-second preview is enough to identify the next projectM optimization.

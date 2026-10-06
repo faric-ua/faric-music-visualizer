@@ -15,6 +15,13 @@ import kotlin.math.roundToInt
 import javax.microedition.khronos.egl.EGLConfig
 import javax.microedition.khronos.opengles.GL10
 
+data class ProjectMOfflineTiming(
+    val queueWaitMs: Long,
+    val nativeRenderMs: Long,
+    val readPixelsMs: Long,
+    val bitmapCopyMs: Long,
+)
+
 class ProjectMView(
     context: Context,
     private val initialPreset: File,
@@ -52,9 +59,35 @@ class ProjectMView(
         Boolean? =
         null
 
+    private var offlineQueueWaitNs =
+        0L
+    private var offlineNativeRenderNs =
+        0L
+    private var offlineReadPixelsNs =
+        0L
+    private var offlineBitmapCopyNs =
+        0L
+
     fun offlineReadbackChannelsAreCorrect():
         Boolean =
         offlineReadbackChannelsCorrect
+
+    fun offlineTimingSnapshot():
+        ProjectMOfflineTiming =
+        ProjectMOfflineTiming(
+            queueWaitMs =
+                offlineQueueWaitNs /
+                    1_000_000L,
+            nativeRenderMs =
+                offlineNativeRenderNs /
+                    1_000_000L,
+            readPixelsMs =
+                offlineReadPixelsNs /
+                    1_000_000L,
+            bitmapCopyMs =
+                offlineBitmapCopyNs /
+                    1_000_000L,
+        )
 
     init {
         setEGLContextClientVersion(2)
@@ -342,6 +375,15 @@ class ProjectMView(
             )
 
         queueEvent {
+            offlineQueueWaitNs =
+                0L
+            offlineNativeRenderNs =
+                0L
+            offlineReadPixelsNs =
+                0L
+            offlineBitmapCopyNs =
+                0L
+
             ProjectMBridge.destroy()
             ProjectMBridge.beginOfflineExport()
             ProjectMBridge.create(
@@ -397,6 +439,9 @@ class ProjectMView(
             return null
         }
 
+        val requestStartedNs =
+            System.nanoTime()
+
         val latch =
             CountDownLatch(
                 1,
@@ -406,6 +451,10 @@ class ProjectMView(
             null
 
         queueEvent {
+            offlineQueueWaitNs +=
+                System.nanoTime() -
+                    requestStartedNs
+
             ProjectMBridge.beginOfflineExport()
             ProjectMBridge.setFrameTime(
                 frameTimeSeconds,
@@ -459,7 +508,16 @@ class ProjectMView(
     ): Bitmap? =
         runCatching {
             if (renderFirst) {
+                val renderStartedNs =
+                    System.nanoTime()
+
                 ProjectMBridge.render()
+
+                if (reuseOfflineBuffers) {
+                    offlineNativeRenderNs +=
+                        System.nanoTime() -
+                            renderStartedNs
+                }
             }
 
             val pixelCount =
@@ -500,6 +558,13 @@ class ProjectMView(
 
             // glReadPixels is synchronous for the requested framebuffer data,
             // so the offline hot path does not need a separate glFinish().
+            val readPixelsStartedNs =
+                if (reuseOfflineBuffers) {
+                    System.nanoTime()
+                } else {
+                    0L
+                }
+
             if (
                 reuseOfflineBuffers &&
                 supportsBgraReadback()
@@ -556,6 +621,12 @@ class ProjectMView(
             }
 
             if (reuseOfflineBuffers) {
+                offlineReadPixelsNs +=
+                    System.nanoTime() -
+                        readPixelsStartedNs
+            }
+
+            if (reuseOfflineBuffers) {
                 val bitmap =
                     offlineReadbackBitmap
                         ?: error(
@@ -570,9 +641,18 @@ class ProjectMView(
                 buffer.position(
                     0,
                 )
+
+                val copyStartedNs =
+                    System.nanoTime()
+
                 bitmap.copyPixelsFromBuffer(
                     buffer,
                 )
+
+                offlineBitmapCopyNs +=
+                    System.nanoTime() -
+                        copyStartedNs
+
                 bitmap
             } else {
                 val pixels =

@@ -193,6 +193,8 @@ class CompositionExportRenderer(
         playing: Boolean = true,
         projectMFrameOverride:
             Bitmap? = null,
+        projectMRawChannelsCorrect:
+            Boolean = false,
     ) {
         val clearStartedNs =
             System.nanoTime()
@@ -226,6 +228,8 @@ class CompositionExportRenderer(
                 rawGlFrame =
                     projectMFrameOverride !=
                         null,
+                rawChannelsCorrect =
+                    projectMRawChannelsCorrect,
             )
 
             projectMDrawNs +=
@@ -435,6 +439,7 @@ class CompositionExportRenderer(
         height: Int,
         bitmap: Bitmap,
         rawGlFrame: Boolean,
+        rawChannelsCorrect: Boolean,
     ) {
         if (
             bitmap.width <= 0 ||
@@ -499,7 +504,11 @@ class CompositionExportRenderer(
                 bitmap,
                 null,
                 destination,
-                projectMRawGlPaint,
+                if (rawChannelsCorrect) {
+                    projectMPaint
+                } else {
+                    projectMRawGlPaint
+                },
             )
             canvas.restore()
         } else {

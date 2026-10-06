@@ -827,3 +827,23 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Single next resume step:
   - install v0.19.16 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste the timing block, and report whether the glow still looks smooth.
 
+---
+
+## 2026-10-06 — v0.19.16 phone unfiltered-glow result — PERFORMANCE NO-OP
+
+- App/source SHA: `ae32d61ae81b178e8437adf9fdc85e037c6df189`.
+- Phone: 1080x1920 / 90 frames.
+- projectM 104 ms; composition 7379 ms; total 9450 ms.
+- Cyber Shark 3927 ms.
+- Background 1754 ms.
+- Glow 1662 ms = render 265 ms + composite 1396 ms.
+- Frame 1042 ms; FX 214 ms; creature 463 ms; wordmark 439 ms.
+- Compare v0.19.15:
+  - total 9454 -> 9450 ms (effectively unchanged);
+  - glow composite 1397 -> 1396 ms;
+  - glow total 1663 -> 1662 ms.
+- Conclusion: removing FILTER_BITMAP_FLAG does not reduce the target cost. The large software destination composite itself is the bottleneck.
+- The lower Cyber Shark total came mainly from normal frame-layer run variance, not from the glow change.
+- Visual QA for unfiltered scaling was not explicitly reported; the candidate is rejected on performance grounds regardless.
+- Next: move only the radial glow between CPU base/overlay passes onto the existing encoder EGL/GLES2 surface.
+

@@ -1,5 +1,17 @@
 # FARIC Music Visualizer — START HERE
 
+## LATEST CANDIDATE — v0.19.17 / build 106 — hybrid GPU Cyber Shark glow
+
+- v0.19.16 proved software scaling/filtering tweaks are exhausted: glow composite remained 1396 ms and total remained ~9.45 s.
+- v0.19.17 splits composition into two CPU bitmaps only when the Cyber Shark background is visible:
+  - base: black + projectM + reactive + overlay + Big EQ;
+  - transparent upper overlay: Cyber Shark arcs/particles/frame/FX/creature/wordmark + effects + HUD.
+- The encoder EGL/GLES2 surface draws the radial Cyber Shark glow between those two textures with a shader, preserving layer order.
+- CPU fallback remains available if a GPU glow spec cannot be produced.
+- New profiler metrics: `GPU glow` and `GPU overlay`.
+- Final resolution/FPS, projectM overlap pipeline, audio, encoder format and object geometry are unchanged.
+- Phone QA must verify both performance and visual equivalence of glow color/brightness/radius/order.
+
 ## LATEST READY CANDIDATE — v0.19.16 / build 105 — unfiltered cached glow
 
 - App/source SHA: `ae32d61ae81b178e8437adf9fdc85e037c6df189`.

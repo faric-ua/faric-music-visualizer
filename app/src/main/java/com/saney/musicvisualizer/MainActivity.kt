@@ -6400,6 +6400,23 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     result.encoderSubmitMs,
                 )
                 append(" ms")
+                if (
+                    result.gpuGlowMs >
+                        0L ||
+                    result.gpuOverlayMs >
+                        0L
+                ) {
+                    append("\nGPU glow: ")
+                    append(
+                        result.gpuGlowMs,
+                    )
+                    append(" ms")
+                    append("\nGPU overlay: ")
+                    append(
+                        result.gpuOverlayMs,
+                    )
+                    append(" ms")
+                }
                 append("\naudio: ")
                 append(
                     result.audioTranscodeMs,

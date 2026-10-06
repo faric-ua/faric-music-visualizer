@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 105
-        versionName = "0.19.16"
-        // v0.19.16 avoids filtered software scaling for cached Cyber Shark glow.
+        versionCode = 106
+        versionName = "0.19.17"
+        // v0.19.17 composites Cyber Shark glow on the encoder GPU surface.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

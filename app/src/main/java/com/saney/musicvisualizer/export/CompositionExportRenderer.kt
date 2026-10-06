@@ -186,6 +186,264 @@ class CompositionExportRenderer(
                 pulseDeckDrawNs / 1_000_000L,
         )
 
+    fun gpuCyberSharkGlow():
+        CyberSharkGpuGlow? =
+        cyberSharkRenderer
+            .gpuGlowSnapshot()
+
+    fun renderBeforeCyberShark(
+        canvas: Canvas,
+        width: Int,
+        height: Int,
+        timeMs: Long,
+        signal: SceneSignal,
+        projectMFrameOverride:
+            Bitmap? = null,
+        projectMRawChannelsCorrect:
+            Boolean = false,
+    ) {
+        val clearStartedNs =
+            System.nanoTime()
+
+        canvas.drawColor(
+            Color.BLACK,
+        )
+
+        clearNs +=
+            System.nanoTime() -
+                clearStartedNs
+
+        val projectMFrame =
+            projectMFrameOverride
+                ?: config.projectMFrame
+
+        if (
+            config.projectMVisible &&
+            projectMFrame != null
+        ) {
+            val startedNs =
+                System.nanoTime()
+
+            drawProjectMFrame(
+                canvas = canvas,
+                width = width,
+                height = height,
+                bitmap =
+                    projectMFrame,
+                rawGlFrame =
+                    projectMFrameOverride !=
+                        null,
+                rawChannelsCorrect =
+                    projectMRawChannelsCorrect,
+            )
+
+            projectMDrawNs +=
+                System.nanoTime() -
+                    startedNs
+        }
+
+        if (config.faricReactiveVisible) {
+            val startedNs =
+                System.nanoTime()
+
+            sceneRenderer
+                .renderVisualizer(
+                    canvas = canvas,
+                    width = width,
+                    height = height,
+                    timeMs = timeMs,
+                    signal = signal,
+                    scene = config.scene,
+                )
+
+            faricReactiveNs +=
+                System.nanoTime() -
+                    startedNs
+        }
+
+        if (
+            config
+                .overVisualizationVisible
+        ) {
+            val startedNs =
+                System.nanoTime()
+
+            overVisualizationRenderer
+                .render(
+                    canvas = canvas,
+                    width = width,
+                    height = height,
+                )
+
+            overVisualizationNs +=
+                System.nanoTime() -
+                    startedNs
+        }
+
+        if (
+            config
+                .bigEqualizerVisible
+        ) {
+            val startedNs =
+                System.nanoTime()
+
+            bigEqualizerRenderer
+                .render(
+                    canvas = canvas,
+                    width = width,
+                    height = height,
+                    signal = signal,
+                )
+
+            bigEqualizerNs +=
+                System.nanoTime() -
+                    startedNs
+        }
+    }
+
+    fun renderAfterCyberSharkGlow(
+        canvas: Canvas,
+        width: Int,
+        height: Int,
+        timeMs: Long,
+        signal: SceneSignal,
+        title: String,
+        artist: String,
+        durationMs: Long,
+        playing: Boolean = true,
+    ) {
+        if (
+            config
+                .graphicFiguresVisible
+        ) {
+            val startedNs =
+                System.nanoTime()
+
+            cyberSharkRenderer
+                .render(
+                    canvas = canvas,
+                    width = width,
+                    height = height,
+                    timeMs = timeMs,
+                    signal = signal,
+                    config =
+                        config
+                            .cyberSharkConfig,
+                    skipBackgroundGlow =
+                        true,
+                )
+
+            cyberSharkNs +=
+                System.nanoTime() -
+                    startedNs
+        }
+
+        if (
+            config
+                .effectsVisible
+        ) {
+            val startedNs =
+                System.nanoTime()
+
+            sceneRenderer
+                .renderEffects(
+                    canvas = canvas,
+                    width = width,
+                    height = height,
+                    timeMs = timeMs,
+                    signal = signal,
+                    scene = config.scene,
+                )
+
+            effectsNs +=
+                System.nanoTime() -
+                    startedNs
+        }
+
+        pulseDeckView
+            ?.let { view ->
+                val updateStartedNs =
+                    System.nanoTime()
+
+                ensurePulseDeckSize(
+                    view = view,
+                    width = width,
+                    height = height,
+                )
+
+                view.updateSignal(
+                    signalForHud(
+                        signal = signal,
+                        timeMs = timeMs,
+                    ),
+                )
+                view.setPlaying(
+                    playing,
+                )
+
+                val safeDuration =
+                    durationMs
+                        .coerceAtLeast(
+                            1L,
+                        )
+
+                val safePosition =
+                    timeMs.coerceIn(
+                        0L,
+                        safeDuration,
+                    )
+
+                view.setPlaybackContent(
+                    title =
+                        title.ifBlank {
+                            "FARIC"
+                        },
+                    artist = artist,
+                    status =
+                        if (playing) {
+                            "Playing"
+                        } else {
+                            "Paused"
+                        },
+                    elapsed =
+                        formatTime(
+                            safePosition,
+                        ),
+                    total =
+                        formatTime(
+                            safeDuration,
+                        ),
+                    progressFraction =
+                        (
+                            safePosition
+                                .toDouble() /
+                                safeDuration
+                                    .toDouble()
+                            )
+                            .toFloat()
+                            .coerceIn(
+                                0f,
+                                1f,
+                            ),
+                )
+
+                pulseDeckUpdateNs +=
+                    System.nanoTime() -
+                        updateStartedNs
+
+                val drawStartedNs =
+                    System.nanoTime()
+
+                view.draw(
+                    canvas,
+                )
+
+                pulseDeckDrawNs +=
+                    System.nanoTime() -
+                        drawStartedNs
+            }
+    }
+
     fun render(
         canvas: Canvas,
         width: Int,

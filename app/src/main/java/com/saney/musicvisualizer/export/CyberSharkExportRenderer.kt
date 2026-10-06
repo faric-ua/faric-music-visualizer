@@ -5,6 +5,7 @@ import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
+import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.PorterDuff
@@ -23,6 +24,7 @@ import com.saney.musicvisualizer.board.BoardLayerTransform
 import com.saney.musicvisualizer.board.BoardTransform
 import kotlin.math.PI
 import kotlin.math.cos
+import kotlin.math.hypot
 import kotlin.math.min
 import kotlin.math.sin
 
@@ -31,6 +33,15 @@ data class CyberSharkExportConfig(
     val groupReaction: BoardGroupReaction,
     val layerTransforms: Map<BoardLayerId, BoardLayerTransform>,
     val visibility: Map<BoardLayerId, Boolean>,
+)
+
+data class CyberSharkGpuGlow(
+    val centerX: Float,
+    val centerY: Float,
+    val circleRadius: Float,
+    val gradientRadius: Float,
+    val centerAlpha: Float,
+    val midAlpha: Float,
 )
 
 data class CyberSharkStageTiming(
@@ -117,6 +128,14 @@ class CyberSharkExportRenderer(
         0L
     private var wordmarkNs =
         0L
+
+    private var latestGpuGlow:
+        CyberSharkGpuGlow? =
+        null
+
+    fun gpuGlowSnapshot():
+        CyberSharkGpuGlow? =
+        latestGpuGlow
 
     fun timingSnapshot():
         CyberSharkStageTiming =
@@ -215,7 +234,12 @@ class CyberSharkExportRenderer(
         timeMs: Long,
         signal: SceneSignal,
         config: CyberSharkExportConfig,
+        skipBackgroundGlow:
+            Boolean = false,
     ) {
+        latestGpuGlow =
+            null
+
         if (width <= 0 || height <= 0) return
 
         val w = width.toFloat()
@@ -311,6 +335,7 @@ class CyberSharkExportRenderer(
                 layerTransform(
                     BoardLayerId.BACKGROUND,
                 ),
+                skipBackgroundGlow,
             )
 
             backgroundNs +=
@@ -724,6 +749,7 @@ class CyberSharkExportRenderer(
         transform: BoardTransform,
         groupRotation: Float,
         layerTransform: BoardLayerTransform,
+        skipGlow: Boolean,
     ) {
         val setupStartedNs =
             System.nanoTime()
@@ -785,10 +811,98 @@ class CyberSharkExportRenderer(
             System.nanoTime() -
                 setupStartedNs
 
+        val gpuCircleRadius =
+            minSide *
+                0.69f
+        val gpuGradientRadius =
+            minSide *
+                (
+                    0.62f +
+                        signal.bass * 0.07f
+                    )
+
+        val glowPoints =
+            floatArrayOf(
+                cx,
+                cy,
+                cx + gpuCircleRadius,
+                cy,
+            )
+        val glowMatrix =
+            Matrix()
+        canvas.getMatrix(
+            glowMatrix,
+        )
+        glowMatrix.mapPoints(
+            glowPoints,
+        )
+
+        val mappedCircleRadius =
+            hypot(
+                (
+                    glowPoints[2] -
+                        glowPoints[0]
+                    ).toDouble(),
+                (
+                    glowPoints[3] -
+                        glowPoints[1]
+                    ).toDouble(),
+            ).toFloat()
+        val mappedGradientRadius =
+            mappedCircleRadius *
+                (
+                    gpuGradientRadius /
+                        gpuCircleRadius
+                    )
+        val layerOpacity =
+            layerAlpha /
+                255f
+
+        latestGpuGlow =
+            CyberSharkGpuGlow(
+                centerX =
+                    glowPoints[0],
+                centerY =
+                    glowPoints[1],
+                circleRadius =
+                    mappedCircleRadius,
+                gradientRadius =
+                    mappedGradientRadius,
+                centerAlpha =
+                    (
+                        (
+                            75f +
+                                signal.bass * 70f +
+                                signal.beatStrength * 45f
+                            )
+                            .coerceIn(
+                                0f,
+                                190f,
+                            ) /
+                            255f
+                        ) *
+                        layerOpacity,
+                midAlpha =
+                    (
+                        (
+                            28f +
+                                signal.high * 35f
+                            )
+                            .coerceIn(
+                                0f,
+                                100f,
+                            ) /
+                            255f
+                        ) *
+                        layerOpacity,
+            )
+
         val glowStartedNs =
             System.nanoTime()
-        val glowRenderStartedNs =
-            glowStartedNs
+
+        if (!skipGlow) {
+            val glowRenderStartedNs =
+                glowStartedNs
 
         glowCanvas.drawColor(
             Color.TRANSPARENT,
@@ -883,9 +997,10 @@ class CyberSharkExportRenderer(
             System.nanoTime() -
                 glowCompositeStartedNs
 
-        backgroundGlowNs +=
-            System.nanoTime() -
-                glowStartedNs
+            backgroundGlowNs +=
+                System.nanoTime() -
+                    glowStartedNs
+        }
 
         val arcsStartedNs =
             System.nanoTime()

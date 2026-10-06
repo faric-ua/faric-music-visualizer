@@ -4,6 +4,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
+import android.graphics.Color
 import android.media.MediaCodec
 import android.media.MediaCodecInfo
 import android.media.MediaCodecList
@@ -34,6 +35,8 @@ object ShortVideoExportProof {
         val projectMFrameMs: Long,
         val compositionMs: Long,
         val encoderSubmitMs: Long,
+        val gpuGlowMs: Long,
+        val gpuOverlayMs: Long,
         val audioTranscodeMs: Long,
         val muxMs: Long,
         val publishMs: Long,
@@ -183,6 +186,31 @@ object ShortVideoExportProof {
                 Bitmap.Config.ARGB_8888,
             )
 
+        val useGpuCyberSharkGlow =
+            compositionConfig
+                ?.let { config ->
+                    config
+                        .graphicFiguresVisible &&
+                        config
+                            .cyberSharkConfig
+                            .visibility[
+                                com.saney.musicvisualizer.board
+                                    .BoardLayerId.BACKGROUND
+                            ] != false
+                } ==
+                true
+
+        val overlayBitmap =
+            if (useGpuCyberSharkGlow) {
+                Bitmap.createBitmap(
+                    width,
+                    height,
+                    Bitmap.Config.ARGB_8888,
+                )
+            } else {
+                null
+            }
+
         val cyberSharkRenderer =
             if (
                 project.themeId ==
@@ -215,6 +243,10 @@ object ShortVideoExportProof {
         var compositionNs =
             0L
         var encoderSubmitNs =
+            0L
+        var gpuGlowNs =
+            0L
+        var gpuOverlayNs =
             0L
         var projectMDirectBgra =
             false
@@ -398,25 +430,101 @@ object ShortVideoExportProof {
                 val compositionStartedNs =
                     System.nanoTime()
 
+                var gpuGlow:
+                    CyberSharkGpuGlow? =
+                    null
+
                 if (
                     compositionRenderer != null
                 ) {
-                    compositionRenderer.render(
-                        canvas = canvas,
-                        width = width,
-                        height = height,
-                        timeMs = frameTimeMs,
-                        signal = signal,
-                        title = title,
-                        artist = artist,
-                        durationMs =
-                            analysis.durationMs,
-                        playing = true,
-                        projectMFrameOverride =
-                            dynamicProjectMFrame,
-                        projectMRawChannelsCorrect =
-                            projectMDirectBgra,
-                    )
+                    if (
+                        useGpuCyberSharkGlow &&
+                        overlayBitmap != null
+                    ) {
+                        compositionRenderer
+                            .renderBeforeCyberShark(
+                                canvas = canvas,
+                                width = width,
+                                height = height,
+                                timeMs =
+                                    frameTimeMs,
+                                signal = signal,
+                                projectMFrameOverride =
+                                    dynamicProjectMFrame,
+                                projectMRawChannelsCorrect =
+                                    projectMDirectBgra,
+                            )
+
+                        overlayBitmap.eraseColor(
+                            Color.TRANSPARENT,
+                        )
+
+                        compositionRenderer
+                            .renderAfterCyberSharkGlow(
+                                canvas =
+                                    Canvas(
+                                        overlayBitmap,
+                                    ),
+                                width = width,
+                                height = height,
+                                timeMs =
+                                    frameTimeMs,
+                                signal = signal,
+                                title = title,
+                                artist = artist,
+                                durationMs =
+                                    analysis.durationMs,
+                                playing = true,
+                            )
+
+                        gpuGlow =
+                            compositionRenderer
+                                .gpuCyberSharkGlow()
+
+                        if (gpuGlow == null) {
+                            bitmap.eraseColor(
+                                Color.BLACK,
+                            )
+                            compositionRenderer
+                                .render(
+                                    canvas =
+                                        Canvas(
+                                            bitmap,
+                                        ),
+                                    width = width,
+                                    height = height,
+                                    timeMs =
+                                        frameTimeMs,
+                                    signal = signal,
+                                    title = title,
+                                    artist = artist,
+                                    durationMs =
+                                        analysis.durationMs,
+                                    playing = true,
+                                    projectMFrameOverride =
+                                        dynamicProjectMFrame,
+                                    projectMRawChannelsCorrect =
+                                        projectMDirectBgra,
+                                )
+                        }
+                    } else {
+                        compositionRenderer.render(
+                            canvas = canvas,
+                            width = width,
+                            height = height,
+                            timeMs = frameTimeMs,
+                            signal = signal,
+                            title = title,
+                            artist = artist,
+                            durationMs =
+                                analysis.durationMs,
+                            playing = true,
+                            projectMFrameOverride =
+                                dynamicProjectMFrame,
+                            projectMRawChannelsCorrect =
+                                projectMDirectBgra,
+                        )
+                    }
                 } else if (
                     cyberSharkRenderer != null &&
                     cyberSharkConfig != null
@@ -467,17 +575,46 @@ object ShortVideoExportProof {
                 val encoderStartedNs =
                     System.nanoTime()
 
-                encoderSurface
-                    ?.draw(
-                        bitmap = bitmap,
-                        presentationTimeNs =
-                            frameIndex *
-                                1_000_000_000L /
-                                safeFps,
-                    )
-                    ?: error(
-                        "Encoder EGL surface unavailable",
-                    )
+                val presentationTimeNs =
+                    frameIndex *
+                        1_000_000_000L /
+                        safeFps
+
+                val activeEncoderSurface =
+                    encoderSurface
+                        ?: error(
+                            "Encoder EGL surface unavailable",
+                        )
+
+                if (
+                    gpuGlow != null &&
+                    overlayBitmap != null
+                ) {
+                    val gpuTiming =
+                        activeEncoderSurface
+                            .drawComposite(
+                                baseBitmap =
+                                    bitmap,
+                                overlayBitmap =
+                                    overlayBitmap,
+                                glow =
+                                    gpuGlow,
+                                presentationTimeNs =
+                                    presentationTimeNs,
+                            )
+
+                    gpuGlowNs +=
+                        gpuTiming.glowNs
+                    gpuOverlayNs +=
+                        gpuTiming.overlayNs
+                } else {
+                    activeEncoderSurface
+                        .draw(
+                            bitmap = bitmap,
+                            presentationTimeNs =
+                                presentationTimeNs,
+                        )
+                }
 
                 drain(
                     waitForEos = false,
@@ -512,6 +649,8 @@ object ShortVideoExportProof {
             onProgress(78)
         } finally {
             bitmap.recycle()
+            overlayBitmap
+                ?.recycle()
 
             runCatching {
                 encoderSurface
@@ -623,6 +762,12 @@ object ShortVideoExportProof {
                         1_000_000L,
                 encoderSubmitMs =
                     encoderSubmitNs /
+                        1_000_000L,
+                gpuGlowMs =
+                    gpuGlowNs /
+                        1_000_000L,
+                gpuOverlayMs =
+                    gpuOverlayNs /
                         1_000_000L,
                 audioTranscodeMs =
                     audioTranscodeMs,

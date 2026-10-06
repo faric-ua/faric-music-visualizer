@@ -21,6 +21,11 @@ import java.nio.FloatBuffer
  * from the full-song export hot path. The encoder receives RGBA through EGL and
  * performs its own hardware-native color conversion.
  */
+data class EglCompositeDrawTiming(
+    val glowNs: Long,
+    val overlayNs: Long,
+)
+
 class EglBitmapEncoderSurface(
     private val surface: Surface,
     private val width: Int,
@@ -35,6 +40,16 @@ class EglBitmapEncoderSurface(
     private val positionHandle: Int
     private val texCoordHandle: Int
     private val samplerHandle: Int
+
+    private val glowProgram: Int
+    private val glowPositionHandle: Int
+    private val glowTexCoordHandle: Int
+    private val glowCenterHandle: Int
+    private val glowViewportHandle: Int
+    private val glowCircleRadiusHandle: Int
+    private val glowGradientRadiusHandle: Int
+    private val glowCenterAlphaHandle: Int
+    private val glowMidAlphaHandle: Int
 
     private val vertexBuffer: FloatBuffer =
         floatBufferOf(
@@ -146,6 +161,52 @@ class EglBitmapEncoderSurface(
                 "uTexture",
             )
 
+        glowProgram =
+            createProgram(
+                VERTEX_SHADER,
+                GLOW_FRAGMENT_SHADER,
+            )
+        glowPositionHandle =
+            GLES20.glGetAttribLocation(
+                glowProgram,
+                "aPosition",
+            )
+        glowTexCoordHandle =
+            GLES20.glGetAttribLocation(
+                glowProgram,
+                "aTexCoord",
+            )
+        glowCenterHandle =
+            GLES20.glGetUniformLocation(
+                glowProgram,
+                "uCenterPx",
+            )
+        glowViewportHandle =
+            GLES20.glGetUniformLocation(
+                glowProgram,
+                "uViewportPx",
+            )
+        glowCircleRadiusHandle =
+            GLES20.glGetUniformLocation(
+                glowProgram,
+                "uCircleRadiusPx",
+            )
+        glowGradientRadiusHandle =
+            GLES20.glGetUniformLocation(
+                glowProgram,
+                "uGradientRadiusPx",
+            )
+        glowCenterAlphaHandle =
+            GLES20.glGetUniformLocation(
+                glowProgram,
+                "uCenterAlpha",
+            )
+        glowMidAlphaHandle =
+            GLES20.glGetUniformLocation(
+                glowProgram,
+                "uMidAlpha",
+            )
+
         val textureIds =
             IntArray(
                 1,
@@ -202,6 +263,76 @@ class EglBitmapEncoderSurface(
         bitmap: Bitmap,
         presentationTimeNs: Long,
     ) {
+        validateBitmap(
+            bitmap,
+        )
+        makeCurrent()
+        beginFrame()
+        drawBitmapLayer(
+            bitmap = bitmap,
+            alphaBlend = false,
+        )
+        finishFrame(
+            presentationTimeNs,
+        )
+    }
+
+    fun drawComposite(
+        baseBitmap: Bitmap,
+        overlayBitmap: Bitmap,
+        glow: CyberSharkGpuGlow,
+        presentationTimeNs: Long,
+    ): EglCompositeDrawTiming {
+        validateBitmap(
+            baseBitmap,
+        )
+        validateBitmap(
+            overlayBitmap,
+        )
+        makeCurrent()
+        beginFrame()
+
+        drawBitmapLayer(
+            bitmap = baseBitmap,
+            alphaBlend = false,
+        )
+
+        val glowStartedNs =
+            System.nanoTime()
+
+        drawGlow(
+            glow,
+        )
+
+        val glowNs =
+            System.nanoTime() -
+                glowStartedNs
+
+        val overlayStartedNs =
+            System.nanoTime()
+
+        drawBitmapLayer(
+            bitmap = overlayBitmap,
+            alphaBlend = true,
+        )
+
+        val overlayNs =
+            System.nanoTime() -
+                overlayStartedNs
+
+        finishFrame(
+            presentationTimeNs,
+        )
+
+        return EglCompositeDrawTiming(
+            glowNs = glowNs,
+            overlayNs = overlayNs,
+        )
+    }
+
+    private fun validateBitmap(
+        bitmap: Bitmap,
+    ) {
         check(
             bitmap.width == width &&
                 bitmap.height == height,
@@ -210,14 +341,20 @@ class EglBitmapEncoderSurface(
                 "${bitmap.width}x${bitmap.height} != " +
                 "${width}x${height}"
         }
+    }
 
-        makeCurrent()
-
+    private fun beginFrame() {
         GLES20.glViewport(
             0,
             0,
             width,
             height,
+        )
+        GLES20.glDisable(
+            GLES20.GL_BLEND,
+        )
+        GLES20.glDisable(
+            GLES20.GL_SCISSOR_TEST,
         )
         GLES20.glClearColor(
             0f,
@@ -228,11 +365,29 @@ class EglBitmapEncoderSurface(
         GLES20.glClear(
             GLES20.GL_COLOR_BUFFER_BIT,
         )
+    }
+
+    private fun drawBitmapLayer(
+        bitmap: Bitmap,
+        alphaBlend: Boolean,
+    ) {
+        if (alphaBlend) {
+            GLES20.glEnable(
+                GLES20.GL_BLEND,
+            )
+            GLES20.glBlendFunc(
+                GLES20.GL_ONE,
+                GLES20.GL_ONE_MINUS_SRC_ALPHA,
+            )
+        } else {
+            GLES20.glDisable(
+                GLES20.GL_BLEND,
+            )
+        }
 
         GLES20.glUseProgram(
             program,
         )
-
         GLES20.glActiveTexture(
             GLES20.GL_TEXTURE0,
         )
@@ -248,14 +403,168 @@ class EglBitmapEncoderSurface(
             bitmap,
         )
 
+        bindQuad(
+            positionHandle,
+            texCoordHandle,
+        )
+
+        GLES20.glUniform1i(
+            samplerHandle,
+            0,
+        )
+        GLES20.glDrawArrays(
+            GLES20.GL_TRIANGLE_STRIP,
+            0,
+            4,
+        )
+        checkGl(
+            if (alphaBlend) {
+                "overlay draw"
+            } else {
+                "frame draw"
+            },
+        )
+    }
+
+    private fun drawGlow(
+        glow: CyberSharkGpuGlow,
+    ) {
+        if (
+            glow.circleRadius <= 0f ||
+            glow.gradientRadius <= 0f ||
+            (
+                glow.centerAlpha <= 0f &&
+                    glow.midAlpha <= 0f
+                )
+        ) {
+            return
+        }
+
+        GLES20.glEnable(
+            GLES20.GL_BLEND,
+        )
+        GLES20.glBlendFunc(
+            GLES20.GL_ONE,
+            GLES20.GL_ONE_MINUS_SRC_ALPHA,
+        )
+
+        val left =
+            (
+                glow.centerX -
+                    glow.circleRadius
+                )
+                .toInt()
+                .coerceIn(
+                    0,
+                    width,
+                )
+        val right =
+            (
+                glow.centerX +
+                    glow.circleRadius
+                )
+                .toInt()
+                .coerceIn(
+                    0,
+                    width,
+                )
+        val top =
+            (
+                glow.centerY -
+                    glow.circleRadius
+                )
+                .toInt()
+                .coerceIn(
+                    0,
+                    height,
+                )
+        val bottom =
+            (
+                glow.centerY +
+                    glow.circleRadius
+                )
+                .toInt()
+                .coerceIn(
+                    0,
+                    height,
+                )
+
+        if (
+            right <= left ||
+            bottom <= top
+        ) {
+            return
+        }
+
+        GLES20.glEnable(
+            GLES20.GL_SCISSOR_TEST,
+        )
+        GLES20.glScissor(
+            left,
+            height - bottom,
+            right - left,
+            bottom - top,
+        )
+
+        GLES20.glUseProgram(
+            glowProgram,
+        )
+        bindQuad(
+            glowPositionHandle,
+            glowTexCoordHandle,
+        )
+        GLES20.glUniform2f(
+            glowCenterHandle,
+            glow.centerX,
+            glow.centerY,
+        )
+        GLES20.glUniform2f(
+            glowViewportHandle,
+            width.toFloat(),
+            height.toFloat(),
+        )
+        GLES20.glUniform1f(
+            glowCircleRadiusHandle,
+            glow.circleRadius,
+        )
+        GLES20.glUniform1f(
+            glowGradientRadiusHandle,
+            glow.gradientRadius,
+        )
+        GLES20.glUniform1f(
+            glowCenterAlphaHandle,
+            glow.centerAlpha,
+        )
+        GLES20.glUniform1f(
+            glowMidAlphaHandle,
+            glow.midAlpha,
+        )
+
+        GLES20.glDrawArrays(
+            GLES20.GL_TRIANGLE_STRIP,
+            0,
+            4,
+        )
+        GLES20.glDisable(
+            GLES20.GL_SCISSOR_TEST,
+        )
+        checkGl(
+            "GPU glow draw",
+        )
+    }
+
+    private fun bindQuad(
+        position: Int,
+        texCoord: Int,
+    ) {
         vertexBuffer.position(
             0,
         )
         GLES20.glEnableVertexAttribArray(
-            positionHandle,
+            position,
         )
         GLES20.glVertexAttribPointer(
-            positionHandle,
+            position,
             2,
             GLES20.GL_FLOAT,
             false,
@@ -267,29 +576,26 @@ class EglBitmapEncoderSurface(
             0,
         )
         GLES20.glEnableVertexAttribArray(
-            texCoordHandle,
+            texCoord,
         )
         GLES20.glVertexAttribPointer(
-            texCoordHandle,
+            texCoord,
             2,
             GLES20.GL_FLOAT,
             false,
             0,
             texCoordBuffer,
         )
+    }
 
-        GLES20.glUniform1i(
-            samplerHandle,
-            0,
+    private fun finishFrame(
+        presentationTimeNs: Long,
+    ) {
+        GLES20.glDisable(
+            GLES20.GL_BLEND,
         )
-
-        GLES20.glDrawArrays(
-            GLES20.GL_TRIANGLE_STRIP,
-            0,
-            4,
-        )
-        checkGl(
-            "frame draw",
+        GLES20.glDisable(
+            GLES20.GL_SCISSOR_TEST,
         )
 
         check(
@@ -337,6 +643,9 @@ class EglBitmapEncoderSurface(
             )
             GLES20.glDeleteProgram(
                 program,
+            )
+            GLES20.glDeleteProgram(
+                glowProgram,
             )
         }
 
@@ -566,6 +875,86 @@ class EglBitmapEncoderSurface(
 
             void main() {
                 gl_FragColor = texture2D(uTexture, vTexCoord);
+            }
+            """
+
+        private const val GLOW_FRAGMENT_SHADER =
+            """
+            precision mediump float;
+
+            uniform vec2 uCenterPx;
+            uniform vec2 uViewportPx;
+            uniform float uCircleRadiusPx;
+            uniform float uGradientRadiusPx;
+            uniform float uCenterAlpha;
+            uniform float uMidAlpha;
+
+            varying vec2 vTexCoord;
+
+            void main() {
+                vec2 pixel =
+                    vTexCoord *
+                    uViewportPx;
+                float distancePx =
+                    distance(
+                        pixel,
+                        uCenterPx
+                    );
+
+                if (
+                    distancePx >
+                        uCircleRadiusPx ||
+                    distancePx >=
+                        uGradientRadiusPx
+                ) {
+                    gl_FragColor =
+                        vec4(0.0);
+                    return;
+                }
+
+                float t =
+                    clamp(
+                        distancePx /
+                            uGradientRadiusPx,
+                        0.0,
+                        1.0
+                    );
+
+                vec4 centerColor =
+                    vec4(
+                        0.0,
+                        136.0 / 255.0,
+                        1.0,
+                        uCenterAlpha
+                    );
+                vec4 midColor =
+                    vec4(
+                        0.0,
+                        229.0 / 255.0,
+                        1.0,
+                        uMidAlpha
+                    );
+
+                vec4 color =
+                    t <= 0.46
+                        ? mix(
+                            centerColor,
+                            midColor,
+                            t / 0.46
+                        )
+                        : mix(
+                            midColor,
+                            vec4(0.0),
+                            (t - 0.46) /
+                                0.54
+                        );
+
+                gl_FragColor =
+                    vec4(
+                        color.rgb *
+                            color.a,
+                        color.a
+                    );
             }
             """
 

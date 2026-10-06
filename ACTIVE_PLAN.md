@@ -1,5 +1,19 @@
 # Active Plan
 
+## CURRENT PRIORITY — v0.19.17 hybrid GPU glow
+
+- [x] v0.19.16 phone result: glow composite 1396 ms, no improvement vs filtered 1397 ms.
+- [x] Reject unfiltered CPU composite as performance no-op.
+- [x] Split composition into base + transparent upper overlay.
+- [x] Draw Cyber Shark radial glow on existing encoder EGL/GLES2 surface between the two CPU textures.
+- [x] Preserve layer order and keep a correctness fallback.
+- [x] Add GPU glow / GPU overlay timings.
+- [x] Bump v0.19.17 / build 106.
+- [ ] Validate + Android PASS.
+- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [ ] Compare composition / encoder / GPU glow / GPU overlay / total.
+- [ ] Visual QA: glow color, brightness, radius, placement and ordering match previous output.
+
 ## CURRENT PRIORITY — phone-test v0.19.16 unfiltered glow
 
 - [x] v0.19.15 phone profile received.

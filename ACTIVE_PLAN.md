@@ -1,5 +1,17 @@
 # Active Plan
 
+## CURRENT PRIORITY — v0.19.14 Cyber Shark background profiler
+
+- [x] v0.19.13 phone sublayer profile received.
+- [x] Cyber Shark 4487 ms = background 1858 + frame 1475 + FX 273 + creature 445 + wordmark 423 ms.
+- [x] Background is the largest Cyber Shark sublayer.
+- [x] Add background-only profiler: setup/save / glow / arcs / particles / restore.
+- [x] Bump v0.19.14 / build 103.
+- [ ] Validate + Android PASS.
+- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [ ] Paste timing including `background internals`.
+- [ ] Optimize the largest measured background component; do not change output quality based on assumption.
+
 ## CURRENT PRIORITY — measure Cyber Shark sublayers on v0.19.13
 
 - [x] v0.19.12 performance PASS: total 9915 ms, projectM provider 107 ms.

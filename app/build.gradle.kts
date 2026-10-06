@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 102
-        versionName = "0.19.13"
-        // v0.19.13 profiles Cyber Shark export sublayers.
+        versionCode = 103
+        versionName = "0.19.14"
+        // v0.19.14 profiles Cyber Shark background internals.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

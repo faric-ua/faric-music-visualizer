@@ -677,3 +677,16 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Single next resume step:
   - install v0.19.13 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, copy the timing text and paste it into chat.
 
+---
+
+## 2026-10-06 — v0.19.13 phone diagnostic profile
+
+- App/source SHA: `8f374445a0dc566a924c5a275f42c9914664eba9`.
+- Phone: 1080x1920 / 90 frames.
+- projectM: 105 ms; composition: 7971 ms; total: 10069 ms; BGRA: yes.
+- projectM internals: queue 12 ms; native 733 ms; glReadPixels 4458 ms; bitmap copy 96 ms.
+- Cyber Shark: 4487 ms.
+- Cyber Shark internals: background 1858 ms; frame 1475 ms; FX 273 ms; creature 445 ms; wordmark 423 ms.
+- Performance conclusion: background is the largest measured Cyber Shark sublayer; frame is second.
+- Next: profile background internals before modifying its visuals or quality.
+

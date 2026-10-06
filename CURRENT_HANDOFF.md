@@ -1,5 +1,21 @@
 # Current Handoff
 
+## LATEST RESULT — v0.19.13 Cyber Shark sublayer profile — 2026-10-06
+
+- Phone: 1080x1920 / 90 frames.
+- projectM provider: 105 ms; glReadPixels 4458 ms; BGRA yes.
+- composition: 7971 ms; total: 10069 ms.
+- Cyber Shark: 4487 ms.
+- Cyber Shark internals:
+  - background 1858 ms;
+  - frame 1475 ms;
+  - FX 273 ms;
+  - creature 445 ms;
+  - wordmark 423 ms.
+- Result is stable versus v0.19.12 total 9915 ms; profiler overhead/regression is small enough for diagnosis.
+- Background is the largest Cyber Shark sublayer (~41% of Cyber Shark), with frame second (~33%).
+- Next candidate v0.19.14 adds background-only subprofiling for setup/save, radial glow, arcs, particles and restore; no intended visual change.
+
 ## LATEST CANDIDATE — v0.19.13 / build 102 — Cyber Shark profiler
 
 - App/source SHA: `8f374445a0dc566a924c5a275f42c9914664eba9`.

@@ -34,6 +34,11 @@ data class CyberSharkExportConfig(
 
 data class CyberSharkStageTiming(
     val backgroundMs: Long,
+    val backgroundSetupMs: Long,
+    val backgroundGlowMs: Long,
+    val backgroundArcsMs: Long,
+    val backgroundParticlesMs: Long,
+    val backgroundRestoreMs: Long,
     val frameMs: Long,
     val fxMs: Long,
     val creatureMs: Long,
@@ -61,6 +66,16 @@ class CyberSharkExportRenderer(
 
     private var backgroundNs =
         0L
+    private var backgroundSetupNs =
+        0L
+    private var backgroundGlowNs =
+        0L
+    private var backgroundArcsNs =
+        0L
+    private var backgroundParticlesNs =
+        0L
+    private var backgroundRestoreNs =
+        0L
     private var frameNs =
         0L
     private var fxNs =
@@ -75,6 +90,21 @@ class CyberSharkExportRenderer(
         CyberSharkStageTiming(
             backgroundMs =
                 backgroundNs /
+                    1_000_000L,
+            backgroundSetupMs =
+                backgroundSetupNs /
+                    1_000_000L,
+            backgroundGlowMs =
+                backgroundGlowNs /
+                    1_000_000L,
+            backgroundArcsMs =
+                backgroundArcsNs /
+                    1_000_000L,
+            backgroundParticlesMs =
+                backgroundParticlesNs /
+                    1_000_000L,
+            backgroundRestoreMs =
+                backgroundRestoreNs /
                     1_000_000L,
             frameMs =
                 frameNs /
@@ -656,6 +686,9 @@ class CyberSharkExportRenderer(
         groupRotation: Float,
         layerTransform: BoardLayerTransform,
     ) {
+        val setupStartedNs =
+            System.nanoTime()
+
         val layerCx =
             cx +
                 w *
@@ -709,6 +742,13 @@ class CyberSharkExportRenderer(
             cy,
         )
 
+        backgroundSetupNs +=
+            System.nanoTime() -
+                setupStartedNs
+
+        val glowStartedNs =
+            System.nanoTime()
+
         fill.shader =
             RadialGradient(
                 cx,
@@ -758,6 +798,13 @@ class CyberSharkExportRenderer(
             fill,
         )
         fill.shader = null
+
+        backgroundGlowNs +=
+            System.nanoTime() -
+                glowStartedNs
+
+        val arcsStartedNs =
+            System.nanoTime()
 
         repeat(3) { index ->
             val inset =
@@ -832,6 +879,13 @@ class CyberSharkExportRenderer(
             )
         }
 
+        backgroundArcsNs +=
+            System.nanoTime() -
+                arcsStartedNs
+
+        val particlesStartedNs =
+            System.nanoTime()
+
         repeat(34) { index ->
             val angle =
                 index *
@@ -896,9 +950,20 @@ class CyberSharkExportRenderer(
             )
         }
 
+        backgroundParticlesNs +=
+            System.nanoTime() -
+                particlesStartedNs
+
+        val restoreStartedNs =
+            System.nanoTime()
+
         canvas.restoreToCount(
             saveCount,
         )
+
+        backgroundRestoreNs +=
+            System.nanoTime() -
+                restoreStartedNs
     }
 
     private fun decode(

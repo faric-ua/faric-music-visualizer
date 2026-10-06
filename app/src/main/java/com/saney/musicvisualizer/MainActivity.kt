@@ -6464,6 +6464,32 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     cyber.backgroundMs,
                                 )
                                 append(" ms")
+                                append("\nbackground internals")
+                                append("\nsetup/save: ")
+                                append(
+                                    cyber.backgroundSetupMs,
+                                )
+                                append(" ms")
+                                append("\nglow: ")
+                                append(
+                                    cyber.backgroundGlowMs,
+                                )
+                                append(" ms")
+                                append("\narcs: ")
+                                append(
+                                    cyber.backgroundArcsMs,
+                                )
+                                append(" ms")
+                                append("\nparticles: ")
+                                append(
+                                    cyber.backgroundParticlesMs,
+                                )
+                                append(" ms")
+                                append("\nrestore: ")
+                                append(
+                                    cyber.backgroundRestoreMs,
+                                )
+                                append(" ms")
                                 append("\nframe: ")
                                 append(
                                     cyber.frameMs,

@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 93
-        versionName = "0.19.4"
-        // v0.19.4 export-geometry candidate; restart exact signed CI.
+        versionCode = 94
+        versionName = "0.19.5"
+        // v0.19.5 export-stage timing diagnostic candidate.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

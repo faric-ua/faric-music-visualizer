@@ -1,5 +1,19 @@
 # Active Plan
 
+## CURRENT PRIORITY — Cyber Shark sublayer profiler after v0.19.12 PASS
+
+- [x] v0.19.12 phone performance benchmark received.
+- [x] projectM provider wait 5295 -> 107 ms (-97.98%).
+- [x] total 14925 -> 9915 ms (-33.57%, ~1.51x faster).
+- [x] glReadPixels unchanged at ~4.42 s, confirming overlap works.
+- [x] New dominant stage is composition 7829 ms.
+- [x] Largest composition layer is Cyber Shark 4382 ms.
+- [ ] Do not guess the next Cyber Shark optimization.
+- [ ] Instrument Cyber Shark background / frame / FX / creature / wordmark separately.
+- [ ] Build next diagnostic candidate and run the same 3-second / 90-frame phone preview.
+- [ ] Optimize only the measured dominant Cyber Shark sublayer.
+- [ ] Full visual/audio acceptance of v0.19.12 remains pending explicit user confirmation.
+
 ## CURRENT PRIORITY — v0.19.12 readback/composition overlap
 
 - [x] v0.19.11 clipboard action copied the complete phone timing block into chat.

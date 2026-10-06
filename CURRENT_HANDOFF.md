@@ -1,5 +1,18 @@
 # Current Handoff
 
+## LATEST RESULT — v0.19.12 phone performance PASS — 2026-10-06
+
+- 1080x1920 / 90 frames.
+- projectM provider wait: **107 ms** versus 5295 ms baseline (-97.98%).
+- projectM internals stayed effectively unchanged: queue 17, native 756, glReadPixels 4420, bitmap copy 100 ms.
+- composition: 7829 ms.
+- total: **9915 ms** versus 14925 ms baseline (-5010 ms / -33.57%, ~1.51x faster).
+- projectM BGRA: yes.
+- Composition leaders: Cyber Shark 4382 ms; projectM draw 1729 ms; HUD draw 1167 ms.
+- Conclusion: the two-slot pipeline successfully overlaps projectM GPU->CPU readback with CPU composition. glReadPixels itself is still expensive but is mostly hidden from top-level wall time.
+- Performance QA is PASS. Full visual/audio phone acceptance is not claimed because the user did not explicitly report orientation/colors/frame order/audio in the benchmark message.
+- Next engineering step: add internal Cyber Shark timing (background / frame / FX / creature / wordmark) and optimize the measured dominant sublayer instead of guessing.
+
 ## LATEST HANDOFF — v0.19.12 / build 101 — 2026-10-06
 
 **Authoritative current state. The older resume block below is historical.**

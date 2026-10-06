@@ -603,3 +603,47 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   3. paste the copied timing block;
   4. compare top-level `projectM:`, `composition:`, `total:` and verify the picture/audio are correct.
 
+---
+
+## 2026-10-06 — v0.19.12 phone performance PASS
+
+- Candidate: v0.19.12 / build 101.
+- App/source SHA: `86750315d89c6ebb3b332e912ddc92a1759b3cbb`.
+- Phone benchmark: 1080x1920, 90 frames.
+- Exact timing:
+  - projectM provider wait: 107 ms;
+  - projectM internals: queue 17 ms, native render 756 ms, glReadPixels 4420 ms, bitmap copy 100 ms;
+  - composition: 7829 ms;
+  - encoder: 449 ms;
+  - audio: 456 ms;
+  - mux: 105 ms;
+  - save: 196 ms;
+  - total: 9915 ms;
+  - projectM BGRA: yes.
+- Composition layers:
+  - clear 104 ms;
+  - projectM draw 1729 ms;
+  - FARIC reactive 0 ms;
+  - overlay 0 ms;
+  - Big EQ 0 ms;
+  - Cyber Shark 4382 ms;
+  - effects 418 ms;
+  - HUD update 25 ms;
+  - HUD draw 1167 ms.
+- Comparison with the v0.19.11 phone baseline:
+  - projectM provider wait 5295 -> 107 ms (-97.98%);
+  - total 14925 -> 9915 ms (-5010 ms, -33.57%);
+  - wall-clock speedup ~1.51x;
+  - 3-second export factor improved from ~4.98x realtime to ~3.31x realtime;
+  - glReadPixels stayed essentially unchanged: 4421 -> 4420 ms, confirming the gain comes from overlap rather than a different readback cost.
+- Performance conclusion:
+  - two-slot readback/composition pipelining works on the Galaxy A54 exactly as intended;
+  - projectM synchronous readback is almost fully hidden behind CPU composition at provider level;
+  - composition is now the dominant wall-clock bottleneck;
+  - Cyber Shark is the largest measured composition layer at 4382 ms, followed by projectM draw 1729 ms and HUD draw 1167 ms.
+- Evidence boundary:
+  - performance benchmark is PASS;
+  - user did not explicitly report visual orientation/colors/frame-order/audio status in the same message, so full visual/audio phone acceptance remains unclaimed.
+- Single next engineering step:
+  - instrument Cyber Shark export internally (background / frame / FX / creature / wordmark) before changing rendering behavior, then optimize the measured dominant sublayer.
+

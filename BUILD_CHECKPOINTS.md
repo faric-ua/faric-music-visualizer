@@ -525,3 +525,38 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   - timing dialog should have a `Копіювати текст` action so results can be pasted directly into chat without screenshots.
 - Single next resume step:
   - ship the copy-to-clipboard timing-dialog action as a separate build, then pursue glReadPixels optimization independently.
+
+
+---
+
+## 2026-10-06 — v0.19.11 / build 100 — copy export timing text — Android PASS
+
+- Status: BUILD PASS / phone QA for the new clipboard button still pending.
+- App/source commit: `5b9c00b45993a01fe0be0922de8714db1c758e97`.
+- Android workflow: #487, attempt 1.
+- Workflow run id: `37485263497`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.11-Debug`.
+- Artifact id: `11423002180`.
+- Artifact digest: `sha256:1b4ccb6c9619073f8629082819cc521abe8a98f766f87df2e3f853a8cf9bc897`.
+- Validate #813 — PASS on the same source SHA.
+- Successfully completed in this build:
+  - export timing result dialog now has a persistent `Копіювати текст` button;
+  - the action copies the full timing block to Android clipboard;
+  - copying does not dismiss the dialog;
+  - `OK` remains the explicit close action;
+  - no intentional render/performance behavior changes versus v0.19.10.
+- Last accepted performance diagnosis from v0.19.10:
+  - projectM total 5270 ms;
+  - queue wait 16 ms;
+  - native render 730 ms;
+  - glReadPixels 4361 ms;
+  - bitmap copy 97 ms;
+  - total export 15287 ms;
+  - glReadPixels is the dominant projectM bottleneck.
+- Unverified phone QA:
+  - install v0.19.11;
+  - run one 3-second preview;
+  - tap `Копіювати текст`;
+  - paste the copied block into chat and confirm the dialog stays open.
+- Single next resume step:
+  - phone-accept the copy-to-clipboard UX, then continue performance work specifically on GPU->CPU projectM readback / `glReadPixels`.

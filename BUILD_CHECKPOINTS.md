@@ -909,3 +909,37 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Visual equivalence was not explicitly reported in the timing message; visual QA for v0.19.17 remains pending.
 - Next measured bottleneck: software Canvas projectM draw = 1708 ms.
 
+---
+
+## 2026-10-06 — v0.19.18 / build 107 — direct GPU projectM base — Android PASS
+
+- Status: BUILD PASS / phone performance + visual QA pending.
+- App/source commit: `655b367118787ca07d0d2654c56b12723005c3c6`.
+- Android workflow: #494, attempt 1.
+- Workflow run id: `37523326093`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.18-Debug`.
+- Artifact id: `11440804926`.
+- Artifact digest: `sha256:d9e50aa1069b216f12a80f86f7e8043112ef210ba321760e7c16c0bbd5cbcacf`.
+- Validate #831 — PASS on the same app/source SHA.
+- Implemented:
+  - keeps v0.19.17 hybrid GPU Cyber Shark glow unchanged;
+  - when the tested composition has no lower FARIC/overlay/Big-EQ layers, BGRA readback is correct and the projectM frame exactly matches export dimensions, the raw offline projectM Bitmap is uploaded directly as the encoder GPU base;
+  - raw GL framebuffer uses unflipped GL texture coordinates, avoiding the CPU Canvas vertical-flip/draw path;
+  - all non-qualifying configurations keep the established CPU fallback;
+  - adds `GPU projectM` timing.
+- Phone baseline from v0.19.17:
+  - total 8263 ms;
+  - composition 6028 ms;
+  - projectM draw 1708 ms;
+  - encoder 606 ms;
+  - GPU glow 6 ms;
+  - GPU overlay 252 ms.
+- Phone acceptance:
+  - projectM draw should become 0 ms in the tested qualifying scene;
+  - `GPU projectM` should appear;
+  - compare composition / encoder / total;
+  - visually verify projectM orientation, colors and framing;
+  - also verify the v0.19.17 GPU glow remains visually equivalent.
+- Single next resume step:
+  - install v0.19.18 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste the full timing block and report any visual orientation/color/glow issue.
+

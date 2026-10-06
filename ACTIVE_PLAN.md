@@ -1,6 +1,6 @@
 # Active Plan
 
-## CURRENT PRIORITY — v0.19.18 direct GPU projectM base
+## CURRENT PRIORITY — phone-test v0.19.18 direct GPU projectM base
 
 - [x] v0.19.17 phone performance PASS: total 8263 ms.
 - [x] GPU glow reduced CPU glow 1662 -> 0 ms; GPU glow = 6 ms.
@@ -9,9 +9,13 @@
 - [x] Add guarded direct raw-projectM GPU base path with GL-orientation correction.
 - [x] Keep CPU fallback for channel/dimension/layer-order cases that do not qualify.
 - [x] Add `GPU projectM` timing.
-- [x] Bump v0.19.18 / build 107.
-- [ ] Validate + Android PASS.
-- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [x] v0.19.18 / build 107.
+- [x] Validate #831 PASS on `655b367118787ca07d0d2654c56b12723005c3c6`.
+- [x] Android #494 PASS, run `37523326093`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.18-Debug`, id `11440804926`.
+- [x] BUILD_CHECKPOINT recorded.
+- [ ] Phone: Termux 3 -> 10 -> 8.
+- [ ] Same warm-cache 3-second / 90-frame preview.
 - [ ] Compare projectM draw / GPU projectM / composition / encoder / total.
 - [ ] Visual QA: projectM orientation, colors and framing; also re-check v0.19.17 GPU glow equivalence.
 

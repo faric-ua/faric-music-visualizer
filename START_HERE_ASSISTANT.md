@@ -1,19 +1,17 @@
 # FARIC Music Visualizer — START HERE
 
-## LATEST CANDIDATE — v0.19.18 / build 107 — direct GPU projectM base
+## LATEST READY CANDIDATE — v0.19.18 / build 107 — direct GPU projectM base
 
-- v0.19.17 phone performance PASS: total 8263 ms, composition 6028 ms, GPU glow 6 ms.
-- Largest current CPU composition cost is projectM draw = 1708 ms.
-- Export ProjectMView uses the exact export aspect dimensions through `manualRenderWidth/Height`, so the offline framebuffer already matches the encoder frame.
-- v0.19.18 directly uploads/draws the raw offline projectM Bitmap as the encoder GPU base when:
-  - Cyber Shark GPU-glow path is active;
-  - BGRA direct readback reports correct channels;
-  - projectM Bitmap dimensions equal export dimensions;
-  - FARIC reactive, over-visualization and Big EQ lower layers are all disabled.
-- Raw projectM uses GL-oriented texture coordinates, avoiding the CPU Canvas vertical flip.
-- If any condition is not met, the existing CPU projectM composition path remains the fallback.
-- New metric: `GPU projectM`.
-- GPU glow implementation from v0.19.17 is otherwise unchanged.
+- App/source SHA: `655b367118787ca07d0d2654c56b12723005c3c6`.
+- Android #494 PASS, run `37523326093`; Validate #831 PASS.
+- Artifact: `FARIC-Music-Visualizer-v0.19.18-Debug`, id `11440804926`, digest `sha256:d9e50aa1069b216f12a80f86f7e8043112ef210ba321760e7c16c0bbd5cbcacf`.
+- v0.19.17 phone performance PASS: total 8263 ms, composition 6028 ms, projectM draw 1708 ms, GPU glow 6 ms.
+- v0.19.18 directly uses the exact-size raw offline projectM framebuffer as the encoder GPU base only when BGRA is correct and lower pre-Cyber-Shark layers are disabled; otherwise CPU fallback remains.
+- Raw GL orientation is handled in texture coordinates rather than Canvas.
+- New profiler metric: `GPU projectM`.
+- GPU Cyber Shark glow path from v0.19.17 is unchanged.
+- BUILD_CHECKPOINT recorded.
+- Next phone action: Termux 3 -> 10 -> 8; same warm-cache 3-second / 90-frame preview; paste full timing and report any projectM orientation/color/framing or glow difference.
 
 ## LATEST READY CANDIDATE — v0.19.17 / build 106 — hybrid GPU Cyber Shark glow
 

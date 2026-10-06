@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 97
-        versionName = "0.19.8"
-        // v0.19.8 projectM BGRA readback optimization candidate.
+        versionCode = 98
+        versionName = "0.19.9"
+        // v0.19.9 Cyber Shark opaque saveLayer optimization candidate.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

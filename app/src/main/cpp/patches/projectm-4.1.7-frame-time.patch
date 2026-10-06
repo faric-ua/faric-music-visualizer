@@ -78,23 +78,21 @@ diff --git a/src/libprojectM/TimeKeeper.cpp b/src/libprojectM/TimeKeeper.cpp
 diff --git a/src/libprojectM/ProjectM.hpp b/src/libprojectM/ProjectM.hpp
 --- a/src/libprojectM/ProjectM.hpp
 +++ b/src/libprojectM/ProjectM.hpp
-@@ -104 +104 @@
+@@ -104 +104,5 @@
 -    void RenderFrame();
 +    void RenderFrame(uint32_t targetFramebufferObject = 0);
 +
-@@ -104,0 +105,4 @@
 +    void SetFrameTime(double secondsSinceStart);
 +
 +    auto GetFrameTime() -> double;
-+
+
 diff --git a/src/libprojectM/ProjectM.cpp b/src/libprojectM/ProjectM.cpp
 --- a/src/libprojectM/ProjectM.cpp
 +++ b/src/libprojectM/ProjectM.cpp
 @@ -93 +93 @@
 -void ProjectM::RenderFrame()
 +void ProjectM::RenderFrame(uint32_t targetFramebufferObject)
-+
-@@ -169,10 +169,12 @@
+@@ -169,11 +169,13 @@
 -    // ToDo: Allow external apps to provide a custom target framebuffer.
 -    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, 0);
 +    glBindFramebuffer(GL_DRAW_FRAMEBUFFER, static_cast<GLuint>(targetFramebufferObject));
@@ -112,7 +110,6 @@ diff --git a/src/libprojectM/ProjectM.cpp b/src/libprojectM/ProjectM.cpp
 +        glDrawBuffers(1, &backBuf);
 +    }
  #endif
-+
 @@ -292,0 +293,10 @@
 +void ProjectM::SetFrameTime(double secondsSinceStart)
 +{

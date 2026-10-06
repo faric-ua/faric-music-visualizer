@@ -5319,41 +5319,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         result.uri !=
                         null
                     ) {
-                        toast(
-                            if (fullSong) {
+                        if (fullSong) {
+                            toast(
                                 "Готово · уся пісня · " +
                                     result.width +
                                     "×" +
                                     result.height +
-                                    " · Movies/FARIC"
-                            } else {
-                                "Готово · " +
-                                    result.width +
-                                    "×" +
-                                    result.height +
-                                    " · " +
-                                    result.frameCount +
-                                    " кадрів" +
-                                    "\nprojectM " +
-                                    result.projectMFrameMs +
-                                    " ms · comp " +
-                                    result.compositionMs +
-                                    " ms · enc " +
-                                    result.encoderSubmitMs +
-                                    " ms" +
-                                    "\naudio " +
-                                    result.audioTranscodeMs +
-                                    " ms · mux " +
-                                    result.muxMs +
-                                    " ms · save " +
-                                    result.publishMs +
-                                    " ms" +
-                                    "\ntotal " +
-                                    result.totalMs +
-                                    " ms" +
-                                    "\nMovies/FARIC"
-                            },
-                        )
+                                    " · Movies/FARIC",
+                            )
+                        } else {
+                            showExportTimingResult(
+                                result,
+                            )
+                        }
                     } else {
                         toast(
                             "Не вдалося зберегти MP4",
@@ -6223,6 +6201,76 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             insets
         }
         ViewCompat.requestApplyInsets(root)
+    }
+
+    private fun showExportTimingResult(
+        result: ShortVideoExportProof.Result,
+    ) {
+        val message =
+            buildString {
+                append(
+                    result.width,
+                )
+                append("×")
+                append(
+                    result.height,
+                )
+                append(" · ")
+                append(
+                    result.frameCount,
+                )
+                append(" кадрів")
+                append("\n\nprojectM: ")
+                append(
+                    result.projectMFrameMs,
+                )
+                append(" ms")
+                append("\ncomposition: ")
+                append(
+                    result.compositionMs,
+                )
+                append(" ms")
+                append("\nencoder: ")
+                append(
+                    result.encoderSubmitMs,
+                )
+                append(" ms")
+                append("\naudio: ")
+                append(
+                    result.audioTranscodeMs,
+                )
+                append(" ms")
+                append("\nmux: ")
+                append(
+                    result.muxMs,
+                )
+                append(" ms")
+                append("\nsave: ")
+                append(
+                    result.publishMs,
+                )
+                append(" ms")
+                append("\n\ntotal: ")
+                append(
+                    result.totalMs,
+                )
+                append(" ms")
+                append("\n\nMovies/FARIC")
+            }
+
+        android.app.AlertDialog
+            .Builder(this)
+            .setTitle(
+                "Експорт завершено",
+            )
+            .setMessage(
+                message,
+            )
+            .setPositiveButton(
+                "OK",
+                null,
+            )
+            .show()
     }
 
     private fun toast(message: String) {

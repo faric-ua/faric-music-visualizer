@@ -44,6 +44,18 @@ class ProjectMView(
     private var offlineReadbackHeight =
         0
 
+    @Volatile
+    private var offlineReadbackChannelsCorrect =
+        false
+
+    private var offlineBgraReadbackSupported:
+        Boolean? =
+        null
+
+    fun offlineReadbackChannelsAreCorrect():
+        Boolean =
+        offlineReadbackChannelsCorrect
+
     init {
         setEGLContextClientVersion(2)
         setRenderer(
@@ -488,15 +500,60 @@ class ProjectMView(
 
             // glReadPixels is synchronous for the requested framebuffer data,
             // so the offline hot path does not need a separate glFinish().
-            GLES20.glReadPixels(
-                0,
-                0,
-                width,
-                height,
-                GLES20.GL_RGBA,
-                GLES20.GL_UNSIGNED_BYTE,
-                buffer,
-            )
+            if (
+                reuseOfflineBuffers &&
+                supportsBgraReadback()
+            ) {
+                clearGlErrors()
+
+                GLES20.glReadPixels(
+                    0,
+                    0,
+                    width,
+                    height,
+                    GL_BGRA_EXT,
+                    GLES20.GL_UNSIGNED_BYTE,
+                    buffer,
+                )
+
+                if (
+                    GLES20.glGetError() ==
+                    GLES20.GL_NO_ERROR
+                ) {
+                    offlineReadbackChannelsCorrect =
+                        true
+                } else {
+                    // Extension reporting can still be unreliable on some
+                    // drivers. Fall back to the established RGBA path.
+                    buffer.position(
+                        0,
+                    )
+                    clearGlErrors()
+                    GLES20.glReadPixels(
+                        0,
+                        0,
+                        width,
+                        height,
+                        GLES20.GL_RGBA,
+                        GLES20.GL_UNSIGNED_BYTE,
+                        buffer,
+                    )
+                    offlineReadbackChannelsCorrect =
+                        false
+                }
+            } else {
+                GLES20.glReadPixels(
+                    0,
+                    0,
+                    width,
+                    height,
+                    GLES20.GL_RGBA,
+                    GLES20.GL_UNSIGNED_BYTE,
+                    buffer,
+                )
+                offlineReadbackChannelsCorrect =
+                    false
+            }
 
             if (reuseOfflineBuffers) {
                 val bitmap =
@@ -604,6 +661,47 @@ class ProjectMView(
         }
             .getOrNull()
 
+    private fun supportsBgraReadback():
+        Boolean {
+        offlineBgraReadbackSupported
+            ?.let {
+                return it
+            }
+
+        val extensions =
+            GLES20.glGetString(
+                GLES20.GL_EXTENSIONS,
+            ).orEmpty()
+
+        val supported =
+            extensions
+                .split(
+                    ' ',
+                )
+                .any {
+                    it ==
+                        "GL_EXT_read_format_bgra"
+                }
+
+        offlineBgraReadbackSupported =
+            supported
+
+        return supported
+    }
+
+    private fun clearGlErrors() {
+        repeat(
+            8,
+        ) {
+            if (
+                GLES20.glGetError() ==
+                GLES20.GL_NO_ERROR
+            ) {
+                return
+            }
+        }
+    }
+
     private fun ensureOfflineReadbackCache(
         width: Int,
         height: Int,
@@ -660,6 +758,8 @@ class ProjectMView(
             0
         offlineReadbackHeight =
             0
+        offlineReadbackChannelsCorrect =
+            false
     }
 
     private class Renderer(
@@ -726,5 +826,7 @@ class ProjectMView(
 
     companion object {
         private const val TAG = "FARIC-projectM"
+        private const val GL_BGRA_EXT =
+            0x80E1
     }
 }

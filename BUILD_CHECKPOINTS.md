@@ -742,3 +742,38 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Diagnosis: radial glow alone is ~95% of Cyber Shark background and ~42% of the entire Cyber Shark layer.
 - Next: replace full-resolution software radial-gradient rasterization with a reusable 512x512 glow texture while keeping final 1080x1920 output and 30 FPS unchanged.
 
+---
+
+## 2026-10-06 — v0.19.15 / build 104 — cached Cyber Shark glow — Android PASS
+
+- Status: BUILD PASS / phone performance + visual QA pending.
+- App/source commit: `9fbb48d5023a2e12de59356ed148fa04a3b34258`.
+- Android workflow: #491, attempt 1.
+- Workflow run id: `37512222805`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.15-Debug`.
+- Artifact id: `11434899037`.
+- Artifact digest: `sha256:438f9205045f24767fec592cdf10d2824bcdfae66fb6abdd25bacdfab7e3d1ea`.
+- Validate #824 — PASS on the same app/source SHA.
+- Implemented:
+  - preserves the v0.19.12 two-slot projectM overlap pipeline;
+  - preserves final 1080x1920-class / 30 FPS output and existing encoder/audio path;
+  - replaces direct full-size software Cyber Shark RadialGradient rasterization with a reusable 512x512 ARGB glow bitmap;
+  - glow keeps the same dynamic bass/high/beat alpha response and normalized radius, then uses filtered final-size composition;
+  - arcs, particles, frame, FX, creature, wordmark, projectM and HUD are unchanged;
+  - adds `glow render` and `glow composite` timings.
+- Phone baseline from v0.19.14:
+  - total 9510 ms;
+  - composition 7591 ms;
+  - Cyber Shark 4160 ms;
+  - background 1848 ms;
+  - glow 1755 ms;
+  - arcs 61 ms;
+  - particles 28 ms;
+  - frame 1145 ms.
+- Phone acceptance:
+  - compare glow/background/Cyber Shark/composition/total timings;
+  - visually check glow smoothness, brightness, radius/shape and animation response;
+  - reject this optimization if visual degradation is materially visible.
+- Single next resume step:
+  - install v0.19.15 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste the timing block, and report whether the glow looks the same/smooth.
+

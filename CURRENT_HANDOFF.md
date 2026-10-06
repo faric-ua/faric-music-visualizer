@@ -1,5 +1,16 @@
 # Current Handoff
 
+## LATEST READY CANDIDATE — v0.19.15 / build 104 — cached radial glow
+
+- App/source SHA: `9fbb48d5023a2e12de59356ed148fa04a3b34258`.
+- Android #491 PASS, run `37512222805`; Validate #824 PASS.
+- Artifact: `FARIC-Music-Visualizer-v0.19.15-Debug`, id `11434899037`, digest `sha256:438f9205045f24767fec592cdf10d2824bcdfae66fb6abdd25bacdfab7e3d1ea`.
+- v0.19.14 phone baseline: total 9510 ms; composition 7591 ms; Cyber Shark 4160 ms; background 1848 ms; glow 1755 ms.
+- v0.19.15 replaces only the full-size software radial glow rasterization with a reusable 512x512 ARGB glow texture and filtered final-size draw.
+- Final export remains 1080x1920-class / 30 FPS. No changes to projectM, frame, FX, creature, wordmark, HUD, encoder or audio.
+- New phone metrics: `glow render` and `glow composite`.
+- Next: Termux 3 -> 10 -> 8; same warm-cache 3-second / 90-frame preview; paste timing and confirm glow visual quality.
+
 ## LATEST CANDIDATE — v0.19.15 / build 104 — cached Cyber Shark glow
 
 - v0.19.14 phone diagnosis: background 1848 ms, of which radial glow alone is 1755 ms (~95%).

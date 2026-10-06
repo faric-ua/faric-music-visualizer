@@ -1,5 +1,21 @@
 # Active Plan
 
+## CURRENT PRIORITY — phone-test v0.19.15 cached glow
+
+- [x] v0.19.14 identified glow = 1755 ms of background = 1848 ms.
+- [x] Implement reusable 512x512 dynamic glow raster + filtered final-size composite.
+- [x] Preserve final output 1080x1920-class / 30 FPS.
+- [x] v0.19.15 / build 104.
+- [x] Validate #824 PASS on `9fbb48d5023a2e12de59356ed148fa04a3b34258`.
+- [x] Android #491 PASS, run `37512222805`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.15-Debug`, id `11434899037`.
+- [x] BUILD_CHECKPOINT recorded.
+- [ ] Phone: Termux 3 -> 10 -> 8.
+- [ ] Same warm-cache 3-second / 90-frame preview.
+- [ ] Paste full timing block, especially glow / glow render / glow composite / total.
+- [ ] Visual QA: glow remains smooth, same apparent brightness/radius and audio reaction.
+- [ ] If performance PASS + visual PASS, move to frame layer (currently ~1145 ms); otherwise revise glow cache resolution/strategy.
+
 ## CURRENT PRIORITY — v0.19.15 cached radial glow
 
 - [x] v0.19.14 phone profile: background 1848 ms, glow 1755 ms.

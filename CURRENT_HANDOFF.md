@@ -1,18 +1,18 @@
 # Current Handoff
 
-## LATEST CANDIDATE — v0.19.20 / build 109 — GPU Cyber Shark frame
+## LATEST READY CANDIDATE — v0.19.20 / build 109 — GPU Cyber Shark frame
 
-- v0.19.19 phone performance PASS: total 7224 ms; projectM draw 0 ms; GPU projectM 134 ms.
-- Largest current single CPU draw is Cyber Shark frame = 1560 ms.
-- v0.19.20 preserves the exact layer order by splitting the existing transparent upper composition into:
-  1. lower overlay: Cyber Shark background arcs/particles after the GPU glow;
-  2. GPU Cyber Shark frame bitmap with the same center/size/rotation/opacity reaction;
-  3. upper overlay: FX + creature + wordmark + global effects + HUD.
-- The static frame bitmap is uploaded to its own EGL texture once and then reused; per-frame work updates only the transformed quad and alpha.
-- Existing direct GPU projectM and GPU glow paths remain unchanged.
-- New metric: `GPU frame`. `GPU overlay` now includes both lower + upper overlay uploads.
-- CPU fallback paths remain for non-qualifying scenes.
-- Expected qualifying result: Cyber Shark `frame: 0 ms` and nonzero `GPU frame`.
+- App/source SHA: `c1438b06a0b604bde457be2ef5d54ec40cf1216d`.
+- Android #496 PASS, run `37535685093`; Validate #835 PASS.
+- Artifact: `FARIC-Music-Visualizer-v0.19.20-Debug`, id `11446607008`, digest `sha256:12e3c8eddaec4bc17dfe3932a0932a146c5107a128a5f7fb507118352bbe050d`.
+- v0.19.19 phone performance PASS: total 7224 ms; composition 4543 ms; Cyber Shark frame 1560 ms.
+- v0.19.20 preserves z-order as lower background overlay -> GPU frame -> upper FX/creature/wordmark/effects/HUD overlay.
+- Static frame texture is uploaded once; per-frame work updates only transformed quad + alpha.
+- Direct GPU projectM and GPU glow paths are unchanged.
+- New metric: `GPU frame`; `GPU overlay` includes lower + upper overlay uploads.
+- BUILD_CHECKPOINT recorded.
+- Expected qualifying result: Cyber Shark `frame: 0 ms`, nonzero `GPU frame`.
+- Next phone action: Termux 3 -> 10 -> 8; same warm-cache 3-second / 90-frame preview; paste full timing and report any frame/projectM/glow visual difference.
 
 ## LATEST READY CANDIDATE — v0.19.19 / build 108 — GPU-scale real projectM framebuffer
 

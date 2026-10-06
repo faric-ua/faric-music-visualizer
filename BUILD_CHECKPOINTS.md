@@ -1034,3 +1034,43 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Visual equivalence still requires explicit phone confirmation for projectM orientation/colors/framing and GPU glow.
 - Next measured CPU bottleneck: Cyber Shark frame = 1560 ms; HUD draw = 1178 ms.
 
+---
+
+## 2026-10-06 — v0.19.20 / build 109 — GPU Cyber Shark frame — Android PASS
+
+- Status: BUILD PASS / phone performance + visual QA pending.
+- App/source commit: `c1438b06a0b604bde457be2ef5d54ec40cf1216d`.
+- Android workflow: #496, attempt 1.
+- Workflow run id: `37535685093`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.20-Debug`.
+- Artifact id: `11446607008`.
+- Artifact digest: `sha256:12e3c8eddaec4bc17dfe3932a0932a146c5107a128a5f7fb507118352bbe050d`.
+- Validate #835 — PASS on the same app/source SHA.
+- Successfully compiled/tested:
+  - exact GPU frame transform spec using the same center/size/rotation/opacity math as CPU Canvas;
+  - lower transparent pass keeps Cyber Shark background arcs/particles below frame;
+  - static Cyber Shark frame bitmap is drawn on its own EGL texture between lower and upper transparent passes;
+  - upper transparent pass keeps FX/creature/wordmark/effects/HUD above frame;
+  - premultiplied-alpha blending and linear texture filtering are preserved;
+  - direct GPU projectM and GPU glow paths remain unchanged;
+  - CPU fallbacks remain for non-qualifying scenes;
+  - new `GPU frame` timing is surfaced.
+- Phone baseline from v0.19.19:
+  - total 7224 ms;
+  - composition 4543 ms;
+  - projectM draw 0 ms;
+  - GPU projectM 134 ms;
+  - GPU glow 7 ms;
+  - GPU overlay 259 ms;
+  - Cyber Shark frame 1560 ms;
+  - HUD draw 1178 ms.
+- Phone acceptance:
+  - Cyber Shark `frame` should become 0 ms;
+  - `GPU frame` should appear and be nonzero;
+  - `GPU overlay` will include two transparent uploads and may rise;
+  - compare composition / encoder / total;
+  - visually verify frame size, rotation, opacity, position and exact z-order;
+  - re-check projectM orientation/colors/framing and GPU glow.
+- Single next resume step:
+  - install v0.19.20 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste the full timing block and report any frame/projectM/glow visual difference.
+

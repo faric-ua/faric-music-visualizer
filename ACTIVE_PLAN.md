@@ -1,6 +1,6 @@
 # Active Plan
 
-## CURRENT PRIORITY — v0.19.20 GPU Cyber Shark frame
+## CURRENT PRIORITY — phone-test v0.19.20 GPU Cyber Shark frame
 
 - [x] v0.19.19 phone performance PASS: total 7224 ms.
 - [x] projectM draw 1710 -> 0 ms; GPU projectM 134 ms.
@@ -10,9 +10,13 @@
 - [x] Add static EGL frame texture + transformed premultiplied-alpha draw.
 - [x] Keep direct GPU projectM and GPU glow unchanged.
 - [x] Add `GPU frame` timing.
-- [x] Bump v0.19.20 / build 109.
-- [ ] Validate + Android PASS.
-- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [x] v0.19.20 / build 109.
+- [x] Validate #835 PASS on `c1438b06a0b604bde457be2ef5d54ec40cf1216d`.
+- [x] Android #496 PASS, run `37535685093`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.20-Debug`, id `11446607008`.
+- [x] BUILD_CHECKPOINT recorded.
+- [ ] Phone: Termux 3 -> 10 -> 8.
+- [ ] Same warm-cache 3-second / 90-frame preview.
 - [ ] Require Cyber Shark frame = 0 ms and GPU frame > 0 ms.
 - [ ] Compare composition / encoder / GPU overlay / total.
 - [ ] Visual QA: frame size, rotation, opacity, position and z-order; projectM/glow still correct.

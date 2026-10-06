@@ -1194,3 +1194,10 @@ Implementation:
 - Exact timing values were hidden because Android truncated the multi-line Toast.
 - v0.19.6 changes timing results to a persistent dialog.
 - Next: install v0.19.6 after Android PASS and rerun one 3-second preview.
+
+
+### v0.19.6 measured bottleneck
+- Phone timing dialog: projectM 1896 ms; composition 11808 ms; encoder 435 ms; audio 424 ms; mux 112 ms; save 215 ms; total 15575 ms.
+- Composition is ~75.8% of total and is now the clear dominant bottleneck.
+- v0.19.7 / build 96 instruments composition internally: clear, projectM draw, FARIC reactive, overlay, big EQ, Cyber Shark, effects, HUD update, HUD draw.
+- Next phone action after Android PASS: one 3-second preview and send the result dialog.

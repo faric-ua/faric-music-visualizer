@@ -1853,3 +1853,33 @@ Resume:
 5. run one warm-cache 3-second preview;
 6. compare projectM draw / composition / total and verify colors/orientation;
 7. if BGRA is active and projectM draw drops materially, optimize Cyber Shark next.
+
+
+### Current resume point — v0.19.9 Cyber Shark optimization
+
+v0.19.8 phone result:
+- `projectM BGRA: yes`;
+- projectM generation/readback 5318 ms;
+- composition 8077 ms;
+- projectM draw 1643 ms;
+- Cyber Shark 4676 ms;
+- effects 428 ms;
+- HUD draw 1222 ms;
+- total 15118 ms.
+- Output `447935.mp4` is visually correct and technically 1080x1920 / 30 FPS / 90 frames / 3.008 s.
+
+Current candidate:
+- v0.19.9 / build 98;
+- source SHA `5bd6945f43fb3f4348085e008ff490a20468c9ab`;
+- change: in CyberSharkExportRenderer.drawBackground(), use ordinary canvas.save() when effective layer opacity is 255 instead of allocating a full-screen saveLayerAlpha; partial-opacity path is unchanged.
+- Validate #807 PASS.
+- Android #485 pending at this handoff point.
+
+Resume:
+1. wait for Android #485 PASS;
+2. write BUILD_CHECKPOINT immediately;
+3. user Termux 3 -> 10 -> 8;
+4. install v0.19.9;
+5. run one warm-cache 3-second preview;
+6. compare Cyber Shark / composition / total against v0.19.8 values 4676 / 8077 / 15118 ms;
+7. if Cyber Shark remains dominant, profile/optimize its background vs bitmap layers vs FX next.

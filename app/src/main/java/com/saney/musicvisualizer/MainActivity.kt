@@ -6354,19 +6354,52 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 append("\n\nMovies/FARIC")
             }
 
-        android.app.AlertDialog
-            .Builder(this)
-            .setTitle(
-                "Експорт завершено",
-            )
-            .setMessage(
-                message,
-            )
-            .setPositiveButton(
-                "OK",
-                null,
-            )
-            .show()
+        val dialog =
+            android.app.AlertDialog
+                .Builder(this)
+                .setTitle(
+                    "Експорт завершено",
+                )
+                .setMessage(
+                    message,
+                )
+                .setNeutralButton(
+                    "Копіювати текст",
+                    null,
+                )
+                .setPositiveButton(
+                    "OK",
+                    null,
+                )
+                .create()
+
+        dialog.setOnShowListener {
+            dialog
+                .getButton(
+                    android.app.AlertDialog.BUTTON_NEUTRAL,
+                )
+                .setOnClickListener {
+                    val clipboard =
+                        getSystemService(
+                            android.content.Context.CLIPBOARD_SERVICE,
+                        ) as
+                            android.content.ClipboardManager
+
+                    clipboard.setPrimaryClip(
+                        android.content.ClipData
+                            .newPlainText(
+                                "FARIC export timing",
+                                message,
+                            ),
+                    )
+
+                    toast(
+                        "Текст скопійовано",
+                    )
+                }
+        }
+
+        dialog.show()
     }
 
     private fun toast(message: String) {

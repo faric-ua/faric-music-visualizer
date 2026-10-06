@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 99
-        versionName = "0.19.10"
-        // v0.19.10 projectM offline stage profiler candidate.
+        versionCode = 100
+        versionName = "0.19.11"
+        // v0.19.11 timing dialog copy-to-clipboard candidate.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

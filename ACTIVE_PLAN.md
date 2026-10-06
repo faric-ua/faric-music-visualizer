@@ -1230,3 +1230,11 @@ Implementation:
 - Largest remaining stage is projectM generation/readback (~5.0 s).
 - v0.19.10 / build 99 splits projectM provider cost into queue wait, native render, glReadPixels, and Bitmap.copyPixelsFromBuffer.
 - Next phone test after Android PASS: one warm-cache 3-second preview and send the timing dialog.
+
+
+### v0.19.10 result / v0.19.11 UX utility
+- v0.19.10 confirms glReadPixels is the dominant projectM cost: 4361 ms of 5270 ms projectM time.
+- v0.19.11 / build 100 adds a persistent `Копіювати текст` button to the export timing dialog.
+- Copy action places the complete timing text on the Android clipboard and keeps the dialog open; `OK` remains the explicit close action.
+- No performance/export rendering behavior changes in v0.19.11.
+- Next phone QA after Android PASS: open a 3-second result, tap `Копіювати текст`, paste the copied block into chat.

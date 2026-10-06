@@ -1901,3 +1901,23 @@ Current candidate:
 - adds projectM offline internals: queue wait, native render, glReadPixels, Bitmap copy;
 - no intentional visual/export behavior change;
 - after build PASS, one warm-cache 3-second preview is enough to identify the next projectM optimization.
+
+
+### Current resume point — v0.19.11 copy timing text
+
+v0.19.10 phone result identified the current performance target:
+- projectM total 5270 ms;
+- queue wait 16 ms;
+- native render 730 ms;
+- glReadPixels 4361 ms;
+- bitmap copy 97 ms;
+- total export 15287 ms.
+glReadPixels is the dominant GPU->CPU readback bottleneck.
+
+Current candidate:
+- v0.19.11 / build 100;
+- adds `Копіювати текст` to the export result dialog;
+- copies the complete timing block into Android clipboard;
+- copy button does not dismiss the dialog;
+- no render/performance changes.
+Resume after Android PASS: user uses Termux 3 -> 10 -> 8, installs v0.19.11, runs one 3-second preview, taps `Копіювати текст`, and pastes the result directly into chat. After UX PASS, continue with glReadPixels optimization.

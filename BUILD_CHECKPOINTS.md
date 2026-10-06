@@ -961,3 +961,43 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Performance is effectively unchanged from v0.19.17 (8263 -> 8275 ms).
 - Next: allocate a dedicated projectM GPU texture at the actual framebuffer size and scale/center-crop it on GPU to match the established Canvas behavior.
 
+---
+
+## 2026-10-06 — v0.19.19 / build 108 — GPU-scale real projectM framebuffer — Android PASS
+
+- Status: BUILD PASS / phone performance + visual QA pending.
+- App/source commit: `adf26b803daf283cda51faaed9ebe51cf855e7fd`.
+- Android workflow: #495, attempt 1.
+- Workflow run id: `37529043474`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.19-Debug`.
+- Artifact id: `11443104041`.
+- Artifact digest: `sha256:ce0b8115dcc431d96d5903947bb55ba0f792f312afd5d7dfcd90a4b14032cbfb`.
+- Validate #833 — PASS on the same app/source SHA.
+- Implemented:
+  - keeps v0.19.17 GPU Cyber Shark glow path;
+  - removes v0.19.18 exact projectM-frame-size guard;
+  - uses a dedicated EGL texture sized to the actual offline projectM framebuffer;
+  - first qualifying frame allocates/uploads that texture, later frames reuse it via `texSubImage2D`;
+  - GPU texture coordinates reproduce established Canvas scale-to-fill + center-crop behavior;
+  - raw GL vertical orientation remains handled in texture coordinates;
+  - BGRA correctness and lower-layer ordering guards remain;
+  - CPU fallback remains for non-qualifying scenes.
+- Root cause fixed:
+  - `BALANCED_BACKGROUND.renderScale = 0.78f`;
+  - 1080x1920 export therefore produces about 842x1498 offline projectM, so v0.19.18's exact-size guard could never pass.
+- Phone baseline from v0.19.18:
+  - total 8275 ms;
+  - composition 5999 ms;
+  - projectM draw 1710 ms;
+  - encoder 623 ms;
+  - GPU glow 6 ms;
+  - GPU overlay 256 ms.
+- Acceptance:
+  - qualifying scene should show `projectM draw: 0 ms`;
+  - `GPU projectM` must appear;
+  - compare composition / encoder / total;
+  - visually verify projectM orientation, colors and center-crop/framing;
+  - re-check GPU glow visual equivalence.
+- Single next resume step:
+  - install v0.19.19 via Termux 3 -> 10 -> 8, run the same warm-cache 3-second / 90-frame preview, paste full timing and report any projectM/glow visual difference.
+

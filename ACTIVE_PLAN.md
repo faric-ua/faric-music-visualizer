@@ -1,6 +1,6 @@
 # Active Plan
 
-## CURRENT PRIORITY — v0.19.19 GPU-scale projectM
+## CURRENT PRIORITY — phone-test v0.19.19 GPU-scale projectM
 
 - [x] v0.19.18 phone test: branch did not activate; projectM draw 1710 ms, no GPU projectM metric.
 - [x] Confirm root cause: BALANCED_BACKGROUND renderScale = 0.78.
@@ -8,9 +8,13 @@
 - [x] Add dedicated variable-size projectM EGL texture.
 - [x] Reproduce Canvas scale-to-fill + center-crop on GPU.
 - [x] Preserve raw GL orientation and BGRA/layer-order guards.
-- [x] Bump v0.19.19 / build 108.
-- [ ] Validate + Android PASS.
-- [ ] Phone same warm-cache 3-second / 90-frame preview.
+- [x] v0.19.19 / build 108.
+- [x] Validate #833 PASS on `adf26b803daf283cda51faaed9ebe51cf855e7fd`.
+- [x] Android #495 PASS, run `37529043474`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.19-Debug`, id `11443104041`.
+- [x] BUILD_CHECKPOINT recorded.
+- [ ] Phone: Termux 3 -> 10 -> 8.
+- [ ] Same warm-cache 3-second / 90-frame preview.
 - [ ] Require projectM draw = 0 ms and GPU projectM > 0 ms in the qualifying scene.
 - [ ] Compare composition / encoder / total.
 - [ ] Visual QA: projectM orientation, colors, framing/crop; GPU glow still correct.

@@ -1,14 +1,17 @@
 # Current Handoff
 
-## LATEST CANDIDATE — v0.19.19 / build 108 — GPU-scale real projectM framebuffer
+## LATEST READY CANDIDATE — v0.19.19 / build 108 — GPU-scale real projectM framebuffer
 
-- v0.19.18 phone result proved the direct GPU branch never activated: projectM draw stayed 1710 ms and `GPU projectM` was absent.
-- Root cause: `BALANCED_BACKGROUND.renderScale = 0.78`, so a 1080x1920 export uses an offline projectM framebuffer of about 842x1498, not 1080x1920.
-- v0.19.19 removes the exact-size guard.
-- Encoder EGL now owns a dedicated projectM texture allocated lazily at the actual framebuffer dimensions; subsequent frames reuse it with `texSubImage2D`.
-- GPU texture coordinates reproduce the established scale-to-fill + center-crop behavior while preserving raw GL vertical orientation.
-- BGRA/channel and lower-layer safety guards remain unchanged.
-- Expected qualifying phone result: CPU `projectM draw = 0 ms` and a nonzero `GPU projectM` line.
+- App/source SHA: `adf26b803daf283cda51faaed9ebe51cf855e7fd`.
+- Android #495 PASS, run `37529043474`; Validate #833 PASS.
+- Artifact: `FARIC-Music-Visualizer-v0.19.19-Debug`, id `11443104041`, digest `sha256:ce0b8115dcc431d96d5903947bb55ba0f792f312afd5d7dfcd90a4b14032cbfb`.
+- v0.19.18 phone result: projectM draw 1710 ms, no GPU projectM metric, total 8275 ms.
+- Root cause fixed: BALANCED_BACKGROUND renders at 0.78 scale (~842x1498 for 1080x1920), so v0.19.18's exact-size guard never activated.
+- v0.19.19 gives the real-size offline projectM framebuffer its own EGL texture and GPU scale-to-fill + center-crop path.
+- BGRA, layer-order and CPU fallback guards remain.
+- Expected qualifying result: `projectM draw = 0 ms` and nonzero `GPU projectM`.
+- BUILD_CHECKPOINT recorded.
+- Next phone action: Termux 3 -> 10 -> 8; same warm-cache 3-second / 90-frame preview; paste full timing and report any orientation/color/crop/glow difference.
 
 ## LATEST READY CANDIDATE — v0.19.18 / build 107 — direct GPU projectM base
 

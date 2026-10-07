@@ -2967,24 +2967,27 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 orientation =
                     LinearLayout.VERTICAL
                 background =
-                    GradientDrawable().apply {
-                        setColor(
-                            Color.argb(
-                                235,
-                                35,
-                                35,
-                                38,
-                            ),
-                        )
-                        cornerRadius =
-                            dp(14)
-                                .toFloat()
-                    }
+                    panelDrawable(
+                        Color.argb(
+                            250,
+                            22,
+                            25,
+                            29,
+                        ),
+                        24,
+                        Color.argb(
+                            95,
+                            255,
+                            255,
+                            255,
+                        ),
+                        1,
+                    )
                 setPadding(
-                    dp(8),
-                    dp(4),
-                    dp(8),
+                    dp(10),
                     dp(6),
+                    dp(10),
+                    dp(8),
                 )
             }
 
@@ -3041,6 +3044,23 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 setTextColor(
                     Color.WHITE,
                 )
+                background =
+                    panelDrawable(
+                        Color.argb(
+                            120,
+                            16,
+                            22,
+                            30,
+                        ),
+                        18,
+                        Color.argb(
+                            100,
+                            35,
+                            211,
+                            238,
+                        ),
+                        1,
+                    )
                 setOnClickListener {
                     exportLayerConfiguration.launch(
                         "FARIC-layers-v" +
@@ -3066,6 +3086,23 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 setTextColor(
                     Color.WHITE,
                 )
+                background =
+                    panelDrawable(
+                        Color.argb(
+                            120,
+                            16,
+                            22,
+                            30,
+                        ),
+                        18,
+                        Color.argb(
+                            100,
+                            35,
+                            211,
+                            238,
+                        ),
+                        1,
+                    )
             }
 
         val close =
@@ -3084,6 +3121,23 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 setTextColor(
                     Color.WHITE,
                 )
+                background =
+                    panelDrawable(
+                        Color.argb(
+                            120,
+                            16,
+                            22,
+                            30,
+                        ),
+                        18,
+                        Color.argb(
+                            100,
+                            35,
+                            211,
+                            238,
+                        ),
+                        1,
+                    )
                 setOnClickListener {
                     dialog.dismiss()
                 }
@@ -3179,6 +3233,31 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
         }
 
+        fun styleLayerCheckBox(
+            box: android.widget.CheckBox,
+        ) {
+            box.setTextColor(
+                Color.WHITE,
+            )
+            box.buttonTintList =
+                android.content.res.ColorStateList(
+                    arrayOf(
+                        intArrayOf(
+                            android.R.attr.state_checked,
+                        ),
+                        intArrayOf(),
+                    ),
+                    intArrayOf(
+                        COLOR_ACCENT_CYAN,
+                        Color.rgb(
+                            115,
+                            126,
+                            136,
+                        ),
+                    ),
+                )
+        }
+
         fun addObjectGroup(
             layer: PulseDeckLayerStack.Layer,
             groupLabel: String,
@@ -3200,6 +3279,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         0,
                     )
                 }
+
+            styleLayerCheckBox(
+                groupBox,
+            )
 
             container.addView(
                 groupBox,
@@ -3241,6 +3324,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             0,
                         )
                     }
+
+                styleLayerCheckBox(
+                    child,
+                )
 
                 child.setOnCheckedChangeListener { _, checked ->
                     setLayerObjectVisible(
@@ -3389,6 +3476,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             }
                         }
                     }
+
+                styleLayerCheckBox(
+                    layerBox,
+                )
 
                 if (
                     layer !=

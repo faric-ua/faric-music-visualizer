@@ -1,5 +1,28 @@
 # Active Plan
 
+## PHONE FINDING — v0.19.26/27 style + projectM benchmark before Panther comparison
+
+- [x] Composition Sets and save/rename flows were still using stock Android AlertDialog styling on phone. This confirmed the need for a project-wide audit rather than one-off fixes.
+- [x] Full app-owned modal audit completed. All stock AlertDialog flows in MainActivity are migrated to shared `PulseDeckDialogs`; regression guard added to Validate.
+- [x] `UI_STYLE_CONTRACT.md` + `UI_STYLE_AUDIT.md` are the permanent source of truth for app-owned UI inheritance.
+- [x] New release candidate for the full style pass: v0.19.28 / build 117, source SHA `cae408b1f18745cd49be7a38262582b3c842bf37`.
+- [x] Validate #901 PASS.
+- [ ] Android #531 PASS / artifact.
+- [ ] Phone QA all migrated dialogs: tools, Sets, set input, set actions/delete, GF picker, auto-hide, export timing, emergency recovery.
+
+### Benchmark captured before Panther comparison
+
+- 1080×1920, 90 frames, total 7157 ms.
+- projectM 2794 ms; composition 2457 ms; encoder 381 ms; audio 540 ms; mux 115 ms; save 142 ms.
+- projectM BGRA = `yes`, not `GPU direct`.
+- projectM internals: queue wait 10 ms, native render 757 ms, glReadPixels 4786 ms, bitmap copy 96 ms.
+- composition: projectM draw 1692 ms, HUD draw 658 ms, HUD update 27 ms; reactive/overlay/big EQ/effects all 0 ms.
+- Graphic Figure selected label = Cyber Shark, but every GF timing was 0 ms (background/frame/FX/creature/wordmark all 0). Treat this export as a projectM + HUD benchmark, not a Shark/Panther render benchmark.
+- The supplied 3-second MP4 visually matches that interpretation: the large M/headphone-like artwork is part of the projectM preset imagery; no separately timed GF layer is present.
+- glReadPixels remains the dominant projectM bottleneck on the CPU/BGRA path. Do not compare this 7157 ms run directly with the previous `GPU direct` result without matching layer/path conditions.
+- Wait for the user's Panther benchmark before drawing the next GF-specific performance conclusion.
+
+
 ## CURRENT FIX — v0.19.27 emergency recovery interaction
 
 - [x] Phone finding on v0.19.26: 10-second emergency recovery opens, but the recovery choices are not tappable/visible as usable actions in the stock AlertDialog presentation.

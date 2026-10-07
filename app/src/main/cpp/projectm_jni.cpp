@@ -502,10 +502,10 @@ void main() {
         + idolAura * (0.20 + cBass * 0.42)
         + sparks * 0.30;
 
-    float eAmplitude = eAmplitude;
-    float eBass = clamp(eBass * uEdgeBassGain, 0.0, 2.0);
-    float eHigh = clamp(eHigh * uEdgeHighGain, 0.0, 2.0);
-    float eBeat = clamp(eBeat * uEdgeBeatGain, 0.0, 2.0);
+    float eAmplitude = uAmplitude;
+    float eBass = clamp(uBass * uEdgeBassGain, 0.0, 2.0);
+    float eHigh = clamp(uHigh * uEdgeHighGain, 0.0, 2.0);
+    float eBeat = clamp(uBeat * uEdgeBeatGain, 0.0, 2.0);
 
     vec2 edgeUv = abs(vUv * 2.0 - 1.0);
     float edgeDist = max(edgeUv.x, edgeUv.y);

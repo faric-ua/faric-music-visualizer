@@ -1342,6 +1342,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         "Template Constructor",
                                         "Object Constructor",
                                         "Шари / Layers",
+                                        "Сети / Sets",
                                         "Автоприховування",
                                     ),
                                 ) { _, which ->
@@ -1374,6 +1375,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                             showPulseDeckLayersDialog()
 
                                         4 ->
+                                            showCompositionSetsDialog()
+
+                                        5 ->
                                             showControlsAutoHideDialog()
                                     }
                                 }

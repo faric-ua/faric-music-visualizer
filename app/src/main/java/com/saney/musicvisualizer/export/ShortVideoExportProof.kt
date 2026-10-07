@@ -209,6 +209,11 @@ object ShortVideoExportProof {
                 Bitmap.Config.ARGB_8888,
             )
 
+        val directGpuCompositionCandidate =
+            compositionConfig != null &&
+                compositionConfig.projectMVisible &&
+                directGpuProjectMConfig != null
+
         val useGpuCyberSharkGlow =
             compositionConfig
                 ?.let { config ->
@@ -223,21 +228,11 @@ object ShortVideoExportProof {
                 } ==
                 true
 
-        val overlayBitmap =
-            if (useGpuCyberSharkGlow) {
-                Bitmap.createBitmap(
-                    width,
-                    height,
-                    Bitmap.Config.ARGB_8888,
-                )
-            } else {
-                null
-            }
-
         val useGpuCyberSharkFrame =
             compositionConfig
                 ?.let { config ->
-                    useGpuCyberSharkGlow &&
+                    config
+                        .graphicFiguresVisible &&
                         config
                             .cyberSharkConfig
                             .visibility[
@@ -247,27 +242,25 @@ object ShortVideoExportProof {
                 } ==
                 true
 
-        val postFrameOverlayBitmap =
-            if (useGpuCyberSharkFrame) {
-                Bitmap.createBitmap(
-                    width,
-                    height,
-                    Bitmap.Config.ARGB_8888,
-                )
-            } else {
-                null
-            }
-
-        val useGpuCyberSharkCreatureWordmark =
+        val useGpuCyberSharkCreature =
             compositionConfig
                 ?.let { config ->
-                    useGpuCyberSharkFrame &&
+                    config
+                        .graphicFiguresVisible &&
                         config
                             .cyberSharkConfig
                             .visibility[
                                 com.saney.musicvisualizer.board
                                     .BoardLayerId.CREATURE
-                            ] != false &&
+                            ] != false
+                } ==
+                true
+
+        val useGpuCyberSharkWordmark =
+            compositionConfig
+                ?.let { config ->
+                    config
+                        .graphicFiguresVisible &&
                         config
                             .cyberSharkConfig
                             .visibility[
@@ -277,9 +270,39 @@ object ShortVideoExportProof {
                 } ==
                 true
 
+        val overlayBitmap =
+            if (
+                useGpuCyberSharkGlow ||
+                directGpuCompositionCandidate
+            ) {
+                Bitmap.createBitmap(
+                    width,
+                    height,
+                    Bitmap.Config.ARGB_8888,
+                )
+            } else {
+                null
+            }
+
+        val postFrameOverlayBitmap =
+            if (
+                useGpuCyberSharkFrame ||
+                directGpuCompositionCandidate
+            ) {
+                Bitmap.createBitmap(
+                    width,
+                    height,
+                    Bitmap.Config.ARGB_8888,
+                )
+            } else {
+                null
+            }
+
         val postWordmarkOverlayBitmap =
             if (
-                useGpuCyberSharkCreatureWordmark
+                useGpuCyberSharkCreature ||
+                useGpuCyberSharkWordmark ||
+                directGpuCompositionCandidate
             ) {
                 Bitmap.createBitmap(
                     width,
@@ -581,8 +604,7 @@ object ShortVideoExportProof {
                     }
 
                 val directGpuProjectMBase =
-                    useGpuCyberSharkGlow &&
-                        overlayBitmap != null &&
+                    overlayBitmap != null &&
                         (
                             directGpuProjectMForFrame ||
                                 (
@@ -638,6 +660,120 @@ object ShortVideoExportProof {
                     compositionRenderer != null
                 ) {
                     if (
+                        directGpuProjectMForFrame &&
+                        directGpuProjectMBase &&
+                        overlayBitmap != null &&
+                        postFrameOverlayBitmap !=
+                            null &&
+                        postWordmarkOverlayBitmap !=
+                            null
+                    ) {
+                        overlayBitmap.eraseColor(
+                            Color.TRANSPARENT,
+                        )
+
+                        if (useGpuCyberSharkGlow) {
+                            compositionRenderer
+                                .renderCyberSharkBackgroundAfterGlow(
+                                    canvas =
+                                        Canvas(
+                                            overlayBitmap,
+                                        ),
+                                    width = width,
+                                    height = height,
+                                    timeMs =
+                                        frameTimeMs,
+                                    signal = signal,
+                                )
+
+                            gpuGlow =
+                                compositionRenderer
+                                    .gpuCyberSharkGlow()
+                        }
+
+                        gpuFrame =
+                            if (useGpuCyberSharkFrame) {
+                                compositionRenderer
+                                    .gpuCyberSharkFrame(
+                                        width = width,
+                                        height = height,
+                                        timeMs =
+                                            frameTimeMs,
+                                        signal = signal,
+                                    )
+                            } else {
+                                null
+                            }
+
+                        postFrameOverlayBitmap
+                            .eraseColor(
+                                Color.TRANSPARENT,
+                            )
+
+                        compositionRenderer
+                            .renderCyberSharkFxAfterFrame(
+                                canvas =
+                                    Canvas(
+                                        postFrameOverlayBitmap,
+                                    ),
+                                width = width,
+                                height = height,
+                                timeMs =
+                                    frameTimeMs,
+                                signal = signal,
+                            )
+
+                        gpuCreature =
+                            if (useGpuCyberSharkCreature) {
+                                compositionRenderer
+                                    .gpuCyberSharkCreature(
+                                        width = width,
+                                        height = height,
+                                        timeMs =
+                                            frameTimeMs,
+                                        signal = signal,
+                                    )
+                            } else {
+                                null
+                            }
+
+                        gpuWordmark =
+                            if (useGpuCyberSharkWordmark) {
+                                compositionRenderer
+                                    .gpuCyberSharkWordmark(
+                                        width = width,
+                                        height = height,
+                                        timeMs =
+                                            frameTimeMs,
+                                        signal = signal,
+                                    )
+                            } else {
+                                null
+                            }
+
+                        postWordmarkOverlayBitmap
+                            .eraseColor(
+                                Color.TRANSPARENT,
+                            )
+
+                        compositionRenderer
+                            .renderAfterCyberSharkWordmark(
+                                canvas =
+                                    Canvas(
+                                        postWordmarkOverlayBitmap,
+                                    ),
+                                width = width,
+                                height = height,
+                                timeMs =
+                                    frameTimeMs,
+                                signal = signal,
+                                title = title,
+                                artist = artist,
+                                durationMs =
+                                    analysis.durationMs,
+                                playing = true,
+                            )
+                    } else if (
                         useGpuCyberSharkGlow &&
                         overlayBitmap != null
                     ) {
@@ -698,7 +834,7 @@ object ShortVideoExportProof {
 
                                 if (
                                     directGpuProjectMForFrame &&
-                                    useGpuCyberSharkCreatureWordmark &&
+                                    (useGpuCyberSharkCreature && useGpuCyberSharkWordmark) &&
                                     postWordmarkOverlayBitmap !=
                                         null
                                 ) {
@@ -929,40 +1065,53 @@ object ShortVideoExportProof {
                         )
 
                 if (
+                    directGpuProjectMForFrame &&
+                    directGpuProjectMBase &&
+                    overlayBitmap != null &&
+                    postFrameOverlayBitmap !=
+                        null &&
+                    postWordmarkOverlayBitmap !=
+                        null
+                ) {
+                    val gpuTiming =
+                        activeEncoderSurface
+                            .drawGpuProjectMGraphicFigureComposite(
+                                lowerOverlayBitmap =
+                                    overlayBitmap,
+                                frame =
+                                    gpuFrame,
+                                fxOverlayBitmap =
+                                    postFrameOverlayBitmap,
+                                creature =
+                                    gpuCreature,
+                                wordmark =
+                                    gpuWordmark,
+                                topOverlayBitmap =
+                                    postWordmarkOverlayBitmap,
+                                glow =
+                                    gpuGlow,
+                                presentationTimeNs =
+                                    presentationTimeNs,
+                            )
+
+                    gpuProjectMNs +=
+                        gpuTiming.projectMNs
+                    gpuGlowNs +=
+                        gpuTiming.glowNs
+                    gpuFrameNs +=
+                        gpuTiming.frameNs
+                    gpuCreatureNs +=
+                        gpuTiming.creatureNs
+                    gpuWordmarkNs +=
+                        gpuTiming.wordmarkNs
+                    gpuOverlayNs +=
+                        gpuTiming.overlayNs
+                } else if (
                     gpuGlow != null &&
                     overlayBitmap != null
                 ) {
                     val gpuTiming =
                         if (
-                            directGpuProjectMForFrame &&
-                            gpuFrame != null &&
-                            gpuCreature != null &&
-                            gpuWordmark != null &&
-                            postFrameOverlayBitmap !=
-                                null &&
-                            postWordmarkOverlayBitmap !=
-                                null
-                        ) {
-                            activeEncoderSurface
-                                .drawGpuProjectMCyberSharkComposite(
-                                    lowerOverlayBitmap =
-                                        overlayBitmap,
-                                    frame =
-                                        gpuFrame,
-                                    fxOverlayBitmap =
-                                        postFrameOverlayBitmap,
-                                    creature =
-                                        gpuCreature,
-                                    wordmark =
-                                        gpuWordmark,
-                                    topOverlayBitmap =
-                                        postWordmarkOverlayBitmap,
-                                    glow =
-                                        gpuGlow,
-                                    presentationTimeNs =
-                                        presentationTimeNs,
-                                )
-                        } else if (
                             directGpuProjectMForFrame &&
                             gpuFrame != null &&
                             postFrameOverlayBitmap !=

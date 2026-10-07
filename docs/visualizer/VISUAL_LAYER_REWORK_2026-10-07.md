@@ -216,3 +216,20 @@ Then run the standard benchmark:
 - 90 frames;
 - capture timing text plus exported video.
 
+
+## Panther asset correction — 2026-10-08
+
+Latest phone video still shows Cyber Shark artwork after selecting Cyber Panther.
+
+A fresh byte-level check of the current repository confirms:
+- `cyber_panther_wordmark.webp` is a valid RIFF/WEBP file;
+- the current `cyber_panther_creature.webp` is **not** a valid RIFF/WEBP payload;
+- therefore Panther Creature cannot be treated as repaired yet.
+
+This supersedes the earlier note that the temporary Panther Creature review asset was valid.
+
+Until a Shark-grade Panther creature is redrawn and committed as a real valid high-resolution image:
+- Panther visual QA remains OPEN;
+- do not request a Panther performance benchmark;
+- do not interpret the selector label/toast as proof that Panther artwork rendered.
+

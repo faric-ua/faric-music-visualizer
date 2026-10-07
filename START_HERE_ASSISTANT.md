@@ -1,5 +1,14 @@
 # FARIC Music Visualizer — START HERE
 
+## v0.19.30 / build 119 — visible installed-version marker
+
+- Start/library screen now shows `v<versionName> · build <versionCode>` in a small muted label so phone screenshots immediately identify the installed APK.
+- Current expected label: `v0.19.30 · build 119`.
+- Later, if desired, expose this label through the normal object visibility system instead of removing the diagnostic marker.
+- GraphicFigureCatalog currently contains both selectable GF ids: Cyber Shark and Cyber Panther. After installing build 119, verify the styled GF picker can switch to Cyber Panther before collecting the Panther benchmark.
+- Android #537 is the build to use for this candidate; do not use an earlier in-between artifact merely because it completed first.
+
+
 ## HARD UI RULE — style inheritance
 
 - Read and follow `UI_STYLE_CONTRACT.md` for every new app-owned UI element.

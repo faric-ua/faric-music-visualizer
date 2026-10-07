@@ -43,10 +43,17 @@ import kotlin.math.sin
  */
 class HeroBoardView(
     context: Context,
-    private val figureThemeId:
+    figureThemeId:
         PlaybackThemeId =
         PlaybackThemeId.CYBER_SHARK,
 ) : View(context) {
+
+    private var figureThemeId:
+        PlaybackThemeId =
+        GraphicFigureCatalog
+            .normalize(
+                figureThemeId,
+            )
 
     enum class ObjectId {
         BACKGROUND,
@@ -73,23 +80,66 @@ class HeroBoardView(
         }
     private val fxPath = Path()
 
-    private val figureAssets =
+    private var figureAssets =
         GraphicFigureCatalog
             .loadAssets(
                 context,
-                figureThemeId,
+                this.figureThemeId,
             )
 
-    private val frameBitmap =
+    private var frameBitmap =
         figureAssets.frame
-    private val fxBitmap =
+    private var fxBitmap =
         figureAssets.fx
-    private val creatureBitmap =
+    private var creatureBitmap =
         figureAssets.creature
-    private val wordmarkBitmap =
+    private var wordmarkBitmap =
         figureAssets.wordmark
 
     private var renderErrorLogged = false
+
+    fun setFigureTheme(
+        themeId: PlaybackThemeId,
+    ) {
+        val safe =
+            GraphicFigureCatalog
+                .normalize(
+                    themeId,
+                )
+
+        if (
+            safe ==
+                figureThemeId
+        ) {
+            invalidate()
+            return
+        }
+
+        figureThemeId =
+            safe
+        figureAssets =
+            GraphicFigureCatalog
+                .loadAssets(
+                    context,
+                    safe,
+                )
+        frameBitmap =
+            figureAssets.frame
+        fxBitmap =
+            figureAssets.fx
+        creatureBitmap =
+            figureAssets.creature
+        wordmarkBitmap =
+            figureAssets.wordmark
+        renderErrorLogged =
+            false
+        invalidate()
+    }
+
+    fun currentFigureTheme():
+        PlaybackThemeId =
+        figureThemeId
+
 
     private var groupTransform =
         BoardTransform.default()

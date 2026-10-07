@@ -15,6 +15,14 @@
 - [ ] Generalize the GPU composition plan so future templates can use different layer sets without depending on the exact Cyber Shark stack.
 - [ ] After that, add HUD subprofiling before choosing any HUD GPU/cache rewrite.
 
+### Next GF validation target — Cyber Panther
+
+- Recovered prior GF catalog: cyber-panther, cyber-tiger, void-dragon, neon-griffin, cyber-raven, cyber-wolf, neon-phoenix, plasma-cobra, void-serpent, mech-scorpion.
+- Use Cyber Panther as the first second-GF implementation after exporter generalization.
+- Deliberately validate an alternate GF layer set instead of cloning the Cyber Shark stack: background/glow + FX + creature, with frame/wordmark optional/absent.
+- Do not replace Cyber Shark; keep it as the phone-known-good reference GF.
+- Original non-shark binary art assets are not currently present in the repository; do not silently substitute shark assets. Recreate/import Panther art as a separate step.
+
 ## CURRENT PRIORITY — phone-test v0.19.22 GPU creature + wordmark
 
 - [x] v0.19.21 phone performance PASS: total 6483 ms.

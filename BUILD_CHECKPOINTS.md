@@ -1232,4 +1232,34 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Compare v0.19.11 baseline total 14925 -> 5451 ms (~63.5% lower, ~2.74x faster).
 - Status: PHONE-ACCEPTED / CURRENT KNOWN GOOD.
 - Next: audit/generalize converter/export behavior for alternate layer sets, then profile HUD internals before changing HUD rendering.
+---
+
+## 2026-10-07 — v0.19.23 / build 112 — generalized GF compositor + Cyber Panther — Android PASS
+
+- Status: BUILD PASS / phone QA pending.
+- Exact APK/source commit: `7f2b3373ef96cdcde33f40117c1cd9c44807d97a`.
+- Validate workflow: #857, run `37553402776` — PASS.
+- Android workflow: #509, run `37553402797` — PASS.
+- Artifact: `FARIC-Music-Visualizer-v0.19.23-Debug`.
+- Artifact id: `11454285483`.
+- Artifact digest: `sha256:2dbdb8318cd07f2dbd3038cdbcb0e687187101e37be3de518267d3bc019fe417`.
+- Successfully completed in code/build:
+  - generalized direct-projectM EGL compositor with optional glow/frame/creature/wordmark stages;
+  - removed the old all-or-nothing frame + creature + wordmark dependency for the advanced GF path;
+  - preserved ordered CPU overlay slots and existing correctness fallbacks;
+  - added persistent GF selection in Layer 3;
+  - added Cyber Panther as a distinct second GF using Background/Glow + FX + Creature only;
+  - Cyber Panther has no frame and no wordmark by design, exercising a different layer set;
+  - Panther creature art is a static procedural bitmap generated once and eligible for the GPU creature texture path;
+  - Layer 3 object controls and Board editor are filtered to the selected GF's supported layers;
+  - transform/reaction stores remain separated by GF theme id.
+- Reference phone-known-good remains v0.19.22: 1080x1920 / 90 frames, total 5451 ms.
+- Phone acceptance still required:
+  1. Cyber Shark regression preview;
+  2. Cyber Panther live visual/reaction check;
+  3. Cyber Panther 3-second / 90-frame export with direct projectM;
+  4. require GPU creature > 0 and GPU frame/wordmark = 0 for Panther;
+  5. test one reduced Panther layer combination, such as Background OFF + FX + Panther.
+- Single next resume step:
+  - install v0.19.23 via Termux 3 -> 10 -> 8 and perform the Shark regression followed by the Panther tests above.
 

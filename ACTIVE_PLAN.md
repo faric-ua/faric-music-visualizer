@@ -20,8 +20,20 @@
 - [ ] Layer 3 -> GF selector -> Cyber Panther.
 - [ ] Verify Layer 3 exposes only Background/Glow, FX and Panther.
 - [ ] Verify live Panther placement/reaction and Board editing.
-- [ ] Panther export: same warm-cache 3-second / 90-frame preview.
-- [ ] Require `projectM BGRA: GPU direct`, GPU creature > 0, GPU frame = 0, GPU wordmark = 0.
+- [x] Panther export: same warm-cache 3-second / 90-frame preview.
+- [x] Require `projectM BGRA: GPU direct`, GPU creature > 0, GPU frame = 0, GPU wordmark = 0.
+### Phone result — v0.19.23 Cyber Panther export — technical PASS / visual QA pending
+
+- 1080x1920 / 90 frames.
+- total 6270 ms; projectM 814 ms; composition 2535 ms; encoder 908 ms.
+- `projectM BGRA: GPU direct` confirmed.
+- GPU projectM 13 ms; GPU glow 5 ms; GPU creature 14 ms; GPU overlay 701 ms.
+- No GPU frame / GPU wordmark timing was emitted, matching the Panther layer contract (no Frame, no Wordmark).
+- CPU frame = 0 ms; CPU creature = 0 ms; CPU wordmark = 0 ms.
+- GF internals still use the legacy `Cyber Shark` profiler label even for the alternate GF path; telemetry naming should be generalized later, but this does not indicate Shark assets were used.
+- Current CPU costs: GF total 412 ms; background 126 ms (arcs 80 ms, particles 34 ms); FX 270 ms; effects 412 ms; HUD draw 1127 ms.
+- This satisfies the structural export criteria for the alternate GF path. Visual Panther QA and one reduced-layer combination test remain before full phone acceptance.
+
 - [ ] Toggle at least one alternate set (for example BG off + FX + Panther) and verify export remains correct.
 - [ ] After GF generalization phone PASS, return to HUD subprofiling; HUD draw was 1081 ms on v0.19.22.
 

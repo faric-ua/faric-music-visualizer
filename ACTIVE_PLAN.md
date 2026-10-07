@@ -1,5 +1,20 @@
 # Active Plan
 
+## CURRENT PRIORITY — alternate-layer export audit after v0.19.22 PASS
+
+- [x] v0.19.22 / build 111 phone performance PASS.
+- [x] Visual QA accepted by user.
+- [x] CPU creature = 0 ms; CPU wordmark = 0 ms.
+- [x] GPU creature = 10 ms; GPU wordmark = 6 ms.
+- [x] Total = 5451 ms; composition = 2306 ms.
+- [x] Direct projectM GPU FBO remains active.
+- [x] Current largest CPU layer is HUD draw = 1081 ms.
+- [ ] Audit converter/export behavior for alternate visibility/layer combinations.
+- [ ] Identify which combinations stay on the advanced GPU path and which fall back to CPU/bitmap composition.
+- [ ] Preserve correctness-first fallback for unsupported combinations.
+- [ ] Generalize the GPU composition plan so future templates can use different layer sets without depending on the exact Cyber Shark stack.
+- [ ] After that, add HUD subprofiling before choosing any HUD GPU/cache rewrite.
+
 ## CURRENT PRIORITY — phone-test v0.19.22 GPU creature + wordmark
 
 - [x] v0.19.21 phone performance PASS: total 6483 ms.

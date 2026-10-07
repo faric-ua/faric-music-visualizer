@@ -6972,7 +6972,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             stages.bigEqualizerMs,
                         )
                         append(" ms")
-                        append("\nGraphic Figure · ")\n                        append(\n                            GraphicFigureCatalog\n                                .title(\n                                    currentGraphicFigureThemeId(),\n                                ),\n                        )\n                        append(": ")
+                        append("\nGraphic Figure · ")
+                        append(
+                            GraphicFigureCatalog
+                                .title(
+                                    currentGraphicFigureThemeId(),
+                                ),
+                        )
+                        append(": ")
                         append(
                             stages.cyberSharkMs,
                         )

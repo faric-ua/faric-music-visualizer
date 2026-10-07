@@ -602,6 +602,8 @@ static void destroy_foreground_locked() {
     g_u_high = -1;
     g_u_beat = -1;
     g_u_mode = -1;
+    g_u_center_visible = -1;
+    g_u_edge_visible = -1;
 }
 
 static bool create_foreground_locked() {

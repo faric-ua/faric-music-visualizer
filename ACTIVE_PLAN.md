@@ -1,5 +1,23 @@
 # Active Plan
 
+## TODO — projectM / TOP-ALL visualizer screen should not be fullscreen
+
+Context:
+- This is the separate projectM visualizer screen opened from the visualizer flow, the one with `ТОП`, `ВСІ`, `NEXT`, FG controls and preset browsing.
+- Current implementation explicitly calls `enableFullscreen()` in `ProjectMActivity`, which sets `setDecorFitsSystemWindows(false)` and hides `systemBars()`.
+
+Desired behavior:
+- [ ] This screen must **not** force immersive/fullscreen mode.
+- [ ] Android system bars/navigation UI should remain visible while browsing TOP/ALL visualizations.
+- [ ] Remove/rework the `enableFullscreen()` calls from `ProjectMActivity` so the system UI is not hidden again on resume.
+- [ ] Apply normal window insets/safe-area handling so status/navigation bars do not overlap the projectM status/header or bottom control rows.
+- [ ] Keep the visualizer content itself edge-safe and correctly sized inside the non-fullscreen viewport.
+- [ ] Do not change the fullscreen/immersive behavior of other screens unless they are audited separately.
+- [ ] Phone QA: open projectM TOP/ALL screen -> system bars visible immediately -> switch presets/FG controls -> background/resume app -> system bars remain visible and layout stays aligned.
+
+Status: TODO only for now; implement in a later UI pass after current Panther / layer work unless user promotes it.
+
+
 ## CURRENT FIX — v0.19.34 / build 123 — GF chooser lifecycle
 
 - [x] Phone video `606710.mp4`: selecting Cyber Panther changed the inner chooser state/toast, but the parent Layers panel still displayed the stale `Cyber Shark` button label.

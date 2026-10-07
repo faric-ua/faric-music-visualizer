@@ -9,8 +9,11 @@ import android.widget.FrameLayout
  * Canonical PulseDeck render stack.
  *
  * Z-order is explicit and stable:
- * 0 Visualizer / projectM
- * 1 Visualizer / FARIC Reactive
+ * 0 Visualizer / projectM (internal render slot)
+ * 1 Visualizer / FARIC Reactive (internal render slot)
+ *
+ * User-facing layer UI treats these two slots as one Visualizer group with
+ * two independently toggleable child objects: projectM and FARIC Reactive.
  * 2 Over-visualization
  * 3 Big Equalizer
  * 4 GF / Graphic Figures

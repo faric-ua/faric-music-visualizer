@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 118
-        versionName = "0.19.29"
-        // v0.19.29 completes the PulseDeck UI style audit, shared dialogs and layers-panel styling.
+        versionCode = 119
+        versionName = "0.19.30"
+        // v0.19.30 shows app version/build on the PulseDeck start screen.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

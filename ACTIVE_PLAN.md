@@ -1,5 +1,17 @@
 # Active Plan
 
+## CURRENT FIX — v0.19.34 / build 123 — GF chooser lifecycle
+
+- [x] Phone video `606710.mp4`: selecting Cyber Panther changed the inner chooser state/toast, but the parent Layers panel still displayed the stale `Cyber Shark` button label.
+- [x] Final UX decision: **parent Layers panel stays open; child Shark/Panther chooser closes after a choice**.
+- [x] Parent GF selector button updates its label immediately after selection.
+- [x] GF child row now uses generic `Creature` text so it cannot show stale Shark/Panther text while the parent panel remains open.
+- [x] Benchmark gate added: no new 3-second Panther benchmark until Panther is visibly correct and the new visual-layer controls are phone-accepted.
+- [ ] Build/install v0.19.34 / build 123.
+- [ ] Phone QA: choose Panther -> child chooser closes -> Layers remains open -> selector button says Cyber Panther.
+- [ ] Panther itself must become visibly recognizable; selector correctness alone is not a Panther PASS.
+
+
 ## PANTHER ART DIRECTION — full redraw at Shark quality
 
 - [x] Decision: stop patching the old Panther pack as if it were production-ready.

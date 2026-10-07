@@ -1,5 +1,33 @@
 # Active Plan
 
+## CURRENT FIX — v0.19.36 / build 125 — projectM return-race + FG button fit
+
+Phone evidence:
+- [x] Screenshot: top-row `FG NEXT` label wraps into a clipped second line inside the fixed-height control. Use compact visible label `FG`; current FG sample remains visible in the status line.
+- [x] Video `606730.mp4`: after leaving the separate projectM TOP/ALL activity and returning to the main player, the projectM background intermittently disappears / flashes while HUD + Shark remain.
+- [x] Dense frame review confirms the glitch occurs across the activity handoff, not because of the new system-bar layout itself.
+
+Root cause:
+- [x] `ProjectMBridge` is a process-wide singleton native renderer.
+- [x] MainActivity and ProjectMActivity each own a different `ProjectMView` but share that one native bridge.
+- [x] The old flow released the bridge asynchronously on both sides. On return, MainActivity could recreate its projectM view before ProjectMActivity's delayed `onDestroy()` release executed; the late destroy could then kill the newly-created main renderer.
+- [x] The reverse race was also possible when opening ProjectMActivity because MainActivity used asynchronous release before launching the second activity.
+
+Fix:
+- [x] MainActivity now uses `releaseProjectMBlocking(1500)` before launching ProjectMActivity.
+- [x] ProjectMActivity has a single `exitToPlayer()` path used by both the PulseDeck Back button and Android system Back.
+- [x] `exitToPlayer()` blocks until its native projectM instance is released, nulls the child view, then calls `finish()`.
+- [x] ProjectMActivity `onDestroy()` skips a second release after the explicit exit path, preventing a late native destroy from racing the parent recreation.
+- [x] This bug predates the non-fullscreen/system-bar UI change; the new fix targets renderer ownership/lifecycle, not the system bars.
+
+Phone QA:
+- [ ] Open projectM TOP/ALL -> change several presets -> Back -> main screen must return with stable projectM background and no intermittent black/glitched frames.
+- [ ] Repeat open/back at least 5 times.
+- [ ] Test both the PulseDeck Back button and Android system Back.
+- [ ] Confirm top-row button shows only `FG` with no clipped hidden text.
+- [ ] Panther remains separate/open and should not block this lifecycle QA.
+
+
 ## CURRENT FIX — v0.19.35 / build 124 — projectM non-fullscreen + back
 
 Phone QA:

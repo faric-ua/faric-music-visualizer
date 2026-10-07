@@ -820,7 +820,9 @@ class HeroBoardView(
                 .supports(
                     figureThemeId,
                     BoardLayerId.FRAME,
-                )
+                ) &&
+            frameBitmap !=
+                null
         ) {
             drawBitmapLayer(
                 canvas = canvas,

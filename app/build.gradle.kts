@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 112
-        versionName = "0.19.23"
-        // v0.19.23 generalizes optional GF GPU layers and adds Cyber Panther.
+        versionCode = 113
+        versionName = "0.19.24"
+        // v0.19.24 packages the physical modular Cyber Panther GF asset set.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

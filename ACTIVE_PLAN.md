@@ -1,5 +1,21 @@
 # Active Plan
 
+## CURRENT FIX — v0.19.31 / build 120 — dialog fit + Visualizer object model + Panther visibility
+
+- [x] Phone finding: `Автоприховування` option `Ховати керування + нижню панель` wrapped/clipped inside a fixed-height tile.
+- [x] Shared `PulseDeckDialogs` actions now use `WRAP_CONTENT` + minimum touch height + centered text + padding + up to 3 lines.
+- [x] UI style/audit rule updated: localized labels must never be clipped by fixed-height action tiles; long Ukrainian labels are mandatory QA cases.
+- [x] Validate CI now checks the shared dialog text-fit contract.
+- [x] Visualizer user model corrected: one **Visualizer** group with two independent child objects — **projectM** and **FARIC Reactive**.
+- [x] Renderer still keeps two internal slots for correct z-order/performance, but the user-facing Layers panel no longer exposes FARIC Reactive as a misleading separate top-level layer.
+- [x] One-time migration maps the previously split top-level visibility into the two Visualizer child-object states without changing the visible composition.
+- [x] Legacy saved Sets are migrated on load: old `VISUALIZER` / `FARIC_REACTIVE` layer flags become the new child-object visibility states when object state is absent.
+- [x] Panther selector hardening: selecting a GF now enables the Graphic Figures parent layer. If every child of the selected GF is hidden, all supported child layers are restored so the selected figure is actually visible.
+- [x] GF picker shows a confirmation toast after explicit selection.
+- [ ] Build v0.19.31 / build 120 and phone-QA: dialog tile fit, Visualizer child toggles, Cyber Panther selection/render.
+- [ ] Panther export benchmark after visible Panther is confirmed.
+
+
 ## CURRENT CANDIDATE — v0.19.30 / build 119 — visible app version
 
 - [x] Show exact app version and build number on the PulseDeck start/library screen: `v<versionName> · build <versionCode>`.

@@ -1,5 +1,14 @@
 # FARIC Music Visualizer — START HERE
 
+## HARD VISUAL ASSET RULE — Cyber Shark quality benchmark
+
+- Read and follow `docs/visualizer/ASSET_QUALITY_CONTRACT.md` for every new production image/graphic asset.
+- Cyber Shark is the visual-quality benchmark: clean edges, high-resolution physical source, lossless transparency, no matte/halo/compression dirt.
+- Prefer quality over APK/file size unless a measured runtime/memory issue requires optimization.
+- Do not ship low-resolution production art that must be enlarged on phone/export.
+- New GF/overlay/wordmark assets are not considered ready until phone/export QA is visually comparable to Cyber Shark.
+
+
 ## READY FOR PHONE REVIEW — v0.19.33 / build 122
 
 Source/APK commit: `3bbf2f726679f17fadf8c9c331a0816c343806f2`.

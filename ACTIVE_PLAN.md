@@ -1,5 +1,62 @@
 # Active Plan
 
+## FUTURE UX / ARCHITECTURE — saved composition sets + clearer visual layer model
+
+### Saved composition sets / presets
+
+- [ ] Add named **Sets** (composition presets) so the user can save the current visual composition under a custom name and restore it later with one tap.
+- [ ] Core actions: **Save current as set**, **Load set**, **Save as / duplicate**, **Rename**, **Delete**, and optionally **Export / Import set** as JSON.
+- [ ] A set should capture visual-composition state, not unrelated playback/library state.
+- [ ] Initial set payload should include:
+  - visibility of top-level visual layers;
+  - selected Graphic Figure (GF), e.g. Cyber Shark / Cyber Panther;
+  - per-GF child visibility: Background/Glow, Frame, FX, Creature, Wordmark;
+  - GF group transform and per-child transforms;
+  - GF group reaction and per-child reaction settings;
+  - selected projectM preset and visibility;
+  - FARIC reactive visualizer visibility/settings;
+  - Over-visualization, Big EQ, GIF/Animation and Effects visibility/settings where applicable;
+  - relevant export-safe visual configuration such as aspect-dependent layout only when it is truly part of the composition.
+- [ ] Keep **Sets** separate from the emergency **safe UI layout** feature. A visual set may intentionally hide many composition layers; the recovery checkpoint exists only to guarantee access to menus/controls.
+- [ ] Loading a set should be atomic: apply the full snapshot as one operation, then refresh the live preview and exporter from the same state.
+- [ ] A failed/partial set load must not leave a half-applied composition; validate the set before replacing the current composition.
+- [ ] Consider a small preview thumbnail and "last used" timestamp later, after the core save/load contract is stable.
+
+### Clarify the layer terminology
+
+Current code model confirmed:
+- **Layer 0 — VISUALIZER** currently contains two logical objects inside one stack slot: `projectM` and `FARIC reactive visualizer`.
+- **Layer 3 — GRAPHIC_FIGURES (GF)** is already separate from VISUALIZER.
+- **Cyber Shark / Cyber Panther** are not separate top-level layers; they are selectable **GF variants/themes** inside GRAPHIC_FIGURES.
+- Each GF can contain child layers such as **Background/Glow, Frame, FX, Creature, Wordmark**.
+- Internal code still uses some historical `Hero*` naming; user-facing UI should avoid mixing **Hero**, **Graphic Figure**, **Visualizer**, Shark/Panther terminology unless the distinction is intentional.
+
+### Split VISUALIZER into real independently addressable layers
+
+- [ ] Refactor the current combined `VISUALIZER` slot so `projectM` and `FARIC reactive visualizer` become independently addressable render layers/subslots instead of only two objects sharing one top-level z-slot.
+- [ ] Preserve current visual output while allowing each visualizer component to have its own visibility, persistence, export path, and future transform/reaction controls.
+- [ ] Define explicit z-order after the split so there is no ambiguity with Over-visualization, Big EQ, GF, Effects and HUD.
+- [ ] Proposed conceptual order to validate before implementation:
+  1. projectM background;
+  2. FARIC reactive visualizer;
+  3. Over-visualization;
+  4. Big Equalizer;
+  5. Graphic Figures (GF);
+  6. GIF / Animation;
+  7. Effects;
+  8. PulseDeck HUD;
+  9. Service Overlay.
+- [ ] Update layer menu labels to match the architecture and make the distinction obvious:
+  - **Visualizer / projectM**
+  - **Visualizer / FARIC Reactive**
+  - **Graphic Figure / Cyber Shark**
+  - **Graphic Figure / Cyber Panther**
+  - GF children underneath the selected figure.
+- [ ] Migrate old persisted `VISUALIZER` visibility safely so existing users keep the same appearance after the split.
+- [ ] Update exporter/profiler naming together with the UI so timings no longer use misleading legacy labels.
+- [ ] Make Sets use the new layer identities once this split is implemented, with backward-compatible import of older set versions if Sets ship first.
+
+
 ## FUTURE UX — emergency menu recovery / safe UI snapshot
 
 - [ ] Prevent a user from permanently locking themselves out after hiding every menu/control that can reopen the layer/menu panel.

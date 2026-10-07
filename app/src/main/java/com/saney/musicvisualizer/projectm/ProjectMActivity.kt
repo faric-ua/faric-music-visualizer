@@ -17,6 +17,7 @@ import androidx.activity.addCallback
 import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import com.saney.musicvisualizer.ui.PulseDeckDialogs
 import java.io.File
 import kotlin.concurrent.thread
 
@@ -40,7 +41,11 @@ class ProjectMActivity : ComponentActivity() {
     private var foregroundEdgeFxVisible = true
     private var currentBackgroundMode = ProjectMBackgroundMode.TOP
     private var autoEnabled = true
+    private var autoSwitchSeconds = 10
+    private var foregroundTuning =
+        ProjectMForegroundTuning.default()
 
+    private var autoIntervalControl: TextView? = null
     private var backgroundControl: TextView? = null
     private var foregroundCenterControl: TextView? = null
     private var foregroundEdgeControl: TextView? = null
@@ -75,6 +80,10 @@ class ProjectMActivity : ComponentActivity() {
             stateStore.foregroundEdgeFxVisible
         currentBackgroundMode = stateStore.backgroundMode
         autoEnabled = stateStore.autoEnabled
+        autoSwitchSeconds =
+            stateStore.autoSwitchSeconds
+        foregroundTuning =
+            stateStore.foregroundTuning()
 
         root = FrameLayout(this).apply {
             setBackgroundColor(Color.BLACK)
@@ -185,6 +194,50 @@ class ProjectMActivity : ComponentActivity() {
 
         updateForegroundControlLabels()
 
+        val settingsControls =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+                gravity =
+                    Gravity.CENTER
+                setPadding(
+                    dp(8),
+                    dp(2),
+                    dp(8),
+                    dp(4),
+                )
+                setBackgroundColor(
+                    Color.argb(
+                        155,
+                        0,
+                        0,
+                        0,
+                    ),
+                )
+
+                autoIntervalControl =
+                    control(
+                        "",
+                    ) {
+                        cycleAutoInterval()
+                    }
+                addView(
+                    requireNotNull(
+                        autoIntervalControl,
+                    ),
+                )
+
+                addView(
+                    control(
+                        "FG TUNE",
+                    ) {
+                        showForegroundTuningChooser()
+                    },
+                )
+            }
+
+        updateAutoIntervalLabel()
+
         val ratingControls = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER
@@ -215,6 +268,13 @@ class ProjectMActivity : ComponentActivity() {
             )
             addView(
                 foregroundControls,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+            addView(
+                settingsControls,
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -943,6 +1003,635 @@ class ProjectMActivity : ComponentActivity() {
                 "EDGE FX"
     }
 
+    private fun cycleAutoInterval() {
+        val options =
+            intArrayOf(
+                5,
+                10,
+                15,
+            )
+        val currentIndex =
+            options.indexOf(
+                autoSwitchSeconds,
+            )
+                .takeIf {
+                    it >= 0
+                }
+                ?: 1
+
+        autoSwitchSeconds =
+            options[
+                (
+                    currentIndex +
+                        1
+                    ) %
+                    options.size
+            ]
+
+        stateStore.autoSwitchSeconds =
+            autoSwitchSeconds
+        updateAutoIntervalLabel()
+
+        if (autoEnabled) {
+            scheduleAuto()
+        }
+
+        updateStatus()
+    }
+
+    private fun updateAutoIntervalLabel() {
+        autoIntervalControl
+            ?.text =
+            "⏱ ${autoSwitchSeconds}s"
+    }
+
+    private fun applyForegroundTuning(
+        value: ProjectMForegroundTuning,
+    ) {
+        foregroundTuning =
+            value.sanitized()
+        stateStore.saveForegroundTuning(
+            foregroundTuning,
+        )
+        projectMView
+            ?.setForegroundTuning(
+                foregroundTuning,
+            )
+    }
+
+    private fun showForegroundTuningChooser() {
+        PulseDeckDialogs.showActionList(
+            context = this,
+            title = "FG налаштування",
+            items =
+                listOf(
+                    "FG Center · форма та реакція",
+                    "FG Edge FX · реакція",
+                    "Скинути всі FG налаштування",
+                ),
+            cancelLabel = "Закрити",
+        ) { which ->
+            when (which) {
+                0 ->
+                    showCenterTuningDialog()
+
+                1 ->
+                    showEdgeTuningDialog()
+
+                2 -> {
+                    applyForegroundTuning(
+                        ProjectMForegroundTuning
+                            .default(),
+                    )
+                    toast(
+                        "FG налаштування скинуто",
+                    )
+                }
+            }
+        }
+    }
+
+    private fun showCenterTuningDialog() {
+        val body =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.VERTICAL
+            }
+
+        fun addFloatRow(
+            title: String,
+            step: Float,
+            value: () -> Float,
+            format: (Float) -> String,
+            update: (Float) -> Unit,
+        ) {
+            val row =
+                LinearLayout(this).apply {
+                    orientation =
+                        LinearLayout.HORIZONTAL
+                    gravity =
+                        Gravity.CENTER_VERTICAL
+                    setPadding(
+                        0,
+                        dp(3),
+                        0,
+                        dp(3),
+                    )
+                }
+
+            val titleView =
+                TextView(this).apply {
+                    text =
+                        title
+                    textSize =
+                        13f
+                    setTextColor(
+                        Color.WHITE,
+                    )
+                }
+
+            val valueView =
+                TextView(this).apply {
+                    text =
+                        format(
+                            value(),
+                        )
+                    textSize =
+                        13f
+                    gravity =
+                        Gravity.CENTER
+                    setTextColor(
+                        Color.WHITE,
+                    )
+                }
+
+            fun applyDelta(
+                delta: Float,
+            ) {
+                update(
+                    value() +
+                        delta,
+                )
+                valueView.text =
+                    format(
+                        value(),
+                    )
+            }
+
+            row.addView(
+                titleView,
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(42),
+                    1f,
+                ).apply {
+                    gravity =
+                        Gravity.CENTER_VERTICAL
+                },
+            )
+            row.addView(
+                tuneButton(
+                    "−",
+                ) {
+                    applyDelta(
+                        -step,
+                    )
+                },
+            )
+            row.addView(
+                valueView,
+                LinearLayout.LayoutParams(
+                    dp(76),
+                    dp(42),
+                ),
+            )
+            row.addView(
+                tuneButton(
+                    "+",
+                ) {
+                    applyDelta(
+                        step,
+                    )
+                },
+            )
+            body.addView(
+                row,
+            )
+        }
+
+        addFloatRow(
+            title = "Масштаб",
+            step = 0.05f,
+            value = {
+                foregroundTuning
+                    .centerScale
+            },
+            format = {
+                "%.2fx".format(
+                    it,
+                )
+            },
+        ) { next ->
+            applyForegroundTuning(
+                foregroundTuning.copy(
+                    centerScale =
+                        next,
+                ),
+            )
+        }
+
+        addFloatRow(
+            title = "Поворот",
+            step = 5f,
+            value = {
+                foregroundTuning
+                    .centerRotationDegrees
+            },
+            format = {
+                "%.0f°".format(
+                    it,
+                )
+            },
+        ) { next ->
+            applyForegroundTuning(
+                foregroundTuning.copy(
+                    centerRotationDegrees =
+                        next,
+                ),
+            )
+        }
+
+        addFloatRow(
+            title = "Прозорість",
+            step = 0.05f,
+            value = {
+                foregroundTuning
+                    .centerOpacity
+            },
+            format = {
+                "%.0f%%".format(
+                    it *
+                        100f,
+                )
+            },
+        ) { next ->
+            applyForegroundTuning(
+                foregroundTuning.copy(
+                    centerOpacity =
+                        next,
+                ),
+            )
+        }
+
+        listOf(
+            "Bass" to
+                Pair(
+                    { foregroundTuning.centerBassGain },
+                    { v: Float ->
+                        applyForegroundTuning(
+                            foregroundTuning.copy(
+                                centerBassGain =
+                                    v,
+                            ),
+                        )
+                    },
+                ),
+            "Mid" to
+                Pair(
+                    { foregroundTuning.centerMidGain },
+                    { v: Float ->
+                        applyForegroundTuning(
+                            foregroundTuning.copy(
+                                centerMidGain =
+                                    v,
+                            ),
+                        )
+                    },
+                ),
+            "High" to
+                Pair(
+                    { foregroundTuning.centerHighGain },
+                    { v: Float ->
+                        applyForegroundTuning(
+                            foregroundTuning.copy(
+                                centerHighGain =
+                                    v,
+                            ),
+                        )
+                    },
+                ),
+            "Beat" to
+                Pair(
+                    { foregroundTuning.centerBeatGain },
+                    { v: Float ->
+                        applyForegroundTuning(
+                            foregroundTuning.copy(
+                                centerBeatGain =
+                                    v,
+                            ),
+                        )
+                    },
+                ),
+        )
+            .forEach { item ->
+                addFloatRow(
+                    title =
+                        "Реакція " +
+                            item.first,
+                    step = 0.10f,
+                    value =
+                        item.second.first,
+                    format = {
+                        "%.1fx".format(
+                            it,
+                        )
+                    },
+                    update =
+                        item.second.second,
+                )
+            }
+
+        PulseDeckDialogs.show(
+            context = this,
+            title = "FG Center",
+            message =
+                "Зміни застосовуються одразу до прев'ю та зберігаються для експорту.",
+            body = body,
+            actions =
+                listOf(
+                    PulseDeckDialogs.Action(
+                        label =
+                            "Скинути Center",
+                    ) {
+                        applyForegroundTuning(
+                            foregroundTuning.copy(
+                                centerScale = 1f,
+                                centerRotationDegrees = 0f,
+                                centerOpacity = 1f,
+                                centerBassGain = 1f,
+                                centerMidGain = 1f,
+                                centerHighGain = 1f,
+                                centerBeatGain = 1f,
+                            ),
+                        )
+                    },
+                    PulseDeckDialogs.Action(
+                        label =
+                            "Закрити",
+                        accent = true,
+                    ) {},
+                ),
+        )
+    }
+
+    private fun showEdgeTuningDialog() {
+        val body =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.VERTICAL
+            }
+
+        fun addFloatRow(
+            title: String,
+            step: Float,
+            value: () -> Float,
+            format: (Float) -> String,
+            update: (Float) -> Unit,
+        ) {
+            val row =
+                LinearLayout(this).apply {
+                    orientation =
+                        LinearLayout.HORIZONTAL
+                    gravity =
+                        Gravity.CENTER_VERTICAL
+                    setPadding(
+                        0,
+                        dp(3),
+                        0,
+                        dp(3),
+                    )
+                }
+            val valueView =
+                TextView(this).apply {
+                    text =
+                        format(
+                            value(),
+                        )
+                    textSize =
+                        13f
+                    gravity =
+                        Gravity.CENTER
+                    setTextColor(
+                        Color.WHITE,
+                    )
+                }
+
+            fun applyDelta(
+                delta: Float,
+            ) {
+                update(
+                    value() +
+                        delta,
+                )
+                valueView.text =
+                    format(
+                        value(),
+                    )
+            }
+
+            row.addView(
+                TextView(this).apply {
+                    text =
+                        title
+                    textSize =
+                        13f
+                    setTextColor(
+                        Color.WHITE,
+                    )
+                },
+                LinearLayout.LayoutParams(
+                    0,
+                    dp(42),
+                    1f,
+                ).apply {
+                    gravity =
+                        Gravity.CENTER_VERTICAL
+                },
+            )
+            row.addView(
+                tuneButton(
+                    "−",
+                ) {
+                    applyDelta(
+                        -step,
+                    )
+                },
+            )
+            row.addView(
+                valueView,
+                LinearLayout.LayoutParams(
+                    dp(76),
+                    dp(42),
+                ),
+            )
+            row.addView(
+                tuneButton(
+                    "+",
+                ) {
+                    applyDelta(
+                        step,
+                    )
+                },
+            )
+            body.addView(
+                row,
+            )
+        }
+
+        addFloatRow(
+            title = "Прозорість",
+            step = 0.05f,
+            value = {
+                foregroundTuning
+                    .edgeOpacity
+            },
+            format = {
+                "%.0f%%".format(
+                    it *
+                        100f,
+                )
+            },
+        ) { next ->
+            applyForegroundTuning(
+                foregroundTuning.copy(
+                    edgeOpacity =
+                        next,
+                ),
+            )
+        }
+
+        listOf(
+            "Bass" to
+                Pair(
+                    { foregroundTuning.edgeBassGain },
+                    { v: Float ->
+                        applyForegroundTuning(
+                            foregroundTuning.copy(
+                                edgeBassGain =
+                                    v,
+                            ),
+                        )
+                    },
+                ),
+            "High" to
+                Pair(
+                    { foregroundTuning.edgeHighGain },
+                    { v: Float ->
+                        applyForegroundTuning(
+                            foregroundTuning.copy(
+                                edgeHighGain =
+                                    v,
+                            ),
+                        )
+                    },
+                ),
+            "Beat" to
+                Pair(
+                    { foregroundTuning.edgeBeatGain },
+                    { v: Float ->
+                        applyForegroundTuning(
+                            foregroundTuning.copy(
+                                edgeBeatGain =
+                                    v,
+                            ),
+                        )
+                    },
+                ),
+        )
+            .forEach { item ->
+                addFloatRow(
+                    title =
+                        "Реакція " +
+                            item.first,
+                    step = 0.10f,
+                    value =
+                        item.second.first,
+                    format = {
+                        "%.1fx".format(
+                            it,
+                        )
+                    },
+                    update =
+                        item.second.second,
+                )
+            }
+
+        PulseDeckDialogs.show(
+            context = this,
+            title = "FG Edge FX",
+            message =
+                "Окремо налаштовує бокові/крайові ефекти.",
+            body = body,
+            actions =
+                listOf(
+                    PulseDeckDialogs.Action(
+                        label =
+                            "Скинути Edge FX",
+                    ) {
+                        applyForegroundTuning(
+                            foregroundTuning.copy(
+                                edgeOpacity = 1f,
+                                edgeBassGain = 1f,
+                                edgeHighGain = 1f,
+                                edgeBeatGain = 1f,
+                            ),
+                        )
+                    },
+                    PulseDeckDialogs.Action(
+                        label =
+                            "Закрити",
+                        accent = true,
+                    ) {},
+                ),
+        )
+    }
+
+    private fun tuneButton(
+        label: String,
+        action: () -> Unit,
+    ): TextView =
+        TextView(this).apply {
+            text =
+                label
+            textSize =
+                18f
+            gravity =
+                Gravity.CENTER
+            setTextColor(
+                Color.WHITE,
+            )
+            setPadding(
+                dp(8),
+                dp(6),
+                dp(8),
+                dp(6),
+            )
+            setBackgroundColor(
+                Color.argb(
+                    180,
+                    15,
+                    28,
+                    39,
+                ),
+            )
+            setOnClickListener {
+                action()
+            }
+            layoutParams =
+                LinearLayout.LayoutParams(
+                    dp(42),
+                    dp(42),
+                ).apply {
+                    marginStart =
+                        dp(3)
+                    marginEnd =
+                        dp(3)
+                }
+        }
+
+    private fun toast(
+        message: String,
+    ) {
+        android.widget.Toast
+            .makeText(
+                this,
+                message,
+                android.widget.Toast
+                    .LENGTH_SHORT,
+            )
+            .show()
+    }
+
     private fun showProjectM(initialPreset: File) {
         val old = projectMView
 
@@ -969,6 +1658,8 @@ class ProjectMActivity : ComponentActivity() {
                     foregroundCenterVisible,
                 foregroundEdgeFxVisible =
                     foregroundEdgeFxVisible,
+                foregroundTuning =
+                    foregroundTuning,
                 onTapNext = {
                     manualNext()
                 },
@@ -999,7 +1690,7 @@ class ProjectMActivity : ComponentActivity() {
         ) {
             mainHandler.postDelayed(
                 autoRunnable,
-                AUTO_SWITCH_MS,
+                autoSwitchSeconds * 1_000L,
             )
         }
     }
@@ -1012,8 +1703,11 @@ class ProjectMActivity : ComponentActivity() {
         lastLoadMs: Long? = null,
     ) {
         val mode =
-            if (autoEnabled) "AUTO"
-            else "MANUAL"
+            if (autoEnabled) {
+                "AUTO ${autoSwitchSeconds}s"
+            } else {
+                "MANUAL"
+            }
 
         val queueSize =
             presetQueue
@@ -1190,7 +1884,6 @@ class ProjectMActivity : ComponentActivity() {
             ).toInt()
 
     companion object {
-        private const val AUTO_SWITCH_MS = 18_000L
         private const val PRESET_FADE_OUT_MS = 170L
         private const val PRESET_FADE_IN_MS = 320L
         private const val PRESET_VEIL_ALPHA = 0.88f

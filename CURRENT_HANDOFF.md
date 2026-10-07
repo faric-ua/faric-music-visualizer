@@ -1,5 +1,16 @@
 # Current Handoff
 
+## LATEST PHONE-ACCEPTED RESULT — v0.19.22 / build 111 — PASS
+
+- Phone QA and visual QA: PASS.
+- Exact APK source SHA: `1bf20367c15f109b934980bbccc64a2d74c59bea`.
+- 1080x1920 / 90 frames: total 5451 ms; projectM 672 ms; composition 2306 ms; encoder 684 ms.
+- `projectM BGRA: GPU direct`; GPU projectM 10 ms; glow 5 ms; frame 11 ms; creature 10 ms; wordmark 6 ms; overlay 503 ms.
+- CPU creature = 0 ms; CPU wordmark = 0 ms; Cyber Shark = 356 ms.
+- HUD draw = 1081 ms is now the largest measured CPU layer.
+- v0.19.22 is the current phone-known-good checkpoint.
+- Next: audit/generalize converter/export behavior for alternate layer combinations before the next HUD optimization, then add HUD subprofiling.
+
 ## LATEST READY CANDIDATE — v0.19.22 / build 111 — GPU Cyber Shark creature + wordmark
 
 - Exact APK source SHA: `1bf20367c15f109b934980bbccc64a2d74c59bea`.

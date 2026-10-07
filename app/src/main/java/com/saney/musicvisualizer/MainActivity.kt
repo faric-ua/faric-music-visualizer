@@ -178,6 +178,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         }
 
+    private val emergencyRecoveryHandler =
+        android.os.Handler(
+            android.os.Looper.getMainLooper(),
+        )
+    private var emergencyRecoveryArmed = false
+    private var emergencyRecoveryDownX = 0f
+    private var emergencyRecoveryDownY = 0f
+    private val emergencyRecoveryRunnable =
+        Runnable {
+            if (
+                emergencyRecoveryArmed &&
+                screen == Screen.NOW_PLAYING
+            ) {
+                emergencyRecoveryArmed = false
+                window.decorView
+                    .performHapticFeedback(
+                        android.view.HapticFeedbackConstants.LONG_PRESS,
+                    )
+                showEmergencyRecoveryDialog()
+            }
+        }
+
     private var pendingOpenAfterPermission = false
 
     private val openAudio =
@@ -306,6 +328,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         boardGroupReactionStore = BoardGroupReactionStore(this)
         boardLayerTransformStore =
             BoardLayerTransformStore(this)
+
+        ensureVisualizerLayerMigration()
+
         selectedThemeId =
             savedInstanceState
                 ?.getString(KEY_SELECTED_THEME)
@@ -458,6 +483,188 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         super.onSaveInstanceState(
             outState,
+        )
+    }
+
+    override fun dispatchTouchEvent(
+        event: MotionEvent,
+    ): Boolean {
+        if (screen == Screen.NOW_PLAYING) {
+            when (event.actionMasked) {
+                MotionEvent.ACTION_DOWN -> {
+                    emergencyRecoveryArmed = true
+                    emergencyRecoveryDownX = event.rawX
+                    emergencyRecoveryDownY = event.rawY
+                    emergencyRecoveryHandler
+                        .removeCallbacks(
+                            emergencyRecoveryRunnable,
+                        )
+                    emergencyRecoveryHandler
+                        .postDelayed(
+                            emergencyRecoveryRunnable,
+                            EMERGENCY_RECOVERY_HOLD_MS,
+                        )
+                }
+
+                MotionEvent.ACTION_POINTER_DOWN -> {
+                    emergencyRecoveryArmed = false
+                    emergencyRecoveryHandler
+                        .removeCallbacks(
+                            emergencyRecoveryRunnable,
+                        )
+                }
+
+                MotionEvent.ACTION_MOVE -> {
+                    val dx =
+                        event.rawX -
+                            emergencyRecoveryDownX
+                    val dy =
+                        event.rawY -
+                            emergencyRecoveryDownY
+                    val limit =
+                        dp(
+                            24,
+                        )
+                            .toFloat()
+
+                    if (
+                        dx * dx +
+                            dy * dy >
+                        limit * limit
+                    ) {
+                        emergencyRecoveryArmed = false
+                        emergencyRecoveryHandler
+                            .removeCallbacks(
+                                emergencyRecoveryRunnable,
+                            )
+                    }
+                }
+
+                MotionEvent.ACTION_UP,
+                MotionEvent.ACTION_CANCEL,
+                -> {
+                    emergencyRecoveryArmed = false
+                    emergencyRecoveryHandler
+                        .removeCallbacks(
+                            emergencyRecoveryRunnable,
+                        )
+                }
+            }
+        } else {
+            emergencyRecoveryArmed = false
+            emergencyRecoveryHandler
+                .removeCallbacks(
+                    emergencyRecoveryRunnable,
+                )
+        }
+
+        return super.dispatchTouchEvent(
+            event,
+        )
+    }
+
+    private fun showEmergencyRecoveryDialog() {
+        android.app.AlertDialog
+            .Builder(
+                this,
+            )
+            .setTitle(
+                "Аварійне відновлення PulseDeck",
+            )
+            .setMessage(
+                "Меню можна повернути навіть якщо всі кнопки керування були приховані.",
+            )
+            .setItems(
+                arrayOf(
+                    "Відновити доступ до меню",
+                    "Скинути всі кнопки HUD",
+                    "Скасувати",
+                ),
+            ) { dialog, which ->
+                when (which) {
+                    0 ->
+                        restoreMenuAccess()
+
+                    1 ->
+                        resetHudControlsVisibility()
+
+                    else ->
+                        dialog.dismiss()
+                }
+            }
+            .show()
+    }
+
+    private fun restoreMenuAccess() {
+        val essential =
+            listOf(
+                "menu",
+                "back",
+                "quick_rail",
+                "theme",
+                "board",
+                "visualizer",
+                "export",
+            )
+
+        val editor =
+            layerPrefs()
+                .edit()
+
+        essential.forEach { objectId ->
+            editor.putBoolean(
+                layerObjectPreferenceKey(
+                    PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
+                    objectId,
+                ),
+                true,
+            )
+        }
+
+        editor.apply()
+
+        nowControlsHidden = false
+        showNowPlaying()
+        toast(
+            "Доступ до меню відновлено",
+        )
+    }
+
+    private fun resetHudControlsVisibility() {
+        val editor =
+            layerPrefs()
+                .edit()
+
+        PULSEDECK_EXPORT_OBJECT_IDS
+            .forEach { objectId ->
+                editor.putBoolean(
+                    layerObjectPreferenceKey(
+                        PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
+                        objectId,
+                    ),
+                    true,
+                )
+            }
+
+        editor.apply()
+
+        controlsAutoHideMode =
+            ControlsAutoHideMode.NEVER
+        getSharedPreferences(
+            PREFS_NAME,
+            MODE_PRIVATE,
+        )
+            .edit()
+            .putString(
+                KEY_CONTROLS_AUTO_HIDE_MODE,
+                ControlsAutoHideMode.NEVER.name,
+            )
+            .apply()
+
+        nowControlsHidden = false
+        showNowPlaying()
+        toast(
+            "HUD і меню відновлено",
         )
     }
 
@@ -1275,6 +1482,74 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         if (!nowControlsHidden) {
             scheduleNowControlsAutoHide()
         }
+    }
+
+    private fun ensureVisualizerLayerMigration() {
+        val prefs =
+            layerPrefs()
+
+        if (
+            prefs.getBoolean(
+                KEY_VISUALIZER_SPLIT_MIGRATED,
+                false,
+            )
+        ) {
+            return
+        }
+
+        val oldParentVisible =
+            when {
+                prefs.contains(
+                    "layer_visualizer",
+                ) ->
+                    prefs.getBoolean(
+                        "layer_visualizer",
+                        true,
+                    )
+
+                prefs.contains(
+                    "layer_0",
+                ) ->
+                    prefs.getBoolean(
+                        "layer_0",
+                        true,
+                    )
+
+                else ->
+                    true
+            }
+
+        val oldProjectMVisible =
+            prefs.getBoolean(
+                "object_visualizer_projectm",
+                true,
+            )
+        val oldFaricVisible =
+            prefs.getBoolean(
+                "object_visualizer_faric_reactive",
+                true,
+            )
+
+        prefs.edit()
+            .putBoolean(
+                layerPreferenceKey(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                ),
+                oldParentVisible &&
+                    oldProjectMVisible,
+            )
+            .putBoolean(
+                layerPreferenceKey(
+                    PulseDeckLayerStack.Layer.FARIC_REACTIVE,
+                ),
+                oldParentVisible &&
+                    oldFaricVisible,
+            )
+            .putBoolean(
+                KEY_VISUALIZER_SPLIT_MIGRATED,
+                true,
+            )
+            .apply()
     }
 
     private fun layerPrefs() =
@@ -7131,6 +7406,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             "faric.now_controls_hidden"
         private const val NOW_CONTROLS_AUTO_HIDE_MS =
             6000L
+        private const val EMERGENCY_RECOVERY_HOLD_MS =
+            10_000L
+        private const val KEY_VISUALIZER_SPLIT_MIGRATED =
+            "faric.visualizer_split_migrated_v1"
         private const val KEY_HAS_VERTICAL_SCROLL =
             "faric.has_vertical_scroll"
         private const val KEY_VERTICAL_SCROLL_Y =

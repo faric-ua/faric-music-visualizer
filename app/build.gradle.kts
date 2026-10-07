@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 119
-        versionName = "0.19.30"
-        // v0.19.30 shows app version/build on the PulseDeck start screen.
+        versionCode = 120
+        versionName = "0.19.31"
+        // v0.19.31 fixes dialog text fit, groups Visualizer child objects, and hardens Panther visibility.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

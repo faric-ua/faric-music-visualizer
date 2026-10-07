@@ -14,6 +14,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import com.saney.musicvisualizer.board.GraphicFigureCatalog
 import com.saney.musicvisualizer.projectm.FaricForegroundSample
 import com.saney.musicvisualizer.projectm.ProjectMOfflineTiming
 import com.saney.musicvisualizer.projectm.ProjectMPerformanceProfile
@@ -315,9 +316,8 @@ object ShortVideoExportProof {
 
         val cyberSharkRenderer =
             if (
-                project.themeId ==
-                    com.saney.musicvisualizer.theme
-                        .PlaybackThemeId.CYBER_SHARK &&
+                project.themeId in
+                    GraphicFigureCatalog.ids &&
                 cyberSharkConfig != null
             ) {
                 CyberSharkExportRenderer(

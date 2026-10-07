@@ -31,8 +31,13 @@ class ProjectMActivity : ComponentActivity() {
     private var downloadRunning = false
 
     private var currentForegroundSample = FaricForegroundSample.PULSE_RAYS
+    private var foregroundCenterVisible = true
+    private var foregroundEdgeFxVisible = true
     private var currentBackgroundMode = ProjectMBackgroundMode.TOP
     private var autoEnabled = true
+
+    private var foregroundCenterControl: TextView? = null
+    private var foregroundEdgeControl: TextView? = null
 
     private var displayedPreset: File? = null
     private var presetQueue: ProjectMPresetQueue? = null
@@ -56,6 +61,10 @@ class ProjectMActivity : ComponentActivity() {
         ratingsStore = ProjectMPresetRatingsStore(this)
         performanceStore = ProjectMPresetPerformanceStore(this)
         currentForegroundSample = stateStore.foregroundSample
+        foregroundCenterVisible =
+            stateStore.foregroundCenterVisible
+        foregroundEdgeFxVisible =
+            stateStore.foregroundEdgeFxVisible
         currentBackgroundMode = stateStore.backgroundMode
         autoEnabled = stateStore.autoEnabled
 
@@ -97,10 +106,58 @@ class ProjectMActivity : ComponentActivity() {
                 manualNext()
             })
 
-            addView(control("FG") {
+            addView(control("FG NEXT") {
                 cycleForeground()
             })
         }
+
+        val foregroundControls =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+                gravity =
+                    Gravity.CENTER
+                setPadding(
+                    dp(8),
+                    dp(2),
+                    dp(8),
+                    dp(4),
+                )
+                setBackgroundColor(
+                    Color.argb(
+                        155,
+                        0,
+                        0,
+                        0,
+                    ),
+                )
+
+                foregroundCenterControl =
+                    control(
+                        "",
+                    ) {
+                        toggleForegroundCenter()
+                    }
+                addView(
+                    requireNotNull(
+                        foregroundCenterControl,
+                    ),
+                )
+
+                foregroundEdgeControl =
+                    control(
+                        "",
+                    ) {
+                        toggleForegroundEdgeFx()
+                    }
+                addView(
+                    requireNotNull(
+                        foregroundEdgeControl,
+                    ),
+                )
+            }
+
+        updateForegroundControlLabels()
 
         val ratingControls = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
@@ -125,6 +182,13 @@ class ProjectMActivity : ComponentActivity() {
             orientation = LinearLayout.VERTICAL
             addView(
                 controls,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ),
+            )
+            addView(
+                foregroundControls,
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -675,6 +739,58 @@ class ProjectMActivity : ComponentActivity() {
         updateStatus()
     }
 
+    private fun toggleForegroundCenter() {
+        foregroundCenterVisible =
+            !foregroundCenterVisible
+        stateStore.foregroundCenterVisible =
+            foregroundCenterVisible
+        applyForegroundVisibility()
+    }
+
+    private fun toggleForegroundEdgeFx() {
+        foregroundEdgeFxVisible =
+            !foregroundEdgeFxVisible
+        stateStore.foregroundEdgeFxVisible =
+            foregroundEdgeFxVisible
+        applyForegroundVisibility()
+    }
+
+    private fun applyForegroundVisibility() {
+        projectMView
+            ?.setForegroundVisibility(
+                centerVisible =
+                    foregroundCenterVisible,
+                edgeFxVisible =
+                    foregroundEdgeFxVisible,
+            )
+        updateForegroundControlLabels()
+        updateStatus()
+    }
+
+    private fun updateForegroundControlLabels() {
+        foregroundCenterControl
+            ?.text =
+            "CENTER " +
+                if (
+                    foregroundCenterVisible
+                ) {
+                    "ON"
+                } else {
+                    "OFF"
+                }
+
+        foregroundEdgeControl
+            ?.text =
+            "EDGE " +
+                if (
+                    foregroundEdgeFxVisible
+                ) {
+                    "ON"
+                } else {
+                    "OFF"
+                }
+    }
+
     private fun showProjectM(initialPreset: File) {
         val old = projectMView
 
@@ -695,6 +811,10 @@ class ProjectMActivity : ComponentActivity() {
                     ProjectMLibraryManager.textureDir(this),
                 profile = profile,
                 foregroundSample = currentForegroundSample,
+                foregroundCenterVisible =
+                    foregroundCenterVisible,
+                foregroundEdgeFxVisible =
+                    foregroundEdgeFxVisible,
                 onTapNext = {
                     manualNext()
                 },
@@ -775,8 +895,25 @@ class ProjectMActivity : ComponentActivity() {
         val heavyCount =
             performanceStore.heavyCount()
 
+        val centerState =
+            if (
+                foregroundCenterVisible
+            ) {
+                "CENTER ON"
+            } else {
+                "CENTER OFF"
+            }
+        val edgeState =
+            if (
+                foregroundEdgeFxVisible
+            ) {
+                "EDGE ON"
+            } else {
+                "EDGE OFF"
+            }
+
         status.text =
-            "$mode · ${currentBackgroundMode.name} $visibleCount · PRELOAD $queueSize/3 · HEAVY $heavyCount · ${ratingSymbol(rating)} $presetName$loadPart · FG ${currentForegroundSample.label}"
+            "$mode · ${currentBackgroundMode.name} $visibleCount · PRELOAD $queueSize/3 · HEAVY $heavyCount · ${ratingSymbol(rating)} $presetName$loadPart · FG ${currentForegroundSample.label} · $centerState · $edgeState"
     }
 
     private fun ratingSymbol(

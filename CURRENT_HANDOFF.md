@@ -1,5 +1,15 @@
 # Current Handoff
 
+## Resume note — 2026-10-07 — GF sandwich asset production
+
+- User re-supplied the FARIC/FMV/FVMP GF reference sheets (333062, 333063, 333064, 333065, 333066, 333067, 333069, 333070, 333072, 333073).
+- These match the existing `docs/visualizer/LOGO_GF_REFERENCE_PACK.md` / asset index direction: reusable modular GF parts for "sandwich" compositions.
+- Intended first production pack: Cyber Panther with separate transparent assets for frame/ring, creature, FARIC wordmark, and optional FX/glow.
+- Required production contract: true alpha transparency (no checkerboard baked in), common canvas/pivot, safe transparent margins, stable z-order, and compatibility with the generalized v0.19.23 GF exporter.
+- Image generation was attempted in-chat but blocked by the current image-generation plan limit; no substitute artwork was committed.
+- Do not polish the temporary procedural Panther further before trying the real modular asset pack.
+- Next resume step: when image generation is available again, generate/export the first modular Cyber Panther asset set, then wire it into the existing GF catalog and phone-test the layer sandwich.
+
 ## LATEST READY CANDIDATE — v0.19.23 / build 112 — generalized GF layers + Cyber Panther
 
 - Status: CI PASS / phone QA pending.

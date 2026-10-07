@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 113
-        versionName = "0.19.24"
-        // v0.19.24 packages the physical modular Cyber Panther GF asset set.
+        versionCode = 114
+        versionName = "0.19.25"
+        // v0.19.25 isolates GF layer visibility per figure and fixes timing labels.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

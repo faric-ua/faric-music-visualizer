@@ -39,6 +39,7 @@ import androidx.media3.common.util.UnstableApi
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardGroupReaction
 import com.saney.musicvisualizer.board.BoardGroupReactionStore
+import com.saney.musicvisualizer.board.GraphicFigureCatalog
 import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerTransform
 import com.saney.musicvisualizer.board.BoardLayerTransformStore
@@ -947,6 +948,69 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
+    private fun currentGraphicFigureThemeId():
+        PlaybackThemeId {
+        val saved =
+            layerPrefs()
+                .getString(
+                    KEY_GF_THEME_ID,
+                    null,
+                )
+                ?.let { name ->
+                    runCatching {
+                        PlaybackThemeId
+                            .valueOf(
+                                name,
+                            )
+                    }.getOrNull()
+                }
+
+        return GraphicFigureCatalog
+            .normalize(
+                saved
+                    ?: PlaybackThemeId
+                        .CYBER_SHARK,
+            )
+    }
+
+    private fun setGraphicFigureThemeId(
+        themeId: PlaybackThemeId,
+    ) {
+        val safe =
+            GraphicFigureCatalog
+                .normalize(
+                    themeId,
+                )
+
+        layerPrefs()
+            .edit()
+            .putString(
+                KEY_GF_THEME_ID,
+                safe.name,
+            )
+            .apply()
+
+        selectedThemeId =
+            safe
+        themeStore.selectedThemeId =
+            safe
+
+        val selectedEditorLayer =
+            boardEditorLayer
+
+        if (
+            selectedEditorLayer != null &&
+            !GraphicFigureCatalog
+                .supports(
+                    safe,
+                    selectedEditorLayer,
+                )
+        ) {
+            boardEditorLayer =
+                null
+        }
+    }
+
     private fun showNowPlaying() {
         screen = Screen.NOW_PLAYING
         clearScreenRefs()
@@ -1009,10 +1073,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         val gfThemeId =
-            GF_THEME_ID
+            currentGraphicFigureThemeId()
 
         val boardView =
-            HeroBoardView(this).also { view ->
+            HeroBoardView(
+                this,
+                gfThemeId,
+            ).also { view ->
                 view.setGroupTransform(
                     boardTransformStore.load(
                         gfThemeId,
@@ -1454,14 +1521,53 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ),
                 )
 
-            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES ->
+            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES -> {
+                val gfThemeId =
+                    currentGraphicFigureThemeId()
+                val creatureLabel =
+                    GraphicFigureCatalog
+                        .creatureLabel(
+                            gfThemeId,
+                        )
+
                 listOf(
-                    LayerMenuObject("background", "GF background / glow"),
-                    LayerMenuObject("frame", "Frame"),
-                    LayerMenuObject("fx", "FX"),
-                    LayerMenuObject("creature", "Creature"),
-                    LayerMenuObject("wordmark", "Wordmark"),
+                    BoardLayerId.BACKGROUND to
+                        LayerMenuObject(
+                            "background",
+                            "GF background / glow",
+                        ),
+                    BoardLayerId.FRAME to
+                        LayerMenuObject(
+                            "frame",
+                            "Frame",
+                        ),
+                    BoardLayerId.FX to
+                        LayerMenuObject(
+                            "fx",
+                            "FX",
+                        ),
+                    BoardLayerId.CREATURE to
+                        LayerMenuObject(
+                            "creature",
+                            creatureLabel,
+                        ),
+                    BoardLayerId.WORDMARK to
+                        LayerMenuObject(
+                            "wordmark",
+                            "Wordmark",
+                        ),
                 )
+                    .filter { (layerId, _) ->
+                        GraphicFigureCatalog
+                            .supports(
+                                gfThemeId,
+                                layerId,
+                            )
+                    }
+                    .map { (_, item) ->
+                        item
+                    }
+            }
 
             PulseDeckLayerStack.Layer.PULSEDECK_LOCKED ->
                 pulseDeckMainSkinView
@@ -1594,7 +1700,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         val gfThemeId =
-            GF_THEME_ID
+            currentGraphicFigureThemeId()
         val group =
             boardTransformStore.load(
                 gfThemeId,
@@ -2240,6 +2346,90 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
                     layerRow.addView(
                         TextView(this).apply {
+                            text =
+                                GraphicFigureCatalog
+                                    .title(
+                                        currentGraphicFigureThemeId(),
+                                    )
+                            textSize = 11f
+                            gravity =
+                                Gravity.CENTER
+                            contentDescription =
+                                "Обрати Graphic Figure"
+                            setTextColor(
+                                COLOR_ACCENT_CYAN,
+                            )
+                            background =
+                                panelDrawable(
+                                    Color.argb(
+                                        105,
+                                        8,
+                                        18,
+                                        24,
+                                    ),
+                                    18,
+                                    Color.argb(
+                                        95,
+                                        80,
+                                        220,
+                                        255,
+                                    ),
+                                    1,
+                                )
+                            setOnClickListener {
+                                val ids =
+                                    GraphicFigureCatalog
+                                        .ids
+                                val labels =
+                                    ids
+                                        .map { id ->
+                                            GraphicFigureCatalog
+                                                .title(
+                                                    id,
+                                                )
+                                        }
+                                        .toTypedArray()
+                                val checked =
+                                    ids.indexOf(
+                                        currentGraphicFigureThemeId(),
+                                    )
+
+                                android.app.AlertDialog
+                                    .Builder(
+                                        this@MainActivity,
+                                    )
+                                    .setTitle(
+                                        "Graphic Figure",
+                                    )
+                                    .setSingleChoiceItems(
+                                        labels,
+                                        checked,
+                                    ) { picker, which ->
+                                        setGraphicFigureThemeId(
+                                            ids[which],
+                                        )
+                                        picker.dismiss()
+                                        dialog.dismiss()
+                                        showNowPlaying()
+                                    }
+                                    .setNegativeButton(
+                                        "Скасувати",
+                                        null,
+                                    )
+                                    .show()
+                            }
+                        },
+                        LinearLayout.LayoutParams(
+                            dp(112),
+                            dp(42),
+                        ).apply {
+                            marginStart =
+                                dp(6)
+                        },
+                    )
+
+                    layerRow.addView(
+                        TextView(this).apply {
                             text = "⚙"
                             textSize = 20f
                             gravity = Gravity.CENTER
@@ -2538,7 +2728,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun showBoardTransform() {
         val gfThemeId =
-            GF_THEME_ID
+            currentGraphicFigureThemeId()
 
         screen = Screen.BOARD_TRANSFORM
         sceneOrchestrator.stop()
@@ -2554,6 +2744,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         val selectedLayer =
             boardEditorLayer
+                ?.takeIf { layerId ->
+                    GraphicFigureCatalog
+                        .supports(
+                            gfThemeId,
+                            layerId,
+                        )
+                }
 
         var selectedLayerTransform =
             selectedLayer?.let { layerId ->
@@ -2630,7 +2827,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         val boardView =
-            HeroBoardView(this).also { view ->
+            HeroBoardView(
+                this,
+                gfThemeId,
+            ).also { view ->
                 view.setGroupTransform(
                     transform,
                 )
@@ -2683,7 +2883,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 BoardLayerId.BACKGROUND -> "Background / Glow"
                 BoardLayerId.FRAME -> "Frame"
                 BoardLayerId.FX -> "FX"
-                BoardLayerId.CREATURE -> "Shark"
+                BoardLayerId.CREATURE ->
+                    GraphicFigureCatalog
+                        .creatureLabel(
+                            gfThemeId,
+                        )
                 BoardLayerId.WORDMARK -> "FARIC"
             }
 
@@ -2808,14 +3012,33 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
 
         val selectorItems =
-            listOf(
-                null to "Усе",
-                BoardLayerId.BACKGROUND to "BG/Glow",
-                BoardLayerId.FRAME to "Frame",
-                BoardLayerId.CREATURE to "Shark",
-                BoardLayerId.WORDMARK to "FARIC",
-                BoardLayerId.FX to "FX",
-            )
+            (
+                listOf(
+                    null to "Усе",
+                ) +
+                    listOf(
+                        BoardLayerId.BACKGROUND to
+                            "BG/Glow",
+                        BoardLayerId.FRAME to
+                            "Frame",
+                        BoardLayerId.CREATURE to
+                            GraphicFigureCatalog
+                                .creatureLabel(
+                                    gfThemeId,
+                                ),
+                        BoardLayerId.WORDMARK to
+                            "FARIC",
+                        BoardLayerId.FX to
+                            "FX",
+                    )
+                        .filter { (layerId, _) ->
+                            GraphicFigureCatalog
+                                .supports(
+                                    gfThemeId,
+                                    layerId,
+                                )
+                        }
+                )
 
         selectorItems.forEach { (layerId, title) ->
             val active =
@@ -3788,7 +4011,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
             )
         ) {
-            PlaybackThemeId.CYBER_SHARK
+            currentGraphicFigureThemeId()
         } else {
             selectedThemeId
         }
@@ -4652,13 +4875,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun currentCyberSharkExportConfig():
         CyberSharkExportConfig {
         val gfThemeId =
-            GF_THEME_ID
+            currentGraphicFigureThemeId()
         val parentVisible =
             layerVisible(
                 PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
             )
 
         return CyberSharkExportConfig(
+            figureThemeId =
+                gfThemeId,
             groupTransform =
                 boardTransformStore.load(
                     gfThemeId,
@@ -4675,6 +4900,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 BoardLayerId.entries
                     .associateWith { layerId ->
                         parentVisible &&
+                            GraphicFigureCatalog
+                                .supports(
+                                    gfThemeId,
+                                    layerId,
+                                ) &&
                             layerObjectVisible(
                                 PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
                                 layerId.name.lowercase(),
@@ -5969,6 +6199,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     selectedThemeId = spec.id
                     themeStore.selectedThemeId = spec.id
 
+                    if (
+                        isLayeredBoardTheme(
+                            spec.id,
+                        )
+                    ) {
+                        setGraphicFigureThemeId(
+                            spec.id,
+                        )
+                    }
+
                     if (latestSnapshot.trackName != null) {
                         showNowPlaying()
                     } else {
@@ -5999,7 +6239,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun isLayeredBoardTheme(
         id: PlaybackThemeId,
     ): Boolean =
-        id == PlaybackThemeId.CYBER_SHARK
+        id ==
+            PlaybackThemeId.CYBER_SHARK ||
+            id ==
+            PlaybackThemeId.CYBER_PANTHER
 
     private fun isStandaloneHeroTheme(
         id: PlaybackThemeId,
@@ -6824,9 +7067,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         (value * resources.displayMetrics.density).toInt()
 
     companion object {
-        private val GF_THEME_ID =
-            PlaybackThemeId.CYBER_SHARK
-
         private const val PROJECTM_EXPORT_FPS =
             30
         private const val PROJECTM_EXPORT_DURATION_MS =
@@ -6873,6 +7113,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             "faric.screen"
         private const val KEY_SELECTED_THEME =
             "faric.selected_theme"
+        private const val KEY_GF_THEME_ID =
+            "faric.gf_theme_id"
         private const val KEY_EXPORT_ASPECT_RATIO =
             "faric.export_aspect_ratio"
         private const val KEY_BOARD_EDITOR_LAYER =

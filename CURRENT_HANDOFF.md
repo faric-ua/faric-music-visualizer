@@ -1,5 +1,13 @@
 # Current Handoff
 
+## HARD UI RULE — style inheritance
+
+- Read and follow `UI_STYLE_CONTRACT.md` for every new app-owned UI element.
+- New dialogs, menus, buttons, panels, cards and tools must inherit styling/behavior from the nearest existing parent or sibling component before inventing anything new.
+- Do not introduce stock grey Android/Material UI into PulseDeck-owned flows when an existing PulseDeck custom-dialog/control family can be reused.
+- Style inheritance includes interaction behavior: visible actions must be tappable, reachable and lifecycle-safe.
+
+
 ## LATEST READY CANDIDATE — v0.19.26 / build 115 — recovery + Sets + split Visualizer
 
 - Status: CI PASS / phone QA pending.

@@ -1,5 +1,24 @@
 # Active Plan
 
+## CURRENT DELIVERY — v0.19.26 recovery + Sets + split Visualizer
+
+- [x] Emergency 10-second menu recovery implemented at Activity touch-dispatch level so it remains reachable with all HUD/menu objects hidden.
+- [x] Recovery actions: restore essential menu controls; reset all HUD controls.
+- [x] Named Composition Sets implemented: save current, load, overwrite, rename, delete.
+- [x] Sets preserve the current layer configuration snapshot, selected GF and GF transform/reaction state; projectM path/foreground is restored when the stored local preset still exists.
+- [x] Split old combined VISUALIZER stack into independent top-level `Visualizer / projectM` and `Visualizer / FARIC Reactive`.
+- [x] One-time migration preserves prior combined visualizer visibility/object state.
+- [x] v0.19.26 / build 115.
+- [x] Exact APK/source SHA `438f179cc08e305c7f8a6119191142de2cd98f91`.
+- [x] Validate #886 PASS.
+- [x] Android #525 PASS, run `37661789962`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.26-Debug`, id `11501991325`.
+- [ ] Phone QA: install over the currently locked-out build and verify 10-second recovery restores menu access without clearing unrelated settings.
+- [ ] Phone QA: Layers shows separate projectM and FARIC Reactive rows and both toggle independently.
+- [ ] Phone QA: save at least two named Sets with different GF/layer combinations, switch between them, verify full state restoration.
+- [ ] Continue Panther visual/export QA after access is restored.
+
+
 ## FUTURE UX / ARCHITECTURE — saved composition sets + clearer visual layer model
 
 ### Saved composition sets / presets

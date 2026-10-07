@@ -2173,10 +2173,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 val gfThemeId =
                     currentGraphicFigureThemeId()
                 val creatureLabel =
-                    GraphicFigureCatalog
-                        .creatureLabel(
-                            gfThemeId,
-                        )
+                    "Creature"
 
                 listOf(
                     BoardLayerId.BACKGROUND to
@@ -3959,7 +3956,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     ),
                                     1,
                                 )
-                            setOnClickListener {
+                            setOnClickListener { buttonView ->
                                 val ids =
                                     GraphicFigureCatalog
                                         .ids
@@ -3987,18 +3984,31 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     checkedIndex =
                                         checked,
                                     cancelLabel =
-                                        "Закрити",
+                                        "Скасувати",
                                     dismissOnSelect =
-                                        false,
+                                        true,
                                 ) { which ->
-                                    setGraphicFigureThemeId(
-                                        ids[which],
-                                    )
-                                    toast(
+                                    val selectedId =
+                                        ids[which]
+                                    val selectedTitle =
                                         GraphicFigureCatalog
                                             .title(
-                                                ids[which],
-                                            ) +
+                                                selectedId,
+                                            )
+
+                                    setGraphicFigureThemeId(
+                                        selectedId,
+                                    )
+
+                                    (
+                                        buttonView as?
+                                            TextView
+                                        )
+                                        ?.text =
+                                        selectedTitle
+
+                                    toast(
+                                        selectedTitle +
                                             " · застосовано",
                                     )
                                 }

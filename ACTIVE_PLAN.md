@@ -1,5 +1,17 @@
 # Active Plan
 
+## NEXT VISUAL TASK — production modular GF assets
+
+- [x] Recover GF reference pack and master manifest.
+- [x] Confirm modular production model: frame/back + creature + wordmark + optional FX.
+- [x] v0.19.23 exporter supports optional GF child layers independently.
+- [ ] Generate first real modular Cyber Panther production set with true alpha.
+- [ ] Keep common canvas/pivot and safe transparent margins across all Panther parts.
+- [ ] Produce at minimum: `frame.webp`, `creature.webp`, `wordmark.webp`, optional `fx.webp`, plus `manifest.json`.
+- [ ] Replace/retire the temporary procedural Panther only after the production assets pass visual/export QA.
+- [ ] Reuse the same pipeline next for Griffin, Cobra, Dragon, Tiger and other catalog mascots.
+- Blocker at handoff: image-generation quota; resume after it resets.
+
 ## CURRENT PRIORITY — phone-test v0.19.23 generalized GF + Cyber Panther
 
 - [x] v0.19.22 phone performance + visual PASS.

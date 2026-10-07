@@ -1,5 +1,16 @@
 # Current Handoff
 
+## LATEST FIX CANDIDATE — v0.19.25 / build 114 — GF visibility isolation
+
+- Status: code committed; Android build/phone QA pending.
+- Release HEAD: `3e24462c30b34cde8a111f3febd1870ea8ab5406`.
+- v0.19.24 phone export showed no Panther creature/frame: `GPU wordmark: 12 ms`, but no `GPU creature` and no `GPU frame`; CPU FX remained active at 268 ms.
+- Root cause: Graphic Figure object visibility used one shared preference key for all GF themes, so hidden Shark/Panther layer state leaked across figure selection.
+- Fix: GRAPHIC_FIGURES visibility is now namespaced by GF theme id. Legacy global visibility is preserved only for Cyber Shark; a newly selected Cyber Panther starts with its supported layers visible by default.
+- Timing text no longer hardcodes `Cyber Shark`; it prints `Graphic Figure · <selected GF>`.
+- Next: build/install v0.19.25, select Cyber Panther and run the same 3-second / 90-frame export. Full Panther should show GPU frame + GPU creature + GPU wordmark when those layers are enabled.
+
+
 ## Resume note — 2026-10-07 — GF sandwich asset production
 
 - User re-supplied the FARIC/FMV/FVMP GF reference sheets (333062, 333063, 333064, 333065, 333066, 333067, 333069, 333070, 333072, 333073).

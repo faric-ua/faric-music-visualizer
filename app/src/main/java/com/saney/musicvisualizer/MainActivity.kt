@@ -2501,7 +2501,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             gfJson,
         )
 
-        ProjectMStateStore(this)
+        val projectMState =
+            ProjectMStateStore(
+                this,
+            )
+        val projectMTuning =
+            projectMState.foregroundTuning()
+
+        projectMState
             .lastPresetFileOrNull()
             ?.let { preset ->
                 root.put(
@@ -2520,11 +2527,74 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         )
                         put(
                             "foreground",
-                            ProjectMStateStore(
-                                this@MainActivity,
-                            )
+                            projectMState
                                 .foregroundSample
                                 .name,
+                        )
+                        put(
+                            "autoSwitchSeconds",
+                            projectMState
+                                .autoSwitchSeconds,
+                        )
+                        put(
+                            "tuning",
+                            JSONObject().apply {
+                                put(
+                                    "centerScale",
+                                    projectMTuning
+                                        .centerScale,
+                                )
+                                put(
+                                    "centerRotation",
+                                    projectMTuning
+                                        .centerRotationDegrees,
+                                )
+                                put(
+                                    "centerOpacity",
+                                    projectMTuning
+                                        .centerOpacity,
+                                )
+                                put(
+                                    "centerBass",
+                                    projectMTuning
+                                        .centerBassGain,
+                                )
+                                put(
+                                    "centerMid",
+                                    projectMTuning
+                                        .centerMidGain,
+                                )
+                                put(
+                                    "centerHigh",
+                                    projectMTuning
+                                        .centerHighGain,
+                                )
+                                put(
+                                    "centerBeat",
+                                    projectMTuning
+                                        .centerBeatGain,
+                                )
+                                put(
+                                    "edgeOpacity",
+                                    projectMTuning
+                                        .edgeOpacity,
+                                )
+                                put(
+                                    "edgeBass",
+                                    projectMTuning
+                                        .edgeBassGain,
+                                )
+                                put(
+                                    "edgeHigh",
+                                    projectMTuning
+                                        .edgeHighGain,
+                                )
+                                put(
+                                    "edgeBeat",
+                                    projectMTuning
+                                        .edgeBeatGain,
+                                )
+                            },
                         )
                     },
                 )
@@ -3318,6 +3388,115 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ?.let { sample ->
                         state.foregroundSample =
                             sample
+                    }
+
+                val autoSwitchSeconds =
+                    projectM.optInt(
+                        "autoSwitchSeconds",
+                        state.autoSwitchSeconds,
+                    )
+                if (
+                    autoSwitchSeconds in
+                        com.saney.musicvisualizer
+                            .projectm
+                            .ProjectMStateStore
+                            .AUTO_SWITCH_OPTIONS
+                ) {
+                    state.autoSwitchSeconds =
+                        autoSwitchSeconds
+                }
+
+                projectM
+                    .optJSONObject(
+                        "tuning",
+                    )
+                    ?.let { tuning ->
+                        val current =
+                            state.foregroundTuning()
+
+                        state.saveForegroundTuning(
+                            com.saney.musicvisualizer
+                                .projectm
+                                .ProjectMForegroundTuning(
+                                    centerScale =
+                                        tuning.optDouble(
+                                            "centerScale",
+                                            current.centerScale
+                                                .toDouble(),
+                                        )
+                                            .toFloat(),
+                                    centerRotationDegrees =
+                                        tuning.optDouble(
+                                            "centerRotation",
+                                            current.centerRotationDegrees
+                                                .toDouble(),
+                                        )
+                                            .toFloat(),
+                                    centerOpacity =
+                                        tuning.optDouble(
+                                            "centerOpacity",
+                                            current.centerOpacity
+                                                .toDouble(),
+                                        )
+                                            .toFloat(),
+                                    centerBassGain =
+                                        tuning.optDouble(
+                                            "centerBass",
+                                            current.centerBassGain
+                                                .toDouble(),
+                                        )
+                                            .toFloat(),
+                                    centerMidGain =
+                                        tuning.optDouble(
+                                            "centerMid",
+                                            current.centerMidGain
+                                                .toDouble(),
+                                        )
+                                            .toFloat(),
+                                    centerHighGain =
+                                        tuning.optDouble(
+                                            "centerHigh",
+                                            current.centerHighGain
+                                                .toDouble(),
+                                        )
+                                            .toFloat(),
+                                    centerBeatGain =
+                                        tuning.optDouble(
+                                            "centerBeat",
+                                            current.centerBeatGain
+                                                .toDouble(),
+                                        )
+                                            .toFloat(),
+                                    edgeOpacity =
+                                        tuning.optDouble(
+                                            "edgeOpacity",
+                                            current.edgeOpacity
+                                                .toDouble(),
+                                        )
+                                            .toFloat(),
+                                    edgeBassGain =
+                                        tuning.optDouble(
+                                            "edgeBass",
+                                            current.edgeBassGain
+                                                .toDouble(),
+                                        )
+                                            .toFloat(),
+                                    edgeHighGain =
+                                        tuning.optDouble(
+                                            "edgeHigh",
+                                            current.edgeHighGain
+                                                .toDouble(),
+                                        )
+                                            .toFloat(),
+                                    edgeBeatGain =
+                                        tuning.optDouble(
+                                            "edgeBeat",
+                                            current.edgeBeatGain
+                                                .toDouble(),
+                                        )
+                                            .toFloat(),
+                                ),
+                        )
                     }
             }
 

@@ -1852,6 +1852,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         objectId: String,
         defaultValue: Boolean = true,
     ): Boolean {
+        if (
+            layer ==
+                PulseDeckLayerStack.Layer.VISUALIZER
+        ) {
+            val projectMState =
+                ProjectMStateStore(
+                    this,
+                )
+
+            when (objectId) {
+                "fg_center" ->
+                    return projectMState
+                        .foregroundCenterVisible
+
+                "fg_edge_fx" ->
+                    return projectMState
+                        .foregroundEdgeFxVisible
+            }
+        }
+
         val prefs =
             layerPrefs()
         val key =

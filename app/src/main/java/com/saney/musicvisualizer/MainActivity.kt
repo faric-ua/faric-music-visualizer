@@ -1567,9 +1567,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 projectMMainView?.onPause()
                                 projectMMainResumed = false
                             }
+
                             projectMMainView
-                                ?.releaseProjectM()
-                            projectMMainView = null
+                                ?.releaseProjectMBlocking(
+                                    timeoutMs =
+                                        1_500L,
+                                )
+                            projectMMainView =
+                                null
 
                             openProjectMVisualizer.launch(
                                 Intent(

@@ -2,7 +2,6 @@ package com.saney.musicvisualizer.ui
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
@@ -14,16 +13,17 @@ import android.os.SystemClock
 import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
-import com.saney.musicvisualizer.R
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardAudioState
 import com.saney.musicvisualizer.board.BoardGroupReaction
+import com.saney.musicvisualizer.board.GraphicFigureCatalog
 import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerMotion
 import com.saney.musicvisualizer.board.BoardLayerMotionEvaluator
 import com.saney.musicvisualizer.board.BoardLayerReaction
 import com.saney.musicvisualizer.board.BoardLayerTransform
 import com.saney.musicvisualizer.board.BoardTransform
+import com.saney.musicvisualizer.theme.PlaybackThemeId
 import kotlin.math.PI
 import kotlin.math.atan2
 import kotlin.math.cos
@@ -41,7 +41,12 @@ import kotlin.math.sin
  * added on top of that pose, so layout editing never replaces the existing
  * per-layer music response.
  */
-class HeroBoardView(context: Context) : View(context) {
+class HeroBoardView(
+    context: Context,
+    private val figureThemeId:
+        PlaybackThemeId =
+        PlaybackThemeId.CYBER_SHARK,
+) : View(context) {
 
     enum class ObjectId {
         BACKGROUND,
@@ -68,12 +73,19 @@ class HeroBoardView(context: Context) : View(context) {
         }
     private val fxPath = Path()
 
+    private val figureAssets =
+        GraphicFigureCatalog
+            .loadAssets(
+                context,
+                figureThemeId,
+            )
+
     private val frameBitmap =
-        decodeSafely(R.drawable.cyber_shark_frame)
+        figureAssets.frame
     private val creatureBitmap =
-        decodeSafely(R.drawable.cyber_shark_creature)
+        figureAssets.creature
     private val wordmarkBitmap =
-        decodeSafely(R.drawable.cyber_shark_wordmark)
+        figureAssets.wordmark
 
     private var renderErrorLogged = false
 
@@ -707,7 +719,16 @@ class HeroBoardView(context: Context) : View(context) {
                 transform.sizeFraction *
                 presentationScale
 
-        if (isObjectVisible(ObjectId.BACKGROUND)) {
+        if (
+            isObjectVisible(
+                ObjectId.BACKGROUND,
+            ) &&
+            GraphicFigureCatalog
+                .supports(
+                    figureThemeId,
+                    BoardLayerId.BACKGROUND,
+                )
+        ) {
             drawBoardBackground(
                 canvas = canvas,
                 w = w,
@@ -739,7 +760,16 @@ class HeroBoardView(context: Context) : View(context) {
                 audio,
                 timeSeconds,
             )
-        if (isObjectVisible(ObjectId.FRAME)) {
+        if (
+            isObjectVisible(
+                ObjectId.FRAME,
+            ) &&
+            GraphicFigureCatalog
+                .supports(
+                    figureThemeId,
+                    BoardLayerId.FRAME,
+                )
+        ) {
             drawBitmapLayer(
                 canvas = canvas,
                 bitmap = frameBitmap,
@@ -763,7 +793,16 @@ class HeroBoardView(context: Context) : View(context) {
                 audio,
                 timeSeconds,
             )
-        if (isObjectVisible(ObjectId.FX)) {
+        if (
+            isObjectVisible(
+                ObjectId.FX,
+            ) &&
+            GraphicFigureCatalog
+                .supports(
+                    figureThemeId,
+                    BoardLayerId.FX,
+                )
+        ) {
             drawFxLayer(
                 canvas = canvas,
                 motion = fxMotion,
@@ -787,7 +826,16 @@ class HeroBoardView(context: Context) : View(context) {
                 audio,
                 timeSeconds,
             )
-        if (isObjectVisible(ObjectId.CREATURE)) {
+        if (
+            isObjectVisible(
+                ObjectId.CREATURE,
+            ) &&
+            GraphicFigureCatalog
+                .supports(
+                    figureThemeId,
+                    BoardLayerId.CREATURE,
+                )
+        ) {
             drawBitmapLayer(
                 canvas = canvas,
                 bitmap = creatureBitmap,
@@ -811,7 +859,16 @@ class HeroBoardView(context: Context) : View(context) {
                 audio,
                 timeSeconds,
             )
-        if (isObjectVisible(ObjectId.WORDMARK)) {
+        if (
+            isObjectVisible(
+                ObjectId.WORDMARK,
+            ) &&
+            GraphicFigureCatalog
+                .supports(
+                    figureThemeId,
+                    BoardLayerId.WORDMARK,
+                )
+        ) {
             drawBitmapLayer(
                 canvas = canvas,
                 bitmap = wordmarkBitmap,
@@ -1482,21 +1539,6 @@ class HeroBoardView(context: Context) : View(context) {
         )
     }
 
-    private fun decodeSafely(
-        drawable: Int,
-    ): Bitmap? =
-        runCatching {
-            BitmapFactory.decodeResource(
-                resources,
-                drawable,
-                BitmapFactory.Options().apply {
-                    inScaled = false
-                    inPreferredConfig =
-                        Bitmap.Config.ARGB_8888
-                },
-            )
-        }.getOrNull()
-
     private fun drawMissingLayerFallback(
         canvas: Canvas,
         cx: Float,
@@ -1509,7 +1551,7 @@ class HeroBoardView(context: Context) : View(context) {
         if (!renderErrorLogged) {
             android.util.Log.e(
                 "HeroBoardView",
-                "Cyber Shark bitmap resource could not be decoded; using fallback rendering.",
+                "Graphic Figure bitmap resource could not be decoded; using fallback rendering.",
             )
             renderErrorLogged = true
         }

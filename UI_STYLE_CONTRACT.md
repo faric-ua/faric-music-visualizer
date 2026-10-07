@@ -70,3 +70,12 @@ Use these as primary references unless a closer component exists:
 - common controls: `actionPill`, `iconButton`, `roundControl`, `actionTile`, `label`.
 
 The emergency recovery dialog follows this contract and must stay in the same PulseDeck family.
+
+## Text-fit and localization rule
+
+- App-owned action tiles/buttons must never use a fixed height that can clip localized labels.
+- Use `WRAP_CONTENT` with a minimum touch height, centered text, horizontal/vertical padding, and allow 2–3 lines for long labels.
+- Long Ukrainian labels such as `Ховати керування + нижню панель` are mandatory phone-QA cases.
+- A dialog is not style-complete until every visible label fits without clipping, overlap or baseline drift and all action tiles are visually centered.
+- When one option wraps to multiple lines, sibling tiles keep the same visual language but may grow independently to fit their content.
+

@@ -1,5 +1,18 @@
 # Active Plan
 
+## PANTHER ART DIRECTION — full redraw at Shark quality
+
+- [x] Decision: stop patching the old Panther pack as if it were production-ready.
+- [x] Rebuild Cyber Panther as a fresh high-quality visual pack using Cyber Shark as the quality benchmark.
+- [x] First review artifact should be the core Panther creature itself; do not spend time rebuilding Frame/FX/Wordmark around an unapproved creature design.
+- [ ] Create a new high-resolution Panther creature concept with clean transparent edges, strong readable silhouette, premium metallic/neon rendering and no baked-in background/matte.
+- [ ] Phone-review the creature direction before slicing/building the rest of the pack.
+- [ ] After creature approval, rebuild aligned high-resolution physical layers: Creature, Frame, FX, Wordmark and optional full-pack preview.
+- [ ] Keep all approved Panther layers on a consistent large canvas and lossless/clean-alpha pipeline per `docs/visualizer/ASSET_QUALITY_CONTRACT.md`.
+- [ ] Replace the temporary 256×256 Panther review creature only after the new high-resolution design is approved.
+- [ ] Do not call Panther production-ready until phone preview and export look visually comparable to Cyber Shark.
+
+
 ## HARD ASSET QUALITY RULE — Cyber Shark is the benchmark
 
 - [x] Permanent contract added: `docs/visualizer/ASSET_QUALITY_CONTRACT.md`.

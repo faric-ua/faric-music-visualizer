@@ -1,5 +1,15 @@
 # Active Plan
 
+## CURRENT CANDIDATE — v0.19.30 / build 119 — visible app version
+
+- [x] Show exact app version and build number on the PulseDeck start/library screen: `v<versionName> · build <versionCode>`.
+- [x] Keep the version label intentionally small/muted so it does not compete with primary UI.
+- [ ] Later: make this version label visibility-controllable if needed, using the normal object visibility system rather than ad-hoc state.
+- [x] This candidate includes the full v0.19.29 UI-style audit and Panther/GF selector fixes already on main.
+- [ ] Phone QA: confirm the installed build visibly reports `v0.19.30 · build 119`.
+- [ ] Then test GF picker -> Cyber Panther and send Panther benchmark/video.
+
+
 ## CURRENT CANDIDATE — v0.19.29 / build 118 — full UI style audit
 
 - [x] Shared `PulseDeckDialogs` family added.

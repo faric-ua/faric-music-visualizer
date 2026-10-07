@@ -1,5 +1,27 @@
 # Active Plan
 
+## CURRENT CANDIDATE — v0.19.33 / build 122 — show it on phone
+
+- [x] UX contract saved in `docs/visualizer/VISUAL_LAYER_REWORK_2026-10-07.md`.
+- [x] GF chooser stays open; Shark/Panther changes apply live and the selected marker updates.
+- [x] HeroBoardView can reload GF physical assets live.
+- [x] Root cause for missing Panther found: previous Panther creature/frame/fx/full files were corrupt/non-RIFF WebP data; wordmark was valid.
+- [x] Replaced Panther creature with a valid physical 256×256 WebP phone-review asset.
+- [x] Missing Frame is skipped instead of drawing a cyan diagnostic circle.
+- [x] projectM screen splits visual content into independent **BG**, **CENTER**, **EDGE FX** controls.
+- [x] Main Layers → Visualizer exposes **projectM**, **FARIC Reactive**, **FG Center**, **FG Edge FX** independently.
+- [x] Internal projectM surface remains active when BG is hidden but Center or Edge is visible.
+- [x] Visibility persists and is restored through Composition Sets.
+- [x] Release commit: `3bbf2f726679f17fadf8c9c331a0816c343806f2`.
+- [x] Validate #951 PASS.
+- [ ] Android #568 PASS + artifact.
+- [ ] Phone: visually approve/reject Panther direction.
+- [ ] Phone: verify live Shark ↔ Panther switching without chooser auto-close.
+- [ ] Phone: verify BG / CENTER / EDGE FX combinations.
+- [ ] Phone: verify Layers Visualizer 4-object model.
+- [ ] After Panther is visibly accepted: replace/validate remaining Panther Frame/FX/full physical files and run export benchmark.
+
+
 ## CURRENT IMPLEMENTATION — v0.19.32 / build 121 — live GF selector + FG split
 
 Source contract:

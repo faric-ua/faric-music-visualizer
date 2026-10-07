@@ -3397,6 +3397,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
 
         PulseDeckLayerStack.Layer.entries
+            .filter { layer ->
+                layer !=
+                    PulseDeckLayerStack.Layer.FARIC_REACTIVE
+            }
             .sortedBy { layer ->
                 layer.z
             }

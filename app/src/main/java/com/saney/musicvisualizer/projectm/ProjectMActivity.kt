@@ -30,6 +30,7 @@ class ProjectMActivity : ComponentActivity() {
     private lateinit var performanceStore: ProjectMPresetPerformanceStore
 
     private var projectMView: ProjectMView? = null
+    private var projectMReleasedForExit = false
     private var downloadRunning = false
 
     private var currentForegroundSample = FaricForegroundSample.PULSE_RAYS
@@ -78,6 +79,12 @@ class ProjectMActivity : ComponentActivity() {
             setBackgroundColor(Color.BLACK)
         }
 
+        onBackPressedDispatcher.addCallback(
+            this,
+        ) {
+            exitToPlayer()
+        }
+
         status = TextView(this).apply {
             textSize = 12f
             setTextColor(Color.WHITE)
@@ -112,7 +119,7 @@ class ProjectMActivity : ComponentActivity() {
                 manualNext()
             })
 
-            addView(control("FG NEXT") {
+            addView(control("FG") {
                 cycleForeground()
             })
         }
@@ -252,7 +259,7 @@ class ProjectMActivity : ComponentActivity() {
                     }.getOrNull(),
                 )
                 setOnClickListener {
-                    finish()
+                    exitToPlayer()
                 }
             }
 
@@ -363,9 +370,35 @@ class ProjectMActivity : ComponentActivity() {
 
     override fun onDestroy() {
         cancelAuto()
-        projectMView?.releaseProjectM()
-        projectMView = null
+
+        if (!projectMReleasedForExit) {
+            projectMView
+                ?.releaseProjectM()
+        }
+
+        projectMView =
+            null
         super.onDestroy()
+    }
+
+    private fun exitToPlayer() {
+        if (projectMReleasedForExit) {
+            return
+        }
+
+        projectMReleasedForExit =
+            true
+        cancelAuto()
+
+        projectMView
+            ?.releaseProjectMBlocking(
+                timeoutMs =
+                    1_500L,
+            )
+        projectMView =
+            null
+
+        finish()
     }
 
     private fun openFastFromRememberedState() {

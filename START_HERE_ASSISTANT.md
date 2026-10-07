@@ -1,5 +1,21 @@
 # FARIC Music Visualizer — START HERE
 
+## LATEST READY CANDIDATE — v0.19.26 / build 115 — recovery + Sets + split Visualizer
+
+- Status: CI PASS / phone QA pending.
+- Exact APK/source SHA: `438f179cc08e305c7f8a6119191142de2cd98f91`.
+- Validate #886 — PASS, run `37661790260`.
+- Android #525 — PASS, run `37661789962`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.26-Debug`, id `11501991325`, digest `sha256:6479a72716822fe47135c956cd73bef8f8381b71b9c0692bcc8a1106e4b66615`.
+- Emergency UI recovery is now implemented: on NOW_PLAYING, hold one finger still for ~10 seconds anywhere on screen to open recovery even if every HUD/menu entry was hidden. Actions: restore essential menu access or reset all HUD controls.
+- Named Composition Sets are implemented under PulseDeck tools -> `Сети / Sets`: save current, load, overwrite, rename, delete. Set payload uses the existing layer config snapshot and includes top-level visibility, selected GF, GF child visibility/transforms/group reaction and projectM state/path when available.
+- Visualizer stack is split into two independently toggleable top-level layers: L0 `Visualizer / projectM` and L1 `Visualizer / FARIC Reactive`; previous visibility is migrated once from the old combined VISUALIZER state.
+- Remaining layers shift one slot deeper in the live stack while preserving relative order.
+- v0.19.25 GF visibility isolation and generalized timing label fixes remain included.
+- Immediate phone recovery/test: install v0.19.26; if menus are still hidden from persisted old state, hold ~10 seconds on NOW_PLAYING and choose `Відновити доступ до меню`. Then verify Layers shows separate projectM/FARIC rows and verify Sets save/load.
+- Normal Termux path now that CI is already complete: `3 -> 10 -> 8`.
+
+
 ## LATEST FIX CANDIDATE — v0.19.25 / build 114 — GF visibility isolation
 
 - Status: code committed; Android build/phone QA pending.

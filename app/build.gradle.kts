@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 111
-        versionName = "0.19.22"
-        // v0.19.22 composites Cyber Shark creature + wordmark on the encoder GPU surface.
+        versionCode = 112
+        versionName = "0.19.23"
+        // v0.19.23 generalizes optional GF GPU layers and adds Cyber Panther.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

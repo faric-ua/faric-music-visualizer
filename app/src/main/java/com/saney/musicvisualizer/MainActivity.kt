@@ -3479,29 +3479,24 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         currentGraphicFigureThemeId(),
                                     )
 
-                                android.app.AlertDialog
-                                    .Builder(
+                                PulseDeckDialogs.showSingleChoice(
+                                    context =
                                         this@MainActivity,
-                                    )
-                                    .setTitle(
+                                    title =
                                         "Graphic Figure",
-                                    )
-                                    .setSingleChoiceItems(
-                                        labels,
+                                    labels =
+                                        labels.toList(),
+                                    checkedIndex =
                                         checked,
-                                    ) { picker, which ->
-                                        setGraphicFigureThemeId(
-                                            ids[which],
-                                        )
-                                        picker.dismiss()
-                                        dialog.dismiss()
-                                        showNowPlaying()
-                                    }
-                                    .setNegativeButton(
+                                    cancelLabel =
                                         "Скасувати",
-                                        null,
+                                ) { which ->
+                                    setGraphicFigureThemeId(
+                                        ids[which],
                                     )
-                                    .show()
+                                    dialog.dismiss()
+                                    showNowPlaying()
+                                }
                             }
                         },
                         LinearLayout.LayoutParams(
@@ -7659,19 +7654,32 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         val checked = modes.indexOf(controlsAutoHideMode).coerceAtLeast(0)
 
-        android.app.AlertDialog.Builder(this)
-            .setTitle("Автоприховування")
-            .setSingleChoiceItems(labels, checked) { dialog, which ->
-                controlsAutoHideMode = modes[which]
-                getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
-                    .edit()
-                    .putString(KEY_CONTROLS_AUTO_HIDE_MODE, controlsAutoHideMode.name)
-                    .apply()
-                nowControlsHidden = false
-                setNowControlsVisible(visible = true, animate = false)
-                dialog.dismiss()
-            }
-            .show()
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = "Автоприховування",
+            labels = labels.toList(),
+            checkedIndex = checked,
+            cancelLabel = "Скасувати",
+        ) { which ->
+            controlsAutoHideMode =
+                modes[which]
+            getSharedPreferences(
+                PREFS_NAME,
+                MODE_PRIVATE,
+            )
+                .edit()
+                .putString(
+                    KEY_CONTROLS_AUTO_HIDE_MODE,
+                    controlsAutoHideMode.name,
+                )
+                .apply()
+            nowControlsHidden =
+                false
+            setNowControlsVisible(
+                visible = true,
+                animate = false,
+            )
+        }
     }
 
     private fun clearScreenRefs() {
@@ -8100,52 +8108,31 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 append("\n\nMovies/FARIC")
             }
 
-        val dialog =
-            android.app.AlertDialog
-                .Builder(this)
-                .setTitle(
-                    "Експорт завершено",
-                )
-                .setMessage(
-                    message,
-                )
-                .setNeutralButton(
-                    "Копіювати текст",
-                    null,
-                )
-                .setPositiveButton(
-                    "OK",
-                    null,
-                )
-                .create()
+        PulseDeckDialogs.showMessage(
+            context = this,
+            title = "Експорт завершено",
+            message = message,
+            primaryLabel = "OK",
+            secondaryLabel = "Копіювати текст",
+        ) {
+            val clipboard =
+                getSystemService(
+                    android.content.Context.CLIPBOARD_SERVICE,
+                ) as
+                    android.content.ClipboardManager
 
-        dialog.setOnShowListener {
-            dialog
-                .getButton(
-                    android.app.AlertDialog.BUTTON_NEUTRAL,
-                )
-                .setOnClickListener {
-                    val clipboard =
-                        getSystemService(
-                            android.content.Context.CLIPBOARD_SERVICE,
-                        ) as
-                            android.content.ClipboardManager
+            clipboard.setPrimaryClip(
+                android.content.ClipData
+                    .newPlainText(
+                        "FARIC export timing",
+                        message,
+                    ),
+            )
 
-                    clipboard.setPrimaryClip(
-                        android.content.ClipData
-                            .newPlainText(
-                                "FARIC export timing",
-                                message,
-                            ),
-                    )
-
-                    toast(
-                        "Текст скопійовано",
-                    )
-                }
+            toast(
+                "Текст скопійовано",
+            )
         }
-
-        dialog.show()
     }
 
     private fun toast(message: String) {

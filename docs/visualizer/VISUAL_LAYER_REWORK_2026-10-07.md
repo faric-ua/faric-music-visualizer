@@ -184,3 +184,35 @@ Additional requirement:
 - Restart app/projectM screen and verify Center/Edge visibility state persists.
 - Capture Panther screen after repeated live switching.
 
+
+## Selector lifecycle refinement — 2026-10-08
+
+Phone QA showed that keeping the Shark/Panther chooser open after every selection is useful for debugging but not the desired final interaction.
+
+Final rule for the GF picker:
+- the **parent Layers / Шари та об'єкти panel stays open**;
+- tapping Cyber Shark or Cyber Panther applies the choice immediately;
+- the **child GF chooser closes after the selection**;
+- returning to the parent Layers panel must show the newly selected GF name immediately;
+- the generic child row is labeled **Creature** to avoid stale Shark/Panther text while the parent panel remains alive.
+
+The shared dialog helper may still support persistent live selectors for future tools that truly need side-by-side rapid comparison.
+
+## Benchmark gate
+
+Do **not** request the 3-second / 90-frame export benchmark while Panther is still visually unresolved.
+
+Current performance numbers remain useful engineering baselines, but they are not the final Panther reference.
+
+The next Panther benchmark is required only after:
+1. Panther is visibly recognizable on the phone;
+2. Shark/Panther selection state is correct;
+3. BG / FG Center / FG Edge FX toggles are verified;
+4. the Panther production asset direction is accepted at Shark-grade quality.
+
+Then run the standard benchmark:
+- 1080×1920;
+- 3 seconds;
+- 90 frames;
+- capture timing text plus exported video.
+

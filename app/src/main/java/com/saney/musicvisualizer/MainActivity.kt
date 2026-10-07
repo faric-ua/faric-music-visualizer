@@ -1180,6 +1180,29 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             true,
         )
 
+        val supportedLayers =
+            GraphicFigureCatalog
+                .supportedLayers(
+                    safe,
+                )
+        val hasVisibleObject =
+            supportedLayers.any { layerId ->
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                    layerId.name.lowercase(),
+                )
+            }
+
+        if (!hasVisibleObject) {
+            supportedLayers.forEach { layerId ->
+                setLayerObjectVisible(
+                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                    layerId.name.lowercase(),
+                    true,
+                )
+            }
+        }
+
         val selectedEditorLayer =
             boardEditorLayer
 
@@ -3600,6 +3623,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 ) { which ->
                                     setGraphicFigureThemeId(
                                         ids[which],
+                                    )
+                                    toast(
+                                        GraphicFigureCatalog
+                                            .title(
+                                                ids[which],
+                                            ) +
+                                            " · GF увімкнено",
                                     )
                                     dialog.dismiss()
                                     showNowPlaying()

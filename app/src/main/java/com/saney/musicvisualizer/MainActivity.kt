@@ -2097,6 +2097,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 ),
                         )
                         put(
+                            "presetPath",
+                            preset.absolutePath,
+                        )
+                        put(
                             "foreground",
                             ProjectMStateStore(
                                 this@MainActivity,
@@ -2111,6 +2115,751 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         return root.toString(
             2,
         )
+    }
+
+    private fun compositionSetsPrefs() =
+        getSharedPreferences(
+            "pulsedeck_composition_sets",
+            MODE_PRIVATE,
+        )
+
+    private fun compositionSetNames(): List<String> {
+        val raw =
+            compositionSetsPrefs()
+                .getString(
+                    KEY_COMPOSITION_SET_NAMES,
+                    "[]",
+                )
+                ?: "[]"
+
+        return runCatching {
+            val array =
+                JSONArray(
+                    raw,
+                )
+            buildList {
+                repeat(
+                    array.length(),
+                ) { index ->
+                    val name =
+                        array.optString(
+                            index,
+                        )
+                            .trim()
+                    if (
+                        name.isNotBlank() &&
+                        name !in this
+                    ) {
+                        add(
+                            name,
+                        )
+                    }
+                }
+            }
+        }.getOrDefault(
+            emptyList(),
+        )
+    }
+
+    private fun persistCompositionSetNames(
+        names: List<String>,
+    ) {
+        val array =
+            JSONArray()
+        names.forEach { name ->
+            array.put(
+                name,
+            )
+        }
+
+        compositionSetsPrefs()
+            .edit()
+            .putString(
+                KEY_COMPOSITION_SET_NAMES,
+                array.toString(),
+            )
+            .apply()
+    }
+
+    private fun saveCurrentCompositionSet(
+        name: String,
+    ) {
+        val safeName =
+            name.trim()
+
+        if (safeName.isBlank()) {
+            toast(
+                "Назва сету порожня",
+            )
+            return
+        }
+
+        val prefs =
+            compositionSetsPrefs()
+        val names =
+            compositionSetNames()
+                .toMutableList()
+
+        if (safeName !in names) {
+            names.add(
+                safeName,
+            )
+        }
+
+        prefs.edit()
+            .putString(
+                compositionSetKey(
+                    safeName,
+                ),
+                buildLayerConfigurationJson(),
+            )
+            .apply()
+
+        persistCompositionSetNames(
+            names,
+        )
+
+        toast(
+            "Сет «$safeName» збережено",
+        )
+    }
+
+    private fun compositionSetKey(
+        name: String,
+    ): String =
+        "set:" +
+            name
+
+    private fun deleteCompositionSet(
+        name: String,
+    ) {
+        val names =
+            compositionSetNames()
+                .filterNot {
+                    it == name
+                }
+
+        compositionSetsPrefs()
+            .edit()
+            .remove(
+                compositionSetKey(
+                    name,
+                ),
+            )
+            .apply()
+
+        persistCompositionSetNames(
+            names,
+        )
+
+        toast(
+            "Сет «$name» видалено",
+        )
+    }
+
+    private fun renameCompositionSet(
+        oldName: String,
+        newName: String,
+    ) {
+        val safe =
+            newName.trim()
+
+        if (
+            safe.isBlank() ||
+            safe == oldName
+        ) {
+            return
+        }
+
+        val prefs =
+            compositionSetsPrefs()
+        val raw =
+            prefs.getString(
+                compositionSetKey(
+                    oldName,
+                ),
+                null,
+            )
+                ?: return
+
+        val names =
+            compositionSetNames()
+                .map { current ->
+                    if (
+                        current ==
+                            oldName
+                    ) {
+                        safe
+                    } else {
+                        current
+                    }
+                }
+                .distinct()
+
+        prefs.edit()
+            .remove(
+                compositionSetKey(
+                    oldName,
+                ),
+            )
+            .putString(
+                compositionSetKey(
+                    safe,
+                ),
+                raw,
+            )
+            .apply()
+
+        persistCompositionSetNames(
+            names,
+        )
+
+        toast(
+            "Сет перейменовано",
+        )
+    }
+
+    private fun promptSaveCompositionSet() {
+        val input =
+            android.widget.EditText(
+                this,
+            ).apply {
+                hint =
+                    "Наприклад: Panther Neon"
+                setSingleLine(
+                    true,
+                )
+            }
+
+        android.app.AlertDialog
+            .Builder(
+                this,
+            )
+            .setTitle(
+                "Зберегти поточний сет",
+            )
+            .setView(
+                input,
+            )
+            .setPositiveButton(
+                "Зберегти",
+            ) { _, _ ->
+                saveCurrentCompositionSet(
+                    input.text
+                        ?.toString()
+                        .orEmpty(),
+                )
+            }
+            .setNegativeButton(
+                "Скасувати",
+                null,
+            )
+            .show()
+    }
+
+    private fun promptRenameCompositionSet(
+        oldName: String,
+    ) {
+        val input =
+            android.widget.EditText(
+                this,
+            ).apply {
+                setText(
+                    oldName,
+                )
+                setSelection(
+                    text.length,
+                )
+                setSingleLine(
+                    true,
+                )
+            }
+
+        android.app.AlertDialog
+            .Builder(
+                this,
+            )
+            .setTitle(
+                "Перейменувати сет",
+            )
+            .setView(
+                input,
+            )
+            .setPositiveButton(
+                "Зберегти",
+            ) { _, _ ->
+                renameCompositionSet(
+                    oldName,
+                    input.text
+                        ?.toString()
+                        .orEmpty(),
+                )
+            }
+            .setNegativeButton(
+                "Скасувати",
+                null,
+            )
+            .show()
+    }
+
+    private fun showCompositionSetActions(
+        name: String,
+    ) {
+        android.app.AlertDialog
+            .Builder(
+                this,
+            )
+            .setTitle(
+                name,
+            )
+            .setItems(
+                arrayOf(
+                    "Завантажити",
+                    "Перезаписати поточним",
+                    "Перейменувати",
+                    "Видалити",
+                ),
+            ) { _, which ->
+                when (which) {
+                    0 ->
+                        loadCompositionSet(
+                            name,
+                        )
+
+                    1 ->
+                        saveCurrentCompositionSet(
+                            name,
+                        )
+
+                    2 ->
+                        promptRenameCompositionSet(
+                            name,
+                        )
+
+                    3 ->
+                        android.app.AlertDialog
+                            .Builder(
+                                this,
+                            )
+                            .setTitle(
+                                "Видалити «$name»?",
+                            )
+                            .setPositiveButton(
+                                "Видалити",
+                            ) { _, _ ->
+                                deleteCompositionSet(
+                                    name,
+                                )
+                            }
+                            .setNegativeButton(
+                                "Скасувати",
+                                null,
+                            )
+                            .show()
+                }
+            }
+            .show()
+    }
+
+    private fun showCompositionSetsDialog() {
+        val names =
+            compositionSetNames()
+        val items =
+            buildList {
+                add(
+                    "＋ Зберегти поточний як сет",
+                )
+                addAll(
+                    names,
+                )
+            }
+                .toTypedArray()
+
+        android.app.AlertDialog
+            .Builder(
+                this,
+            )
+            .setTitle(
+                "Composition Sets",
+            )
+            .setItems(
+                items,
+            ) { _, which ->
+                if (which == 0) {
+                    promptSaveCompositionSet()
+                } else {
+                    showCompositionSetActions(
+                        names[
+                            which -
+                                1
+                        ],
+                    )
+                }
+            }
+            .setNegativeButton(
+                "Закрити",
+                null,
+            )
+            .show()
+    }
+
+    private fun loadCompositionSet(
+        name: String,
+    ) {
+        val raw =
+            compositionSetsPrefs()
+                .getString(
+                    compositionSetKey(
+                        name,
+                    ),
+                    null,
+                )
+
+        if (raw == null) {
+            toast(
+                "Сет не знайдено",
+            )
+            return
+        }
+
+        runCatching {
+            applyLayerConfigurationJson(
+                raw,
+            )
+        }.onSuccess {
+            toast(
+                "Сет «$name» завантажено",
+            )
+        }.onFailure { error ->
+            toast(
+                "Сет: " +
+                    (
+                        error.message
+                            ?: error.javaClass
+                                .simpleName
+                        ),
+            )
+        }
+    }
+
+    private fun applyLayerConfigurationJson(
+        raw: String,
+    ) {
+        val root =
+            JSONObject(
+                raw,
+            )
+        val schema =
+            root.optString(
+                "schema",
+                "",
+            )
+
+        require(
+            schema.startsWith(
+                "faric-layer-config-v",
+            ),
+        ) {
+            "Невідомий формат сету"
+        }
+
+        val gfJson =
+            root.optJSONObject(
+                "gf",
+            )
+        val gfTheme =
+            gfJson
+                ?.optString(
+                    "theme",
+                    "",
+                )
+                ?.takeIf {
+                    it.isNotBlank()
+                }
+                ?.let { name ->
+                    runCatching {
+                        PlaybackThemeId
+                            .valueOf(
+                                name,
+                            )
+                    }.getOrNull()
+                }
+                ?.let(
+                    GraphicFigureCatalog::normalize,
+                )
+                ?: currentGraphicFigureThemeId()
+
+        setGraphicFigureThemeId(
+            gfTheme,
+        )
+
+        val layerEditor =
+            layerPrefs()
+                .edit()
+
+        root.optJSONObject(
+            "layers",
+        )
+            ?.let { layers ->
+                controllablePulseDeckLayers()
+                    .forEach { layer ->
+                        if (
+                            layers.has(
+                                layer.name,
+                            )
+                        ) {
+                            layerEditor.putBoolean(
+                                layerPreferenceKey(
+                                    layer,
+                                ),
+                                layers.optBoolean(
+                                    layer.name,
+                                    true,
+                                ),
+                            )
+                        }
+                    }
+            }
+
+        root.optJSONObject(
+            "objects",
+        )
+            ?.let { objects ->
+                PulseDeckLayerStack
+                    .Layer
+                    .entries
+                    .forEach { layer ->
+                        objects.optJSONObject(
+                            layer.name,
+                        )
+                            ?.let { layerObjects ->
+                                val keys =
+                                    layerObjects.keys()
+                                while (
+                                    keys.hasNext()
+                                ) {
+                                    val objectId =
+                                        keys.next()
+                                    layerEditor.putBoolean(
+                                        layerObjectPreferenceKey(
+                                            layer,
+                                            objectId,
+                                        ),
+                                        layerObjects.optBoolean(
+                                            objectId,
+                                            true,
+                                        ),
+                                    )
+                                }
+                            }
+                    }
+            }
+
+        layerEditor.apply()
+
+        gfJson
+            ?.optJSONObject(
+                "group",
+            )
+            ?.let { group ->
+                val current =
+                    boardTransformStore.load(
+                        gfTheme,
+                    )
+                boardTransformStore.save(
+                    gfTheme,
+                    BoardTransform(
+                        xFraction =
+                            group.optDouble(
+                                "x",
+                                current.xFraction
+                                    .toDouble(),
+                            )
+                                .toFloat(),
+                        yFraction =
+                            group.optDouble(
+                                "y",
+                                current.yFraction
+                                    .toDouble(),
+                            )
+                                .toFloat(),
+                        sizeFraction =
+                            group.optDouble(
+                                "scale",
+                                current.sizeFraction
+                                    .toDouble(),
+                            )
+                                .toFloat(),
+                        rotationDegrees =
+                            group.optDouble(
+                                "rotation",
+                                current.rotationDegrees
+                                    .toDouble(),
+                            )
+                                .toFloat(),
+                        opacity =
+                            group.optDouble(
+                                "opacity",
+                                current.opacity
+                                    .toDouble(),
+                            )
+                                .toFloat(),
+                    ),
+                )
+            }
+
+        gfJson
+            ?.optJSONObject(
+                "reaction",
+            )
+            ?.let { reaction ->
+                val current =
+                    boardGroupReactionStore.load(
+                        gfTheme,
+                    )
+                boardGroupReactionStore.save(
+                    gfTheme,
+                    BoardGroupReaction(
+                        rotationSwayDegrees =
+                            reaction.optDouble(
+                                "rotationSwayDegrees",
+                                current.rotationSwayDegrees
+                                    .toDouble(),
+                            )
+                                .toFloat(),
+                        stereoShiftFraction =
+                            reaction.optDouble(
+                                "stereoShiftFraction",
+                                current.stereoShiftFraction
+                                    .toDouble(),
+                            )
+                                .toFloat(),
+                        bassFloatFraction =
+                            reaction.optDouble(
+                                "bassFloatFraction",
+                                current.bassFloatFraction
+                                    .toDouble(),
+                            )
+                                .toFloat(),
+                    ),
+                )
+            }
+
+        gfJson
+            ?.optJSONObject(
+                "layers",
+            )
+            ?.let { layerTransforms ->
+                BoardLayerId.entries
+                    .forEach { layerId ->
+                        layerTransforms
+                            .optJSONObject(
+                                layerId.name,
+                            )
+                            ?.let { item ->
+                                val current =
+                                    boardLayerTransformStore
+                                        .load(
+                                            gfTheme,
+                                            layerId,
+                                        )
+                                boardLayerTransformStore
+                                    .save(
+                                        gfTheme,
+                                        layerId,
+                                        BoardLayerTransform(
+                                            offsetXFraction =
+                                                item.optDouble(
+                                                    "x",
+                                                    current.offsetXFraction
+                                                        .toDouble(),
+                                                )
+                                                    .toFloat(),
+                                            offsetYFraction =
+                                                item.optDouble(
+                                                    "y",
+                                                    current.offsetYFraction
+                                                        .toDouble(),
+                                                )
+                                                    .toFloat(),
+                                            scale =
+                                                item.optDouble(
+                                                    "scale",
+                                                    current.scale
+                                                        .toDouble(),
+                                                )
+                                                    .toFloat(),
+                                            rotationDegrees =
+                                                item.optDouble(
+                                                    "rotation",
+                                                    current.rotationDegrees
+                                                        .toDouble(),
+                                                )
+                                                    .toFloat(),
+                                            opacity =
+                                                item.optDouble(
+                                                    "opacity",
+                                                    current.opacity
+                                                        .toDouble(),
+                                                )
+                                                    .toFloat(),
+                                        ),
+                                    )
+                            }
+                    }
+            }
+
+        root.optJSONObject(
+            "projectM",
+        )
+            ?.let { projectM ->
+                val state =
+                    ProjectMStateStore(
+                        this,
+                    )
+                val path =
+                    projectM.optString(
+                        "presetPath",
+                        "",
+                    )
+
+                if (
+                    path.isNotBlank() &&
+                    java.io.File(
+                        path,
+                    ).isFile
+                ) {
+                    state.lastPresetPath =
+                        path
+                }
+
+                projectM
+                    .optString(
+                        "foreground",
+                        "",
+                    )
+                    .takeIf {
+                        it.isNotBlank()
+                    }
+                    ?.let { value ->
+                        runCatching {
+                            com.saney.musicvisualizer
+                                .projectm
+                                .FaricForegroundSample
+                                .valueOf(
+                                    value,
+                                )
+                        }.getOrNull()
+                    }
+                    ?.let { sample ->
+                        state.foregroundSample =
+                            sample
+                    }
+            }
+
+        projectMExportSnapshot =
+            null
+        showNowPlaying()
     }
 
     private fun showPulseDeckLayersDialog() {
@@ -7410,6 +8159,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             10_000L
         private const val KEY_VISUALIZER_SPLIT_MIGRATED =
             "faric.visualizer_split_migrated_v1"
+        private const val KEY_COMPOSITION_SET_NAMES =
+            "faric.composition_set_names"
         private const val KEY_HAS_VERTICAL_SCROLL =
             "faric.has_vertical_scroll"
         private const val KEY_VERTICAL_SCROLL_Y =

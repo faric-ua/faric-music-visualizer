@@ -1263,3 +1263,13 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 - Single next resume step:
   - install v0.19.23 via Termux 3 -> 10 -> 8 and perform the Shark regression followed by the Panther tests above.
 
+### Phone evidence update — v0.19.23 Cyber Panther
+
+- Technical export result: PASS; visual QA still pending.
+- 1080x1920 / 90 frames: total 6270 ms; projectM 814 ms; composition 2535 ms; encoder 908 ms.
+- Direct projectM confirmed: `projectM BGRA: GPU direct`.
+- GPU timings: projectM 13 ms; glow 5 ms; creature 14 ms; overlay 701 ms.
+- CPU GF: total 412 ms; background 126 ms; FX 270 ms; creature/frame/wordmark all 0 ms.
+- Expected Panther signature is present: creature on GPU, no frame/wordmark stages.
+- Remaining acceptance: visual Panther check plus one reduced-layer export combination.
+

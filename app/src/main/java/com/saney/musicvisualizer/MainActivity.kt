@@ -331,6 +331,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             BoardLayerTransformStore(this)
 
         ensureVisualizerLayerMigration()
+        ensureVisualizerObjectModelMigration()
 
         selectedThemeId =
             savedInstanceState
@@ -844,7 +845,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ) &&
                 latestSnapshot.isPlaying &&
                 layerVisible(
-                    PulseDeckLayerStack.Layer.FARIC_REACTIVE,
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                ) &&
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "faric_reactive",
                 )
 
         if (active) {
@@ -862,6 +867,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ) &&
                 layerVisible(
                     PulseDeckLayerStack.Layer.VISUALIZER,
+                ) &&
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "projectm",
                 ) &&
                 projectMMainView !=
                     null
@@ -1165,6 +1174,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             safe
         themeStore.selectedThemeId =
             safe
+
+        setLayerVisible(
+            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+            true,
+        )
 
         val selectedEditorLayer =
             boardEditorLayer
@@ -1571,6 +1585,56 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             .apply()
     }
 
+    private fun ensureVisualizerObjectModelMigration() {
+        val prefs =
+            layerPrefs()
+
+        if (
+            prefs.getBoolean(
+                KEY_VISUALIZER_OBJECTS_MIGRATED,
+                false,
+            )
+        ) {
+            return
+        }
+
+        val projectMVisible =
+            layerVisible(
+                PulseDeckLayerStack.Layer.VISUALIZER,
+            )
+        val faricVisible =
+            layerVisible(
+                PulseDeckLayerStack.Layer.FARIC_REACTIVE,
+            )
+
+        prefs.edit()
+            .putBoolean(
+                layerPreferenceKey(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                ),
+                true,
+            )
+            .putBoolean(
+                legacyLayerObjectPreferenceKey(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "projectm",
+                ),
+                projectMVisible,
+            )
+            .putBoolean(
+                legacyLayerObjectPreferenceKey(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "faric_reactive",
+                ),
+                faricVisible,
+            )
+            .putBoolean(
+                KEY_VISUALIZER_OBJECTS_MIGRATED,
+                true,
+            )
+            .apply()
+    }
+
     private fun layerPrefs() =
         getSharedPreferences("pulsedeck_layers", MODE_PRIVATE)
 
@@ -1636,20 +1700,36 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 visible,
             )
             .apply()
-        pulseDeckLayerStack
-            ?.setLayerVisible(
-                layer,
-                visible,
-            )
-
-        when (layer) {
-            PulseDeckLayerStack.Layer.VISUALIZER ->
-                updateProjectMRenderState()
-
-            PulseDeckLayerStack.Layer.FARIC_REACTIVE ->
-                updateSceneOrchestratorState()
-
-            else -> Unit
+        if (
+            layer ==
+                PulseDeckLayerStack.Layer.VISUALIZER
+        ) {
+            pulseDeckLayerStack
+                ?.setLayerVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    visible &&
+                        layerObjectVisible(
+                            PulseDeckLayerStack.Layer.VISUALIZER,
+                            "projectm",
+                        ),
+                )
+            pulseDeckLayerStack
+                ?.setLayerVisible(
+                    PulseDeckLayerStack.Layer.FARIC_REACTIVE,
+                    visible &&
+                        layerObjectVisible(
+                            PulseDeckLayerStack.Layer.VISUALIZER,
+                            "faric_reactive",
+                        ),
+                )
+            updateProjectMRenderState()
+            updateSceneOrchestratorState()
+        } else {
+            pulseDeckLayerStack
+                ?.setLayerVisible(
+                    layer,
+                    visible,
+                )
         }
     }
 
@@ -1751,22 +1831,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             PulseDeckLayerStack.Layer.VISUALIZER ->
                 when (objectId) {
                     "projectm" -> {
-                        projectMMainView?.visibility =
-                            if (visible) {
-                                View.VISIBLE
-                            } else {
-                                View.GONE
-                            }
+                        pulseDeckLayerStack
+                            ?.setLayerVisible(
+                                PulseDeckLayerStack.Layer.VISUALIZER,
+                                layerVisible(
+                                    PulseDeckLayerStack.Layer.VISUALIZER,
+                                ) &&
+                                    visible,
+                            )
                         updateProjectMRenderState()
                     }
 
                     "faric_reactive" -> {
-                        sceneView?.visibility =
-                            if (visible) {
-                                View.VISIBLE
-                            } else {
-                                View.GONE
-                            }
+                        pulseDeckLayerStack
+                            ?.setLayerVisible(
+                                PulseDeckLayerStack.Layer.FARIC_REACTIVE,
+                                layerVisible(
+                                    PulseDeckLayerStack.Layer.VISUALIZER,
+                                ) &&
+                                    visible,
+                            )
                         updateSceneOrchestratorState()
                     }
                 }
@@ -1810,7 +1894,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     ): List<LayerMenuObject> =
         when (layer) {
             PulseDeckLayerStack.Layer.VISUALIZER ->
-                emptyList()
+                listOf(
+                    LayerMenuObject(
+                        "projectm",
+                        "projectM",
+                    ),
+                    LayerMenuObject(
+                        "faric_reactive",
+                        "FARIC Reactive",
+                    ),
+                )
 
             PulseDeckLayerStack.Layer.FARIC_REACTIVE ->
                 emptyList()
@@ -1882,7 +1975,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun controllablePulseDeckLayers() =
         listOf(
             PulseDeckLayerStack.Layer.VISUALIZER,
-            PulseDeckLayerStack.Layer.FARIC_REACTIVE,
             PulseDeckLayerStack.Layer.OVER_VISUALIZATION,
             PulseDeckLayerStack.Layer.BIG_EQUALIZER,
             PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
@@ -1895,13 +1987,40 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     ) {
         controllablePulseDeckLayers()
             .forEach { layer ->
-                stack.setLayerVisible(
-                    layer,
-                    layerVisible(layer),
-                )
+                if (
+                    layer ==
+                        PulseDeckLayerStack.Layer.VISUALIZER
+                ) {
+                    val parentVisible =
+                        layerVisible(
+                            PulseDeckLayerStack.Layer.VISUALIZER,
+                        )
+
+                    stack.setLayerVisible(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        parentVisible &&
+                            layerObjectVisible(
+                                PulseDeckLayerStack.Layer.VISUALIZER,
+                                "projectm",
+                            ),
+                    )
+                    stack.setLayerVisible(
+                        PulseDeckLayerStack.Layer.FARIC_REACTIVE,
+                        parentVisible &&
+                            layerObjectVisible(
+                                PulseDeckLayerStack.Layer.VISUALIZER,
+                                "faric_reactive",
+                            ),
+                    )
+                } else {
+                    stack.setLayerVisible(
+                        layer,
+                        layerVisible(layer),
+                    )
+                }
             }
 
-        // Layer 6 is the locked PulseDeck HUD and is never user-toggleable.
+        // Layer 7 is the locked PulseDeck HUD and is never user-toggleable.
         stack.setLayerVisible(
             PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
             true,
@@ -1925,6 +2044,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             JSONObject()
 
         PulseDeckLayerStack.Layer.entries
+            .filter { layer ->
+                layer !=
+                    PulseDeckLayerStack.Layer.FARIC_REACTIVE
+            }
             .sortedBy { layer ->
                 layer.z
             }
@@ -3286,10 +3409,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 val layerName =
                     when (layer) {
                         PulseDeckLayerStack.Layer.VISUALIZER ->
-                            "Visualizer / projectM"
+                            "Visualizer"
 
                         PulseDeckLayerStack.Layer.FARIC_REACTIVE ->
-                            "Visualizer / FARIC Reactive"
+                            "Visualizer / FARIC Reactive (internal)"
 
                         PulseDeckLayerStack.Layer.OVER_VISUALIZATION ->
                             "Надвізуалізація · 447504"
@@ -5982,10 +6105,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun currentCompositionExportConfig():
         CompositionExportConfig {
-        val projectMVisible =
+        val visualizerVisible =
             layerVisible(
                 PulseDeckLayerStack.Layer.VISUALIZER,
-            ) &&
+            )
+        val projectMVisible =
+            visualizerVisible &&
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "projectm",
+                ) &&
                 ProjectMStateStore(this)
                     .lastPresetFileOrNull() !=
                 null
@@ -5994,9 +6123,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             scene =
                 currentScene,
             faricReactiveVisible =
-                layerVisible(
-                    PulseDeckLayerStack.Layer.FARIC_REACTIVE,
-                ),
+                visualizerVisible &&
+                    layerObjectVisible(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        "faric_reactive",
+                    ),
             projectMVisible =
                 projectMVisible,
             projectMFrame =
@@ -8183,6 +8314,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             10_000L
         private const val KEY_VISUALIZER_SPLIT_MIGRATED =
             "faric.visualizer_split_migrated_v1"
+        private const val KEY_VISUALIZER_OBJECTS_MIGRATED =
+            "faric.visualizer_objects_migrated_v2"
         private const val KEY_COMPOSITION_SET_NAMES =
             "faric.composition_set_names"
         private const val KEY_HAS_VERTICAL_SCROLL =

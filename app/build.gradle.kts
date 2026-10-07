@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 117
-        versionName = "0.19.28"
-        // v0.19.28 migrates all app-owned stock dialogs to the shared PulseDeck style family.
+        versionCode = 118
+        versionName = "0.19.29"
+        // v0.19.29 completes the PulseDeck UI style audit, shared dialogs and layers-panel styling.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

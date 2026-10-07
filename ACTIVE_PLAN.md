@@ -1,5 +1,30 @@
 # Active Plan
 
+## CURRENT PRIORITY — phone-test v0.19.23 generalized GF + Cyber Panther
+
+- [x] v0.19.22 phone performance + visual PASS.
+- [x] Generalize direct-projectM GPU compositor so GF glow/frame/creature/wordmark are independently optional.
+- [x] Preserve exact z-order slots and legacy/correctness fallback paths.
+- [x] Add Cyber Panther as the first alternate GF.
+- [x] Cyber Panther layer set: Background/Glow + FX + Creature; no Frame; no Wordmark.
+- [x] Add persistent Layer 3 GF selector.
+- [x] Filter Layer 3 object controls and Board editor to supported layers.
+- [x] Keep separate GF transform/reaction storage.
+- [x] v0.19.23 / build 112.
+- [x] Exact APK/source SHA `7f2b3373ef96cdcde33f40117c1cd9c44807d97a`.
+- [x] Validate #857 PASS.
+- [x] Android #509 PASS, run `37553402797`.
+- [x] Artifact `FARIC-Music-Visualizer-v0.19.23-Debug`, id `11454285483`.
+- [ ] Phone: Termux 3 -> 10 -> 8.
+- [ ] Cyber Shark regression: same warm-cache 3-second / 90-frame preview; require no visual regression and timing remains near v0.19.22.
+- [ ] Layer 3 -> GF selector -> Cyber Panther.
+- [ ] Verify Layer 3 exposes only Background/Glow, FX and Panther.
+- [ ] Verify live Panther placement/reaction and Board editing.
+- [ ] Panther export: same warm-cache 3-second / 90-frame preview.
+- [ ] Require `projectM BGRA: GPU direct`, GPU creature > 0, GPU frame = 0, GPU wordmark = 0.
+- [ ] Toggle at least one alternate set (for example BG off + FX + Panther) and verify export remains correct.
+- [ ] After GF generalization phone PASS, return to HUD subprofiling; HUD draw was 1081 ms on v0.19.22.
+
 ## CURRENT PRIORITY — alternate-layer export audit after v0.19.22 PASS
 
 - [x] v0.19.22 / build 111 phone performance PASS.

@@ -1,5 +1,6 @@
 package com.saney.musicvisualizer.projectm
 
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
@@ -8,12 +9,13 @@ import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
-import androidx.core.view.WindowInsetsControllerCompat
 import java.io.File
 import kotlin.concurrent.thread
 
@@ -219,8 +221,78 @@ class ProjectMActivity : ComponentActivity() {
             )
         }
 
+        val backButton =
+            ImageView(this).apply {
+                contentDescription =
+                    "Назад"
+                isClickable =
+                    true
+                isFocusable =
+                    true
+                scaleType =
+                    ImageView.ScaleType
+                        .CENTER_INSIDE
+                setPadding(
+                    dp(2),
+                    dp(2),
+                    dp(2),
+                    dp(2),
+                )
+                setImageBitmap(
+                    runCatching {
+                        assets.open(
+                            "skin/pulsedeck_hud/utility/back.png",
+                        )
+                            .use { input ->
+                                BitmapFactory
+                                    .decodeStream(
+                                        input,
+                                    )
+                            }
+                    }.getOrNull(),
+                )
+                setOnClickListener {
+                    finish()
+                }
+            }
+
+        val topBar =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.HORIZONTAL
+                gravity =
+                    Gravity.CENTER_VERTICAL
+                setPadding(
+                    dp(8),
+                    dp(4),
+                    dp(8),
+                    0,
+                )
+
+                addView(
+                    backButton,
+                    LinearLayout.LayoutParams(
+                        dp(58),
+                        dp(58),
+                    ),
+                )
+
+                addView(
+                    status,
+                    LinearLayout.LayoutParams(
+                        0,
+                        ViewGroup.LayoutParams
+                            .WRAP_CONTENT,
+                        1f,
+                    ).apply {
+                        marginStart =
+                            dp(6)
+                    },
+                )
+            }
+
         root.addView(
-            status,
+            topBar,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -261,7 +333,7 @@ class ProjectMActivity : ComponentActivity() {
         )
 
         setContentView(root)
-        enableFullscreen()
+        configureSystemBarsVisible()
 
         val libraryState = ProjectMLibraryManager.state(this)
 
@@ -276,7 +348,7 @@ class ProjectMActivity : ComponentActivity() {
     override fun onResume() {
         super.onResume()
         projectMView?.onResume()
-        enableFullscreen()
+        configureSystemBarsVisible()
 
         if (autoEnabled && presetQueue != null) {
             scheduleAuto()
@@ -1036,7 +1108,7 @@ class ProjectMActivity : ComponentActivity() {
                 }
         }
 
-    private fun enableFullscreen() {
+    private fun configureSystemBarsVisible() {
         WindowCompat.setDecorFitsSystemWindows(
             window,
             false,
@@ -1047,15 +1119,34 @@ class ProjectMActivity : ComponentActivity() {
                 window,
                 window.decorView,
             )
-            .apply {
-                hide(
-                    WindowInsetsCompat.Type.systemBars(),
+            .show(
+                WindowInsetsCompat.Type
+                    .systemBars(),
+            )
+
+        ViewCompat
+            .setOnApplyWindowInsetsListener(
+                root,
+            ) { view, insets ->
+                val bars =
+                    insets.getInsets(
+                        WindowInsetsCompat.Type
+                            .systemBars(),
+                    )
+
+                view.setPadding(
+                    bars.left,
+                    bars.top,
+                    bars.right,
+                    bars.bottom,
                 )
 
-                systemBarsBehavior =
-                    WindowInsetsControllerCompat
-                        .BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
+                insets
             }
+
+        ViewCompat.requestApplyInsets(
+            root,
+        )
     }
 
     private fun dp(value: Int): Int =

@@ -41,6 +41,8 @@ class ProjectMView(
     private val textureDirectory: File,
     private val profile: ProjectMPerformanceProfile = ProjectMPerformanceProfile.BALANCED_BACKGROUND,
     private var foregroundSample: FaricForegroundSample = FaricForegroundSample.PULSE_RAYS,
+    private var foregroundCenterVisible: Boolean = true,
+    private var foregroundEdgeFxVisible: Boolean = true,
     private val onTapNext: () -> Unit = {},
     private val manualFrameMode: Boolean = false,
     private val manualRenderWidth: Int? = null,
@@ -116,6 +118,10 @@ class ProjectMView(
                 texturePath = textureDirectory.absolutePath,
                 profile = profile,
                 foregroundSample = foregroundSample,
+                foregroundCenterVisible =
+                    foregroundCenterVisible,
+                foregroundEdgeFxVisible =
+                    foregroundEdgeFxVisible,
                 manualFrameMode = manualFrameMode,
                 onSurfaceSize = { width, height ->
                     glWidth = width
@@ -222,6 +228,23 @@ class ProjectMView(
     fun setForegroundSample(sample: FaricForegroundSample) {
         foregroundSample = sample
         ProjectMBridge.setForegroundSample(sample)
+    }
+
+    fun setForegroundVisibility(
+        centerVisible: Boolean,
+        edgeFxVisible: Boolean,
+    ) {
+        foregroundCenterVisible =
+            centerVisible
+        foregroundEdgeFxVisible =
+            edgeFxVisible
+
+        ProjectMBridge.setForegroundVisibility(
+            centerVisible =
+                centerVisible,
+            edgeFxVisible =
+                edgeFxVisible,
+        )
     }
 
     fun releaseProjectM() {
@@ -422,6 +445,13 @@ class ProjectMView(
             ProjectMBridge
                 .setForegroundSample(
                     foregroundSample,
+                )
+            ProjectMBridge
+                .setForegroundVisibility(
+                    centerVisible =
+                        foregroundCenterVisible,
+                    edgeFxVisible =
+                        foregroundEdgeFxVisible,
                 )
             ProjectMBridge
                 .setFrameTime(
@@ -981,6 +1011,8 @@ class ProjectMView(
         private val texturePath: String,
         private val profile: ProjectMPerformanceProfile,
         private val foregroundSample: FaricForegroundSample,
+        private val foregroundCenterVisible: Boolean,
+        private val foregroundEdgeFxVisible: Boolean,
         private val manualFrameMode: Boolean,
         private val onSurfaceSize: (Int, Int) -> Unit,
     ) : GLSurfaceView.Renderer {
@@ -1011,6 +1043,12 @@ class ProjectMView(
                 // FARIC owns AUTO/MANUAL timing. projectM internal switching stays locked.
                 ProjectMBridge.enableAutoPresetSwitching(false)
                 ProjectMBridge.setForegroundSample(foregroundSample)
+                ProjectMBridge.setForegroundVisibility(
+                    centerVisible =
+                        foregroundCenterVisible,
+                    edgeFxVisible =
+                        foregroundEdgeFxVisible,
+                )
                 created = true
             } else {
                 ProjectMBridge.resize(width, height)

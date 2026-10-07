@@ -79,6 +79,7 @@ import com.saney.musicvisualizer.ui.PulseDeckMainSkinView
 import com.saney.musicvisualizer.ui.BigEqualizerView
 import com.saney.musicvisualizer.ui.OverVisualizationView
 import com.saney.musicvisualizer.ui.PulseDeckLayerStack
+import com.saney.musicvisualizer.ui.PulseDeckDialogs
 import com.saney.musicvisualizer.ui.ReactiveSceneView
 import java.util.Locale
 import java.util.concurrent.CancellationException
@@ -1458,10 +1459,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             showLibrary()
 
                         "menu" ->
-                            android.app.AlertDialog.Builder(this)
-                                .setTitle("PulseDeck tools")
-                                .setItems(
-                                    arrayOf(
+                            PulseDeckDialogs.showActionList(
+                                context = this,
+                                title = "PulseDeck tools",
+                                items =
+                                    listOf(
                                         "Center Calibration",
                                         "Template Constructor",
                                         "Object Constructor",
@@ -1469,43 +1471,43 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         "Сети / Sets",
                                         "Автоприховування",
                                     ),
-                                ) { _, which ->
-                                    when (which) {
-                                        0 ->
-                                            startActivity(
-                                                Intent(
-                                                    this,
-                                                    PulseDeckCenterCalibrationActivity::class.java,
-                                                ),
-                                            )
+                                cancelLabel = "Закрити",
+                            ) { which ->
+                                when (which) {
+                                    0 ->
+                                        startActivity(
+                                            Intent(
+                                                this,
+                                                PulseDeckCenterCalibrationActivity::class.java,
+                                            ),
+                                        )
 
-                                        1 ->
-                                            startActivity(
-                                                Intent(
-                                                    this,
-                                                    PulseDeckTemplateConstructorActivity::class.java,
-                                                ),
-                                            )
+                                    1 ->
+                                        startActivity(
+                                            Intent(
+                                                this,
+                                                PulseDeckTemplateConstructorActivity::class.java,
+                                            ),
+                                        )
 
-                                        2 ->
-                                            startActivity(
-                                                Intent(
-                                                    this,
-                                                    PulseDeckObjectConstructorActivity::class.java,
-                                                ),
-                                            )
+                                    2 ->
+                                        startActivity(
+                                            Intent(
+                                                this,
+                                                PulseDeckObjectConstructorActivity::class.java,
+                                            ),
+                                        )
 
-                                        3 ->
-                                            showPulseDeckLayersDialog()
+                                    3 ->
+                                        showPulseDeckLayersDialog()
 
-                                        4 ->
-                                            showCompositionSetsDialog()
+                                    4 ->
+                                        showCompositionSetsDialog()
 
-                                        5 ->
-                                            showControlsAutoHideDialog()
-                                    }
+                                    5 ->
+                                        showControlsAutoHideDialog()
                                 }
-                                .show()
+                            }
 
                         "favorite" ->
                             toast(
@@ -2448,145 +2450,81 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun promptSaveCompositionSet() {
-        val input =
-            android.widget.EditText(
-                this,
-            ).apply {
-                hint =
-                    "Наприклад: Panther Neon"
-                setSingleLine(
-                    true,
-                )
-            }
-
-        android.app.AlertDialog
-            .Builder(
-                this,
+        PulseDeckDialogs.showTextInput(
+            context = this,
+            title = "Зберегти поточний сет",
+            hint = "Наприклад: Panther Neon",
+            positiveLabel = "Зберегти",
+            negativeLabel = "Скасувати",
+        ) { value ->
+            saveCurrentCompositionSet(
+                value,
             )
-            .setTitle(
-                "Зберегти поточний сет",
-            )
-            .setView(
-                input,
-            )
-            .setPositiveButton(
-                "Зберегти",
-            ) { _, _ ->
-                saveCurrentCompositionSet(
-                    input.text
-                        ?.toString()
-                        .orEmpty(),
-                )
-            }
-            .setNegativeButton(
-                "Скасувати",
-                null,
-            )
-            .show()
+        }
     }
 
     private fun promptRenameCompositionSet(
         oldName: String,
     ) {
-        val input =
-            android.widget.EditText(
-                this,
-            ).apply {
-                setText(
-                    oldName,
-                )
-                setSelection(
-                    text.length,
-                )
-                setSingleLine(
-                    true,
-                )
-            }
-
-        android.app.AlertDialog
-            .Builder(
-                this,
+        PulseDeckDialogs.showTextInput(
+            context = this,
+            title = "Перейменувати сет",
+            initialValue = oldName,
+            positiveLabel = "Зберегти",
+            negativeLabel = "Скасувати",
+        ) { value ->
+            renameCompositionSet(
+                oldName,
+                value,
             )
-            .setTitle(
-                "Перейменувати сет",
-            )
-            .setView(
-                input,
-            )
-            .setPositiveButton(
-                "Зберегти",
-            ) { _, _ ->
-                renameCompositionSet(
-                    oldName,
-                    input.text
-                        ?.toString()
-                        .orEmpty(),
-                )
-            }
-            .setNegativeButton(
-                "Скасувати",
-                null,
-            )
-            .show()
+        }
     }
 
     private fun showCompositionSetActions(
         name: String,
     ) {
-        android.app.AlertDialog
-            .Builder(
-                this,
-            )
-            .setTitle(
-                name,
-            )
-            .setItems(
-                arrayOf(
+        PulseDeckDialogs.showActionList(
+            context = this,
+            title = name,
+            items =
+                listOf(
                     "Завантажити",
                     "Перезаписати поточним",
                     "Перейменувати",
                     "Видалити",
                 ),
-            ) { _, which ->
-                when (which) {
-                    0 ->
-                        loadCompositionSet(
+            cancelLabel = "Закрити",
+        ) { which ->
+            when (which) {
+                0 ->
+                    loadCompositionSet(
+                        name,
+                    )
+
+                1 ->
+                    saveCurrentCompositionSet(
+                        name,
+                    )
+
+                2 ->
+                    promptRenameCompositionSet(
+                        name,
+                    )
+
+                3 ->
+                    PulseDeckDialogs.showConfirm(
+                        context = this,
+                        title = "Видалити «$name»?",
+                        positiveLabel = "Видалити",
+                        negativeLabel = "Скасувати",
+                        destructive = true,
+                    ) {
+                        deleteCompositionSet(
                             name,
                         )
-
-                    1 ->
-                        saveCurrentCompositionSet(
-                            name,
-                        )
-
-                    2 ->
-                        promptRenameCompositionSet(
-                            name,
-                        )
-
-                    3 ->
-                        android.app.AlertDialog
-                            .Builder(
-                                this,
-                            )
-                            .setTitle(
-                                "Видалити «$name»?",
-                            )
-                            .setPositiveButton(
-                                "Видалити",
-                            ) { _, _ ->
-                                deleteCompositionSet(
-                                    name,
-                                )
-                            }
-                            .setNegativeButton(
-                                "Скасувати",
-                                null,
-                            )
-                            .show()
-                }
+                    }
             }
-            .show()
+        }
     }
 
     private fun showCompositionSetsDialog() {
@@ -2601,34 +2539,25 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     names,
                 )
             }
-                .toTypedArray()
 
-        android.app.AlertDialog
-            .Builder(
-                this,
-            )
-            .setTitle(
-                "Composition Sets",
-            )
-            .setItems(
-                items,
-            ) { _, which ->
-                if (which == 0) {
-                    promptSaveCompositionSet()
-                } else {
-                    showCompositionSetActions(
-                        names[
-                            which -
-                                1
-                        ],
-                    )
-                }
+        PulseDeckDialogs.showActionList(
+            context = this,
+            title = "Composition Sets",
+            items = items,
+            cancelLabel = "Закрити",
+            accentFirst = true,
+        ) { which ->
+            if (which == 0) {
+                promptSaveCompositionSet()
+            } else {
+                showCompositionSetActions(
+                    names[
+                        which -
+                            1
+                    ],
+                )
             }
-            .setNegativeButton(
-                "Закрити",
-                null,
-            )
-            .show()
+        }
     }
 
     private fun loadCompositionSet(

@@ -3,6 +3,7 @@ package com.saney.musicvisualizer.theme
 enum class PlaybackThemeId {
     VISUALIZER,
     CYBER_SHARK,
+    CYBER_PANTHER,
     PORTRAIT_HALO,
     VINYL,
     CASSETTE,
@@ -71,6 +72,19 @@ object PlaybackThemeRegistry {
                     ThemeCapability.REACTIVE_BANDS,
                 ),
                 previewOrder = 5,
+            ),
+            PlaybackThemeSpec(
+                id = PlaybackThemeId.CYBER_PANTHER,
+                title = "Cyber Panther",
+                subtitle = "Layered GF · background / FX / panther",
+                family = ThemeFamily.HERO,
+                capabilities = setOf(
+                    ThemeCapability.BACKGROUND_IMAGE,
+                    ThemeCapability.BACKGROUND_VIDEO,
+                    ThemeCapability.PROJECTM_BACKGROUND,
+                    ThemeCapability.REACTIVE_BANDS,
+                ),
+                previewOrder = 6,
             ),
             PlaybackThemeSpec(
                 id = PlaybackThemeId.NEON_EMBLEM,

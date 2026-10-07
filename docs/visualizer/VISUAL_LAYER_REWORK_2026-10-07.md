@@ -115,6 +115,22 @@ Implementation detail:
 - FG Center and FG Edge FX should first get independent shader visibility flags;
 - a later render-pass split may promote them to fully independent z-orderable compositor layers if needed.
 
+## Asset integrity finding — Panther
+
+Repository byte-level audit found a concrete root cause for the missing creature:
+
+- `cyber_panther_wordmark.webp` is a valid RIFF/WEBP file.
+- the previously committed `cyber_panther_creature.webp`, `cyber_panther_frame.webp`, `cyber_panther_fx.webp`, and `cyber_panther_full.webp` did **not** contain valid RIFF/WEBP headers; Android could not reliably decode them.
+- this explains why Panther-specific state/wordmark appeared while the recognizable Panther creature did not.
+
+First visible recovery step:
+- `cyber_panther_creature.webp` has been replaced by a valid physical 256×256 WebP asset with a clearly recognizable neon Panther head.
+- the invalid Frame is now skipped instead of being replaced by the confusing cyan diagnostic circle.
+- FX may still use the existing procedural fallback until its physical file is replaced.
+- Frame/FX/full physical assets remain a separate cleanup task; do not call the Panther pack fully repaired until those files are replaced/validated.
+
+This replacement is intentionally a phone-review candidate: the user should see it first and decide whether the visual direction is acceptable before the rest of the Panther physical pack is regenerated around it.
+
 ## Panther bug contract
 
 Current status: OPEN.
@@ -143,25 +159,27 @@ Additional requirement:
 - controls use wrap-content/minimum-touch-height behavior;
 - visual selector state must remain readable after repeated switching.
 
-## First implementation slice
+## First implementation slice — implemented in v0.19.33 / build 122
 
-1. Make live single-choice selector capable of staying open and updating selection in place.
-2. Use persistent selector for Cyber Shark / Cyber Panther.
-3. Add independent persistent visibility state for `FG Center` and `FG Edge FX`.
-4. Split the native foreground shader output so center and edge components can be toggled independently.
-5. Add visible controls to the projectM FG screen for Center and Edge.
-6. Preserve existing projectM preset selection and FG sample selection.
-7. Continue Panther creature diagnostics after this slice builds.
+1. Live single-choice selector stays open and updates selection in place.
+2. Cyber Shark / Cyber Panther uses the persistent live selector.
+3. HeroBoardView reloads the selected GF live without rebuilding the Now Playing screen.
+4. projectM foreground is split into independent `FG Center` and `FG Edge FX` visibility.
+5. projectM preset/background has its own `BG` visibility as a third independent component.
+6. The projectM screen exposes `BG`, `CENTER`, and `EDGE FX` controls.
+7. Main Layers → Visualizer exposes `projectM`, `FARIC Reactive`, `FG Center`, and `FG Edge FX`.
+8. Sets persist/restore the component visibility model.
+9. Panther creature physical asset was repaired/replaced for phone review; remaining Panther physical pack integrity is still open.
 
 ## Phone QA for first slice
 
 - Open GF selector; switch Shark → Panther → Shark → Panther without selector closing.
 - Verify current selection mark changes in the open selector.
-- Open projectM screen:
-  - FG Center ON + Edge ON;
-  - FG Center OFF + Edge ON;
-  - FG Center ON + Edge OFF;
-  - both OFF.
+- Open projectM screen and independently test:
+  - BG ON/OFF;
+  - FG Center ON/OFF;
+  - FG Edge FX ON/OFF;
+  - all meaningful combinations, including BG OFF + Center ON + Edge OFF.
 - Cycling FG sample must not automatically re-enable Center/Edge.
 - Restart app/projectM screen and verify Center/Edge visibility state persists.
 - Capture Panther screen after repeated live switching.

@@ -945,6 +945,145 @@ class EglBitmapEncoderSurface(
         )
     }
 
+    /**
+     * Generic direct-projectM compositor for layered Graphic Figures.
+     *
+     * Every GF stage is optional, so alternate figures are not forced to use
+     * the exact Cyber Shark background/frame/creature/wordmark set. CPU
+     * overlays keep the same Z slots and remain the correctness fallback for
+     * layers that do not have a native GPU renderer yet.
+     */
+    fun drawGpuProjectMGraphicFigureComposite(
+        lowerOverlayBitmap: Bitmap,
+        frame: CyberSharkGpuFrame?,
+        fxOverlayBitmap: Bitmap,
+        creature: CyberSharkGpuFrame?,
+        wordmark: CyberSharkGpuFrame?,
+        topOverlayBitmap: Bitmap,
+        glow: CyberSharkGpuGlow?,
+        presentationTimeNs: Long,
+    ): EglCompositeDrawTiming {
+        check(
+            directProjectMActive,
+        ) {
+            "Direct GPU projectM is not initialized"
+        }
+        validateBitmap(
+            lowerOverlayBitmap,
+        )
+        validateBitmap(
+            fxOverlayBitmap,
+        )
+        validateBitmap(
+            topOverlayBitmap,
+        )
+        makeCurrent()
+        beginFrame()
+
+        val projectMStartedNs =
+            System.nanoTime()
+        drawProjectMTextureLayer()
+        val projectMNs =
+            System.nanoTime() -
+                projectMStartedNs
+
+        var glowNs = 0L
+        glow?.let { value ->
+            val startedNs =
+                System.nanoTime()
+            drawGlow(
+                value,
+            )
+            glowNs +=
+                System.nanoTime() -
+                    startedNs
+        }
+
+        val lowerOverlayStartedNs =
+            System.nanoTime()
+        drawBitmapLayer(
+            bitmap =
+                lowerOverlayBitmap,
+            alphaBlend = true,
+        )
+        var overlayNs =
+            System.nanoTime() -
+                lowerOverlayStartedNs
+
+        var frameNs = 0L
+        frame?.let { value ->
+            val startedNs =
+                System.nanoTime()
+            drawFrame(
+                value,
+            )
+            frameNs +=
+                System.nanoTime() -
+                    startedNs
+        }
+
+        val fxOverlayStartedNs =
+            System.nanoTime()
+        drawBitmapLayer(
+            bitmap =
+                fxOverlayBitmap,
+            alphaBlend = true,
+        )
+        overlayNs +=
+            System.nanoTime() -
+                fxOverlayStartedNs
+
+        var creatureNs = 0L
+        creature?.let { value ->
+            val startedNs =
+                System.nanoTime()
+            drawCreature(
+                value,
+            )
+            creatureNs +=
+                System.nanoTime() -
+                    startedNs
+        }
+
+        var wordmarkNs = 0L
+        wordmark?.let { value ->
+            val startedNs =
+                System.nanoTime()
+            drawWordmark(
+                value,
+            )
+            wordmarkNs +=
+                System.nanoTime() -
+                    startedNs
+        }
+
+        val topOverlayStartedNs =
+            System.nanoTime()
+        drawBitmapLayer(
+            bitmap =
+                topOverlayBitmap,
+            alphaBlend = true,
+        )
+        overlayNs +=
+            System.nanoTime() -
+                topOverlayStartedNs
+
+        finishFrame(
+            presentationTimeNs,
+        )
+
+        return EglCompositeDrawTiming(
+            projectMNs = projectMNs,
+            glowNs = glowNs,
+            frameNs = frameNs,
+            overlayNs = overlayNs,
+            creatureNs =
+                creatureNs,
+            wordmarkNs =
+                wordmarkNs,
+        )
+    }
+
     fun drawGpuProjectMCyberSharkComposite(
         lowerOverlayBitmap: Bitmap,
         frame: CyberSharkGpuFrame,

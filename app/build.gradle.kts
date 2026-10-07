@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 125
-        versionName = "0.19.36"
-        // v0.19.36 fixes projectM activity return races and the clipped FG control label.
+        versionCode = 126
+        versionName = "0.19.37"
+        // v0.19.37 adds projectM auto interval authoring and live FG Center / Edge FX tuning.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

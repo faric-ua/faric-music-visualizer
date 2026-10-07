@@ -41,6 +41,7 @@ class ProjectMView(
     private val textureDirectory: File,
     private val profile: ProjectMPerformanceProfile = ProjectMPerformanceProfile.BALANCED_BACKGROUND,
     private var foregroundSample: FaricForegroundSample = FaricForegroundSample.PULSE_RAYS,
+    private var backgroundVisible: Boolean = true,
     private var foregroundCenterVisible: Boolean = true,
     private var foregroundEdgeFxVisible: Boolean = true,
     private val onTapNext: () -> Unit = {},
@@ -118,6 +119,8 @@ class ProjectMView(
                 texturePath = textureDirectory.absolutePath,
                 profile = profile,
                 foregroundSample = foregroundSample,
+                backgroundVisible =
+                    backgroundVisible,
                 foregroundCenterVisible =
                     foregroundCenterVisible,
                 foregroundEdgeFxVisible =
@@ -228,6 +231,16 @@ class ProjectMView(
     fun setForegroundSample(sample: FaricForegroundSample) {
         foregroundSample = sample
         ProjectMBridge.setForegroundSample(sample)
+    }
+
+    fun setBackgroundVisible(
+        visible: Boolean,
+    ) {
+        backgroundVisible =
+            visible
+        ProjectMBridge.setBackgroundVisible(
+            visible,
+        )
     }
 
     fun setForegroundVisibility(
@@ -445,6 +458,10 @@ class ProjectMView(
             ProjectMBridge
                 .setForegroundSample(
                     foregroundSample,
+                )
+            ProjectMBridge
+                .setBackgroundVisible(
+                    backgroundVisible,
                 )
             ProjectMBridge
                 .setForegroundVisibility(
@@ -1011,6 +1028,7 @@ class ProjectMView(
         private val texturePath: String,
         private val profile: ProjectMPerformanceProfile,
         private val foregroundSample: FaricForegroundSample,
+        private val backgroundVisible: Boolean,
         private val foregroundCenterVisible: Boolean,
         private val foregroundEdgeFxVisible: Boolean,
         private val manualFrameMode: Boolean,
@@ -1043,6 +1061,9 @@ class ProjectMView(
                 // FARIC owns AUTO/MANUAL timing. projectM internal switching stays locked.
                 ProjectMBridge.enableAutoPresetSwitching(false)
                 ProjectMBridge.setForegroundSample(foregroundSample)
+                ProjectMBridge.setBackgroundVisible(
+                    backgroundVisible,
+                )
                 ProjectMBridge.setForegroundVisibility(
                     centerVisible =
                         foregroundCenterVisible,

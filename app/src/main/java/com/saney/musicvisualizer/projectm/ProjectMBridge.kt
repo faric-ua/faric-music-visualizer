@@ -96,6 +96,29 @@ object ProjectMBridge {
         }
     }
 
+    fun setForegroundTuning(
+        tuning: ProjectMForegroundTuning,
+    ) {
+        if (!active) return
+
+        val safe =
+            tuning.sanitized()
+
+        nativeSetForegroundTuning(
+            safe.centerScale,
+            safe.centerRotationDegrees,
+            safe.centerOpacity,
+            safe.centerBassGain,
+            safe.centerMidGain,
+            safe.centerHighGain,
+            safe.centerBeatGain,
+            safe.edgeOpacity,
+            safe.edgeBassGain,
+            safe.edgeHighGain,
+            safe.edgeBeatGain,
+        )
+    }
+
     fun beginOfflineExport() {
         offlineExportMode = true
     }
@@ -219,6 +242,19 @@ object ProjectMBridge {
     private external fun nativeSetForegroundVisibility(
         centerVisible: Boolean,
         edgeFxVisible: Boolean,
+    )
+    private external fun nativeSetForegroundTuning(
+        centerScale: Float,
+        centerRotationDegrees: Float,
+        centerOpacity: Float,
+        centerBassGain: Float,
+        centerMidGain: Float,
+        centerHighGain: Float,
+        centerBeatGain: Float,
+        edgeOpacity: Float,
+        edgeBassGain: Float,
+        edgeHighGain: Float,
+        edgeBeatGain: Float,
     )
     private external fun nativeNextPreset()
     private external fun nativeDestroy()

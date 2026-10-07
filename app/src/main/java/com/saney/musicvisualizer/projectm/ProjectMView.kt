@@ -44,6 +44,8 @@ class ProjectMView(
     private var backgroundVisible: Boolean = true,
     private var foregroundCenterVisible: Boolean = true,
     private var foregroundEdgeFxVisible: Boolean = true,
+    private var foregroundTuning: ProjectMForegroundTuning =
+        ProjectMForegroundTuning.default(),
     private val onTapNext: () -> Unit = {},
     private val manualFrameMode: Boolean = false,
     private val manualRenderWidth: Int? = null,
@@ -125,6 +127,8 @@ class ProjectMView(
                     foregroundCenterVisible,
                 foregroundEdgeFxVisible =
                     foregroundEdgeFxVisible,
+                foregroundTuning =
+                    foregroundTuning,
                 manualFrameMode = manualFrameMode,
                 onSurfaceSize = { width, height ->
                     glWidth = width
@@ -257,6 +261,16 @@ class ProjectMView(
                 centerVisible,
             edgeFxVisible =
                 edgeFxVisible,
+        )
+    }
+
+    fun setForegroundTuning(
+        tuning: ProjectMForegroundTuning,
+    ) {
+        foregroundTuning =
+            tuning.sanitized()
+        ProjectMBridge.setForegroundTuning(
+            foregroundTuning,
         )
     }
 
@@ -469,6 +483,10 @@ class ProjectMView(
                         foregroundCenterVisible,
                     edgeFxVisible =
                         foregroundEdgeFxVisible,
+                )
+            ProjectMBridge
+                .setForegroundTuning(
+                    foregroundTuning,
                 )
             ProjectMBridge
                 .setFrameTime(
@@ -1031,6 +1049,7 @@ class ProjectMView(
         private val backgroundVisible: Boolean,
         private val foregroundCenterVisible: Boolean,
         private val foregroundEdgeFxVisible: Boolean,
+        private val foregroundTuning: ProjectMForegroundTuning,
         private val manualFrameMode: Boolean,
         private val onSurfaceSize: (Int, Int) -> Unit,
     ) : GLSurfaceView.Renderer {
@@ -1069,6 +1088,9 @@ class ProjectMView(
                         foregroundCenterVisible,
                     edgeFxVisible =
                         foregroundEdgeFxVisible,
+                )
+                ProjectMBridge.setForegroundTuning(
+                    foregroundTuning,
                 )
                 created = true
             } else {

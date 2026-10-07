@@ -1,5 +1,37 @@
 # FARIC Music Visualizer — START HERE
 
+## READY FOR PHONE REVIEW — v0.19.33 / build 122
+
+Source/APK commit: `3bbf2f726679f17fadf8c9c331a0816c343806f2`.
+
+Design/source of truth:
+- `docs/visualizer/VISUAL_LAYER_REWORK_2026-10-07.md`
+
+What this candidate changes:
+- persistent live Cyber Shark / Cyber Panther selector: selection applies immediately and the chooser stays open until explicit **Закрити**;
+- HeroBoardView switches GF assets/transforms/reactions live;
+- Panther root cause identified: most previously committed Panther WebP files were corrupt/non-RIFF; the creature physical file has been replaced by a valid 256×256 WebP review asset;
+- missing Panther Frame no longer renders the confusing cyan diagnostic circle;
+- projectM screen now exposes three independent visual components: **BG**, **CENTER**, **EDGE FX**;
+- main Layers → Visualizer exposes four independent user objects: **projectM**, **FARIC Reactive**, **FG Center**, **FG Edge FX**;
+- projectM internal GL slot remains alive when BG is off but Center/Edge is on, so FG can be viewed without the projectM preset/background;
+- component visibility persists and Composition Sets restore the new state.
+
+Panther pack status:
+- creature: valid physical review asset;
+- wordmark: valid existing physical asset;
+- frame/fx/full: old files are still flagged for physical replacement/validation; FX can use the existing procedural fallback; missing Frame is skipped.
+- therefore this is a **visual direction / pipeline QA candidate**, not final Panther art lock.
+
+Phone QA:
+1. confirm start screen says `v0.19.33 · build 122`;
+2. open GF picker, switch Shark ↔ Panther several times without closing it;
+3. decide whether the new visible Panther direction is acceptable;
+4. open projectM screen and independently toggle **BG / CENTER / EDGE FX**;
+5. open Layers → Visualizer and verify projectM / FARIC Reactive / FG Center / FG Edge FX separately;
+6. send a short video/screenshot; only after visible Panther is accepted do the export benchmark.
+
+
 ## v0.19.32 / build 121 — live GF selector + FG split
 
 Read first:

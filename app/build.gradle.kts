@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 114
-        versionName = "0.19.25"
-        // v0.19.25 isolates GF layer visibility per figure and fixes timing labels.
+        versionCode = 115
+        versionName = "0.19.26"
+        // v0.19.26 adds emergency menu recovery, composition sets and split visualizer layers.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

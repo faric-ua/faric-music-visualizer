@@ -846,14 +846,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun attachLayer0Visualizer(
         stack: PulseDeckLayerStack,
     ) {
-        val visualizerLayer =
-            FrameLayout(this)
-
-        stack.setContent(
-            PulseDeckLayerStack.Layer.VISUALIZER,
-            visualizerLayer,
-        )
-
         val projectMState =
             ProjectMStateStore(
                 this,
@@ -862,13 +854,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             projectMState
                 .lastPresetFileOrNull()
 
-        if (
-            projectMPreset != null &&
-            ProjectMLibraryManager
-                .textureDir(this)
-                .isDirectory
-        ) {
-            val projectM =
+        val projectM =
+            if (
+                projectMPreset != null &&
+                ProjectMLibraryManager
+                    .textureDir(this)
+                    .isDirectory
+            ) {
                 ProjectMView(
                     context = this,
                     initialPreset = projectMPreset,
@@ -882,31 +874,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         projectMState
                             .foregroundSample,
                     onTapNext = {},
-                ).also { view ->
-                    view.visibility =
-                        if (
-                            layerObjectVisible(
-                                PulseDeckLayerStack.Layer.VISUALIZER,
-                                "projectm",
-                            )
-                        ) {
-                            View.VISIBLE
-                        } else {
-                            View.GONE
-                        }
-                }
+                )
+            } else {
+                null
+            }
 
-            projectMMainView =
-                projectM
+        projectMMainView =
+            projectM
 
-            visualizerLayer.addView(
-                projectM,
-                FrameLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                ),
-            )
-        }
+        stack.setContent(
+            PulseDeckLayerStack.Layer.VISUALIZER,
+            projectM,
+        )
 
         val liveScene =
             ReactiveSceneView(
@@ -923,28 +902,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 view.setPlaying(
                     latestSnapshot.isPlaying,
                 )
-                view.visibility =
-                    if (
-                        layerObjectVisible(
-                            PulseDeckLayerStack.Layer.VISUALIZER,
-                            "faric_reactive",
-                        )
-                    ) {
-                        View.VISIBLE
-                    } else {
-                        View.GONE
-                    }
             }
 
         sceneView =
             liveScene
 
-        visualizerLayer.addView(
+        stack.setContent(
+            PulseDeckLayerStack.Layer.FARIC_REACTIVE,
             liveScene,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            ),
         )
     }
 

@@ -2932,6 +2932,43 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     }
             }
 
+        root.optJSONObject(
+            "objects",
+        )
+            ?.optJSONObject(
+                PulseDeckLayerStack.Layer.VISUALIZER.name,
+            )
+            ?.let { visualizerObjects ->
+                val state =
+                    ProjectMStateStore(
+                        this,
+                    )
+
+                if (
+                    visualizerObjects.has(
+                        "fg_center",
+                    )
+                ) {
+                    state.foregroundCenterVisible =
+                        visualizerObjects.optBoolean(
+                            "fg_center",
+                            true,
+                        )
+                }
+
+                if (
+                    visualizerObjects.has(
+                        "fg_edge_fx",
+                    )
+                ) {
+                    state.foregroundEdgeFxVisible =
+                        visualizerObjects.optBoolean(
+                            "fg_edge_fx",
+                            true,
+                        )
+                }
+            }
+
         layerEditor.apply()
 
         gfJson

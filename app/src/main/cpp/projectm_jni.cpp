@@ -34,10 +34,32 @@ static GLint g_u_beat = -1;
 static GLint g_u_mode = -1;
 static GLint g_u_center_visible = -1;
 static GLint g_u_edge_visible = -1;
+static GLint g_u_center_scale = -1;
+static GLint g_u_center_rotation = -1;
+static GLint g_u_center_opacity = -1;
+static GLint g_u_center_bass_gain = -1;
+static GLint g_u_center_mid_gain = -1;
+static GLint g_u_center_high_gain = -1;
+static GLint g_u_center_beat_gain = -1;
+static GLint g_u_edge_opacity = -1;
+static GLint g_u_edge_bass_gain = -1;
+static GLint g_u_edge_high_gain = -1;
+static GLint g_u_edge_beat_gain = -1;
 static std::atomic<int> g_foreground_sample{0};
 static std::atomic<bool> g_projectm_background_visible{true};
 static std::atomic<bool> g_foreground_center_visible{true};
 static std::atomic<bool> g_foreground_edge_visible{true};
+static std::atomic<float> g_center_scale{1.0f};
+static std::atomic<float> g_center_rotation_degrees{0.0f};
+static std::atomic<float> g_center_opacity{1.0f};
+static std::atomic<float> g_center_bass_gain{1.0f};
+static std::atomic<float> g_center_mid_gain{1.0f};
+static std::atomic<float> g_center_high_gain{1.0f};
+static std::atomic<float> g_center_beat_gain{1.0f};
+static std::atomic<float> g_edge_opacity{1.0f};
+static std::atomic<float> g_edge_bass_gain{1.0f};
+static std::atomic<float> g_edge_high_gain{1.0f};
+static std::atomic<float> g_edge_beat_gain{1.0f};
 
 static int g_width = 1;
 static int g_height = 1;
@@ -85,6 +107,17 @@ uniform float uBeat;
 uniform float uMode;
 uniform float uCenterVisible;
 uniform float uEdgeVisible;
+uniform float uCenterScale;
+uniform float uCenterRotation;
+uniform float uCenterOpacity;
+uniform float uCenterBassGain;
+uniform float uCenterMidGain;
+uniform float uCenterHighGain;
+uniform float uCenterBeatGain;
+uniform float uEdgeOpacity;
+uniform float uEdgeBassGain;
+uniform float uEdgeHighGain;
+uniform float uEdgeBeatGain;
 
 const float PI = 3.14159265358979323846;
 
@@ -98,21 +131,40 @@ void main() {
     vec2 p = vUv * 2.0 - 1.0;
     p.x *= uResolution.x / max(uResolution.y, 1.0);
 
+    float centerRadians = uCenterRotation * PI / 180.0;
+    float centerCos = cos(centerRadians);
+    float centerSin = sin(centerRadians);
+    p =
+        mat2(
+            centerCos,
+            -centerSin,
+            centerSin,
+            centerCos
+        )
+        * p
+        / max(uCenterScale, 0.05);
+
+    float cAmplitude = uAmplitude;
+    float cBass = clamp(uBass * uCenterBassGain, 0.0, 2.0);
+    float cMid = clamp(uMid * uCenterMidGain, 0.0, 2.0);
+    float cHigh = clamp(uHigh * uCenterHighGain, 0.0, 2.0);
+    float cBeat = clamp(uBeat * uCenterBeatGain, 0.0, 2.0);
+
     float radius = length(p);
     float angle = atan(p.y, p.x);
 
     float pulseRadius =
         0.175
-        + uAmplitude * 0.025
-        + uBass * 0.115
-        + uMid * 0.026
-        + uBeat * 0.085;
+        + cAmplitude * 0.025
+        + cBass * 0.115
+        + cMid * 0.026
+        + cBeat * 0.085;
 
     float ringWidth =
         0.010
-        + uHigh * 0.016
-        + uBass * 0.006
-        + uBeat * 0.020;
+        + cHigh * 0.016
+        + cBass * 0.006
+        + cBeat * 0.020;
 
     float ring = 1.0 - smoothstep(
         ringWidth,
@@ -125,7 +177,7 @@ void main() {
 
     float spokeLine = 1.0 - smoothstep(
         0.015,
-        0.105 + uHigh * 0.035,
+        0.105 + cHigh * 0.035,
         abs(spokePhase - 0.5)
     );
 
@@ -133,20 +185,20 @@ void main() {
         0.50
         + 0.30 * sin(
             angle * 3.0
-            + uTime * (1.15 + uMid * 2.8 + uBass * 1.4)
+            + uTime * (1.15 + cMid * 2.8 + cBass * 1.4)
         )
         + 0.18 * sin(
             angle * 7.0
-            - uTime * (1.45 + uHigh * 3.0 + uBeat * 1.6)
+            - uTime * (1.45 + cHigh * 3.0 + cBeat * 1.6)
         );
 
     float spokeLength =
         0.285
-        + uAmplitude * 0.175
-        + uBass * 0.285
-        + uMid * 0.115
-        + uHigh * 0.085
-        + uBeat * 0.185
+        + cAmplitude * 0.175
+        + cBass * 0.285
+        + cMid * 0.115
+        + cHigh * 0.085
+        + cBeat * 0.185
         + angularEnergy * 0.075;
 
     float innerMask = smoothstep(
@@ -164,8 +216,8 @@ void main() {
     float spokes = spokeLine * innerMask * outerMask;
 
     float coreGlow =
-        exp(-radius * (8.0 - uBass * 1.8))
-        * (0.22 + uAmplitude * 0.35 + uBeat * 0.25);
+        exp(-radius * (8.0 - cBass * 1.8))
+        * (0.22 + cAmplitude * 0.35 + cBeat * 0.25);
 
     vec2 sparkGrid = floor(
         (p + vec2(uTime * 0.025, -uTime * 0.035))
@@ -173,14 +225,14 @@ void main() {
     );
 
     float sparkRnd = hash21(sparkGrid);
-    float sparkGate = step(0.965 - uHigh * 0.025, sparkRnd);
+    float sparkGate = step(0.965 - cHigh * 0.025, sparkRnd);
     float sparkTwinkle =
         0.5 + 0.5 * sin(uTime * 7.0 + sparkRnd * 30.0);
 
     float sparks =
         sparkGate
         * sparkTwinkle
-        * (0.08 + uHigh * 0.42);
+        * (0.08 + cHigh * 0.42);
 
     vec3 orange = vec3(1.0, 0.34, 0.055);
     vec3 cyan = vec3(0.08, 0.82, 1.0);
@@ -191,21 +243,21 @@ void main() {
     vec3 accent = mix(orange, cyan, colorMix);
 
     float pulseRays =
-        ring * (0.72 + uBeat * 0.45)
-        + spokes * (0.28 + uAmplitude * 0.56)
+        ring * (0.72 + cBeat * 0.45)
+        + spokes * (0.28 + cAmplitude * 0.56)
         + coreGlow
         + sparks;
 
     float orbit1 = 1.0 - smoothstep(
-        0.010 + uHigh * 0.010,
-        0.030 + uHigh * 0.012,
+        0.010 + cHigh * 0.010,
+        0.030 + cHigh * 0.012,
         abs(
             radius
             - (
                 0.16
-                + 0.070 * sin(uTime * (2.0 + uBass * 2.8))
-                + uBass * 0.090
-                + uBeat * 0.055
+                + 0.070 * sin(uTime * (2.0 + cBass * 2.8))
+                + cBass * 0.090
+                + cBeat * 0.055
             )
         )
     );
@@ -218,25 +270,25 @@ void main() {
             - (
                 0.31
                 + 0.060 * sin(
-                    uTime * (2.45 + uMid * 2.2)
+                    uTime * (2.45 + cMid * 2.2)
                     + angle * 3.0
                 )
-                + uMid * 0.075
-                + uBeat * 0.045
+                + cMid * 0.075
+                + cBeat * 0.045
             )
         )
     );
 
     float orbitRings =
         (orbit1 + orbit2)
-        * (0.42 + uAmplitude * 0.55 + uBass * 0.30 + uBeat * 0.52)
+        * (0.42 + cAmplitude * 0.55 + cBass * 0.30 + cBeat * 0.52)
         + coreGlow * 0.62;
 
     float haloPhase = fract(
         (
             angle
             + PI
-            + uTime * (0.35 + uHigh * 0.75 + uBass * 0.20)
+            + uTime * (0.35 + cHigh * 0.75 + cBass * 0.20)
         )
         / (2.0 * PI)
         * 48.0
@@ -253,9 +305,9 @@ void main() {
             radius
             - (
                 0.23
-                + uBass * 0.145
-                + uAmplitude * 0.035
-                + uBeat * 0.080
+                + cBass * 0.145
+                + cAmplitude * 0.035
+                + cBeat * 0.080
             )
         )
     );
@@ -265,10 +317,10 @@ void main() {
         * haloBand
         * (
             0.50
-            + uMid * 0.62
-            + uHigh * 0.58
-            + uBass * 0.26
-            + uBeat * 0.42
+            + cMid * 0.62
+            + cHigh * 0.58
+            + cBass * 0.26
+            + cBeat * 0.42
         )
         + sparks * 0.95
         + coreGlow * 0.42;
@@ -276,27 +328,27 @@ void main() {
 
     // Hero 3: Neon Emblem — a locally deforming energy contour.
     float emblemDeform =
-        0.030 * sin(angle * 5.0 + uTime * (1.4 + uMid * 2.2))
-        + 0.018 * sin(angle * 11.0 - uTime * (2.0 + uHigh * 2.8));
+        0.030 * sin(angle * 5.0 + uTime * (1.4 + cMid * 2.2))
+        + 0.018 * sin(angle * 11.0 - uTime * (2.0 + cHigh * 2.8));
 
     float emblemRadius =
         0.235
-        + uBass * 0.105
-        + uBeat * 0.070
+        + cBass * 0.105
+        + cBeat * 0.070
         + emblemDeform;
 
     float emblemRing =
         1.0 - smoothstep(
-            0.010 + uHigh * 0.008,
-            0.035 + uHigh * 0.012,
+            0.010 + cHigh * 0.008,
+            0.035 + cHigh * 0.012,
             abs(radius - emblemRadius)
         );
 
     float emblemSparks =
-        sparks * (0.45 + uHigh * 0.75);
+        sparks * (0.45 + cHigh * 0.75);
 
     float neonEmblem =
-        emblemRing * (0.62 + uAmplitude * 0.40 + uBeat * 0.70)
+        emblemRing * (0.62 + cAmplitude * 0.40 + cBeat * 0.70)
         + coreGlow * 0.32
         + emblemSparks;
 
@@ -305,40 +357,40 @@ void main() {
         exp(
             -radius * (
                 7.6
-                - uBass * 2.8
-                - uAmplitude * 1.2
+                - cBass * 2.8
+                - cAmplitude * 1.2
             )
         )
-        * (0.45 + uBass * 0.70 + uBeat * 0.42);
+        * (0.45 + cBass * 0.70 + cBeat * 0.42);
 
     float shockRadius =
         0.16
-        + uBass * 0.12
-        + uBeat * 0.17;
+        + cBass * 0.12
+        + cBeat * 0.17;
 
     float shockwave =
         1.0 - smoothstep(
             0.010,
-            0.040 + uBeat * 0.025,
+            0.040 + cBeat * 0.025,
             abs(radius - shockRadius)
         );
 
     float energyCore =
         coreMass
-        + shockwave * (0.46 + uBeat * 0.90)
+        + shockwave * (0.46 + cBeat * 0.90)
         + ring * 0.24
         + sparks * 0.32;
 
     // Hero 5: Orbital Crown — layered rings with rotating gaps/arcs.
     float orbitMaskA =
         0.35 + 0.65 * pow(
-            abs(sin(angle * 3.0 + uTime * (0.9 + uMid))),
+            abs(sin(angle * 3.0 + uTime * (0.9 + cMid))),
             5.0
         );
 
     float orbitMaskB =
         0.30 + 0.70 * pow(
-            abs(cos(angle * 5.0 - uTime * (1.1 + uHigh))),
+            abs(cos(angle * 5.0 - uTime * (1.1 + cHigh))),
             6.0
         );
 
@@ -350,7 +402,7 @@ void main() {
                 radius
                 - (
                     0.18
-                    + uBass * 0.075
+                    + cBass * 0.075
                     + 0.020 * sin(uTime * 1.7)
                 )
             )
@@ -364,27 +416,27 @@ void main() {
                 radius
                 - (
                     0.30
-                    + uBeat * 0.080
+                    + cBeat * 0.080
                     + 0.018 * sin(uTime * 2.3)
                 )
             )
         );
 
     float orbitalCrown =
-        crownRingA * orbitMaskA * (0.62 + uBass * 0.55)
-        + crownRingB * orbitMaskB * (0.52 + uBeat * 0.75)
+        crownRingA * orbitMaskA * (0.62 + cBass * 0.55)
+        + crownRingB * orbitMaskB * (0.52 + cBeat * 0.75)
         + coreGlow * 0.40
         + sparks * 0.38;
 
     // Hero 6: Star Seed — six-point living core with long beat rays.
     float starWave =
-        0.040 * sin(angle * 6.0 + uTime * (0.9 + uMid * 1.5))
-        + 0.018 * sin(angle * 12.0 - uTime * (1.4 + uHigh * 1.8));
+        0.040 * sin(angle * 6.0 + uTime * (0.9 + cMid * 1.5))
+        + 0.018 * sin(angle * 12.0 - uTime * (1.4 + cHigh * 1.8));
 
     float starBoundary =
         0.175
-        + uBass * 0.100
-        + uBeat * 0.060
+        + cBass * 0.100
+        + cBeat * 0.060
         + starWave;
 
     float starEdge =
@@ -402,14 +454,14 @@ void main() {
         * (
             1.0 - smoothstep(
                 0.18,
-                0.52 + uBeat * 0.16 + uBass * 0.10,
+                0.52 + cBeat * 0.16 + cBass * 0.10,
                 radius
             )
         );
 
     float starSeed =
-        starEdge * (0.60 + uBass * 0.55)
-        + starRays * (0.22 + uBeat * 0.78 + uHigh * 0.18)
+        starEdge * (0.60 + cBass * 0.55)
+        + starRays * (0.22 + cBeat * 0.78 + cHigh * 0.18)
         + coreGlow * 0.58
         + sparks * 0.45;
 
@@ -418,37 +470,42 @@ void main() {
     float idolWidth =
         0.075
         + 0.090 * exp(-idolY * 2.8)
-        + uBass * 0.055
+        + cBass * 0.055
         + 0.022 * sin(
             idolY * 16.0
-            - uTime * (2.0 + uMid * 2.0)
+            - uTime * (2.0 + cMid * 2.0)
         );
 
     float idolContour =
         1.0 - smoothstep(
             0.008,
-            0.035 + uHigh * 0.010,
+            0.035 + cHigh * 0.010,
             abs(abs(p.x) - idolWidth)
         );
 
     float idolHeight =
         1.0 - smoothstep(
-            0.42 + uBeat * 0.10,
-            0.57 + uBeat * 0.14,
+            0.42 + cBeat * 0.10,
+            0.57 + cBeat * 0.14,
             idolY
         );
 
     float idolAura =
         exp(
             -abs(abs(p.x) - idolWidth)
-            * (18.0 - uBass * 4.0)
+            * (18.0 - cBass * 4.0)
         )
         * idolHeight;
 
     float waveIdol =
-        idolContour * idolHeight * (0.55 + uMid * 0.50 + uBeat * 0.55)
-        + idolAura * (0.20 + uBass * 0.42)
+        idolContour * idolHeight * (0.55 + cMid * 0.50 + cBeat * 0.55)
+        + idolAura * (0.20 + cBass * 0.42)
         + sparks * 0.30;
+
+    float eAmplitude = eAmplitude;
+    float eBass = clamp(eBass * uEdgeBassGain, 0.0, 2.0);
+    float eHigh = clamp(eHigh * uEdgeHighGain, 0.0, 2.0);
+    float eBeat = clamp(eBeat * uEdgeBeatGain, 0.0, 2.0);
 
     vec2 edgeUv = abs(vUv * 2.0 - 1.0);
     float edgeDist = max(edgeUv.x, edgeUv.y);
@@ -459,9 +516,9 @@ void main() {
 
     float flareReach =
         0.075
-        + uBass * 0.160
-        + uAmplitude * 0.045
-        + uBeat * 0.125;
+        + eBass * 0.160
+        + eAmplitude * 0.045
+        + eBeat * 0.125;
 
     float flareBody = 1.0 - smoothstep(
         flareReach,
@@ -473,7 +530,7 @@ void main() {
         0.5
         + 0.5 * sin(
             edgeCoord * 52.0
-            + uTime * (3.0 + uBass * 5.0)
+            + uTime * (3.0 + eBass * 5.0)
             + sin(edgeCoord * 17.0 - uTime * 2.2) * 2.5
         );
 
@@ -481,7 +538,7 @@ void main() {
         0.5
         + 0.5 * sin(
             edgeCoord * 121.0
-            - uTime * (5.0 + uHigh * 8.0)
+            - uTime * (5.0 + eHigh * 8.0)
         );
 
     float flareTongues =
@@ -502,9 +559,9 @@ void main() {
         * flareTongues
         * (
             0.12
-            + uBass * 0.58
-            + uBeat * 0.78
-            + uHigh * 0.24
+            + eBass * 0.58
+            + eBeat * 0.78
+            + eHigh * 0.24
         )
         * flareMode;
 
@@ -513,7 +570,7 @@ void main() {
     vec3 flareColor = mix(
         flareHot,
         flareCore,
-        clamp(flareFine + uBeat * 0.25, 0.0, 1.0)
+        clamp(flareFine + eBeat * 0.25, 0.0, 1.0)
     );
 
     float intensity = pulseRays;
@@ -533,8 +590,8 @@ void main() {
         intensity = waveIdol;
     }
 
-    intensity *= uCenterVisible;
-    solarFlares *= uEdgeVisible;
+    intensity *= uCenterVisible * uCenterOpacity;
+    solarFlares *= uEdgeVisible * uEdgeOpacity;
 
     float alpha = clamp(
         intensity + solarFlares,
@@ -605,6 +662,17 @@ static void destroy_foreground_locked() {
     g_u_mode = -1;
     g_u_center_visible = -1;
     g_u_edge_visible = -1;
+    g_u_center_scale = -1;
+    g_u_center_rotation = -1;
+    g_u_center_opacity = -1;
+    g_u_center_bass_gain = -1;
+    g_u_center_mid_gain = -1;
+    g_u_center_high_gain = -1;
+    g_u_center_beat_gain = -1;
+    g_u_edge_opacity = -1;
+    g_u_edge_bass_gain = -1;
+    g_u_edge_high_gain = -1;
+    g_u_edge_beat_gain = -1;
 }
 
 static bool create_foreground_locked() {
@@ -724,6 +792,51 @@ static bool create_foreground_locked() {
     g_u_edge_visible = glGetUniformLocation(
         g_foreground_program,
         "uEdgeVisible"
+    );
+
+    g_u_center_scale = glGetUniformLocation(
+        g_foreground_program,
+        "uCenterScale"
+    );
+    g_u_center_rotation = glGetUniformLocation(
+        g_foreground_program,
+        "uCenterRotation"
+    );
+    g_u_center_opacity = glGetUniformLocation(
+        g_foreground_program,
+        "uCenterOpacity"
+    );
+    g_u_center_bass_gain = glGetUniformLocation(
+        g_foreground_program,
+        "uCenterBassGain"
+    );
+    g_u_center_mid_gain = glGetUniformLocation(
+        g_foreground_program,
+        "uCenterMidGain"
+    );
+    g_u_center_high_gain = glGetUniformLocation(
+        g_foreground_program,
+        "uCenterHighGain"
+    );
+    g_u_center_beat_gain = glGetUniformLocation(
+        g_foreground_program,
+        "uCenterBeatGain"
+    );
+    g_u_edge_opacity = glGetUniformLocation(
+        g_foreground_program,
+        "uEdgeOpacity"
+    );
+    g_u_edge_bass_gain = glGetUniformLocation(
+        g_foreground_program,
+        "uEdgeBassGain"
+    );
+    g_u_edge_high_gain = glGetUniformLocation(
+        g_foreground_program,
+        "uEdgeHighGain"
+    );
+    g_u_edge_beat_gain = glGetUniformLocation(
+        g_foreground_program,
+        "uEdgeBeatGain"
     );
 
     const GLfloat vertices[] = {
@@ -894,6 +1007,51 @@ static void draw_foreground_locked(GLuint targetFramebuffer = 0) {
         g_foreground_edge_visible.load(std::memory_order_relaxed)
             ? 1.0f
             : 0.0f
+    );
+
+    glUniform1f(
+        g_u_center_scale,
+        g_center_scale.load(std::memory_order_relaxed)
+    );
+    glUniform1f(
+        g_u_center_rotation,
+        g_center_rotation_degrees.load(std::memory_order_relaxed)
+    );
+    glUniform1f(
+        g_u_center_opacity,
+        g_center_opacity.load(std::memory_order_relaxed)
+    );
+    glUniform1f(
+        g_u_center_bass_gain,
+        g_center_bass_gain.load(std::memory_order_relaxed)
+    );
+    glUniform1f(
+        g_u_center_mid_gain,
+        g_center_mid_gain.load(std::memory_order_relaxed)
+    );
+    glUniform1f(
+        g_u_center_high_gain,
+        g_center_high_gain.load(std::memory_order_relaxed)
+    );
+    glUniform1f(
+        g_u_center_beat_gain,
+        g_center_beat_gain.load(std::memory_order_relaxed)
+    );
+    glUniform1f(
+        g_u_edge_opacity,
+        g_edge_opacity.load(std::memory_order_relaxed)
+    );
+    glUniform1f(
+        g_u_edge_bass_gain,
+        g_edge_bass_gain.load(std::memory_order_relaxed)
+    );
+    glUniform1f(
+        g_u_edge_high_gain,
+        g_edge_high_gain.load(std::memory_order_relaxed)
+    );
+    glUniform1f(
+        g_u_edge_beat_gain,
+        g_edge_beat_gain.load(std::memory_order_relaxed)
     );
 
     glBindBuffer(
@@ -1547,6 +1705,79 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetForegroundVisibi
     );
     g_foreground_edge_visible.store(
         edgeFxVisible == JNI_TRUE,
+        std::memory_order_relaxed
+    );
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetForegroundTuning(
+        JNIEnv*,
+        jclass,
+        jfloat centerScale,
+        jfloat centerRotationDegrees,
+        jfloat centerOpacity,
+        jfloat centerBassGain,
+        jfloat centerMidGain,
+        jfloat centerHighGain,
+        jfloat centerBeatGain,
+        jfloat edgeOpacity,
+        jfloat edgeBassGain,
+        jfloat edgeHighGain,
+        jfloat edgeBeatGain) {
+    g_center_scale.store(
+        std::clamp(
+            static_cast<float>(centerScale),
+            0.50f,
+            1.80f
+        ),
+        std::memory_order_relaxed
+    );
+    g_center_rotation_degrees.store(
+        std::clamp(
+            static_cast<float>(centerRotationDegrees),
+            -180.0f,
+            180.0f
+        ),
+        std::memory_order_relaxed
+    );
+    g_center_opacity.store(
+        std::clamp(
+            static_cast<float>(centerOpacity),
+            0.0f,
+            1.0f
+        ),
+        std::memory_order_relaxed
+    );
+    g_center_bass_gain.store(
+        std::clamp(static_cast<float>(centerBassGain), 0.0f, 2.0f),
+        std::memory_order_relaxed
+    );
+    g_center_mid_gain.store(
+        std::clamp(static_cast<float>(centerMidGain), 0.0f, 2.0f),
+        std::memory_order_relaxed
+    );
+    g_center_high_gain.store(
+        std::clamp(static_cast<float>(centerHighGain), 0.0f, 2.0f),
+        std::memory_order_relaxed
+    );
+    g_center_beat_gain.store(
+        std::clamp(static_cast<float>(centerBeatGain), 0.0f, 2.0f),
+        std::memory_order_relaxed
+    );
+    g_edge_opacity.store(
+        std::clamp(static_cast<float>(edgeOpacity), 0.0f, 1.0f),
+        std::memory_order_relaxed
+    );
+    g_edge_bass_gain.store(
+        std::clamp(static_cast<float>(edgeBassGain), 0.0f, 2.0f),
+        std::memory_order_relaxed
+    );
+    g_edge_high_gain.store(
+        std::clamp(static_cast<float>(edgeHighGain), 0.0f, 2.0f),
+        std::memory_order_relaxed
+    );
+    g_edge_beat_gain.store(
+        std::clamp(static_cast<float>(edgeBeatGain), 0.0f, 2.0f),
         std::memory_order_relaxed
     );
 }

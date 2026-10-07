@@ -1088,6 +1088,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     foregroundSample =
                         projectMState
                             .foregroundSample,
+                    foregroundCenterVisible =
+                        layerObjectVisible(
+                            PulseDeckLayerStack.Layer.VISUALIZER,
+                            "fg_center",
+                        ),
+                    foregroundEdgeFxVisible =
+                        layerObjectVisible(
+                            PulseDeckLayerStack.Layer.VISUALIZER,
+                            "fg_edge_fx",
+                        ),
                     onTapNext = {},
                 )
             } else {
@@ -1684,6 +1694,22 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 faricVisible,
             )
             .putBoolean(
+                legacyLayerObjectPreferenceKey(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "fg_center",
+                ),
+                ProjectMStateStore(this)
+                    .foregroundCenterVisible,
+            )
+            .putBoolean(
+                legacyLayerObjectPreferenceKey(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "fg_edge_fx",
+                ),
+                ProjectMStateStore(this)
+                    .foregroundEdgeFxVisible,
+            )
+            .putBoolean(
                 KEY_VISUALIZER_OBJECTS_MIGRATED,
                 true,
             )
@@ -1908,6 +1934,51 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             )
                         updateSceneOrchestratorState()
                     }
+
+                    "fg_center",
+                    "fg_edge_fx",
+                    -> {
+                        val state =
+                            ProjectMStateStore(
+                                this,
+                            )
+                        val centerVisible =
+                            if (
+                                objectId ==
+                                    "fg_center"
+                            ) {
+                                visible
+                            } else {
+                                layerObjectVisible(
+                                    PulseDeckLayerStack.Layer.VISUALIZER,
+                                    "fg_center",
+                                )
+                            }
+                        val edgeVisible =
+                            if (
+                                objectId ==
+                                    "fg_edge_fx"
+                            ) {
+                                visible
+                            } else {
+                                layerObjectVisible(
+                                    PulseDeckLayerStack.Layer.VISUALIZER,
+                                    "fg_edge_fx",
+                                )
+                            }
+
+                        state.foregroundCenterVisible =
+                            centerVisible
+                        state.foregroundEdgeFxVisible =
+                            edgeVisible
+                        projectMMainView
+                            ?.setForegroundVisibility(
+                                centerVisible =
+                                    centerVisible,
+                                edgeFxVisible =
+                                    edgeVisible,
+                            )
+                    }
                 }
 
             PulseDeckLayerStack.Layer.GRAPHIC_FIGURES ->
@@ -1957,6 +2028,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     LayerMenuObject(
                         "faric_reactive",
                         "FARIC Reactive",
+                    ),
+                    LayerMenuObject(
+                        "fg_center",
+                        "FG Center",
+                    ),
+                    LayerMenuObject(
+                        "fg_edge_fx",
+                        "FG Edge FX",
                     ),
                 )
 
@@ -5372,6 +5451,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         .BALANCED_BACKGROUND,
                 foregroundSample =
                     state.foregroundSample,
+                foregroundCenterVisible =
+                    layerObjectVisible(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        "fg_center",
+                    ),
+                foregroundEdgeFxVisible =
+                    layerObjectVisible(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        "fg_edge_fx",
+                    ),
                 onTapNext = {},
                 manualFrameMode = true,
                 manualRenderWidth =

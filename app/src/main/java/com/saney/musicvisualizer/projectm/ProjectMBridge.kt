@@ -74,6 +74,16 @@ object ProjectMBridge {
         if (active) nativeSetForegroundSample(sample.nativeId)
     }
 
+    fun setBackgroundVisible(
+        visible: Boolean,
+    ) {
+        if (active) {
+            nativeSetBackgroundVisible(
+                visible,
+            )
+        }
+    }
+
     fun setForegroundVisibility(
         centerVisible: Boolean,
         edgeFxVisible: Boolean,
@@ -202,6 +212,9 @@ object ProjectMBridge {
         smoothTransition: Boolean,
     ): Long
     private external fun nativeSetAutoPresetSwitching(enabled: Boolean)
+    private external fun nativeSetBackgroundVisible(
+        visible: Boolean,
+    )
     private external fun nativeSetForegroundSample(sampleId: Int)
     private external fun nativeSetForegroundVisibility(
         centerVisible: Boolean,

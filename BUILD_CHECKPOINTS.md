@@ -1214,4 +1214,22 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   - GPU wordmark > 0 ms;
   - compare composition / GPU overlay / encoder / total;
   - visually verify creature/wordmark position, size, rotation, opacity, reaction and z-order.
+---
+
+## 2026-10-07 — v0.19.22 phone result — PERFORMANCE + VISUAL PASS
+
+- Exact APK source SHA: `1bf20367c15f109b934980bbccc64a2d74c59bea`.
+- Phone: 1080x1920 / 90 frames.
+- User accepted visual QA as PASS.
+- projectM 672 ms; composition 2306 ms; encoder 684 ms; audio 437 ms; mux 93 ms; save 158 ms.
+- Total: 5451 ms.
+- projectM path: `projectM BGRA: GPU direct`.
+- GPU timings: projectM 10 ms; glow 5 ms; frame 11 ms; creature 10 ms; wordmark 6 ms; overlay 503 ms.
+- CPU composition: Cyber Shark 356 ms; effects 433 ms; HUD update 23 ms; HUD draw 1081 ms.
+- Cyber Shark internals: background 111 ms; frame 0 ms; FX 235 ms; creature 0 ms; wordmark 0 ms.
+- v0.19.22 acceptance targets were met: creature and wordmark migrated off CPU to GPU, while direct projectM FBO / GPU glow / GPU frame remained active.
+- Compare v0.19.21 total 6483 -> 5451 ms (-1032 ms / -15.9%).
+- Compare v0.19.11 baseline total 14925 -> 5451 ms (~63.5% lower, ~2.74x faster).
+- Status: PHONE-ACCEPTED / CURRENT KNOWN GOOD.
+- Next: audit/generalize converter/export behavior for alternate layer sets, then profile HUD internals before changing HUD rendering.
 

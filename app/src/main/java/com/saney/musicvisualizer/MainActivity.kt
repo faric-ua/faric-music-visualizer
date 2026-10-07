@@ -332,6 +332,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         ensureVisualizerLayerMigration()
         ensureVisualizerObjectModelMigration()
+        ensureProjectMComponentVisibilityMigration()
 
         selectedThemeId =
             savedInstanceState
@@ -859,19 +860,55 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
+    private fun projectMSurfaceVisible(): Boolean =
+        layerVisible(
+            PulseDeckLayerStack.Layer.VISUALIZER,
+        ) &&
+            (
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "projectm",
+                ) ||
+                    layerObjectVisible(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        "fg_center",
+                    ) ||
+                    layerObjectVisible(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        "fg_edge_fx",
+                    )
+                )
+
+    private fun applyVisualizerRenderSlots() {
+        val parentVisible =
+            layerVisible(
+                PulseDeckLayerStack.Layer.VISUALIZER,
+            )
+
+        pulseDeckLayerStack
+            ?.setLayerVisible(
+                PulseDeckLayerStack.Layer.VISUALIZER,
+                projectMSurfaceVisible(),
+            )
+
+        pulseDeckLayerStack
+            ?.setLayerVisible(
+                PulseDeckLayerStack.Layer.FARIC_REACTIVE,
+                parentVisible &&
+                    layerObjectVisible(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        "faric_reactive",
+                    ),
+            )
+    }
+
     private fun updateProjectMRenderState() {
         val shouldRender =
             (
                 screen == Screen.NOW_PLAYING ||
                     screen == Screen.BOARD_TRANSFORM
                 ) &&
-                layerVisible(
-                    PulseDeckLayerStack.Layer.VISUALIZER,
-                ) &&
-                layerObjectVisible(
-                    PulseDeckLayerStack.Layer.VISUALIZER,
-                    "projectm",
-                ) &&
+                projectMSurfaceVisible() &&
                 projectMMainView !=
                     null
 
@@ -1088,6 +1125,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     foregroundSample =
                         projectMState
                             .foregroundSample,
+                    backgroundVisible =
+                        layerObjectVisible(
+                            PulseDeckLayerStack.Layer.VISUALIZER,
+                            "projectm",
+                        ),
                     foregroundCenterVisible =
                         layerObjectVisible(
                             PulseDeckLayerStack.Layer.VISUALIZER,
@@ -1716,6 +1758,87 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             .apply()
     }
 
+    private fun ensureProjectMComponentVisibilityMigration() {
+        val prefs =
+            layerPrefs()
+
+        if (
+            prefs.getBoolean(
+                KEY_PROJECTM_COMPONENTS_MIGRATED,
+                false,
+            )
+        ) {
+            return
+        }
+
+        val state =
+            ProjectMStateStore(
+                this,
+            )
+        val backgroundKey =
+            legacyLayerObjectPreferenceKey(
+                PulseDeckLayerStack.Layer.VISUALIZER,
+                "projectm",
+            )
+        val centerKey =
+            legacyLayerObjectPreferenceKey(
+                PulseDeckLayerStack.Layer.VISUALIZER,
+                "fg_center",
+            )
+        val edgeKey =
+            legacyLayerObjectPreferenceKey(
+                PulseDeckLayerStack.Layer.VISUALIZER,
+                "fg_edge_fx",
+            )
+
+        state.backgroundVisible =
+            if (
+                prefs.contains(
+                    backgroundKey,
+                )
+            ) {
+                prefs.getBoolean(
+                    backgroundKey,
+                    true,
+                )
+            } else {
+                layerVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                )
+            }
+
+        if (
+            prefs.contains(
+                centerKey,
+            )
+        ) {
+            state.foregroundCenterVisible =
+                prefs.getBoolean(
+                    centerKey,
+                    true,
+                )
+        }
+
+        if (
+            prefs.contains(
+                edgeKey,
+            )
+        ) {
+            state.foregroundEdgeFxVisible =
+                prefs.getBoolean(
+                    edgeKey,
+                    true,
+                )
+        }
+
+        prefs.edit()
+            .putBoolean(
+                KEY_PROJECTM_COMPONENTS_MIGRATED,
+                true,
+            )
+            .apply()
+    }
+
     private fun layerPrefs() =
         getSharedPreferences("pulsedeck_layers", MODE_PRIVATE)
 
@@ -1777,32 +1900,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         layerPrefs()
             .edit()
             .putBoolean(
-                layerPreferenceKey(layer),
+                layerPreferenceKey(
+                    layer,
+                ),
                 visible,
             )
             .apply()
+
         if (
             layer ==
                 PulseDeckLayerStack.Layer.VISUALIZER
         ) {
-            pulseDeckLayerStack
-                ?.setLayerVisible(
-                    PulseDeckLayerStack.Layer.VISUALIZER,
-                    visible &&
-                        layerObjectVisible(
-                            PulseDeckLayerStack.Layer.VISUALIZER,
-                            "projectm",
-                        ),
-                )
-            pulseDeckLayerStack
-                ?.setLayerVisible(
-                    PulseDeckLayerStack.Layer.FARIC_REACTIVE,
-                    visible &&
-                        layerObjectVisible(
-                            PulseDeckLayerStack.Layer.VISUALIZER,
-                            "faric_reactive",
-                        ),
-                )
+            applyVisualizerRenderSlots()
             updateProjectMRenderState()
             updateSceneOrchestratorState()
         } else {
@@ -1862,6 +1971,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 )
 
             when (objectId) {
+                "projectm" ->
+                    return projectMState
+                        .backgroundVisible
+
                 "fg_center" ->
                     return projectMState
                         .foregroundCenterVisible
@@ -1932,26 +2045,22 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             PulseDeckLayerStack.Layer.VISUALIZER ->
                 when (objectId) {
                     "projectm" -> {
-                        pulseDeckLayerStack
-                            ?.setLayerVisible(
-                                PulseDeckLayerStack.Layer.VISUALIZER,
-                                layerVisible(
-                                    PulseDeckLayerStack.Layer.VISUALIZER,
-                                ) &&
-                                    visible,
+                        val state =
+                            ProjectMStateStore(
+                                this,
                             )
+                        state.backgroundVisible =
+                            visible
+                        projectMMainView
+                            ?.setBackgroundVisible(
+                                visible,
+                            )
+                        applyVisualizerRenderSlots()
                         updateProjectMRenderState()
                     }
 
                     "faric_reactive" -> {
-                        pulseDeckLayerStack
-                            ?.setLayerVisible(
-                                PulseDeckLayerStack.Layer.FARIC_REACTIVE,
-                                layerVisible(
-                                    PulseDeckLayerStack.Layer.VISUALIZER,
-                                ) &&
-                                    visible,
-                            )
+                        applyVisualizerRenderSlots()
                         updateSceneOrchestratorState()
                     }
 
@@ -1969,10 +2078,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             ) {
                                 visible
                             } else {
-                                layerObjectVisible(
-                                    PulseDeckLayerStack.Layer.VISUALIZER,
-                                    "fg_center",
-                                )
+                                state.foregroundCenterVisible
                             }
                         val edgeVisible =
                             if (
@@ -1981,16 +2087,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             ) {
                                 visible
                             } else {
-                                layerObjectVisible(
-                                    PulseDeckLayerStack.Layer.VISUALIZER,
-                                    "fg_edge_fx",
-                                )
+                                state.foregroundEdgeFxVisible
                             }
 
                         state.foregroundCenterVisible =
                             centerVisible
                         state.foregroundEdgeFxVisible =
                             edgeVisible
+
                         projectMMainView
                             ?.setForegroundVisibility(
                                 centerVisible =
@@ -1998,6 +2102,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 edgeFxVisible =
                                     edgeVisible,
                             )
+
+                        applyVisualizerRenderSlots()
+                        updateProjectMRenderState()
                     }
                 }
 
@@ -2140,41 +2247,52 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         stack: PulseDeckLayerStack,
     ) {
         controllablePulseDeckLayers()
+            .filter { layer ->
+                layer !=
+                    PulseDeckLayerStack.Layer.VISUALIZER
+            }
             .forEach { layer ->
-                if (
-                    layer ==
-                        PulseDeckLayerStack.Layer.VISUALIZER
-                ) {
-                    val parentVisible =
-                        layerVisible(
-                            PulseDeckLayerStack.Layer.VISUALIZER,
-                        )
-
-                    stack.setLayerVisible(
-                        PulseDeckLayerStack.Layer.VISUALIZER,
-                        parentVisible &&
-                            layerObjectVisible(
-                                PulseDeckLayerStack.Layer.VISUALIZER,
-                                "projectm",
-                            ),
-                    )
-                    stack.setLayerVisible(
-                        PulseDeckLayerStack.Layer.FARIC_REACTIVE,
-                        parentVisible &&
-                            layerObjectVisible(
-                                PulseDeckLayerStack.Layer.VISUALIZER,
-                                "faric_reactive",
-                            ),
-                    )
-                } else {
-                    stack.setLayerVisible(
+                stack.setLayerVisible(
+                    layer,
+                    layerVisible(
                         layer,
-                        layerVisible(layer),
-                    )
-                }
+                    ),
+                )
             }
 
-        // Layer 7 is the locked PulseDeck HUD and is never user-toggleable.
+        val parentVisible =
+            layerVisible(
+                PulseDeckLayerStack.Layer.VISUALIZER,
+            )
+
+        stack.setLayerVisible(
+            PulseDeckLayerStack.Layer.VISUALIZER,
+            parentVisible &&
+                (
+                    layerObjectVisible(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        "projectm",
+                    ) ||
+                        layerObjectVisible(
+                            PulseDeckLayerStack.Layer.VISUALIZER,
+                            "fg_center",
+                        ) ||
+                        layerObjectVisible(
+                            PulseDeckLayerStack.Layer.VISUALIZER,
+                            "fg_edge_fx",
+                        )
+                    ),
+        )
+        stack.setLayerVisible(
+            PulseDeckLayerStack.Layer.FARIC_REACTIVE,
+            parentVisible &&
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "faric_reactive",
+                ),
+        )
+
+        // Locked PulseDeck HUD is never user-toggleable as a top-level layer.
         stack.setLayerVisible(
             PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
             true,
@@ -2898,6 +3016,22 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         }
 
+        if (
+            visualizerObjectsForMigration == null ||
+            !visualizerObjectsForMigration.has(
+                "projectm",
+            )
+        ) {
+            ProjectMStateStore(this)
+                .backgroundVisible =
+                layersForMigration
+                    ?.optBoolean(
+                        PulseDeckLayerStack.Layer.VISUALIZER.name,
+                        true,
+                    )
+                    ?: true
+        }
+
         root.optJSONObject(
             "objects",
         )
@@ -2943,6 +3077,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ProjectMStateStore(
                         this,
                     )
+
+                if (
+                    visualizerObjects.has(
+                        "projectm",
+                    )
+                ) {
+                    state.backgroundVisible =
+                        visualizerObjects.optBoolean(
+                            "projectm",
+                            true,
+                        )
+                }
 
                 if (
                     visualizerObjects.has(
@@ -5464,16 +5610,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun attachExportProjectMPreview(
         root: FrameLayout,
     ) {
-        val projectMVisible =
-            layerVisible(
-                PulseDeckLayerStack.Layer.VISUALIZER,
-            ) &&
-                layerObjectVisible(
-                    PulseDeckLayerStack.Layer.VISUALIZER,
-                    "projectm",
-                )
+        val projectMSurfaceVisible =
+            projectMSurfaceVisible()
 
-        if (!projectMVisible) {
+        if (!projectMSurfaceVisible) {
             return
         }
 
@@ -5508,6 +5648,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         .BALANCED_BACKGROUND,
                 foregroundSample =
                     state.foregroundSample,
+                backgroundVisible =
+                    layerObjectVisible(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        "projectm",
+                    ),
                 foregroundCenterVisible =
                     layerObjectVisible(
                         PulseDeckLayerStack.Layer.VISUALIZER,
@@ -6376,11 +6521,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 PulseDeckLayerStack.Layer.VISUALIZER,
             )
         val projectMVisible =
-            visualizerVisible &&
-                layerObjectVisible(
-                    PulseDeckLayerStack.Layer.VISUALIZER,
-                    "projectm",
-                ) &&
+            projectMSurfaceVisible() &&
                 ProjectMStateStore(this)
                     .lastPresetFileOrNull() !=
                 null
@@ -8582,6 +8723,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             "faric.visualizer_split_migrated_v1"
         private const val KEY_VISUALIZER_OBJECTS_MIGRATED =
             "faric.visualizer_objects_migrated_v2"
+        private const val KEY_PROJECTM_COMPONENTS_MIGRATED =
+            "faric.projectm_components_migrated_v3"
         private const val KEY_COMPOSITION_SET_NAMES =
             "faric.composition_set_names"
         private const val KEY_HAS_VERTICAL_SCROLL =

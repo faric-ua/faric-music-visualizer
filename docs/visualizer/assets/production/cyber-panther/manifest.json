@@ -1,0 +1,44 @@
+{
+  "id": "cyber-panther",
+  "version": 2,
+  "status": "production-preview",
+  "canvas": {
+    "width": 256,
+    "height": 256,
+    "pivotX": 0.5,
+    "pivotY": 0.5
+  },
+  "sourceCanvas": {
+    "width": 1024,
+    "height": 1024
+  },
+  "zOrder": [
+    "frame",
+    "fx",
+    "creature",
+    "wordmark"
+  ],
+  "assets": {
+    "full": "full.webp",
+    "frame": "frame.webp",
+    "fx": "fx.webp",
+    "creature": "creature.webp",
+    "wordmark": "wordmark.webp"
+  },
+  "androidResources": {
+    "full": "cyber_panther_full",
+    "frame": "cyber_panther_frame",
+    "fx": "cyber_panther_fx",
+    "creature": "cyber_panther_creature",
+    "wordmark": "cyber_panther_wordmark"
+  },
+  "sha256": {
+    "full": "69c5a32aa2ce656d731cce87a4c20d2ba95bdc58d443039d0edeb96a446fb82d",
+    "frame": "27447c97ae60934b72762278e07d973451238a44b002c3ccde956f6e8c3299c7",
+    "fx": "0eeabc47958fad28bba3979fd209b6cdd5161cf71dfae559d2de0b8ebfdcdc6e",
+    "creature": "c8a32578637a15731915bfe927c9508eed72c8f245fc958c74976a352e731a63",
+    "wordmark": "75c3691a40eb091ddee3d3725148343562d723de897d252afb958821dc7ae9bb"
+  },
+  "source": "ChatGPT-generated Cyber Panther catalog, separated into real-alpha production layers on 2026-10-07",
+  "notes": "All modular parts use the same normalized canvas and pivot. No checkerboard is baked into transparency. 256x256 is the current production-preview size; higher-resolution masters can replace these bytes later without changing the layer contract."
+}

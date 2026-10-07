@@ -506,15 +506,7 @@ object PulseDeckDialogs {
                 },
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    context.dp(
-                        if (
-                            action.accent
-                        ) {
-                            52
-                        } else {
-                            48
-                        },
-                    ),
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
                 ).apply {
                     if (
                         index >
@@ -585,6 +577,34 @@ object PulseDeckDialogs {
         ).apply {
             gravity =
                 Gravity.CENTER
+            textAlignment =
+                View.TEXT_ALIGNMENT_CENTER
+            minimumHeight =
+                context.dp(
+                    if (
+                        action.accent
+                    ) {
+                        52
+                    } else {
+                        48
+                    },
+                )
+            setPadding(
+                context.dp(
+                    16,
+                ),
+                context.dp(
+                    12,
+                ),
+                context.dp(
+                    16,
+                ),
+                context.dp(
+                    12,
+                ),
+            )
+            maxLines =
+                3
             background =
                 roundedDrawable(
                     context = context,

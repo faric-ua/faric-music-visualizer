@@ -1,0 +1,702 @@
+package com.saney.musicvisualizer.ui
+
+import android.app.Dialog
+import android.content.Context
+import android.graphics.Color
+import android.graphics.Typeface
+import android.graphics.drawable.GradientDrawable
+import android.view.Gravity
+import android.view.View
+import android.view.ViewGroup
+import android.view.Window
+import android.widget.EditText
+import android.widget.LinearLayout
+import android.widget.ScrollView
+import android.widget.TextView
+
+/**
+ * Project-wide app-owned dialog family for PulseDeck.
+ *
+ * Do not add a stock AlertDialog for PulseDeck-owned UI. Extend this family
+ * or inherit from the nearest styled parent/sibling flow instead.
+ */
+object PulseDeckDialogs {
+    data class Action(
+        val label: String,
+        val accent: Boolean = false,
+        val destructive: Boolean = false,
+        val onClick: () -> Unit,
+    )
+
+    private const val PANEL_WIDTH_FRACTION = 0.88f
+
+    private val COLOR_PANEL =
+        Color.rgb(
+            22,
+            25,
+            29,
+        )
+    private val COLOR_PANEL_2 =
+        Color.rgb(
+            31,
+            36,
+            43,
+        )
+    private val COLOR_TEXT =
+        Color.WHITE
+    private val COLOR_MUTED =
+        Color.rgb(
+            165,
+            178,
+            190,
+        )
+    private val COLOR_ORANGE =
+        Color.rgb(
+            255,
+            177,
+            90,
+        )
+    private val COLOR_CYAN =
+        Color.rgb(
+            35,
+            211,
+            238,
+        )
+    private val COLOR_DANGER =
+        Color.rgb(
+            225,
+            92,
+            92,
+        )
+
+    fun showActionList(
+        context: Context,
+        title: String,
+        items: List<String>,
+        cancelLabel: String? = "Закрити",
+        accentFirst: Boolean = false,
+        onItem: (Int) -> Unit,
+    ): Dialog {
+        val actions =
+            items.mapIndexed { index, label ->
+                Action(
+                    label = label,
+                    accent =
+                        accentFirst &&
+                            index == 0,
+                ) {
+                    onItem(
+                        index,
+                    )
+                }
+            }
+
+        return show(
+            context = context,
+            title = title,
+            actions =
+                buildList {
+                    addAll(
+                        actions,
+                    )
+                    if (
+                        !cancelLabel.isNullOrBlank()
+                    ) {
+                        add(
+                            Action(
+                                label =
+                                    cancelLabel,
+                            ) {},
+                        )
+                    }
+                },
+            dismissAfterAction = true,
+        )
+    }
+
+    fun showSingleChoice(
+        context: Context,
+        title: String,
+        labels: List<String>,
+        checkedIndex: Int = -1,
+        cancelLabel: String? = "Скасувати",
+        onSelected: (Int) -> Unit,
+    ): Dialog {
+        val display =
+            labels.mapIndexed { index, label ->
+                if (
+                    index ==
+                        checkedIndex
+                ) {
+                    "●  $label"
+                } else {
+                    "○  $label"
+                }
+            }
+
+        return showActionList(
+            context = context,
+            title = title,
+            items = display,
+            cancelLabel = cancelLabel,
+            accentFirst = false,
+        ) { index ->
+            onSelected(
+                index,
+            )
+        }
+    }
+
+    fun showTextInput(
+        context: Context,
+        title: String,
+        hint: String? = null,
+        initialValue: String? = null,
+        positiveLabel: String = "Зберегти",
+        negativeLabel: String = "Скасувати",
+        onPositive: (String) -> Unit,
+    ): Dialog {
+        val input =
+            EditText(
+                context,
+            ).apply {
+                setSingleLine(
+                    true,
+                )
+                setTextColor(
+                    COLOR_TEXT,
+                )
+                setHintTextColor(
+                    COLOR_MUTED,
+                )
+                textSize =
+                    16f
+                setPadding(
+                    context.dp(
+                        14,
+                    ),
+                    context.dp(
+                        12,
+                    ),
+                    context.dp(
+                        14,
+                    ),
+                    context.dp(
+                        12,
+                    ),
+                )
+                background =
+                    roundedDrawable(
+                        context = context,
+                        fill =
+                            Color.rgb(
+                                10,
+                                16,
+                                22,
+                            ),
+                        radiusDp = 18,
+                        stroke =
+                            Color.argb(
+                                130,
+                                35,
+                                211,
+                                238,
+                            ),
+                        strokeDp = 1,
+                    )
+
+                this.hint =
+                    hint.orEmpty()
+
+                if (
+                    !initialValue.isNullOrEmpty()
+                ) {
+                    setText(
+                        initialValue,
+                    )
+                    setSelection(
+                        text.length,
+                    )
+                }
+            }
+
+        return show(
+            context = context,
+            title = title,
+            body =
+                input,
+            actions =
+                listOf(
+                    Action(
+                        label =
+                            positiveLabel,
+                        accent = true,
+                    ) {
+                        onPositive(
+                            input.text
+                                ?.toString()
+                                .orEmpty(),
+                        )
+                    },
+                    Action(
+                        label =
+                            negativeLabel,
+                    ) {},
+                ),
+            dismissAfterAction = true,
+        )
+    }
+
+    fun showConfirm(
+        context: Context,
+        title: String,
+        message: String? = null,
+        positiveLabel: String,
+        negativeLabel: String = "Скасувати",
+        destructive: Boolean = false,
+        onPositive: () -> Unit,
+    ): Dialog =
+        show(
+            context = context,
+            title = title,
+            message = message,
+            actions =
+                listOf(
+                    Action(
+                        label =
+                            positiveLabel,
+                        accent =
+                            !destructive,
+                        destructive =
+                            destructive,
+                        onClick =
+                            onPositive,
+                    ),
+                    Action(
+                        label =
+                            negativeLabel,
+                    ) {},
+                ),
+            dismissAfterAction = true,
+        )
+
+    fun showMessage(
+        context: Context,
+        title: String,
+        message: String,
+        primaryLabel: String = "OK",
+        secondaryLabel: String? = null,
+        onSecondary: (() -> Unit)? = null,
+    ): Dialog =
+        show(
+            context = context,
+            title = title,
+            message = message,
+            actions =
+                buildList {
+                    if (
+                        !secondaryLabel.isNullOrBlank()
+                    ) {
+                        add(
+                            Action(
+                                label =
+                                    secondaryLabel,
+                            ) {
+                                onSecondary
+                                    ?.invoke()
+                            },
+                        )
+                    }
+
+                    add(
+                        Action(
+                            label =
+                                primaryLabel,
+                            accent = true,
+                        ) {},
+                    )
+                },
+            dismissAfterAction = true,
+        )
+
+    fun show(
+        context: Context,
+        title: String,
+        message: String? = null,
+        body: View? = null,
+        actions: List<Action>,
+        dismissAfterAction: Boolean = true,
+    ): Dialog {
+        lateinit var dialog:
+            Dialog
+
+        dialog =
+            Dialog(
+                context,
+            ).apply {
+                requestWindowFeature(
+                    Window.FEATURE_NO_TITLE,
+                )
+                setCancelable(
+                    true,
+                )
+                setCanceledOnTouchOutside(
+                    false,
+                )
+            }
+
+        val panel =
+            LinearLayout(
+                context,
+            ).apply {
+                orientation =
+                    LinearLayout.VERTICAL
+                setPadding(
+                    context.dp(
+                        18,
+                    ),
+                    context.dp(
+                        16,
+                    ),
+                    context.dp(
+                        18,
+                    ),
+                    context.dp(
+                        16,
+                    ),
+                )
+                background =
+                    roundedDrawable(
+                        context = context,
+                        fill =
+                            Color.argb(
+                                250,
+                                Color.red(
+                                    COLOR_PANEL,
+                                ),
+                                Color.green(
+                                    COLOR_PANEL,
+                                ),
+                                Color.blue(
+                                    COLOR_PANEL,
+                                ),
+                            ),
+                        radiusDp = 24,
+                        stroke =
+                            Color.argb(
+                                95,
+                                255,
+                                255,
+                                255,
+                            ),
+                        strokeDp = 1,
+                    )
+            }
+
+        panel.addView(
+            label(
+                context = context,
+                text = title,
+                sizeSp = 21f,
+                color =
+                    COLOR_TEXT,
+                bold = true,
+            ),
+        )
+
+        if (
+            !message.isNullOrBlank()
+        ) {
+            val messageView =
+                label(
+                    context = context,
+                    text = message,
+                    sizeSp = 13f,
+                    color =
+                        COLOR_MUTED,
+                    bold = false,
+                )
+
+            if (
+                message.length >
+                    900
+            ) {
+                panel.addView(
+                    ScrollView(
+                        context,
+                    ).apply {
+                        isFillViewport =
+                            false
+                        addView(
+                            messageView,
+                            ViewGroup.LayoutParams(
+                                ViewGroup.LayoutParams.MATCH_PARENT,
+                                ViewGroup.LayoutParams.WRAP_CONTENT,
+                            ),
+                        )
+                    },
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        context.dp(
+                            420,
+                        ),
+                    ).apply {
+                        topMargin =
+                            context.dp(
+                                10,
+                            )
+                        bottomMargin =
+                            context.dp(
+                                12,
+                            )
+                    },
+                )
+            } else {
+                panel.addView(
+                    messageView,
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        topMargin =
+                            context.dp(
+                                8,
+                            )
+                        bottomMargin =
+                            context.dp(
+                                12,
+                            )
+                    },
+                )
+            }
+        }
+
+        body?.let { bodyView ->
+            panel.addView(
+                bodyView,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    topMargin =
+                        context.dp(
+                            12,
+                        )
+                    bottomMargin =
+                        context.dp(
+                            12,
+                        )
+                },
+            )
+        }
+
+        actions.forEachIndexed { index, action ->
+            panel.addView(
+                actionButton(
+                    context = context,
+                    action = action,
+                ) {
+                    action.onClick()
+
+                    if (
+                        dismissAfterAction
+                    ) {
+                        dialog.dismiss()
+                    }
+                },
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    context.dp(
+                        if (
+                            action.accent
+                        ) {
+                            52
+                        } else {
+                            48
+                        },
+                    ),
+                ).apply {
+                    if (
+                        index >
+                        0
+                    ) {
+                        topMargin =
+                            context.dp(
+                                8,
+                            )
+                    }
+                },
+            )
+        }
+
+        dialog.setContentView(
+            panel,
+        )
+        dialog.show()
+
+        dialog.window
+            ?.apply {
+                setBackgroundDrawable(
+                    android.graphics.drawable
+                        .ColorDrawable(
+                            Color.TRANSPARENT,
+                        ),
+                )
+                setLayout(
+                    (
+                        context.resources
+                            .displayMetrics
+                            .widthPixels *
+                            PANEL_WIDTH_FRACTION
+                        )
+                        .toInt(),
+                    ViewGroup.LayoutParams
+                        .WRAP_CONTENT,
+                )
+                setGravity(
+                    Gravity.CENTER,
+                )
+            }
+
+        return dialog
+    }
+
+    private fun actionButton(
+        context: Context,
+        action: Action,
+        onClick: () -> Unit,
+    ): TextView =
+        label(
+            context = context,
+            text = action.label,
+            sizeSp = 15f,
+            color =
+                when {
+                    action.accent ->
+                        Color.BLACK
+
+                    action.destructive ->
+                        COLOR_DANGER
+
+                    else ->
+                        COLOR_TEXT
+                },
+            bold = true,
+        ).apply {
+            gravity =
+                Gravity.CENTER
+            background =
+                roundedDrawable(
+                    context = context,
+                    fill =
+                        if (
+                            action.accent
+                        ) {
+                            COLOR_ORANGE
+                        } else {
+                            COLOR_PANEL_2
+                        },
+                    radiusDp = 22,
+                    stroke =
+                        when {
+                            action.accent ->
+                                COLOR_ORANGE
+
+                            action.destructive ->
+                                Color.argb(
+                                    170,
+                                    225,
+                                    92,
+                                    92,
+                                )
+
+                            else ->
+                                Color.argb(
+                                    115,
+                                    255,
+                                    255,
+                                    255,
+                                )
+                        },
+                    strokeDp = 1,
+                )
+            setOnClickListener {
+                onClick()
+            }
+        }
+
+    private fun label(
+        context: Context,
+        text: String,
+        sizeSp: Float,
+        color: Int,
+        bold: Boolean,
+    ): TextView =
+        TextView(
+            context,
+        ).apply {
+            this.text =
+                text
+            textSize =
+                sizeSp
+            setTextColor(
+                color,
+            )
+            includeFontPadding =
+                false
+            typeface =
+                if (
+                    bold
+                ) {
+                    Typeface.DEFAULT_BOLD
+                } else {
+                    Typeface.DEFAULT
+                }
+        }
+
+    private fun roundedDrawable(
+        context: Context,
+        fill: Int,
+        radiusDp: Int,
+        stroke: Int,
+        strokeDp: Int,
+    ): GradientDrawable =
+        GradientDrawable().apply {
+            shape =
+                GradientDrawable.RECTANGLE
+            cornerRadius =
+                context.dp(
+                    radiusDp,
+                )
+                    .toFloat()
+            setColor(
+                fill,
+            )
+            if (
+                strokeDp >
+                0 &&
+                Color.alpha(
+                    stroke,
+                ) >
+                0
+            ) {
+                setStroke(
+                    context.dp(
+                        strokeDp,
+                    ),
+                    stroke,
+                )
+            }
+        }
+
+    private fun Context.dp(
+        value: Int,
+    ): Int =
+        (
+            value *
+                resources
+                    .displayMetrics
+                    .density
+            )
+            .toInt()
+}

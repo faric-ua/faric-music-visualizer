@@ -1,5 +1,20 @@
 # Active Plan
 
+## FUTURE UX — emergency menu recovery / safe UI snapshot
+
+- [ ] Prevent a user from permanently locking themselves out after hiding every menu/control that can reopen the layer/menu panel.
+- [ ] Add an emergency recovery gesture on the main screen: press-and-hold on an empty/root area for about 10 seconds. It must work even when all normal menus are hidden and should not depend on any hidden button.
+- [ ] After the hold, show a recovery dialog rather than changing state immediately. Proposed actions: **Restore last safe layout**, **Reset menus to defaults**, **Cancel**.
+- [ ] Maintain two persisted UI states:
+  - current layout/state, restored on ordinary app launch;
+  - last safe layout snapshot, containing a known-usable configuration with at least one reachable menu/control path.
+- [ ] Never overwrite the last safe snapshot with a layout in which all menu entry points are hidden. This prevents relaunching the app into an unrecoverable state.
+- [ ] Update the safe snapshot only when the UI is demonstrably reachable, or by an explicit user action such as "Save current as safe layout".
+- [ ] Recovery must restore menu/control visibility only; it should not destroy unrelated user settings, GF transforms, reactions, playback settings, presets, or project data.
+- [ ] Add clear haptic/visual feedback near the end of the long hold so the user knows the emergency gesture was recognized and accidental activation remains unlikely.
+- [ ] Phone QA scenarios: hide all menu entry points -> close panel -> verify normal UI is inaccessible -> use 10-second recovery -> restore last safe layout; also verify app restart preserves current layout but retains the independent safe checkpoint.
+
+
 ## NEXT VISUAL TASK — production modular GF assets
 
 - [x] Recover GF reference pack and master manifest.

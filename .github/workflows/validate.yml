@@ -35,6 +35,8 @@ jobs:
           test -f START_HERE_ASSISTANT.md
           test -f CURRENT_HANDOFF.md
           test -f ACTIVE_PLAN.md
+          test -f UI_STYLE_CONTRACT.md
+          test -f UI_STYLE_AUDIT.md
           test -f docs/product/PRODUCT_VISION.md
           test -f docs/architecture/ARCHITECTURE.md
           test -f docs/assistant-kit/AUDIO_VISUAL_CONTRACT.md
@@ -43,3 +45,9 @@ jobs:
           token_a='ghp''_'
           token_b='github_pat''_'
           ! git grep -nE "$private_key|$token_a|$token_b" -- .
+
+      - name: Stock app-owned UI guard
+        shell: bash
+        run: |
+          set -euo pipefail
+          ! git grep -nE 'AlertDialog\.Builder|android\.app\.AlertDialog|MaterialAlertDialogBuilder|import android\.widget\.Button' -- app/src/main/java

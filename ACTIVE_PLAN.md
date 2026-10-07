@@ -1,5 +1,16 @@
 # Active Plan
 
+## HARD ASSET QUALITY RULE — Cyber Shark is the benchmark
+
+- [x] Permanent contract added: `docs/visualizer/ASSET_QUALITY_CONTRACT.md`.
+- [x] Cyber Shark is the visual-quality gold standard for all future production graphics.
+- [x] Quality takes priority over reducing APK/file size unless a measured runtime/memory problem justifies optimization.
+- [x] Preferred GF-style raster target: high-resolution physical source, normally >=1024×1024; Shark-grade 1254×1254 lossless assets are the reference when practical.
+- [x] Prefer lossless WebP/PNG with clean alpha; no lossy halos, matte fringes, dirty edge rectangles or low-res upscaling.
+- [x] New visual assets are not approved merely because they render; they must pass phone/export visual QA against Shark quality.
+- [ ] Rebuild/validate Panther Wordmark, Frame, FX and full-pack physical assets to the Shark benchmark before declaring the Panther pack production-ready.
+
+
 ## CURRENT CANDIDATE — v0.19.33 / build 122 — show it on phone
 
 - [x] UX contract saved in `docs/visualizer/VISUAL_LAYER_REWORK_2026-10-07.md`.

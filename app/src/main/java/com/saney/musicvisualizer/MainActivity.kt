@@ -1140,6 +1140,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             PulseDeckLayerStack.Layer.VISUALIZER,
                             "fg_edge_fx",
                         ),
+                    foregroundTuning =
+                        projectMState.foregroundTuning(),
                     onTapNext = {},
                 )
             } else {
@@ -5678,6 +5680,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         PulseDeckLayerStack.Layer.VISUALIZER,
                         "fg_edge_fx",
                     ),
+                foregroundTuning =
+                    state.foregroundTuning(),
                 onTapNext = {},
                 manualFrameMode = true,
                 manualRenderWidth =

@@ -1,5 +1,22 @@
 # Active Plan
 
+## CURRENT FIX — v0.19.35 / build 124 — projectM non-fullscreen + back
+
+Phone QA:
+- [x] projectM TOP/ALL screen controls work correctly, including BG / CENTER / EDGE FX.
+- [x] Cyber Panther still does not visibly replace Shark; Panther visual QA remains OPEN.
+- [x] Fresh byte check confirms current `cyber_panther_creature.webp` is still not a valid RIFF/WEBP payload. Do not benchmark Panther yet.
+
+ProjectM screen changes:
+- [x] Stop forcing immersive/fullscreen mode in `ProjectMActivity`.
+- [x] Keep Android system bars visible on create/resume.
+- [x] Apply system-bar insets to the root so top/bottom controls stay inside the safe area.
+- [x] Add an explicit top-left Back button using the same physical PulseDeck asset: `skin/pulsedeck_hud/utility/back.png`.
+- [x] Back button returns directly to the player without requiring a bottom-edge swipe that can accidentally change visualization.
+- [ ] Phone QA: system bars visible immediately; Back button visible and tappable; no overlap after resume/rotation.
+- [ ] Panther: wait for Shark-grade redraw/valid asset before export benchmark.
+
+
 ## TODO — projectM / TOP-ALL visualizer screen should not be fullscreen
 
 Context:

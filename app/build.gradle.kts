@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 120
-        versionName = "0.19.31"
-        // v0.19.31 fixes dialog text fit, groups Visualizer child objects, and hardens Panther visibility.
+        versionCode = 121
+        versionName = "0.19.32"
+        // v0.19.32 adds persistent GF switching and independent FG Center / Edge FX controls.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

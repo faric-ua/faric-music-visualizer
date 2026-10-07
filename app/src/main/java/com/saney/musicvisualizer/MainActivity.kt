@@ -1408,7 +1408,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
 
-    private fun layerObjectPreferenceKey(
+    private fun legacyLayerObjectPreferenceKey(
         layer: PulseDeckLayerStack.Layer,
         objectId: String,
     ): String =
@@ -1417,19 +1417,73 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             "_" +
             objectId.lowercase()
 
+    private fun layerObjectPreferenceKey(
+        layer: PulseDeckLayerStack.Layer,
+        objectId: String,
+    ): String =
+        if (
+            layer ==
+                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES
+        ) {
+            "object_" +
+                layer.name.lowercase() +
+                "_" +
+                currentGraphicFigureThemeId()
+                    .name
+                    .lowercase() +
+                "_" +
+                objectId.lowercase()
+        } else {
+            legacyLayerObjectPreferenceKey(
+                layer,
+                objectId,
+            )
+        }
+
     private fun layerObjectVisible(
         layer: PulseDeckLayerStack.Layer,
         objectId: String,
         defaultValue: Boolean = true,
-    ): Boolean =
-        layerPrefs()
-            .getBoolean(
-                layerObjectPreferenceKey(
-                    layer,
-                    objectId,
-                ),
+    ): Boolean {
+        val prefs =
+            layerPrefs()
+        val key =
+            layerObjectPreferenceKey(
+                layer,
+                objectId,
+            )
+
+        if (prefs.contains(key)) {
+            return prefs.getBoolean(
+                key,
                 defaultValue,
             )
+        }
+
+        // Preserve legacy Cyber Shark visibility, but do not let old Shark
+        // toggles leak into a newly selected Graphic Figure such as Panther.
+        if (
+            layer ==
+                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES &&
+            currentGraphicFigureThemeId() ==
+                PlaybackThemeId.CYBER_SHARK
+        ) {
+            val legacyKey =
+                legacyLayerObjectPreferenceKey(
+                    layer,
+                    objectId,
+                )
+
+            if (prefs.contains(legacyKey)) {
+                return prefs.getBoolean(
+                    legacyKey,
+                    defaultValue,
+                )
+            }
+        }
+
+        return defaultValue
+    }
 
     private fun setLayerObjectVisible(
         layer: PulseDeckLayerStack.Layer,
@@ -6918,7 +6972,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             stages.bigEqualizerMs,
                         )
                         append(" ms")
-                        append("\nCyber Shark: ")
+                        append("\nGraphic Figure · ")\n                        append(\n                            GraphicFigureCatalog\n                                .title(\n                                    currentGraphicFigureThemeId(),\n                                ),\n                        )\n                        append(": ")
                         append(
                             stages.cyberSharkMs,
                         )
@@ -6927,7 +6981,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         stages.cyberSharkStages
                             ?.let {
                                     cyber ->
-                                append("\nCyber Shark internals")
+                                append("\nGraphic Figure internals")
                                 append("\nbackground: ")
                                 append(
                                     cyber.backgroundMs,

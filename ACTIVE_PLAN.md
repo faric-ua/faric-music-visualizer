@@ -1,5 +1,19 @@
 # Active Plan
 
+## CURRENT CANDIDATE — v0.19.29 / build 118 — full UI style audit
+
+- [x] Shared `PulseDeckDialogs` family added.
+- [x] All app-owned stock AlertDialog flows migrated: tools, Sets, set input/rename/actions/delete, GF picker, auto-hide, export timing.
+- [x] Emergency recovery routed through the same shared family.
+- [x] Layers / objects panel surface aligned with PulseDeck panel styling; native checkbox controls receive PulseDeck tint/text treatment.
+- [x] `UI_STYLE_CONTRACT.md` and `UI_STYLE_AUDIT.md` added.
+- [x] Validate workflow now blocks new `AlertDialog.Builder`, `android.app.AlertDialog`, `MaterialAlertDialogBuilder`, and direct `android.widget.Button` imports in app source.
+- [x] Release source SHA: `3eb471c1e0067788610b39e90e26475540548cc9`.
+- [ ] Validate #905 PASS.
+- [ ] Android #534 PASS + artifact.
+- [ ] Phone QA all migrated windows against the screenshots that exposed the stock-grey UI.
+
+
 ## PHONE FINDING — v0.19.26/27 style + projectM benchmark before Panther comparison
 
 - [x] Composition Sets and save/rename flows were still using stock Android AlertDialog styling on phone. This confirmed the need for a project-wide audit rather than one-off fixes.
@@ -20,6 +34,7 @@
 - Graphic Figure selected label = Cyber Shark, but every GF timing was 0 ms (background/frame/FX/creature/wordmark all 0). Treat this export as a projectM + HUD benchmark, not a Shark/Panther render benchmark.
 - The supplied 3-second MP4 visually matches that interpretation: the large M/headphone-like artwork is part of the projectM preset imagery; no separately timed GF layer is present.
 - glReadPixels remains the dominant projectM bottleneck on the CPU/BGRA path. Do not compare this 7157 ms run directly with the previous `GPU direct` result without matching layer/path conditions.
+- Code-level cause of this path switch is now identified: `directGpuProjectMEligible` currently requires `graphicFiguresVisible == true` and GF Background visible. With GF fully disabled, projectM is forced off the GPU-direct path and falls back to BGRA/glReadPixels. Track this as a performance/architecture finding; do not change it until the Panther comparison is captured.
 - Wait for the user's Panther benchmark before drawing the next GF-specific performance conclusion.
 
 

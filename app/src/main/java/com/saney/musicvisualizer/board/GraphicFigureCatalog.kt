@@ -3,6 +3,7 @@ package com.saney.musicvisualizer.board
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.util.Log
 import com.saney.musicvisualizer.R
 import com.saney.musicvisualizer.theme.PlaybackThemeId
 
@@ -89,9 +90,8 @@ object GraphicFigureCatalog {
                             R.drawable.cyber_panther_fx,
                         ),
                     creature =
-                        decode(
+                        decodePantherCreature(
                             context,
-                            R.drawable.cyber_panther_creature,
                         ),
                     wordmark =
                         decode(
@@ -121,6 +121,119 @@ object GraphicFigureCatalog {
                 )
         }
 
+    private fun decodePantherCreature(
+        context: Context,
+    ): Bitmap? {
+        val creature =
+            decode(
+                context,
+                R.drawable.cyber_panther_creature,
+            )
+        val coverage =
+            alphaCoverage(
+                creature,
+            )
+
+        Log.i(
+            TAG,
+            "Cyber Panther creature alpha coverage=" +
+                "%.4f".format(
+                    coverage,
+                ) +
+                " size=" +
+                (
+                    creature
+                        ?.let {
+                            "${it.width}x${it.height}"
+                        }
+                        ?: "null"
+                    ),
+        )
+
+        if (
+            creature != null &&
+            coverage >=
+                MIN_USEFUL_ALPHA_COVERAGE
+        ) {
+            return creature
+        }
+
+        Log.w(
+            TAG,
+            "Cyber Panther creature asset is effectively empty; using physical full-pack fallback for phone diagnosis.",
+        )
+
+        return decode(
+            context,
+            R.drawable.cyber_panther_full,
+        )
+    }
+
+    private fun alphaCoverage(
+        bitmap: Bitmap?,
+    ): Float {
+        bitmap ?: return 0f
+
+        val stepX =
+            (bitmap.width / 64)
+                .coerceAtLeast(
+                    1,
+                )
+        val stepY =
+            (bitmap.height / 64)
+                .coerceAtLeast(
+                    1,
+                )
+
+        var sampled =
+            0
+        var visible =
+            0
+        var y =
+            0
+
+        while (
+            y <
+            bitmap.height
+        ) {
+            var x =
+                0
+            while (
+                x <
+                bitmap.width
+            ) {
+                sampled +=
+                    1
+                if (
+                    android.graphics.Color.alpha(
+                        bitmap.getPixel(
+                            x,
+                            y,
+                        ),
+                    ) >
+                    12
+                ) {
+                    visible +=
+                        1
+                }
+                x +=
+                    stepX
+            }
+            y +=
+                stepY
+        }
+
+        return if (
+            sampled >
+            0
+        ) {
+            visible /
+                sampled.toFloat()
+        } else {
+            0f
+        }
+    }
+
     private fun decode(
         context: Context,
         drawable: Int,
@@ -136,4 +249,9 @@ object GraphicFigureCatalog {
                 },
             )
         }.getOrNull()
+
+    private const val TAG =
+        "GraphicFigureCatalog"
+    private const val MIN_USEFUL_ALPHA_COVERAGE =
+        0.01f
 }

@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 116
-        versionName = "0.19.27"
-        // v0.19.27 fixes emergency recovery actions and standardizes PulseDeck-owned dialog styling.
+        versionCode = 117
+        versionName = "0.19.28"
+        // v0.19.28 migrates all app-owned stock dialogs to the shared PulseDeck style family.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

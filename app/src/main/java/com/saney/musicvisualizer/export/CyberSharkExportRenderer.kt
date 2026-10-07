@@ -662,28 +662,52 @@ class CyberSharkExportRenderer(
         ) {
             val startedNs =
                 System.nanoTime()
-
-            drawFx(
-                canvas,
+            val motion =
                 BoardLayerMotionEvaluator
                     .evaluate(
                         fxReaction,
                         audio,
                         timeSeconds,
-                    ),
-                cx,
-                cy,
-                baseSize,
-                w,
-                h,
-                timeSeconds,
-                signal,
-                transform,
+                    )
+            val fxLayerTransform =
                 layerTransform(
                     BoardLayerId.FX,
-                ),
-                groupRotation,
-            )
+                )
+            val physicalFx =
+                activeAssets(
+                    config,
+                ).fx
+
+            if (physicalFx != null) {
+                drawBitmapLayer(
+                    canvas,
+                    physicalFx,
+                    motion,
+                    cx,
+                    cy,
+                    baseSize,
+                    w,
+                    h,
+                    transform,
+                    fxLayerTransform,
+                    groupRotation,
+                )
+            } else {
+                drawFx(
+                    canvas,
+                    motion,
+                    cx,
+                    cy,
+                    baseSize,
+                    w,
+                    h,
+                    timeSeconds,
+                    signal,
+                    transform,
+                    fxLayerTransform,
+                    groupRotation,
+                )
+            }
 
             fxNs +=
                 System.nanoTime() -

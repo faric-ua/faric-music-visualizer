@@ -1,5 +1,28 @@
 # FARIC Music Visualizer — START HERE
 
+## v0.19.32 / build 121 — live GF selector + FG split
+
+Read first:
+- `docs/visualizer/VISUAL_LAYER_REWORK_2026-10-07.md`
+
+Current implementation target:
+- GF selector stays open and switches Shark/Panther live.
+- HeroBoardView reloads GF assets/transforms/reactions without rebuilding Now Playing.
+- projectM foreground is split into independently persisted `FG Center` and `FG Edge FX` visibility.
+- ProjectM FG screen has separate Center/Edge controls.
+- Main Layers -> Visualizer exposes projectM, FARIC Reactive, FG Center, FG Edge FX.
+- Panther creature load logs alpha coverage; if the modular creature is effectively empty, the physical Panther full-pack file is used as a diagnostic fallback.
+- If Panther is still not visibly recognizable after build 121, do not keep changing visibility logic: inspect/re-segment the physical Panther creature asset/bounds.
+
+Phone QA order:
+1. install v0.19.32 / build 121;
+2. open GF picker and switch Shark ↔ Panther several times without closing it;
+3. verify Panther on screen;
+4. open projectM screen and test Center/Edge combinations;
+5. verify Layers toggles FG Center/FG Edge FX;
+6. only then collect Panther export benchmark.
+
+
 ## v0.19.30 / build 119 — visible installed-version marker
 
 - Start/library screen now shows `v<versionName> · build <versionCode>` in a small muted label so phone screenshots immediately identify the installed APK.

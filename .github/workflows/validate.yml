@@ -51,3 +51,17 @@ jobs:
         run: |
           set -euo pipefail
           ! git grep -nE 'AlertDialog\.Builder|android\.app\.AlertDialog|MaterialAlertDialogBuilder|import android\.widget\.Button' -- app/src/main/java
+
+      - name: PulseDeck dialog text-fit contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path("app/src/main/java/com/saney/musicvisualizer/ui/PulseDeckDialogs.kt")
+          text = p.read_text()
+          assert "ViewGroup.LayoutParams.WRAP_CONTENT" in text, "PulseDeck dialog actions must wrap content"
+          assert "minimumHeight" in text, "PulseDeck dialog actions need a minimum touch height"
+          assert "textAlignment =" in text and "View.TEXT_ALIGNMENT_CENTER" in text, "PulseDeck dialog action text must be centered"
+          assert "maxLines =" in text, "PulseDeck dialog actions must allow localized multiline labels"
+          PY

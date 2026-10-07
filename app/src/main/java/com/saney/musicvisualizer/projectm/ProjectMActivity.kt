@@ -31,11 +31,13 @@ class ProjectMActivity : ComponentActivity() {
     private var downloadRunning = false
 
     private var currentForegroundSample = FaricForegroundSample.PULSE_RAYS
+    private var backgroundVisible = true
     private var foregroundCenterVisible = true
     private var foregroundEdgeFxVisible = true
     private var currentBackgroundMode = ProjectMBackgroundMode.TOP
     private var autoEnabled = true
 
+    private var backgroundControl: TextView? = null
     private var foregroundCenterControl: TextView? = null
     private var foregroundEdgeControl: TextView? = null
 
@@ -61,6 +63,8 @@ class ProjectMActivity : ComponentActivity() {
         ratingsStore = ProjectMPresetRatingsStore(this)
         performanceStore = ProjectMPresetPerformanceStore(this)
         currentForegroundSample = stateStore.foregroundSample
+        backgroundVisible =
+            stateStore.backgroundVisible
         foregroundCenterVisible =
             stateStore.foregroundCenterVisible
         foregroundEdgeFxVisible =
@@ -129,6 +133,18 @@ class ProjectMActivity : ComponentActivity() {
                         0,
                         0,
                         0,
+                    ),
+                )
+
+                backgroundControl =
+                    control(
+                        "",
+                    ) {
+                        toggleBackground()
+                    }
+                addView(
+                    requireNotNull(
+                        backgroundControl,
                     ),
                 )
 
@@ -739,6 +755,19 @@ class ProjectMActivity : ComponentActivity() {
         updateStatus()
     }
 
+    private fun toggleBackground() {
+        backgroundVisible =
+            !backgroundVisible
+        stateStore.backgroundVisible =
+            backgroundVisible
+        projectMView
+            ?.setBackgroundVisible(
+                backgroundVisible,
+            )
+        updateForegroundControlLabels()
+        updateStatus()
+    }
+
     private fun toggleForegroundCenter() {
         foregroundCenterVisible =
             !foregroundCenterVisible
@@ -768,27 +797,44 @@ class ProjectMActivity : ComponentActivity() {
     }
 
     private fun updateForegroundControlLabels() {
+        backgroundControl
+            ?.text =
+            (
+                if (
+                    backgroundVisible
+                ) {
+                    "● "
+                } else {
+                    "○ "
+                }
+            ) +
+                "BG"
+
         foregroundCenterControl
             ?.text =
-            "CENTER " +
+            (
                 if (
                     foregroundCenterVisible
                 ) {
-                    "ON"
+                    "● "
                 } else {
-                    "OFF"
+                    "○ "
                 }
+            ) +
+                "CENTER"
 
         foregroundEdgeControl
             ?.text =
-            "EDGE " +
+            (
                 if (
                     foregroundEdgeFxVisible
                 ) {
-                    "ON"
+                    "● "
                 } else {
-                    "OFF"
+                    "○ "
                 }
+            ) +
+                "EDGE FX"
     }
 
     private fun showProjectM(initialPreset: File) {
@@ -811,6 +857,8 @@ class ProjectMActivity : ComponentActivity() {
                     ProjectMLibraryManager.textureDir(this),
                 profile = profile,
                 foregroundSample = currentForegroundSample,
+                backgroundVisible =
+                    backgroundVisible,
                 foregroundCenterVisible =
                     foregroundCenterVisible,
                 foregroundEdgeFxVisible =
@@ -895,6 +943,14 @@ class ProjectMActivity : ComponentActivity() {
         val heavyCount =
             performanceStore.heavyCount()
 
+        val backgroundState =
+            if (
+                backgroundVisible
+            ) {
+                "BG ON"
+            } else {
+                "BG OFF"
+            }
         val centerState =
             if (
                 foregroundCenterVisible
@@ -913,7 +969,7 @@ class ProjectMActivity : ComponentActivity() {
             }
 
         status.text =
-            "$mode · ${currentBackgroundMode.name} $visibleCount · PRELOAD $queueSize/3 · HEAVY $heavyCount · ${ratingSymbol(rating)} $presetName$loadPart · FG ${currentForegroundSample.label} · $centerState · $edgeState"
+            "$mode · ${currentBackgroundMode.name} $visibleCount · PRELOAD $queueSize/3 · HEAVY $heavyCount · ${ratingSymbol(rating)} $presetName$loadPart · FG ${currentForegroundSample.label} · $backgroundState · $centerState · $edgeState"
     }
 
     private fun ratingSymbol(

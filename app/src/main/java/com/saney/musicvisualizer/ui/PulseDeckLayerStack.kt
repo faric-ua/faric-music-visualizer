@@ -9,14 +9,15 @@ import android.widget.FrameLayout
  * Canonical PulseDeck render stack.
  *
  * Z-order is explicit and stable:
- * 0 Visualizer
- * 1 Over-visualization
- * 2 Big Equalizer
- * 3 GF / Graphic Figures
- * 4 GIF / Animation
- * 5 Effects
- * 6 PulseDeck HUD (LOCKED)
- * 7 Service Overlay
+ * 0 Visualizer / projectM
+ * 1 Visualizer / FARIC Reactive
+ * 2 Over-visualization
+ * 3 Big Equalizer
+ * 4 GF / Graphic Figures
+ * 5 GIF / Animation
+ * 6 Effects
+ * 7 PulseDeck HUD (LOCKED)
+ * 8 Service Overlay
  *
  * Layer numbers define depth only. Content and visibility are independent.
  */
@@ -28,13 +29,14 @@ class PulseDeckLayerStack(
         val z: Int,
     ) {
         VISUALIZER(0),
-        OVER_VISUALIZATION(1),
-        BIG_EQUALIZER(2),
-        GRAPHIC_FIGURES(3),
-        GIF_ANIMATION(4),
-        EFFECTS(5),
-        PULSEDECK_LOCKED(6),
-        SERVICE_OVERLAY(7),
+        FARIC_REACTIVE(1),
+        OVER_VISUALIZATION(2),
+        BIG_EQUALIZER(3),
+        GRAPHIC_FIGURES(4),
+        GIF_ANIMATION(5),
+        EFFECTS(6),
+        PULSEDECK_LOCKED(7),
+        SERVICE_OVERLAY(8),
     }
 
     private val slots: Map<Layer, FrameLayout> =

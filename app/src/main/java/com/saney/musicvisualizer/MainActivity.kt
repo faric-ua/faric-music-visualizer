@@ -1203,6 +1203,38 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         }
 
+        heroBoardView
+            ?.apply {
+                setFigureTheme(
+                    safe,
+                )
+                setGroupTransform(
+                    boardTransformStore.load(
+                        safe,
+                    ),
+                )
+                setGroupReaction(
+                    boardGroupReactionStore.load(
+                        safe,
+                    ),
+                )
+                setLayerTransforms(
+                    boardLayerTransformStore.loadAll(
+                        safe,
+                    ),
+                )
+                HeroBoardView.ObjectId.entries
+                    .forEach { objectId ->
+                        setObjectVisible(
+                            objectId,
+                            layerObjectVisible(
+                                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                                objectId.name.lowercase(),
+                            ),
+                        )
+                    }
+            }
+
         val selectedEditorLayer =
             boardEditorLayer
 
@@ -3673,7 +3705,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     checkedIndex =
                                         checked,
                                     cancelLabel =
-                                        "Скасувати",
+                                        "Закрити",
+                                    dismissOnSelect =
+                                        false,
                                 ) { which ->
                                     setGraphicFigureThemeId(
                                         ids[which],
@@ -3683,10 +3717,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                             .title(
                                                 ids[which],
                                             ) +
-                                            " · GF увімкнено",
+                                            " · застосовано",
                                     )
-                                    dialog.dismiss()
-                                    showNowPlaying()
                                 }
                             }
                         },

@@ -74,6 +74,18 @@ object ProjectMBridge {
         if (active) nativeSetForegroundSample(sample.nativeId)
     }
 
+    fun setForegroundVisibility(
+        centerVisible: Boolean,
+        edgeFxVisible: Boolean,
+    ) {
+        if (active) {
+            nativeSetForegroundVisibility(
+                centerVisible,
+                edgeFxVisible,
+            )
+        }
+    }
+
     fun beginOfflineExport() {
         offlineExportMode = true
     }
@@ -191,6 +203,10 @@ object ProjectMBridge {
     ): Long
     private external fun nativeSetAutoPresetSwitching(enabled: Boolean)
     private external fun nativeSetForegroundSample(sampleId: Int)
+    private external fun nativeSetForegroundVisibility(
+        centerVisible: Boolean,
+        edgeFxVisible: Boolean,
+    )
     private external fun nativeNextPreset()
     private external fun nativeDestroy()
 }

@@ -564,35 +564,159 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showEmergencyRecoveryDialog() {
-        android.app.AlertDialog
-            .Builder(
+        val dialog =
+            android.app.Dialog(
                 this,
-            )
-            .setTitle(
-                "Аварійне відновлення PulseDeck",
-            )
-            .setMessage(
-                "Меню можна повернути навіть якщо всі кнопки керування були приховані.",
-            )
-            .setItems(
-                arrayOf(
-                    "Відновити доступ до меню",
-                    "Скинути всі кнопки HUD",
-                    "Скасувати",
-                ),
-            ) { dialog, which ->
-                when (which) {
-                    0 ->
-                        restoreMenuAccess()
-
-                    1 ->
-                        resetHudControlsVisibility()
-
-                    else ->
-                        dialog.dismiss()
-                }
+            ).apply {
+                requestWindowFeature(
+                    android.view.Window
+                        .FEATURE_NO_TITLE,
+                )
+                setCancelable(
+                    true,
+                )
+                setCanceledOnTouchOutside(
+                    false,
+                )
             }
-            .show()
+
+        val panel =
+            LinearLayout(this).apply {
+                orientation =
+                    LinearLayout.VERTICAL
+                setPadding(
+                    dp(18),
+                    dp(16),
+                    dp(18),
+                    dp(16),
+                )
+                background =
+                    panelDrawable(
+                        Color.argb(
+                            250,
+                            22,
+                            25,
+                            29,
+                        ),
+                        24,
+                        Color.argb(
+                            95,
+                            255,
+                            255,
+                            255,
+                        ),
+                        1,
+                    )
+            }
+
+        panel.addView(
+            label(
+                "Аварійне відновлення PulseDeck",
+                21f,
+                Color.WHITE,
+                true,
+            ),
+        )
+
+        panel.addView(
+            label(
+                "Меню можна повернути навіть якщо всі кнопки керування були приховані.",
+                13f,
+                COLOR_MUTED,
+                false,
+            ),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin =
+                    dp(8)
+                bottomMargin =
+                    dp(14)
+            },
+        )
+
+        panel.addView(
+            actionPill(
+                text =
+                    "Відновити доступ до меню",
+                accent =
+                    true,
+            ) {
+                dialog.dismiss()
+                restoreMenuAccess()
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(52),
+            ),
+        )
+
+        panel.addView(
+            actionPill(
+                text =
+                    "Скинути всі кнопки HUD",
+                accent =
+                    false,
+            ) {
+                dialog.dismiss()
+                resetHudControlsVisibility()
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(52),
+            ).apply {
+                topMargin =
+                    dp(8)
+            },
+        )
+
+        panel.addView(
+            actionPill(
+                text =
+                    "Скасувати",
+                accent =
+                    false,
+            ) {
+                dialog.dismiss()
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(44),
+            ).apply {
+                topMargin =
+                    dp(10)
+            },
+        )
+
+        dialog.setContentView(
+            panel,
+        )
+        dialog.show()
+
+        dialog.window
+            ?.apply {
+                setBackgroundDrawable(
+                    android.graphics.drawable
+                        .ColorDrawable(
+                            Color.TRANSPARENT,
+                        ),
+                )
+                setLayout(
+                    (
+                        resources
+                            .displayMetrics
+                            .widthPixels *
+                            0.88f
+                        )
+                        .toInt(),
+                    ViewGroup.LayoutParams
+                        .WRAP_CONTENT,
+                )
+                setGravity(
+                    Gravity.CENTER,
+                )
+            }
     }
 
     private fun restoreMenuAccess() {

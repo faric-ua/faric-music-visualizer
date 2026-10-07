@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 115
-        versionName = "0.19.26"
-        // v0.19.26 adds emergency menu recovery, composition sets and split visualizer layers.
+        versionCode = 116
+        versionName = "0.19.27"
+        // v0.19.27 fixes emergency recovery actions and standardizes PulseDeck-owned dialog styling.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

@@ -120,31 +120,127 @@ object PulseDeckDialogs {
         labels: List<String>,
         checkedIndex: Int = -1,
         cancelLabel: String? = "Скасувати",
+        dismissOnSelect: Boolean = true,
         onSelected: (Int) -> Unit,
     ): Dialog {
-        val display =
-            labels.mapIndexed { index, label ->
-                if (
-                    index ==
-                        checkedIndex
-                ) {
-                    "●  $label"
-                } else {
-                    "○  $label"
+        if (dismissOnSelect) {
+            val display =
+                labels.mapIndexed { index, label ->
+                    if (
+                        index ==
+                            checkedIndex
+                    ) {
+                        "●  $label"
+                    } else {
+                        "○  $label"
+                    }
                 }
+
+            return showActionList(
+                context = context,
+                title = title,
+                items = display,
+                cancelLabel = cancelLabel,
+                accentFirst = false,
+            ) { index ->
+                onSelected(
+                    index,
+                )
+            }
+        }
+
+        var selectedIndex =
+            checkedIndex
+        val rows =
+            mutableListOf<TextView>()
+        val body =
+            LinearLayout(
+                context,
+            ).apply {
+                orientation =
+                    LinearLayout.VERTICAL
             }
 
-        return showActionList(
-            context = context,
-            title = title,
-            items = display,
-            cancelLabel = cancelLabel,
-            accentFirst = false,
-        ) { index ->
-            onSelected(
-                index,
+        fun refreshRows() {
+            rows.forEachIndexed { index, row ->
+                row.text =
+                    if (
+                        index ==
+                            selectedIndex
+                    ) {
+                        "●  ${labels[index]}"
+                    } else {
+                        "○  ${labels[index]}"
+                    }
+            }
+        }
+
+        labels.forEachIndexed { index, labelText ->
+            val row =
+                actionButton(
+                    context = context,
+                    action =
+                        Action(
+                            label =
+                                if (
+                                    index ==
+                                        selectedIndex
+                                ) {
+                                    "●  $labelText"
+                                } else {
+                                    "○  $labelText"
+                                },
+                        ) {},
+                ) {
+                    selectedIndex =
+                        index
+                    refreshRows()
+                    onSelected(
+                        index,
+                    )
+                }
+
+            rows.add(
+                row,
+            )
+            body.addView(
+                row,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    if (
+                        index >
+                        0
+                    ) {
+                        topMargin =
+                            context.dp(
+                                8,
+                            )
+                    }
+                },
             )
         }
+
+        return show(
+            context = context,
+            title = title,
+            body = body,
+            actions =
+                if (
+                    cancelLabel.isNullOrBlank()
+                ) {
+                    emptyList()
+                } else {
+                    listOf(
+                        Action(
+                            label =
+                                cancelLabel,
+                        ) {},
+                    )
+                },
+            dismissAfterAction = true,
+        )
     }
 
     fun showTextInput(

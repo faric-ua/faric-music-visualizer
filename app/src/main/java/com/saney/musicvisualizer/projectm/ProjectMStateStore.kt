@@ -55,6 +55,21 @@ class ProjectMStateStore(context: Context) {
             prefs.edit().putInt(KEY_FOREGROUND_SAMPLE, value.ordinal).apply()
         }
 
+    var backgroundVisible: Boolean
+        get() =
+            prefs.getBoolean(
+                KEY_BACKGROUND_VISIBLE,
+                true,
+            )
+        set(value) {
+            prefs.edit()
+                .putBoolean(
+                    KEY_BACKGROUND_VISIBLE,
+                    value,
+                )
+                .apply()
+        }
+
     var foregroundCenterVisible: Boolean
         get() =
             prefs.getBoolean(
@@ -95,6 +110,8 @@ class ProjectMStateStore(context: Context) {
         private const val KEY_AUTO_ENABLED = "auto_enabled"
         private const val KEY_LAST_PRESET_PATH = "last_preset_path"
         private const val KEY_FOREGROUND_SAMPLE = "foreground_sample"
+        private const val KEY_BACKGROUND_VISIBLE =
+            "background_visible"
         private const val KEY_FOREGROUND_CENTER_VISIBLE =
             "foreground_center_visible"
         private const val KEY_FOREGROUND_EDGE_FX_VISIBLE =

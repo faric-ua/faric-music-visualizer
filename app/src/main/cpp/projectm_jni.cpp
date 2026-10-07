@@ -32,7 +32,11 @@ static GLint g_u_mid = -1;
 static GLint g_u_high = -1;
 static GLint g_u_beat = -1;
 static GLint g_u_mode = -1;
+static GLint g_u_center_visible = -1;
+static GLint g_u_edge_visible = -1;
 static std::atomic<int> g_foreground_sample{0};
+static std::atomic<bool> g_foreground_center_visible{true};
+static std::atomic<bool> g_foreground_edge_visible{true};
 
 static int g_width = 1;
 static int g_height = 1;
@@ -78,6 +82,8 @@ uniform float uMid;
 uniform float uHigh;
 uniform float uBeat;
 uniform float uMode;
+uniform float uCenterVisible;
+uniform float uEdgeVisible;
 
 const float PI = 3.14159265358979323846;
 
@@ -526,6 +532,9 @@ void main() {
         intensity = waveIdol;
     }
 
+    intensity *= uCenterVisible;
+    solarFlares *= uEdgeVisible;
+
     float alpha = clamp(
         intensity + solarFlares,
         0.0,
@@ -704,6 +713,16 @@ static bool create_foreground_locked() {
         "uMode"
     );
 
+    g_u_center_visible = glGetUniformLocation(
+        g_foreground_program,
+        "uCenterVisible"
+    );
+
+    g_u_edge_visible = glGetUniformLocation(
+        g_foreground_program,
+        "uEdgeVisible"
+    );
+
     const GLfloat vertices[] = {
         -1.0f, -1.0f,
          1.0f, -1.0f,
@@ -859,6 +878,19 @@ static void draw_foreground_locked(GLuint targetFramebuffer = 0) {
     glUniform1f(
         g_u_mode,
         static_cast<float>(g_foreground_sample.load(std::memory_order_relaxed))
+    );
+
+    glUniform1f(
+        g_u_center_visible,
+        g_foreground_center_visible.load(std::memory_order_relaxed)
+            ? 1.0f
+            : 0.0f
+    );
+    glUniform1f(
+        g_u_edge_visible,
+        g_foreground_edge_visible.load(std::memory_order_relaxed)
+            ? 1.0f
+            : 0.0f
     );
 
     glBindBuffer(
@@ -1433,6 +1465,22 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetForegroundSample
             0,
             7
         ),
+        std::memory_order_relaxed
+    );
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetForegroundVisibility(
+        JNIEnv*,
+        jclass,
+        jboolean centerVisible,
+        jboolean edgeFxVisible) {
+    g_foreground_center_visible.store(
+        centerVisible == JNI_TRUE,
+        std::memory_order_relaxed
+    );
+    g_foreground_edge_visible.store(
+        edgeFxVisible == JNI_TRUE,
         std::memory_order_relaxed
     );
 }

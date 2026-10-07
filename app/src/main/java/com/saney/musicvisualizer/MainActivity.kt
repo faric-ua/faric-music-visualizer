@@ -917,6 +917,22 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         content.addView(header)
 
+        content.addView(
+            label(
+                "v${BuildConfig.VERSION_NAME} · build ${BuildConfig.VERSION_CODE}",
+                11f,
+                COLOR_MUTED,
+                false,
+            ),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(2)
+                bottomMargin = dp(2)
+            },
+        )
+
         val modeScroller = HorizontalScrollView(this).apply {
             isHorizontalScrollBarEnabled = false
             overScrollMode = View.OVER_SCROLL_NEVER

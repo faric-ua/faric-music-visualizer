@@ -35,6 +35,7 @@ static GLint g_u_mode = -1;
 static GLint g_u_center_visible = -1;
 static GLint g_u_edge_visible = -1;
 static std::atomic<int> g_foreground_sample{0};
+static std::atomic<bool> g_projectm_background_visible{true};
 static std::atomic<bool> g_foreground_center_visible{true};
 static std::atomic<bool> g_foreground_edge_visible{true};
 
@@ -1217,9 +1218,35 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeRender(
 
     if (!g_projectm) return;
 
-    projectm_opengl_render_frame(
-        g_projectm
-    );
+    if (
+        g_projectm_background_visible.load(
+            std::memory_order_relaxed
+        )
+    ) {
+        projectm_opengl_render_frame(
+            g_projectm
+        );
+    } else {
+        glBindFramebuffer(
+            GL_FRAMEBUFFER,
+            0
+        );
+        glViewport(
+            0,
+            0,
+            g_width,
+            g_height
+        );
+        glClearColor(
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f
+        );
+        glClear(
+            GL_COLOR_BUFFER_BIT
+        );
+    }
 
     draw_foreground_locked(
         0
@@ -1245,10 +1272,36 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeRenderToFramebuffer
             )
         );
 
-    projectm_opengl_render_frame_fbo(
-        g_projectm,
-        target
-    );
+    if (
+        g_projectm_background_visible.load(
+            std::memory_order_relaxed
+        )
+    ) {
+        projectm_opengl_render_frame_fbo(
+            g_projectm,
+            target
+        );
+    } else {
+        glBindFramebuffer(
+            GL_FRAMEBUFFER,
+            target
+        );
+        glViewport(
+            0,
+            0,
+            g_width,
+            g_height
+        );
+        glClearColor(
+            0.0f,
+            0.0f,
+            0.0f,
+            0.0f
+        );
+        glClear(
+            GL_COLOR_BUFFER_BIT
+        );
+    }
 
     draw_foreground_locked(
         target
@@ -1454,6 +1507,17 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetAutoPresetSwitch
             enabled != JNI_TRUE
         );
     }
+}
+
+extern "C" JNIEXPORT void JNICALL
+Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetBackgroundVisible(
+        JNIEnv*,
+        jclass,
+        jboolean visible) {
+    g_projectm_background_visible.store(
+        visible == JNI_TRUE,
+        std::memory_order_relaxed
+    );
 }
 
 extern "C" JNIEXPORT void JNICALL

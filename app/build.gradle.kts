@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 123
-        versionName = "0.19.34"
-        // v0.19.34 refines GF chooser lifecycle while preserving the parent Layers panel.
+        versionCode = 124
+        versionName = "0.19.35"
+        // v0.19.35 keeps projectM system UI visible and adds a PulseDeck back button.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

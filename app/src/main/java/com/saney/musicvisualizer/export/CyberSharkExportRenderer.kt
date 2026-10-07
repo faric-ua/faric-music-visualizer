@@ -2,7 +2,6 @@ package com.saney.musicvisualizer.export
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Matrix
@@ -12,16 +11,18 @@ import android.graphics.PorterDuff
 import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
-import com.saney.musicvisualizer.R
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardAudioState
 import com.saney.musicvisualizer.board.BoardGroupReaction
+import com.saney.musicvisualizer.board.GraphicFigureAssets
+import com.saney.musicvisualizer.board.GraphicFigureCatalog
 import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerMotion
 import com.saney.musicvisualizer.board.BoardLayerMotionEvaluator
 import com.saney.musicvisualizer.board.BoardLayerReaction
 import com.saney.musicvisualizer.board.BoardLayerTransform
 import com.saney.musicvisualizer.board.BoardTransform
+import com.saney.musicvisualizer.theme.PlaybackThemeId
 import kotlin.math.PI
 import kotlin.math.cos
 import kotlin.math.hypot
@@ -29,6 +30,9 @@ import kotlin.math.min
 import kotlin.math.sin
 
 data class CyberSharkExportConfig(
+    val figureThemeId:
+        PlaybackThemeId =
+        PlaybackThemeId.CYBER_SHARK,
     val groupTransform: BoardTransform,
     val groupReaction: BoardGroupReaction,
     val layerTransforms: Map<BoardLayerId, BoardLayerTransform>,
@@ -187,12 +191,33 @@ class CyberSharkExportRenderer(
                     1_000_000L,
         )
 
-    private val frameBitmap =
-        decode(R.drawable.cyber_shark_frame)
-    private val creatureBitmap =
-        decode(R.drawable.cyber_shark_creature)
-    private val wordmarkBitmap =
-        decode(R.drawable.cyber_shark_wordmark)
+    private val figureAssets:
+        Map<
+            PlaybackThemeId,
+            GraphicFigureAssets,
+            > =
+        GraphicFigureCatalog
+            .ids
+            .associateWith { themeId ->
+                GraphicFigureCatalog
+                    .loadAssets(
+                        context,
+                        themeId,
+                    )
+            }
+
+    private fun activeAssets(
+        config: CyberSharkExportConfig,
+    ): GraphicFigureAssets =
+        figureAssets[
+            GraphicFigureCatalog
+                .normalize(
+                    config.figureThemeId,
+                )
+        ] ?: figureAssets
+            .getValue(
+                PlaybackThemeId.CYBER_SHARK,
+            )
 
     private val frameReaction =
         BoardLayerReaction(
@@ -244,7 +269,10 @@ class CyberSharkExportRenderer(
         config: CyberSharkExportConfig,
     ): CyberSharkGpuFrame? =
         gpuBitmapLayer(
-            bitmap = frameBitmap,
+            bitmap =
+                activeAssets(
+                    config,
+                ).frame,
             layerId = BoardLayerId.FRAME,
             layerReaction = frameReaction,
             width = width,
@@ -262,7 +290,10 @@ class CyberSharkExportRenderer(
         config: CyberSharkExportConfig,
     ): CyberSharkGpuFrame? =
         gpuBitmapLayer(
-            bitmap = creatureBitmap,
+            bitmap =
+                activeAssets(
+                    config,
+                ).creature,
             layerId = BoardLayerId.CREATURE,
             layerReaction = creatureReaction,
             width = width,
@@ -280,7 +311,10 @@ class CyberSharkExportRenderer(
         config: CyberSharkExportConfig,
     ): CyberSharkGpuFrame? =
         gpuBitmapLayer(
-            bitmap = wordmarkBitmap,
+            bitmap =
+                activeAssets(
+                    config,
+                ).wordmark,
             layerId = BoardLayerId.WORDMARK,
             layerReaction = wordmarkReaction,
             width = width,
@@ -595,7 +629,9 @@ class CyberSharkExportRenderer(
 
             drawBitmapLayer(
                 canvas,
-                frameBitmap,
+                activeAssets(
+                    config,
+                ).frame,
                 BoardLayerMotionEvaluator
                     .evaluate(
                         frameReaction,
@@ -664,7 +700,9 @@ class CyberSharkExportRenderer(
 
             drawBitmapLayer(
                 canvas,
-                creatureBitmap,
+                activeAssets(
+                    config,
+                ).creature,
                 BoardLayerMotionEvaluator
                     .evaluate(
                         creatureReaction,
@@ -698,7 +736,9 @@ class CyberSharkExportRenderer(
 
             drawBitmapLayer(
                 canvas,
-                wordmarkBitmap,
+                activeAssets(
+                    config,
+                ).wordmark,
                 BoardLayerMotionEvaluator
                     .evaluate(
                         wordmarkReaction,
@@ -1412,18 +1452,4 @@ class CyberSharkExportRenderer(
             512
     }
 
-    private fun decode(
-        drawable: Int,
-    ): Bitmap? =
-        runCatching {
-            BitmapFactory.decodeResource(
-                resources,
-                drawable,
-                BitmapFactory.Options().apply {
-                    inScaled = false
-                    inPreferredConfig =
-                        Bitmap.Config.ARGB_8888
-                },
-            )
-        }.getOrNull()
 }

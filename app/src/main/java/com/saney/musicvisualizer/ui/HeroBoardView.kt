@@ -82,6 +82,8 @@ class HeroBoardView(
 
     private val frameBitmap =
         figureAssets.frame
+    private val fxBitmap =
+        figureAssets.fx
     private val creatureBitmap =
         figureAssets.creature
     private val wordmarkBitmap =
@@ -803,21 +805,40 @@ class HeroBoardView(
                     BoardLayerId.FX,
                 )
         ) {
-            drawFxLayer(
-                canvas = canvas,
-                motion = fxMotion,
-                cx = cx,
-                cy = cy,
-                baseSize = baseSize,
-                timeSeconds = timeSeconds,
-                transform = transform,
-                layerTransform =
-                    layerTransform(
-                        BoardLayerId.FX,
-                    ),
-                groupRotationDegrees =
-                    groupRotationDegrees,
-            )
+            val fxLayerTransform =
+                layerTransform(
+                    BoardLayerId.FX,
+                )
+
+            if (fxBitmap != null) {
+                drawBitmapLayer(
+                    canvas = canvas,
+                    bitmap = fxBitmap,
+                    motion = fxMotion,
+                    cx = cx,
+                    cy = cy,
+                    baseSize = baseSize,
+                    transform = transform,
+                    layerTransform =
+                        fxLayerTransform,
+                    groupRotationDegrees =
+                        groupRotationDegrees,
+                )
+            } else {
+                drawFxLayer(
+                    canvas = canvas,
+                    motion = fxMotion,
+                    cx = cx,
+                    cy = cy,
+                    baseSize = baseSize,
+                    timeSeconds = timeSeconds,
+                    transform = transform,
+                    layerTransform =
+                        fxLayerTransform,
+                    groupRotationDegrees =
+                        groupRotationDegrees,
+                )
+            }
         }
 
         val creatureMotion =

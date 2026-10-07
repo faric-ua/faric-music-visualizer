@@ -2713,6 +2713,60 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     }
             }
 
+        val layersForMigration =
+            root.optJSONObject(
+                "layers",
+            )
+        val objectsForMigration =
+            root.optJSONObject(
+                "objects",
+            )
+        val visualizerObjectsForMigration =
+            objectsForMigration
+                ?.optJSONObject(
+                    PulseDeckLayerStack.Layer.VISUALIZER.name,
+                )
+
+        if (
+            visualizerObjectsForMigration == null ||
+            !visualizerObjectsForMigration.has(
+                "projectm",
+            )
+        ) {
+            layerEditor.putBoolean(
+                legacyLayerObjectPreferenceKey(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "projectm",
+                ),
+                layersForMigration
+                    ?.optBoolean(
+                        PulseDeckLayerStack.Layer.VISUALIZER.name,
+                        true,
+                    )
+                    ?: true,
+            )
+        }
+
+        if (
+            visualizerObjectsForMigration == null ||
+            !visualizerObjectsForMigration.has(
+                "faric_reactive",
+            )
+        ) {
+            layerEditor.putBoolean(
+                legacyLayerObjectPreferenceKey(
+                    PulseDeckLayerStack.Layer.VISUALIZER,
+                    "faric_reactive",
+                ),
+                layersForMigration
+                    ?.optBoolean(
+                        PulseDeckLayerStack.Layer.FARIC_REACTIVE.name,
+                        true,
+                    )
+                    ?: true,
+            )
+        }
+
         root.optJSONObject(
             "objects",
         )

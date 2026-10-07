@@ -1,5 +1,36 @@
 # Active Plan
 
+## CURRENT IMPLEMENTATION — v0.19.32 / build 121 — live GF selector + FG split
+
+Source contract:
+- `docs/visualizer/VISUAL_LAYER_REWORK_2026-10-07.md`
+
+Phone-video findings now encoded in the project:
+- [x] Cyber Panther selection reaches Panther-specific UI state but recognizable Panther creature still needs diagnosis.
+- [x] GF live selector must stay open during Shark/Panther comparison.
+- [x] projectM foreground is logically two components: selected **FG Center** + perimeter **FG Edge FX**.
+- [x] Visualizer layer menu now exposes `FG Center` and `FG Edge FX` as independent objects in addition to projectM and FARIC Reactive.
+
+Implementation:
+- [x] Shared single-choice dialog supports persistent live selection with in-place selected-marker updates.
+- [x] Cyber Shark / Cyber Panther picker uses persistent mode and no longer closes itself on selection.
+- [x] HeroBoardView can switch GF assets/transforms/reactions live without rebuilding Now Playing.
+- [x] ProjectMStateStore persists `FG Center` and `FG Edge FX` visibility independently.
+- [x] Native foreground shader has independent center/edge visibility uniforms.
+- [x] projectM FG screen adds separate `CENTER ON/OFF` and `EDGE ON/OFF` controls.
+- [x] Main Layers panel exposes `FG Center` and `FG Edge FX` under Visualizer.
+- [x] Composition Sets persist/restore FG center/edge state.
+- [x] Panther creature decoder now records alpha coverage and falls back to the physical `cyber_panther_full.webp` only if the modular creature asset is effectively empty. This is diagnostic protection, not the final segmentation fix.
+
+Phone QA target:
+- [ ] GF picker remains open while switching Shark ↔ Panther repeatedly.
+- [ ] Panther becomes visibly distinguishable; if not, collect screenshot immediately after selection.
+- [ ] ProjectM screen: Center ON/Edge ON, Center OFF/Edge ON, Center ON/Edge OFF, both OFF.
+- [ ] Layers panel toggles FG Center and FG Edge FX independently.
+- [ ] Restart preserves Center/Edge state.
+- [ ] If Panther still fails with non-empty alpha diagnostics, next step is physical asset re-segmentation/bounds audit rather than more visibility changes.
+
+
 ## CURRENT FIX — v0.19.31 / build 120 — dialog fit + Visualizer object model + Panther visibility
 
 - [x] Phone finding: `Автоприховування` option `Ховати керування + нижню панель` wrapped/clipped inside a fixed-height tile.

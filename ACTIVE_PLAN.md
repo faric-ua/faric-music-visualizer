@@ -1,5 +1,19 @@
 # Active Plan
 
+## CURRENT FIX — v0.19.27 emergency recovery interaction
+
+- [x] Phone finding on v0.19.26: 10-second emergency recovery opens, but the recovery choices are not tappable/visible as usable actions in the stock AlertDialog presentation.
+- [x] Replace the emergency recovery AlertDialog content with a PulseDeck custom Dialog using the existing `panelDrawable` + `actionPill` family.
+- [x] Recovery actions remain: **Відновити доступ до меню**, **Скинути всі кнопки HUD**, **Скасувати**.
+- [x] Add project-wide `UI_STYLE_CONTRACT.md`: every new app-owned window/menu/button/panel inherits style and behavior from the nearest existing parent/sibling component before inventing new UI.
+- [x] Add the style rule to `START_HERE_ASSISTANT.md` and `CURRENT_HANDOFF.md`.
+- [x] v0.19.27 / build 116 source prepared.
+- [ ] CI Android + Validate PASS.
+- [ ] Phone QA: hold ~10 seconds -> custom recovery dialog -> all three actions tappable.
+- [ ] Phone QA: after **Відновити доступ до меню**, confirm normal PulseDeck menu button is restored and opens tools.
+- [ ] Continue v0.19.26 Sets / split Visualizer / Panther QA after recovery is confirmed.
+
+
 ## CURRENT DELIVERY — v0.19.26 recovery + Sets + split Visualizer
 
 - [x] Emergency 10-second menu recovery implemented at Activity touch-dispatch level so it remains reachable with all HUD/menu objects hidden.

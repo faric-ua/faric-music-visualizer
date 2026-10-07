@@ -1,5 +1,20 @@
 # FARIC Music Visualizer — START HERE
 
+## LATEST PHONE-ACCEPTED RESULT — v0.19.22 / build 111 — GPU creature + wordmark PASS
+
+- Phone QA: PASS on 1080x1920 / 90 frames.
+- Visual QA: accepted by user.
+- Exact APK source SHA: `1bf20367c15f109b934980bbccc64a2d74c59bea`.
+- Timing: total 5451 ms; projectM 672 ms; composition 2306 ms; encoder 684 ms.
+- Direct projectM path active: `projectM BGRA: GPU direct`.
+- GPU timings: projectM 10 ms; glow 5 ms; frame 11 ms; creature 10 ms; wordmark 6 ms; overlay 503 ms.
+- CPU Cyber Shark creature = 0 ms; wordmark = 0 ms. Cyber Shark total = 356 ms.
+- Remaining largest CPU layer: HUD draw 1081 ms; effects 433 ms; FX 235 ms.
+- Versus v0.19.21 total 6483 -> 5451 ms (-15.9%).
+- Versus v0.19.11 baseline total 14925 -> 5451 ms (~63.5% lower; ~2.74x faster).
+- v0.19.22 is accepted as the current phone-known-good export candidate.
+- Next engineering step: before a risky HUD rewrite, profile/generalize export behavior for alternate layer sets and then add HUD subprofiling.
+
 ## LATEST READY CANDIDATE — v0.19.22 / build 111 — GPU Cyber Shark creature + wordmark
 
 - Exact APK source SHA: `1bf20367c15f109b934980bbccc64a2d74c59bea`.

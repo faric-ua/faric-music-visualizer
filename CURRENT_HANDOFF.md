@@ -11,6 +11,13 @@
 - v0.19.22 is the current phone-known-good checkpoint.
 - Next: audit/generalize converter/export behavior for alternate layer combinations before the next HUD optimization, then add HUD subprofiling.
 
+### Recovered GF catalog / next variant
+
+- Prior catalog recovered: cyber-panther, cyber-tiger, void-dragon, neon-griffin, cyber-raven, cyber-wolf, neon-phoenix, plasma-cobra, void-serpent, mech-scorpion.
+- Next second-GF target: Cyber Panther.
+- Purpose: validate the generalized exporter with a different GF layer subset rather than another exact Cyber Shark clone.
+- Cyber Shark remains the reference known-good GF. Original alternate binary art is not currently present in the repo, so no shark asset substitution is allowed.
+
 ## LATEST READY CANDIDATE — v0.19.22 / build 111 — GPU Cyber Shark creature + wordmark
 
 - Exact APK source SHA: `1bf20367c15f109b934980bbccc64a2d74c59bea`.

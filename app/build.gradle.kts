@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 121
-        versionName = "0.19.32"
-        // v0.19.32 adds persistent GF switching and independent FG Center / Edge FX controls.
+        versionCode = 122
+        versionName = "0.19.33"
+        // v0.19.33 adds live GF switching, independent BG/FG Center/Edge FX controls, and a valid Panther creature asset.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

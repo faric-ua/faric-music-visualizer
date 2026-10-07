@@ -1,5 +1,22 @@
 # Current Handoff
 
+## LATEST READY CANDIDATE — v0.19.23 / build 112 — generalized GF layers + Cyber Panther
+
+- Status: CI PASS / phone QA pending.
+- Exact APK/source SHA: `7f2b3373ef96cdcde33f40117c1cd9c44807d97a`.
+- Validate #857 PASS, run `37553402776`.
+- Android #509 PASS, run `37553402797`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.23-Debug`, id `11454285483`, digest `sha256:2dbdb8318cd07f2dbd3038cdbcb0e687187101e37be3de518267d3bc019fe417`.
+- Exporter no longer requires the exact Cyber Shark child set for the direct-projectM GPU compositor: glow, frame, creature and wordmark are independently optional.
+- The generic direct GPU order preserves the GF slots: projectM -> optional glow -> lower GF overlay -> optional frame -> FX overlay -> optional creature -> optional wordmark -> top effects/HUD overlay.
+- Cyber Shark remains unchanged as the phone-known-good reference GF.
+- Added Cyber Panther as the first alternate GF. It deliberately uses a different child set: Background/Glow + FX + Panther creature; Frame and Wordmark are absent.
+- Cyber Panther artwork is generated once as a static procedural ARGB bitmap and therefore can use the same static GPU texture path as the Shark creature during export.
+- Layer 3 now has a GF selector and persists the selected GF. Layer menu and Board editor expose only layers supported by the selected GF.
+- Separate transform/reaction storage is retained per GF theme id.
+- Correctness fallback paths remain for compositions that do not qualify for the advanced direct-projectM path.
+- Next phone action: Termux 3 -> 10 -> 8. First run a Cyber Shark regression preview, then select Cyber Panther from Layer 3 and run the same warm-cache 3-second / 90-frame export. Verify Panther has no frame/wordmark, remains reactive, and timing shows GPU creature > 0 with GPU frame/wordmark = 0.
+
 ## LATEST PHONE-ACCEPTED RESULT — v0.19.22 / build 111 — PASS
 
 - Phone QA and visual QA: PASS.

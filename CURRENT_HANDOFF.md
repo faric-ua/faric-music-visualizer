@@ -17,6 +17,19 @@
 - Correctness fallback paths remain for compositions that do not qualify for the advanced direct-projectM path.
 - Next phone action: Termux 3 -> 10 -> 8. First run a Cyber Shark regression preview, then select Cyber Panther from Layer 3 and run the same warm-cache 3-second / 90-frame export. Verify Panther has no frame/wordmark, remains reactive, and timing shows GPU creature > 0 with GPU frame/wordmark = 0.
 
+### Phone result — v0.19.23 Cyber Panther export — technical PASS / visual QA pending
+
+- 1080x1920 / 90 frames.
+- total 6270 ms; projectM 814 ms; composition 2535 ms; encoder 908 ms.
+- `projectM BGRA: GPU direct` confirmed.
+- GPU projectM 13 ms; GPU glow 5 ms; GPU creature 14 ms; GPU overlay 701 ms.
+- No GPU frame / GPU wordmark timing was emitted, matching the Panther layer contract (no Frame, no Wordmark).
+- CPU frame = 0 ms; CPU creature = 0 ms; CPU wordmark = 0 ms.
+- GF internals still use the legacy `Cyber Shark` profiler label even for the alternate GF path; telemetry naming should be generalized later, but this does not indicate Shark assets were used.
+- Current CPU costs: GF total 412 ms; background 126 ms (arcs 80 ms, particles 34 ms); FX 270 ms; effects 412 ms; HUD draw 1127 ms.
+- This satisfies the structural export criteria for the alternate GF path. Visual Panther QA and one reduced-layer combination test remain before full phone acceptance.
+
+
 ## LATEST PHONE-ACCEPTED RESULT — v0.19.22 / build 111 — PASS
 
 - Phone QA and visual QA: PASS.

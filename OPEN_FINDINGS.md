@@ -7,7 +7,7 @@
 - **Expected:** Styled result dialog remains within the visible viewport; only long timing message scrolls; heading and both buttons remain fixed and tappable, including at the bottom of report.
 - **Root cause:** generic `PulseDeckDialogs.showMessage` only wraps messages longer than 900 chars in a fixed 420dp ScrollView; dialog window itself uses WRAP_CONTENT, so large reports can exceed the screen and push action buttons out of view.
 - **Source fix:** v0.19.41 / build 130 opts the export result into a capped-height dialog; message uses a weight=1 `ScrollView`; fixed actions remain outside that scroll area. Other smaller app dialogues retain previous sizing.
-- **Status:** SOURCE FIX — Android CI and phone QA pending. Do not mark phone PASS until the user scrolls the report and tests Copy and OK.
+- **Status:** SOURCE + CI PASS on v0.19.41 / build 130 (Validate #1030, Android #600); **PHONE QA PENDING**. Test full report scroll, copy full text, and OK before closing finding.
 
 ## BUG-UX-002 — Nested Visualizer settings closes Layers parent
 - **Affected version:** v0.19.39 / build 128 and prior.
@@ -53,5 +53,5 @@
 - **Expected:** Value tap changes only that parameter; group Reset retains existing behavior. Auto spin uses °/s, 0=off, +/- controls direction, preview and export share the same saved tuning.
 - **Actual:** Before v0.19.39, only group-wide reset; rotation was manual angle only.
 - **Severity:** UX improvement.
-- **Status:** IMPLEMENTED IN SOURCE for v0.19.39 / build 128; Android CI / phone QA must validate. Do not mark PASS until built and verified.
+- **Status:** **PHONE ACCEPTED for 5/6 v0.19.39 checks** by user (numeric reset, spin +30°/s / -30°/s / off, persisted speed and grouped Composition Set test, main-player spin / 3s export). Back was NOT TESTED on v0.19.39; separate earlier Back regression and v0.19.40 navigation work remain OPEN. Export auto preset sequencing still TODO.
 

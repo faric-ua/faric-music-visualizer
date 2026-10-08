@@ -20,6 +20,20 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 
 ---
 
+## 2026-10-08 — v0.19.41 / build 130 — export report fixed footer — Android PASS
+
+- Status: BUILD PASS / phone QA pending.
+- App/source SHA: `08c78cd419e658841495d92b96b12f19b6f35e14`.
+- Validate #1030 PASS, run `37716816321`.
+- Android #600 PASS, run `37716816279`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.41-Debug`, id `11523783977`, ZIP digest `sha256:e59b295363e7eceb4e73f2f115a478b57c2583e4e6c1c537f476604d1e148010`.
+- Contents: bounded-height long export timing report with scrollable only message, always-visible title / Copy / OK buttons; other dialogs unaffected.
+- Regression evidence from **older v0.19.39**: 5/6 phone checks PASS (numeric individual reset, signed Center auto-spin, persistence, main player + 3s export); Back test NOT TESTED for v0.19.39; prior v0.19.38 transition video reported FAIL.
+- This release's phone QA not yet done; v0.19.40 nested Layers / visual Back / transition tests also still pending.
+- Full-song 48% crash BUG-EXPORT-001 remains open/unfixed.
+- Frozen recovery branch: `checkpoint/pulsedeck-v0.19.41-2026-10-08`.
+- Resume: `docs/checkpoints/2026-10-08-v0.19.41-export-report.md`; Termux 3 → 10 → 8; phone testing above.
+
 ## 2026-10-08 — v0.19.40 / build 129 — nested Layers and projectM Back — Android PASS
 
 - Status: BUILD PASS / phone QA PENDING.

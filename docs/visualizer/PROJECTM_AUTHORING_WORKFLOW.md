@@ -226,3 +226,7 @@ Status: TODO after current movable-panel / AUTO phone QA.
 - ProjectM → player still waits for async GL release **before** finishing to prevent destruction of the newly built main renderer. The pending state is visible. This is not proof that native renderer initialization has zero visible delay.
 - Phone QA must repeat both directions, both Back methods and nested panel reopening, and verify background is not corrupted on return.
 - Video evidence: `606815.mp4` nested menu, `606816.mp4` activity transitions, `606817.jpg` missing Back.
+
+## Phone QA — signed FG Center auto-spin and per-value reset (2026-10-08)
+
+User reported **5/6 PASS on v0.19.39**, including tap Scale value to 1.00x without changing other parameters; +30°/s spin, -30°/s reverse, 0°/s stopped; persistence on panel reopen / grouped Composition Set test; main-player spin and successful 3-second MP4 export. **Back untested for v0.19.39**, remains pending independently. v0.19.41 contains these controls and adds a fixed-footer export report (CI PASS, phone pending). This evidence does not establish deterministic 5/10/15s projectM preset switching during full-song export.

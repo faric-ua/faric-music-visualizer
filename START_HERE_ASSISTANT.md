@@ -8,10 +8,18 @@ Before replying about FARIC Music Visualizer releases, builds, Termux or phone Q
 
 - **Observed bug:** screenshot `1791424966546.jpeg`: export result's timing report extends off screen; buttons `Копіювати текст` and `OK` are hidden. A separate completed 3-second exported video `606819.mp4` (1080×1920, 30fps; report says 90 frames and total 5754ms) confirms short export works, **not** full-song stability.
 - **Source change:** `PulseDeckDialogs.showMessage(scrollableMessage = true)` opt-in used by `MainActivity.showExportTimingResult`; report message occupies a weighted ScrollView in a bounded-height dialog, title and Copy/OK action footer remain fixed outside scroll. Generic small app dialogs remain unchanged.
-- **Status:** Source implemented; Validate / Android and phone QA **pending**. This change is only export report UX, not a full-song export crash fix.
-- **Next:** run CI, record successful build before installation. On phone, create 3-second preview, scroll report to the very bottom, copy report text then repeat and tap OK; actions must always be visible. Retest v0.19.40 nested Layers / Back findings separately if they remain open.
+- **Status:** Validate #1030 **PASS**, Android #600 **PASS**, source `08c78cd419e658841495d92b96b12f19b6f35e14`; artifact `FARIC-Music-Visualizer-v0.19.41-Debug`, ID `11523783977`. **Phone QA pending**. This change fixes only report UX, not full-song crash. Recovery branch: `checkpoint/pulsedeck-v0.19.41-2026-10-08`.
+- **Next:** Build is already PASS. Termux **3 → 10 → 8** (no rebuild); install build 130, run 3-second export, scroll the report while Copy / OK stay visible, test both buttons. Retest v0.19.40 nested Layers / Back findings separately.
 - **Open:** BUG-EXPORT-001 full-song export app exit ~48% (unconfirmed root cause); PERF-PLAYER-001 irregular movement; projectM Back/lifecycle remains unaccepted until phone QA. See `OPEN_FINDINGS.md`.
 - **Contract:** `ASSISTANT_RESPONSE_CONTRACT.md`: Termux menu 3 / 10 / 8 after CI PASS, then 3-6 specific phone tests.
+
+## PHONE QA EVIDENCE — older v0.19.39 / build 128 (user report 2026-10-08)
+
+- **5/6 PASS**: tap Scale value → 1.00x reset only; +30°/s spin; -30°/s reversed and 0°/s stopped; speed persistence on reopen (combined test included Composition Set save/load); main player Center spin and 3s MP4 export.
+- **1/6 NOT TESTED on this build**: on-screen / Android system Back.
+- Do **not** override earlier v0.19.38 Back transition video report of pauses, and do not call the v0.19.40 fix accepted until a post-fix test.
+- v0.19.41 short export screenshot: 1080×1920, 90 frames, total 5754ms was produced on an **older APK**, not phone evidence for fixed Copy/OK.
+- New build recovery: `docs/checkpoints/2026-10-08-v0.19.41-export-report.md`.
 
 ## CURRENT SOURCE CANDIDATE — v0.19.40 / build 129 — nested panel and navigation fix
 

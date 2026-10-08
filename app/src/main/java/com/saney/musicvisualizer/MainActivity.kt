@@ -252,7 +252,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             if (uri != null) {
                 toast("Імпорт героїв…")
                 thread(name = "faric-import-user-heroes") {
-                    val result = runCatching { UserHeroPack.importZip(applicationContext, uri) }
+                    val result = runCatching { UserHeroPack.importPreparedZip(applicationContext, uri) }
                     runOnUiThread {
                         result.onSuccess { count ->
                             toast("Імпортовано героїв: $count")
@@ -8671,7 +8671,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         content.addView(heroFamily)
         val importArchiveButton = label(
-            "＋ Імпортувати Pictures2.zip (10 героїв)",
+            "＋ Додати підготовлений пакет героїв",
             14f, COLOR_ACCENT_CYAN, true,
         ).apply {
             setPadding(dp(12), dp(16), dp(12), dp(16))
@@ -8683,7 +8683,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ))
             }
         }
-        heroTiles.addView(importArchiveButton)
+        if (UserHeroPack.heroes.any { !UserHeroPack.isInstalled(this, it.id) }) {
+            heroTiles.addView(importArchiveButton)
+        }
         val heroGrid = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
         }
@@ -8713,10 +8715,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val card = LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
                 setPadding(
-                    dp(16),
-                    dp(14),
-                    dp(16),
-                    dp(14),
+                    if (figure) dp(9) else dp(16),
+                    if (figure) dp(9) else dp(14),
+                    if (figure) dp(9) else dp(16),
+                    if (figure) dp(9) else dp(14),
                 )
 
                 background =
@@ -8742,16 +8744,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         1,
                     )
 
-                if (figure && installed) {
+                if (figure) {
                     val image = ImageView(this@MainActivity).apply {
                         scaleType = ImageView.ScaleType.FIT_CENTER
                         adjustViewBounds = false
                     }
                     addView(image, LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        dp(128),
+                        dp(126),
                     ).apply { bottomMargin = dp(8) })
-                    thread(name = "faric-hero-tile") {
+                    if (installed) thread(name = "faric-hero-tile") {
                         val preview = runCatching {
                             GraphicFigureCatalog.loadPreview(applicationContext, spec.id)
                         }.getOrNull()
@@ -8767,24 +8769,36 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 addView(
                     label(
                         buildString {
-                            if (selected) append("✓  ")
+                            if (selected && !figure) append("✓  ")
                             append(spec.title)
-                            if (!installed) append("  · ZIP")
+                            if (!figure && !installed) append("  · ПАКЕТ")
                             else if (!implemented) append("  · СКОРО")
                         },
-                        18f,
+                        if (figure) 16f else 18f,
                         Color.WHITE,
                         true,
-                    ),
+                    ).apply {
+                        if (figure) {
+                            maxLines = 2
+                            ellipsize = android.text.TextUtils.TruncateAt.END
+                            minHeight = dp(40)
+                        }
+                    },
                 )
 
                 addView(
                     label(
                         spec.subtitle,
-                        12f,
+                        if (figure) 11f else 12f,
                         COLOR_MUTED,
                         false,
-                    ),
+                    ).apply {
+                        if (figure) {
+                            maxLines = 2
+                            ellipsize = android.text.TextUtils.TruncateAt.END
+                            minHeight = dp(35)
+                        }
+                    },
                     LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
                         ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -8800,7 +8814,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 "FARIC / projectM layered visualizer"
 
                             isLayeredBoardTheme(spec.id) ->
-                                "Layered Board · frame / FX / creature / wordmark"
+                                when {
+                                    selected -> "✓ Обрано"
+                                    !installed -> "Потрібен пакет"
+                                    else -> "Обрати"
+                                }
 
                             implemented ->
                                 "Standalone · bass / mid / high / beat reactive"
@@ -8826,7 +8844,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
                 setOnClickListener {
                     if (!installed) {
-                        toast("Спочатку імпортуй Pictures2.zip")
+                        toast("Потрібен підготовлений пакет графіки героїв")
                         return@setOnClickListener
                     }
                     if (!implemented) {
@@ -8930,7 +8948,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 heroRow?.addView(
                     card,
                     LinearLayout.LayoutParams(
-                        0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
+                        0, dp(248), 1f,
                     ).apply { setMargins(dp(3), dp(4), dp(3), dp(4)) },
                 )
                 heroCount++

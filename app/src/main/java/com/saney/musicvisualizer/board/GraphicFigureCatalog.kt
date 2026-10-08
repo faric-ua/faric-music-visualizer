@@ -56,7 +56,7 @@ object GraphicFigureCatalog {
         themeId: PlaybackThemeId,
     ): Set<BoardLayerId> =
         if (UserHeroPack.find(themeId) != null) {
-            setOf(BoardLayerId.BACKGROUND, BoardLayerId.CREATURE)
+            BoardLayerId.entries.toSet()
         } else when (normalize(themeId)) {
             PlaybackThemeId.CYBER_PANTHER ->
                 BoardLayerId.entries.toSet()
@@ -80,10 +80,10 @@ object GraphicFigureCatalog {
     ): GraphicFigureAssets =
         if (UserHeroPack.find(themeId) != null) {
             GraphicFigureAssets(
-                frame = null,
-                fx = null,
-                creature = UserHeroPack.loadEmblem(context, themeId),
-                wordmark = null,
+                frame = UserHeroPack.loadLayer(context, themeId, "frame"),
+                fx = UserHeroPack.loadLayer(context, themeId, "fx"),
+                creature = UserHeroPack.loadLayer(context, themeId, "creature"),
+                wordmark = UserHeroPack.loadLayer(context, themeId, "wordmark"),
             )
         } else when (normalize(themeId)) {
             PlaybackThemeId.CYBER_PANTHER ->

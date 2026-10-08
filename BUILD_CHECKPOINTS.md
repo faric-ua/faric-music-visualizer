@@ -1,5 +1,16 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## v0.19.50 / build 139 — equal-height Hero tiles and true prepared GF layers (PR CI PASS / PHONE QA PENDING)
+
+- Source tested (PR #6) `f482ba11227b44ca56e14e83de94db9c45f367e9`; Validate #1097 PASS; Android #620 PASS, workflow run `37840632930`.
+- Shared user graphics: `FARIC-Heroes-Prepared-v0.19.50.zip`, ten folders with lossless 1024x1024 frame/fx/creature/wordmark/full and small previews. Generated in chat session, **NOT YET included as physical GitHub binary assets**. The archive is validated by hash and CRC but visual boundaries still need correction.
+- MainActivity Hero tiles now 248dp equal height with two-line limit and concise statuses. Original Pictures2.zip no longer falsely treated as separated artwork; code consumes the prepared 4-layer pack via `skin/hero_packs/` if bundled or explicit prepared pack import.
+- Existing Shark/Panther physical files unchanged. Standalone theme rendering, persistent GL Scene Host and `PULSEDECK_CENTER_CALIBRATION` not modified.
+- Phone evidence from build 138: expanded group shown, uneven tiles/cropped preview FAIL, user's fourth check not accepted, 3-second MP4 NOT TESTED.
+- **Next:** merge after QA documentation and confirm exact signed Android PASS on main, then phone QA for tile alignment and prepared pack import. Do not claim embedded artwork or production-grade art PASS before binary Git integration and visual review.
+
+
+
 ## v0.19.49 / build 138 — grouped Hero gallery + ZIP import (PR CI PASS / PHONE QA PENDING)
 
 - Pre-merge app/source: `dcd41b2ae2a477f9c6181ebb5edcdf62f4c13933`, PR #5.

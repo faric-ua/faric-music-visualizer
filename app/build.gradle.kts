@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 138
-        versionName = "0.19.49"
-        // v0.19.49: grouped Hero gallery + explicit ZIP artwork import; persistent Scene Host.
+        versionCode = 139
+        versionName = "0.19.50"
+        // v0.19.50: equal Hero tiles + independent prepared-layer pack, visual QA pending.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

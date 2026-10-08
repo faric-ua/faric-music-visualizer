@@ -1,5 +1,16 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## v0.19.50 / build 139 — main signed build PASS / PHONE QA PENDING
+
+- App/source exact SHA: `9825f1d3a16a68aef3dbcf4d507303231cfdab0c` (PR #6 merged).
+- Validate #1101 PASS; Android #624 PASS, run `37841244483`, artifact `FARIC-Music-Visualizer-v0.19.50-Debug` ID `11577179740`, expires 2026-10-11. Immutable source branch `checkpoint/pulsedeck-v0.19.50-2026-10-08`.
+- Real code: equal-height two-column GF cards (248dp) with 126dp artwork area and bounded title/subtitle; existing Scene Host retained; new user heroes can load independent aligned frame/fx/creature/wordmark layers and small preview files from bundled `skin/hero_packs` or an explicitly selected prepared ZIP. Raw `Pictures2.zip` is no longer used to derive runtime thumbnails.
+- **Graphics are NOT included in this APK yet.** User must use already prepared ChatGPT-generated `FARIC-Heroes-Prepared-v0.19.50.zip` via new app import action or later install pack in Git repo and rebuild. The generated pack was CRC/dimension tested: 10 folders, 1024x1024 lossless physical layers. Visual cleanup still open; no production-grade art PASS.
+- Build 138 user screenshot QA: group 12 entries visible; uneven cards/cropped preview FAIL; fourth test not accepted; 3-second MP4 explicitly NOT TESTED.
+- **Next:** Termux **3 → 10 → 8**, install v0.19.50 / build 139. Download prepared ZIP to phone if not present; select it once via new `Додати підготовлений пакет героїв` action. Phone-check 10/10 thumbnails, 12 equal-height cards, live Player switch/Board Back, and 3s MP4. No claim of phone PASS. PERF-NAV-002 and BUG-EXPORT-001 remain open.
+
+
+
 ## v0.19.50 / build 139 — equal-height Hero tiles and true prepared GF layers (PR CI PASS / PHONE QA PENDING)
 
 - Source tested (PR #6) `f482ba11227b44ca56e14e83de94db9c45f367e9`; Validate #1097 PASS; Android #620 PASS, workflow run `37840632930`.

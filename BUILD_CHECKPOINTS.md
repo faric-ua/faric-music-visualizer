@@ -22,14 +22,20 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 
 ## 2026-10-08 — v0.19.43 / build 132 — Copy keeps export report open — Android PASS
 
-- Status: Validate PASS / Android PASS / phone QA PENDING.
+- Status: Validate PASS / Android PASS / **PHONE QA 3 PASS / 2 FAIL** (export report lifecycle PASS; two transitions FAIL).
 - Source SHA `364f39627f7bb41c7315021b91f484b72ebdc63c`; Validate #1037 PASS (run `37720314968`); Android #603 PASS (run `37720314972`).
 - Artifact `FARIC-Music-Visualizer-v0.19.43-Debug` id `11526295056`, ZIP SHA256 `sha256:7088bf4da7c7128f0fe2466b579a42d5462a0c919c81e91ab73e3a9305e1a8f9`. Expires 2026-10-11.
 - UI change: Copy performance report does not close dialog; OK still closes. No export engine changes.
 - User-provided earlier 3s report: 1080×1920, 90 frames, total 5976ms, GPU direct; copy worked but auto-dismissed on prior build. **This is not v0.19.43 phone acceptance.**
 - V0.19.42 Frame 5/6 tests previously PASS; navigation untested in that set; earlier navigation pauses remain PERF-NAV-002 OPEN. Full song exit ~48% BUG-EXPORT-001 OPEN.
 - Immutable source branch `checkpoint/pulsedeck-v0.19.43-2026-10-08`; detail `docs/checkpoints/2026-10-08-v0.19.43-export-copy-lifecycle.md`.
-- Resume: Termux **3 → 10 → 8** (no rebuild), run 3s preview, Copy should preserve dialog, then OK closes.
+- Resume: **Do NOT repeat export Copy/OK QA; 3/3 PASS**. Next engineering target PERF-NAV-002, after new APK repeat projectM and Board transitions.
+
+### Phone QA v0.19.43: 3 PASS / 2 FAIL
+
+- PASS: 3s export report with fixed Copy/OK; Copy retains dialog; OK closes only report.
+- FAIL: Player → separate projectM → Back freezes/pauses; Player → Board → Back freezes/reinitializes visualizer.
+- PERF-NAV-002 OPEN. No new build was made by this phone result.
 
 ## 2026-10-08 — v0.19.42 / build 131 — Frame auto spin, BG/Glow single line — Android PASS
 

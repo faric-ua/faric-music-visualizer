@@ -1,11 +1,26 @@
 # Open Findings
 
+## PHONE QA — v0.19.43 / build 132 — 3 PASS / 2 FAIL (2026-10-08)
+
+**User-submitted results (unambiguous):**
+1. **PASS** — 3-second export opens finished report; both `Копіювати текст` and `OK` available.
+2. **PASS** — Copy successfully copies statistics, **does not dismiss report**.
+3. **PASS** — OK dismisses only report; music player remains active.
+4. **FAIL** — player → projectM → Back: observable freezes and/or black/paused scene during transition.
+5. **FAIL** — player → Board → Back: observable freezes or recreation of visualizer.
+
+**Acceptance:** Export report lifecycle fixed and phone-accepted in v0.19.43; no need for the user to rerun the same 3-second report test in next APK unless regression. **Navigation PERF-NAV-002 remains unresolved and is the next highest-priority engineering step.** User's message did not isolate exact frame time or differentiate black frame from pause; don't overstate that aspect.
+
+**Code path grounded at v0.19.43:** `MainActivity.clearScreenRefs()` calls `ProjectMView.releaseProjectMBlocking()` on the main thread for Export/Main, and both `showNowPlaying()`/`showBoardTransform()` reconstruct a new ProjectMView and compositor; separate projectM exit calls async destroy+finish then `ActivityResult` rebuilds main. The blocking release has a 1500ms default timeout but native initialization and EGL reattachment may also contribute.
+
+**Next action:** PROFILE/FIX with safe ownership barriers: 1) instrument step-level UI timings: release wait, GL destroy, renderer initialization, first frame, SurfaceView attach; 2) minimize creation/teardown on Board↔player transition (consider persistent owner + reparent only after confirming EGL behavior), don't race two owners of shared ProjectMBridge; 3) separately shorten projectM Activity exit/return; 4) CI Android PASS and repeated phone QA routes both directions. **Do not mark performance PASS on unit tests alone.**
+
 ## UX-EXPORT-006 — Copy report closes unexpectedly before OK
 
 - **Observed on phone (2026-10-08):** user successfully copied full 3-second export report at 1080×1920, 90 frames, total 5976ms, but window closed immediately. They expected Copy to leave the report open for an explicit OK.
 - **Existing cause:** generic `PulseDeckDialogs` dismisses after every action, including Copy.
 - **Fix source:** v0.19.43 build 132: opt-in `keepOpenOnSecondary = true` in export result; per-action `dismissOnClick` false on Copy, true on OK; previous default kept for every other caller. Maintains fixed footer and scrolling result introduced v0.19.41.
-- **Status:** source + CI **PASS** in v0.19.43 build 132 (Validate #1037, Android #603); **phone QA remains PENDING**. User's copied report was from earlier APK, not acceptance of this fix.
+- **Status:** **PHONE QA PASS / CLOSED in v0.19.43 build 132.** User verified Copy keeps report open and copies text, OK dismisses only report, 3-second export report buttons accessible (3/3 PASS).
 - **Acceptance:** copy full report → dialog remains and buttons stay usable → OK closes; other dialogs remain unchanged.
 - **Metric evidence:** projectM 791ms; composition 1935ms; encoder 873ms; GPU overlay 664ms; Cyber Shark 359ms; HUD draw 1051ms; total 5976ms. This short export does not close BUG-EXPORT-001 (full-song exit around 48%).
 

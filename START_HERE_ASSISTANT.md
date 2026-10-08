@@ -4,6 +4,13 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## PHONE QA — v0.19.43 / build 132: 3 PASS / 2 FAIL
+
+- **Phone-accepted:** 3-second export report opens with Copy/OK; Copy copies without dismissing; OK closes report only — **3/3 PASS**. No repeated QA needed for unchanged report code.
+- **Phone-FAILED:** main player → projectM → Back and main player → Board → Back — **2/2 FAIL**, freezes/visualizer recreation. **PERF-NAV-002 is the next engineering priority**; no fix or new APK yet.
+- Exact shipped build remains **v0.19.43 / 132**, Android #603 PASS, source `364f39627f7bb41c7315021b91f484b72ebdc63c`. Current `main` may contain docs-only edits. The latest APK artifact expires **2026-10-11**, but previously downloaded APK remains in Android Documents.
+- **Next:** instrument and address synchronous `MainActivity.clearScreenRefs()` GL release and repeated projectM initialization. Preserve shared singleton safety. CI + phone tests before closing PERF-NAV-002. See `OPEN_FINDINGS.md`.
+
 ## DOCUMENTATION SYNC / RECOVERY — mandatory contract (2026-10-08)
 
 - **Authoritative plan:** `docs/user/DOCUMENTATION_SYNC_CONTRACT.md`. This is the persistent and explicitly scoped commitment for future chats: keep the guide updated with each user-facing change, safely preserve completed documents, and work toward fully automated documentation delivery.

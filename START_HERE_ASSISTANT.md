@@ -4,6 +4,15 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## TERMUX DOCUMENTATION SUBMENU — 2026-10-08
+
+- In `scripts/termux-menu.sh` the single new **`20 — Documentation →`** entry opens `tools/termux/documentation-menu.sh`. Main menu options **1–19 remain unchanged**. Android APK source/version is unchanged (still v0.19.43 / build 132).
+- Nested menu: 1 HTML (offline), 2 PDF, 3 DOCX, 4 canonical Markdown guide in GitHub, 5 other project documents in nested list, 6 one-time import of previously delivered ZIP or separate guide files from Android Downloads, 7 local documents folder, 0 Back.
+- ZIP import: `tools/termux/import-documentation.py`, local destination `/storage/emulated/0/Documents/FARIC-Music-Visualizer/documentation/v0.19.43/`. User needs to download `FARIC_User_Guide_UK_v0.19.43_COMPLETE.zip` from conversation into Download before first offline use; **binaries are not automatically downloaded from GitHub**. Don't imply they are available just because Markdown is committed.
+- Source of truth: `docs/user/FARIC_USER_GUIDE_UK.md`; user guide operation: `docs/user/TERMUX_DOCUMENTATION_MENU.md`; guide update contract: `docs/user/README.md`.
+- Open cosmetic finding: PDF cover Shark illustration has visibly stretched proportions on user screenshot `1791460405967.jpeg`. Future PDF/DOCX reissue should preserve image aspect ratio; **not fixed by menu change**.
+- Test gate: `Validate` shell syntax + ZIP path-traversal smoke; phone QA of Termux submenu still needed. No Android build required.
+
 ## USER MANUAL / USER GUIDE — canonical documentation (2026-10-08)
 
 - The user's comprehensive Ukrainian manual is **`docs/user/FARIC_USER_GUIDE_UK.md`**; entrypoint/update rules **`docs/user/README.md`**.

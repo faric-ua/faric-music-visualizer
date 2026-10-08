@@ -107,6 +107,7 @@ object ProjectMBridge {
         nativeSetForegroundTuning(
             safe.centerScale,
             safe.centerRotationDegrees,
+            safe.centerSpinDegreesPerSecond,
             safe.centerOpacity,
             safe.centerBassGain,
             safe.centerMidGain,
@@ -246,6 +247,7 @@ object ProjectMBridge {
     private external fun nativeSetForegroundTuning(
         centerScale: Float,
         centerRotationDegrees: Float,
+        centerSpinDegreesPerSecond: Float,
         centerOpacity: Float,
         centerBassGain: Float,
         centerMidGain: Float,

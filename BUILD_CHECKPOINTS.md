@@ -22,7 +22,7 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 
 ## 2026-10-08 — v0.19.38 / build 127 — movable projectM authoring — Android PASS
 
-- Status: BUILD PASS / phone QA pending.
+- Status: BUILD PASS / phone QA partially accepted (5/6 PASS, Back pending).
 - App/source commit: `ca295375dfcba0765dd1761978123cfe4eb5ba4d`.
 - Validate workflow: #994 — PASS.
 - Android workflow: #591 — PASS.
@@ -40,20 +40,23 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
   - Center/Edge tuning remains live and persisted;
   - Back uses non-blocking queued GL release callback instead of blocking the UI thread while preserving renderer ownership ordering;
   - v0.19.37 tuning/export/Composition Set persistence remains included.
-- Phone QA still required:
-  - drag/reopen panel and verify remembered position;
-  - AUTO OFF -> AUTO 5/10/15 and verify actual preset timing;
-  - main Layers -> Visualizer -> gear and live composite tuning;
-  - PulseDeck Back + Android system Back without visible freeze or renderer corruption.
+- Phone QA evidence (user report 2026-10-08): **5/6 PASS, 1 NOT TESTED**.
+  - PASS: ⚙ FG draggable panel.
+  - PASS: Center scale changes immediately visible without dismissing panel.
+  - PASS: panel X/Y position retained after close/reopen.
+  - PASS: AUTO 5s visibly switches preview presets.
+  - PASS: main player Layers -> Visualizer -> ⚙ enables live tuning over composite.
+  - NOT TESTED: on-screen Back and Android system Back; return must avoid UI freeze and projectM renderer dropout.
+  - 10s/15s timing was not separately reported as tested; AUTO timed Export remains not implemented.
 - Explicit open TODO:
   - deterministic Export sequencing for AUTO 5/10/15 is not implemented yet; current interval controls projectM authoring/browser preview.
   - Panther remains a separate unfinished Shark-grade art task.
 - Recovery checkpoint:
   - `docs/checkpoints/2026-10-08-v0.19.38-projectm-authoring.md`.
 - Resume exactly here:
-  1. install build 127 artifact;
-  2. run the four phone QA checks above;
-  3. if AUTO preview passes, decide next between deterministic AUTO export sequencing and Panther art.
+  1. On already installed build 127, test on-screen projectM Back and Android system Back, ideally several open/return cycles.
+  2. Verify player background remains visible without a frozen pause or corruption.
+  3. Record PASS/FAIL; only after Back PASS close v0.19.38 phone QA, then choose deterministic AUTO export sequencing or Panther art.
 
 
 ## 2026-10-05 — v0.19.1 / build 90 — Android PASS

@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 135
-        versionName = "0.19.46"
-        // v0.19.46: persistent live PulseDeck scene; projectM, Board and Themes overlays.
+        versionCode = 136
+        versionName = "0.19.47"
+        // v0.19.47: legacy projectM UI restored, live Hero swap off UI thread.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

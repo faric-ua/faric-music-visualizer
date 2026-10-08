@@ -17,6 +17,7 @@ import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardAudioState
 import com.saney.musicvisualizer.board.BoardGroupReaction
 import com.saney.musicvisualizer.board.GraphicFigureCatalog
+import com.saney.musicvisualizer.board.GraphicFigureAssets
 import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerMotion
 import com.saney.musicvisualizer.board.BoardLayerMotionEvaluator
@@ -115,14 +116,22 @@ class HeroBoardView(
             return
         }
 
-        figureThemeId =
-            safe
-        figureAssets =
-            GraphicFigureCatalog
-                .loadAssets(
-                    context,
-                    safe,
-                )
+        applyPreloadedFigureTheme(
+            safe,
+            GraphicFigureCatalog.loadAssets(context, safe),
+        )
+    }
+
+    /**
+     * Assets may be decoded away from the UI thread. Only this short visual
+     * swap runs on UI; native projectM/scene/HUD stay mounted.
+     */
+    fun applyPreloadedFigureTheme(
+        themeId: PlaybackThemeId,
+        preloaded: GraphicFigureAssets,
+    ) {
+        figureThemeId = GraphicFigureCatalog.normalize(themeId)
+        figureAssets = preloaded
         frameBitmap =
             figureAssets.frame
         fxBitmap =

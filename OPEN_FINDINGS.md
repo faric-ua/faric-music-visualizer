@@ -1,5 +1,9 @@
 # Open Findings
 
+## v0.19.47 / build 136 — original projectM UI and smooth hero switching
+
+Phone QA of build 135: Board, Themes browse and projectM overlay navigation are smooth. Remaining issue: Shark ↔ Panther swap causes a severe hitch. User asks to restore old projectM layout. Candidate build 136 restores its original four control rows, status, ratings, auto interval and icon Back in the existing overlay. Theme assets are decoded on worker and swapped in place without rebuilding native projectM. CI/phone acceptance pending; keep PERF-NAV-002 open for hero change. See CURRENT_HANDOFF.md.
+
 ## ARCHITECTURE CANDIDATE — v0.19.46 / build 135 (persistent Scene Host)
 
 - User videos `606999.mp4` (Playback Themes ↔ Player transitions) and `607000.mp4` (3s exported MP4) reinforce that screen navigation should not own GL lifecycle. Most recent 1080×1920 / 90-frame report: **5699 ms**, projectM 790, composition 2005, HUD draw 1097; export timing is not navigation latency.

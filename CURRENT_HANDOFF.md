@@ -1,5 +1,9 @@
 # Current Handoff
 
+## v0.19.47 / 136 — menu restore and hero switching
+
+Phone build 135: navigation Board/projectM/Theme browse smooth. User requests original projectM menu restored and reports severe hitch on Shark/Panther switch. v0.19.47 source candidate restores former control rows, status, ratings in same overlay; asynchronously decodes hero bitmaps and updates current HeroBoardView without recreating scene. CI and phone QA pending.
+
 ## PERMANENT RESPONSE FORMAT — READ FIRST
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.

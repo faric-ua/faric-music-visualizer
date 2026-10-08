@@ -5,6 +5,7 @@ import android.content.Intent
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.graphics.Bitmap
+import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
@@ -22,6 +23,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.widget.FrameLayout
 import android.widget.HorizontalScrollView
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ProgressBar
 import android.widget.ScrollView
@@ -42,6 +44,7 @@ import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardGroupReaction
 import com.saney.musicvisualizer.board.BoardGroupReactionStore
 import com.saney.musicvisualizer.board.GraphicFigureCatalog
+import com.saney.musicvisualizer.board.GraphicFigureAssets
 import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerTransform
 import com.saney.musicvisualizer.board.BoardLayerTransformStore
@@ -64,6 +67,8 @@ import com.saney.musicvisualizer.projectm.ProjectMOfflineFrameRequest
 import com.saney.musicvisualizer.projectm.ProjectMPerformanceProfile
 import com.saney.musicvisualizer.projectm.ProjectMSettingsPanel
 import com.saney.musicvisualizer.projectm.ProjectMStateStore
+import com.saney.musicvisualizer.projectm.ProjectMPresetRatingsStore
+import com.saney.musicvisualizer.projectm.ProjectMPresetRating
 import com.saney.musicvisualizer.projectm.ProjectMView
 import com.saney.musicvisualizer.scene.SceneOrchestrator
 import com.saney.musicvisualizer.scene.SceneSpec
@@ -155,11 +160,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var boardMenuOverlay: FrameLayout? = null
     private var themeMenuOverlay: FrameLayout? = null
     private var themeMenuOriginalTheme: PlaybackThemeId? = null
+    private var themeMenuLiveHeroSwitch = false
+    private var heroAssetLoadGeneration = 0
     private var projectMFocusOverlay: FrameLayout? = null
     private var projectMFocusSavedVisibility:
         Map<PulseDeckLayerStack.Layer, Boolean>? = null
     private var projectMFocusPresets: List<File> = emptyList()
     private var projectMFocusCatalogGeneration = 0
+    private var projectMFocusStatus: TextView? = null
+    private var projectMFocusAutoControl: TextView? = null
+    private var projectMFocusBackgroundControl: TextView? = null
+    private var projectMFocusCenterControl: TextView? = null
+    private var projectMFocusEdgeControl: TextView? = null
     private val projectMFocusHandler = Handler(Looper.getMainLooper())
     private val projectMFocusAutoTick = object : Runnable {
         override fun run() {
@@ -1272,6 +1284,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun setGraphicFigureThemeId(
         themeId: PlaybackThemeId,
+        readyAssets: GraphicFigureAssets? = null,
     ) {
         val safe =
             GraphicFigureCatalog
@@ -1322,9 +1335,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         heroBoardView
             ?.apply {
-                setFigureTheme(
-                    safe,
-                )
+                if (readyAssets != null) {
+                    applyPreloadedFigureTheme(safe, readyAssets)
+                } else {
+                    setFigureTheme(safe)
+                }
                 setGroupTransform(
                     boardTransformStore.load(
                         safe,
@@ -1396,11 +1411,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         if (
             screen == Screen.THEME_PICKER &&
             themeMenuOverlay != null &&
-            themeMenuOriginalTheme == selectedThemeId
+            (themeMenuOriginalTheme == selectedThemeId ||
+                themeMenuLiveHeroSwitch)
         ) {
             (themeMenuOverlay?.parent as? ViewGroup)?.removeView(themeMenuOverlay)
             themeMenuOverlay = null
             themeMenuOriginalTheme = null
+            themeMenuLiveHeroSwitch = false
+            heroAssetLoadGeneration++
             screen = Screen.NOW_PLAYING
             updateProjectMRenderState()
             updateSceneOrchestratorState()
@@ -3666,25 +3684,67 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         updateProjectMRenderState()
         Log.i("FARIC-nav", "projectM overlay opened; live GL retained")
 
+        // Restore the exact legacy four-row control hierarchy and back/status
+        // header. The native projectM renderer stays owned by MainActivity.
+        fun legacyControl(
+            title: String,
+            onClick: () -> Unit,
+        ): TextView =
+            TextView(this).apply {
+                text = title
+                textSize = 13f
+                setTextColor(Color.WHITE)
+                gravity = Gravity.CENTER
+                textAlignment = View.TEXT_ALIGNMENT_CENTER
+                includeFontPadding = false
+                setPadding(dp(10), dp(10), dp(10), dp(10))
+                setBackgroundColor(Color.argb(150, 15, 22, 31))
+                setOnClickListener { onClick() }
+                layoutParams = LinearLayout.LayoutParams(
+                    0, dp(48), 1f,
+                ).apply {
+                    marginStart = dp(4)
+                    marginEnd = dp(4)
+                }
+            }
+
+        val status = TextView(this).apply {
+            textSize = 12f
+            setTextColor(Color.WHITE)
+            setBackgroundColor(Color.argb(145, 0, 0, 0))
+            setPadding(dp(14), dp(10), dp(14), dp(10))
+            gravity = Gravity.CENTER
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+            includeFontPadding = false
+        }
+        projectMFocusStatus = status
+
+        val back = ImageView(this).apply {
+            contentDescription = "Назад"
+            isClickable = true
+            isFocusable = true
+            scaleType = ImageView.ScaleType.CENTER_INSIDE
+            setPadding(dp(2), dp(2), dp(2), dp(2))
+            setImageBitmap(
+                runCatching {
+                    assets.open("pulsedeck_hud/utility/back.png")
+                        .use { input -> BitmapFactory.decodeStream(input) }
+                }.getOrNull(),
+            )
+            setOnClickListener { closeProjectMFocusOverlay() }
+        }
+
         val top = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(12), dp(8), dp(12), dp(8))
-            background = panelDrawable(
-                Color.argb(225, 5, 12, 19), 20,
-                Color.argb(100, 56, 202, 255), 1,
-            )
+            setPadding(dp(8), dp(4), dp(8), 0)
         }
-        top.addView(actionPill(text = "‹ Назад", accent = false) {
-            closeProjectMFocusOverlay()
-        })
+        top.addView(back, LinearLayout.LayoutParams(dp(58), dp(58)))
         top.addView(
-            label("projectM · LIVE", 17f, COLOR_ACCENT_CYAN, true),
+            status,
             LinearLayout.LayoutParams(
-                0,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                1f,
-            ).apply { marginStart = dp(14) },
+                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
+            ).apply { marginStart = dp(6) },
         )
         overlay.addView(
             top,
@@ -3692,124 +3752,170 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.TOP,
-            ).apply { topMargin = dp(12) },
+            ),
         )
 
-        val controls = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-            setPadding(dp(10), dp(8), dp(10), dp(12))
-            background = panelDrawable(
-                Color.argb(228, 5, 12, 19), 22,
-                Color.argb(90, 56, 202, 255), 1,
-            )
-        }
-        fun row(vararg items: Pair<String, () -> Unit>) {
-            val buttons = LinearLayout(this).apply {
+        fun controlRow(
+            topPadding: Int,
+            bottomPadding: Int,
+            vararg buttons: TextView,
+        ): LinearLayout =
+            LinearLayout(this).apply {
                 orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER
+                setPadding(dp(8), dp(topPadding), dp(8), dp(bottomPadding))
+                setBackgroundColor(Color.argb(155, 0, 0, 0))
+                buttons.forEach { addView(it) }
             }
-            items.forEach { (title, action) ->
-                buttons.addView(
-                    actionPill(text = title, accent = false) { action() },
-                    LinearLayout.LayoutParams(0, dp(44), 1f).apply {
-                        marginStart = dp(2)
-                        marginEnd = dp(2)
-                    },
-                )
-            }
-            controls.addView(
-                buttons,
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply { bottomMargin = dp(6) },
-            )
-        }
 
-        row(
-            "ТОП" to {
+        val modes = controlRow(
+            6, 4,
+            legacyControl("ТОП") {
+                ProjectMStateStore(this).autoEnabled = true
                 loadProjectMFocusPresets(
                     com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP,
                 )
+                scheduleProjectMFocusAuto()
             },
-            "ВСІ" to {
+            legacyControl("ВСІ") {
+                ProjectMStateStore(this).autoEnabled = true
                 loadProjectMFocusPresets(
                     com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL,
                 )
+                scheduleProjectMFocusAuto()
             },
-            "NEXT" to { advanceProjectMFocusPreset(manual = true) },
-            "FG" to {
+            legacyControl("NEXT") { advanceProjectMFocusPreset(manual = true) },
+            legacyControl("FG") {
                 val state = ProjectMStateStore(this)
                 state.foregroundSample = state.foregroundSample.next()
                 projectMMainView?.setForegroundSample(state.foregroundSample)
+                updateProjectMFocusStatus()
             },
         )
-        row(
-            "BG" to {
-                val state = ProjectMStateStore(this)
-                state.backgroundVisible = !state.backgroundVisible
-                projectMMainView?.setBackgroundVisible(state.backgroundVisible)
-            },
-            "CENTER" to {
-                val state = ProjectMStateStore(this)
-                state.foregroundCenterVisible = !state.foregroundCenterVisible
-                projectMMainView?.setForegroundVisibility(
-                    state.foregroundCenterVisible,
-                    state.foregroundEdgeFxVisible,
-                )
-            },
-            "EDGE" to {
-                val state = ProjectMStateStore(this)
-                state.foregroundEdgeFxVisible = !state.foregroundEdgeFxVisible
-                projectMMainView?.setForegroundVisibility(
-                    state.foregroundCenterVisible,
-                    state.foregroundEdgeFxVisible,
-                )
-            },
-            "⚙ FG" to { showProjectMSettingsPanel() },
+        projectMFocusBackgroundControl = legacyControl("") {
+            val state = ProjectMStateStore(this)
+            state.backgroundVisible = !state.backgroundVisible
+            projectMMainView?.setBackgroundVisible(state.backgroundVisible)
+            updateProjectMFocusStatus()
+        }
+        projectMFocusCenterControl = legacyControl("") {
+            val state = ProjectMStateStore(this)
+            state.foregroundCenterVisible = !state.foregroundCenterVisible
+            projectMMainView?.setForegroundVisibility(
+                state.foregroundCenterVisible,
+                state.foregroundEdgeFxVisible,
+            )
+            updateProjectMFocusStatus()
+        }
+        projectMFocusEdgeControl = legacyControl("") {
+            val state = ProjectMStateStore(this)
+            state.foregroundEdgeFxVisible = !state.foregroundEdgeFxVisible
+            projectMMainView?.setForegroundVisibility(
+                state.foregroundCenterVisible,
+                state.foregroundEdgeFxVisible,
+            )
+            updateProjectMFocusStatus()
+        }
+        val foreground = controlRow(
+            2, 4,
+            requireNotNull(projectMFocusBackgroundControl),
+            requireNotNull(projectMFocusCenterControl),
+            requireNotNull(projectMFocusEdgeControl),
         )
-        row(
-            "AUTO" to {
-                val state = ProjectMStateStore(this)
-                state.autoEnabled = !state.autoEnabled
-                scheduleProjectMFocusAuto()
-                toast(if (state.autoEnabled) "AUTO ${state.autoSwitchSeconds}s" else "AUTO OFF")
+        projectMFocusAutoControl = legacyControl("") {
+            val state = ProjectMStateStore(this)
+            if (!state.autoEnabled) {
+                state.autoEnabled = true
+            } else {
+                val options = intArrayOf(5, 10, 15)
+                val current = options.indexOf(state.autoSwitchSeconds)
+                state.autoSwitchSeconds = options[(current + 1) % options.size]
+            }
+            scheduleProjectMFocusAuto()
+            updateProjectMFocusStatus()
+        }
+        val settings = controlRow(
+            2, 4,
+            requireNotNull(projectMFocusAutoControl),
+            legacyControl("⚙ FG") { showProjectMSettingsPanel() },
+        )
+        val ratings = controlRow(
+            2, 10,
+            legacyControl("👍") {
+                rateProjectMFocusPreset(ProjectMPresetRating.UP)
             },
-            "5s" to {
-                ProjectMStateStore(this).apply {
-                    autoSwitchSeconds = 5
-                    autoEnabled = true
-                }
-                scheduleProjectMFocusAuto()
+            legacyControl("👎") {
+                rateProjectMFocusPreset(ProjectMPresetRating.DOWN)
             },
-            "10s" to {
-                ProjectMStateStore(this).apply {
-                    autoSwitchSeconds = 10
-                    autoEnabled = true
-                }
-                scheduleProjectMFocusAuto()
-            },
-            "15s" to {
-                ProjectMStateStore(this).apply {
-                    autoSwitchSeconds = 15
-                    autoEnabled = true
-                }
-                scheduleProjectMFocusAuto()
+            legacyControl("−") {
+                rateProjectMFocusPreset(ProjectMPresetRating.HIDDEN)
             },
         )
+        val bottom = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(modes)
+            addView(foreground)
+            addView(settings)
+            addView(ratings)
+        }
         overlay.addView(
-            controls,
+            bottom,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.BOTTOM,
-            ).apply {
-                leftMargin = dp(8)
-                rightMargin = dp(8)
-                bottomMargin = dp(12)
-            },
+            ),
         )
+        updateProjectMFocusStatus()
         loadProjectMFocusPresets(ProjectMStateStore(this).backgroundMode)
         scheduleProjectMFocusAuto()
+    }
+
+    private fun updateProjectMFocusStatus() {
+        if (projectMFocusOverlay == null) return
+        val state = ProjectMStateStore(this)
+        val current = state.lastPresetFileOrNull()
+        val rating = current?.let { ProjectMPresetRatingsStore(this).ratingFor(it) }
+            ?: ProjectMPresetRating.NONE
+        val ratingIcon = when (rating) {
+            ProjectMPresetRating.UP -> "👍"
+            ProjectMPresetRating.DOWN -> "👎"
+            ProjectMPresetRating.HIDDEN -> "−"
+            ProjectMPresetRating.NONE -> "○"
+        }
+        val auto = if (state.autoEnabled) {
+            "AUTO ${state.autoSwitchSeconds}s"
+        } else {
+            "MANUAL"
+        }
+        val onOff = { active: Boolean -> if (active) "ON" else "OFF" }
+        projectMFocusStatus?.text =
+            "$auto · ${state.backgroundMode.name} ${projectMFocusPresets.size} · " +
+                "$ratingIcon ${current?.nameWithoutExtension?.take(28) ?: "—"} · " +
+                "FG ${state.foregroundSample.label} · " +
+                "BG ${onOff(state.backgroundVisible)} · " +
+                "CENTER ${onOff(state.foregroundCenterVisible)} · " +
+                "EDGE ${onOff(state.foregroundEdgeFxVisible)}"
+        projectMFocusAutoControl?.text =
+            if (state.autoEnabled) "AUTO ${state.autoSwitchSeconds}s" else "AUTO OFF"
+        projectMFocusBackgroundControl?.text =
+            (if (state.backgroundVisible) "● " else "○ ") + "BG"
+        projectMFocusCenterControl?.text =
+            (if (state.foregroundCenterVisible) "● " else "○ ") + "CENTER"
+        projectMFocusEdgeControl?.text =
+            (if (state.foregroundEdgeFxVisible) "● " else "○ ") + "EDGE FX"
+    }
+
+    private fun rateProjectMFocusPreset(rating: ProjectMPresetRating) {
+        val state = ProjectMStateStore(this)
+        val current = state.lastPresetFileOrNull() ?: return
+        ProjectMPresetRatingsStore(this).setRating(current, rating)
+        if (rating == ProjectMPresetRating.HIDDEN) {
+            projectMFocusPresets =
+                projectMFocusPresets.filterNot { it.absolutePath == current.absolutePath }
+            advanceProjectMFocusPreset(manual = false)
+        }
+        updateProjectMFocusStatus()
     }
 
     private fun loadProjectMFocusPresets(
@@ -3831,10 +3937,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 if (projectMFocusOverlay == null ||
                     generation != projectMFocusCatalogGeneration
                 ) return@runOnUiThread
-                projectMFocusPresets = pool.filter { it.isFile }
-                if (projectMFocusPresets.isEmpty()) {
-                    toast("Для ${mode.name} немає встановлених preset")
+                val ratings = ProjectMPresetRatingsStore(this)
+                projectMFocusPresets = pool.filter {
+                    it.isFile &&
+                        ratings.ratingFor(it) != ProjectMPresetRating.HIDDEN
                 }
+                if (projectMFocusPresets.isEmpty()) {
+                    toast("Для ${mode.name} немає доступних preset")
+                }
+                updateProjectMFocusStatus()
             }
         }
     }
@@ -3846,7 +3957,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
         }
         val pool = projectMFocusPresets
-        if (pool.isEmpty()) return
+        if (pool.isEmpty()) {
+            updateProjectMFocusStatus()
+            return
+        }
         val current = state.lastPresetPath
         val index = pool.indexOfFirst { it.absolutePath == current }
         val next = pool[(index + 1) % pool.size]
@@ -3854,6 +3968,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             state.lastPresetPath = next.absolutePath
             projectMMainView?.loadPreset(next, smoothTransition = false)
         }
+        updateProjectMFocusStatus()
     }
 
     private fun scheduleProjectMFocusAuto() {
@@ -3874,6 +3989,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusCatalogGeneration++
         (overlay.parent as? ViewGroup)?.removeView(overlay)
         projectMFocusOverlay = null
+        projectMFocusStatus = null
+        projectMFocusAutoControl = null
+        projectMFocusBackgroundControl = null
+        projectMFocusCenterControl = null
+        projectMFocusEdgeControl = null
         val saved = projectMFocusSavedVisibility
         projectMFocusSavedVisibility = null
         projectMFocusPresets = emptyList()
@@ -3902,6 +4022,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     .CENTER,
             onAutoChanged = { _, _ ->
                 scheduleProjectMFocusAuto()
+                updateProjectMFocusStatus()
             },
             onTuningChanged = { tuning ->
                 projectMMainView
@@ -8342,6 +8463,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             clearScreenRefs()
         } else {
             themeMenuOriginalTheme = selectedThemeId
+            themeMenuLiveHeroSwitch = false
         }
 
         val root = FrameLayout(this).apply {
@@ -8521,19 +8643,66 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         return@setOnClickListener
                     }
 
-                    selectedThemeId = spec.id
-                    themeStore.selectedThemeId = spec.id
-
-                    if (
-                        isLayeredBoardTheme(
-                            spec.id,
-                        )
+                    // Shark ↔ Panther is a change to the live HeroBoardView,
+                    // not a reason to tear down projectM, the HUD or any scene.
+                    // Decoding several large PNGs on UI caused a second hitch.
+                    if (retainedHost != null &&
+                        themeMenuOverlay != null &&
+                        isLayeredBoardTheme(spec.id) &&
+                        heroBoardView != null
                     ) {
-                        setGraphicFigureThemeId(
-                            spec.id,
-                        )
+                        val requestedTheme = spec.id
+                        if (requestedTheme == selectedThemeId) {
+                            showNowPlaying()
+                        } else {
+                            val generation = ++heroAssetLoadGeneration
+                            val requestedOverlay = themeMenuOverlay
+                            thread(name = "faric-hero-assets") {
+                                val loadStartNs = System.nanoTime()
+                                val assets = runCatching {
+                                    GraphicFigureCatalog.loadAssets(
+                                        applicationContext,
+                                        requestedTheme,
+                                    )
+                                }.getOrNull()
+                                val loadMs =
+                                    (System.nanoTime() - loadStartNs) / 1_000_000L
+                                runOnUiThread {
+                                    if (isFinishing || isDestroyed ||
+                                        heroAssetLoadGeneration != generation ||
+                                        screen != Screen.THEME_PICKER ||
+                                        themeMenuOverlay !== requestedOverlay
+                                    ) return@runOnUiThread
+                                    if (assets == null) {
+                                        toast("Не вдалося завантажити тему")
+                                        return@runOnUiThread
+                                    }
+                                    val applyStartNs = System.nanoTime()
+                                    setGraphicFigureThemeId(
+                                        requestedTheme,
+                                        readyAssets = assets,
+                                    )
+                                    themeMenuLiveHeroSwitch = true
+                                    showNowPlaying()
+                                    Log.i(
+                                        "FARIC-nav",
+                                        "Hero switched in place: $requestedTheme; " +
+                                            "assetDecode=${loadMs}ms; " +
+                                            "UIApplyAndReturn=" +
+                                            ((System.nanoTime() - applyStartNs) / 1_000_000L) +
+                                            "ms; native projectM retained",
+                                    )
+                                }
+                            }
+                        }
+                        return@setOnClickListener
                     }
 
+                    selectedThemeId = spec.id
+                    themeStore.selectedThemeId = spec.id
+                    if (isLayeredBoardTheme(spec.id)) {
+                        setGraphicFigureThemeId(spec.id)
+                    }
                     if (latestSnapshot.trackName != null) {
                         showNowPlaying()
                     } else {
@@ -9000,11 +9169,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
         projectMFocusCatalogGeneration++
         projectMFocusOverlay = null
+        projectMFocusStatus = null
+        projectMFocusAutoControl = null
+        projectMFocusBackgroundControl = null
+        projectMFocusCenterControl = null
+        projectMFocusEdgeControl = null
         projectMFocusSavedVisibility = null
         projectMFocusPresets = emptyList()
         boardMenuOverlay = null
         themeMenuOverlay = null
         themeMenuOriginalTheme = null
+        themeMenuLiveHeroSwitch = false
+        heroAssetLoadGeneration++
         persistentSceneRoot = null
         ProjectMBridge
             .endOfflineExport()

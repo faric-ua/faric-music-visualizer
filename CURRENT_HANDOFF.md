@@ -4,6 +4,15 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## NEW VIDEO RESEARCH TRACK — Heroes vs Audioforms (2026-10-08)
+
+- Proposed user-visible categories: **Герої (Heroes)** = Cyber Shark / Cyber Panther illustrated theme packs; **Аудіоформи (Audioforms)** = new independent bass/beat-deforming shapes; **Оформлення (Decor)** = frames/logos; **Ефекти (FX)** = particles/glow. Keep projectM as its own visualizer engine. This is a **naming/architecture proposal pending approval**, not a code rename.
+- Read `docs/architecture/VISUAL_ELEMENTS_TAXONOMY.md` before changing any GF/Board labeling. Existing GF ids, `PlaybackThemeId`, JSON prefs/Composition Sets MUST remain backwards-compatible.
+- User wants **two parallel ChatGPT chats** in the same project: this main chat continues implementation/CI/Termux/phone QA; a dedicated **Audioforms Reference Lab** chat accepts each original video, analyzes actual movement/audio and writes approved concepts to `docs/visualizer/AUDIOFORMS_VIDEO_REFERENCE_WORKFLOW.md`. No source edits/builds from research chat without explicit approval.
+- Video not yet attached in this new user turn; do not claim to have seen its central morphing circle. Likely candidate to investigate: audio-reactive radial contour with bass radius expansion, mid distortion, high shimmer and beat impulse; validate after viewing source.
+- Current build is still **v0.19.43 / build 132 (Android #603 PASS)**; phone QA for Copy → stays open → OK still PENDING. Navigation freeze PERF-NAV-002 and full-song crash BUG-EXPORT-001 OPEN. This research track has not fixed them.
+- Assistant cannot inspect user's remaining image generation quota or next reset time; user can try ChatGPT Images / provide limit popup, then request actual generation when ready.
+
 ## CURRENT SOURCE CANDIDATE — v0.19.43 / build 132 — Copy stays open until OK
 
 - Phone-reported 3-second export timing: 1080×1920, 90 frames, **5976ms total**, projectM 791ms, composition 1935ms, GPU direct, encoder 873ms, GPU overlay 664ms, HUD draw 1051ms. Export result text was successfully copied, but the dialog dismissed automatically on Copy.

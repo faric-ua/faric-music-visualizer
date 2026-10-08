@@ -2551,6 +2551,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         .centerRotationDegrees,
                                 )
                                 put(
+                                    "centerSpinSpeed",
+                                    projectMTuning
+                                        .centerSpinDegreesPerSecond,
+                                )
+                                put(
                                     "centerOpacity",
                                     projectMTuning
                                         .centerOpacity,
@@ -3430,6 +3435,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         tuning.optDouble(
                                             "centerRotation",
                                             current.centerRotationDegrees
+                                                .toDouble(),
+                                        )
+                                            .toFloat(),
+                                    centerSpinDegreesPerSecond =
+                                        tuning.optDouble(
+                                            "centerSpinSpeed",
+                                            current.centerSpinDegreesPerSecond
                                                 .toDouble(),
                                         )
                                             .toFloat(),

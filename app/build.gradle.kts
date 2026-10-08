@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 128
-        versionName = "0.19.39"
-        // v0.19.39: tap individual FG value to reset it; Center auto-spin speed (degrees per second).
+        versionCode = 129
+        versionName = "0.19.40"
+        // v0.19.40: nested Layers dialog lifecycle, visible projectM Back and non-blocking player-to-projectM GL handoff.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

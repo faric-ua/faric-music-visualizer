@@ -144,6 +144,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var sceneView: ReactiveSceneView? = null
     private var projectMMainView: ProjectMView? = null
     private var projectMMainResumed = false
+    private var projectMOpenPending = false
     private var projectMExportSnapshot: Bitmap? = null
     private var projectMExportLiveView: ProjectMView? = null
     private var projectMExportLiveResumed = false
@@ -1566,27 +1567,50 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             showBoardTransform()
 
                         "visualizer" -> {
-                            if (projectMMainResumed) {
-                                projectMMainView?.onPause()
-                                projectMMainResumed = false
+                            if (!projectMOpenPending) {
+                                projectMOpenPending = true
+
+                                // The bridge is shared by both Activities.
+                                // Release on the GL thread first, then open
+                                // projectM without blocking the UI thread.
+                                val previousView = projectMMainView
+                                val enterProjectM = {
+                                    if (projectMMainView === previousView) {
+                                        projectMMainView = null
+                                    }
+                                    if (
+                                        previousView != null &&
+                                        projectMMainResumed
+                                    ) {
+                                        previousView.onPause()
+                                        projectMMainResumed = false
+                                    }
+
+                                    projectMOpenPending = false
+                                    if (
+                                        !isFinishing &&
+                                        !isDestroyed &&
+                                        screen == Screen.NOW_PLAYING
+                                    ) {
+                                        openProjectMVisualizer.launch(
+                                            Intent(
+                                                this,
+                                                com.saney.musicvisualizer
+                                                    .projectm
+                                                    .ProjectMActivity::class.java,
+                                            ),
+                                        )
+                                    }
+                                }
+
+                                if (previousView != null) {
+                                    previousView.releaseProjectMThen {
+                                        enterProjectM()
+                                    }
+                                } else {
+                                    enterProjectM()
+                                }
                             }
-
-                            projectMMainView
-                                ?.releaseProjectMBlocking(
-                                    timeoutMs =
-                                        1_500L,
-                                )
-                            projectMMainView =
-                                null
-
-                            openProjectMVisualizer.launch(
-                                Intent(
-                                    this,
-                                    com.saney.musicvisualizer
-                                        .projectm
-                                        .ProjectMActivity::class.java,
-                                ),
-                            )
                         }
 
                         "export" ->
@@ -4350,7 +4374,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     1,
                                 )
                             setOnClickListener {
-                                dialog.dismiss()
+                                // Preserve the Layers parent dialog under
+                                // the movable child editor. Closing the
+                                // editor returns to this same Layers panel.
                                 showProjectMSettingsPanel()
                             }
                         },

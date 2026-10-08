@@ -309,7 +309,7 @@ class ProjectMActivity : ComponentActivity() {
                 setImageBitmap(
                     runCatching {
                         assets.open(
-                            "skin/pulsedeck_hud/utility/back.png",
+                            "pulsedeck_hud/utility/back.png",
                         )
                             .use { input ->
                                 BitmapFactory
@@ -450,6 +450,7 @@ class ProjectMActivity : ComponentActivity() {
         projectMReleasedForExit =
             true
         cancelAuto()
+        status.text = "Повертаюся в плеєр…"
 
         val view =
             projectMView

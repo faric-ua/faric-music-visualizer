@@ -217,3 +217,12 @@ Status: TODO after current movable-panel / AUTO phone QA.
 - This is separate from projectM background AUTO preset changes (5/10/15s). That deterministic preset-sequence Export feature remains TODO.
 - A user-reported full-song export app exit at ~48% remains an independent HIGH-priority open issue. Do not characterize it as resolved by this UI update. See `OPEN_FINDINGS.md` BUG-EXPORT-001.
 
+
+## v0.19.40 nested-panel / navigation lifecycle phone contract
+
+- In main player open PulseDeck tools → Layers → Visualizer ⚙. The parent Layers dialog must **remain open** underneath the movable projectM panel; closing projectM X returns to Layers with its selections and position unchanged.
+- Separate projectM screen loads the physical Back icon via its correct packaged assets path `pulsedeck_hud/utility/back.png`, not `skin/pulsedeck_hud/utility/back.png`. System Back and physical Back use the same exit path.
+- Player → projectM no longer calls `releaseProjectMBlocking(1500)` on the main thread. It queues release and navigates on callback; repeat taps are ignored while transfer is pending to avoid double launch.
+- ProjectM → player still waits for async GL release **before** finishing to prevent destruction of the newly built main renderer. The pending state is visible. This is not proof that native renderer initialization has zero visible delay.
+- Phone QA must repeat both directions, both Back methods and nested panel reopening, and verify background is not corrupted on return.
+- Video evidence: `606815.mp4` nested menu, `606816.mp4` activity transitions, `606817.jpg` missing Back.

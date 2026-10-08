@@ -4,6 +4,15 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## CURRENT SOURCE CANDIDATE — v0.19.40 / build 129 — nested panel and navigation fix
+
+- Video findings: `606815.mp4` demonstrates Layers parent closing on Visualizer ⚙; `606816.mp4` shows navigation delays; `606817.jpg` confirms missing visual Back control.
+- Source fixes: (1) preserve Layers parent when FG settings opens, (2) load projectM Back asset at correct packaged path, (3) replace 1.5-second UI-thread `releaseProjectMBlocking` on entering projectM with queued GL release + callback, (4) show brief return status, maintain shared renderer ordering.
+- Existing v0.19.39 reset-on-number and FG Center spin controls remain included.
+- Status: **SOURCE CHANGES SUBMITTED; Android CI and phone QA pending.** Do not claim full smoothness or phone PASS until validated. See `OPEN_FINDINGS.md` BUG-UX-002/003.
+- Other open bugs: BUG-EXPORT-001 (reported full-song export process exit at ~48%, root cause unconfirmed) and PERF-PLAYER-001 (live/export motion irregularity still needs separate timing analysis).
+- Next: Validate/Android for build 129; after PASS, phone-check nested Layers → ⚙ → X, visible Back, repeated player ↔ projectM transitions and renderer stability. Exact menu format: `ASSISTANT_RESPONSE_CONTRACT.md`.
+
 ## CURRENT SOURCE CANDIDATE — v0.19.39 / build 128 — individual FG reset + auto-spin
 
 - **Source feature commit:** `951506c33070bc46c2c6615d72000f93a657d72d` (subsequent documentation-only commits may advance main).

@@ -1160,7 +1160,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pair.forEachIndexed { index, item ->
                 row.addView(
                     libraryCard(item.first, item.second, item.third) {
-                        toast("${item.second}: запрацює після media scanner")
+                        if (item.second == "Усі треки") {
+                            showAllTracks()
+                        } else {
+                            toast("${item.second}: наступний етап медіатеки")
+                        }
                     },
                     LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
                         if (index == 0) marginEnd = dp(6) else marginStart = dp(6)
@@ -1210,6 +1214,54 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         setContentView(root)
         restorePendingScrollPositions()
+        enableImmersiveFullscreen()
+        onPlaybackSnapshot(latestSnapshot)
+    }
+
+    private fun hasMusicLibraryPermission(): Boolean {
+        val permission = if (Build.VERSION.SDK_INT >= 33) {
+            Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        return checkSelfPermission(permission) == PackageManager.PERMISSION_GRANTED
+    }
+
+    private fun askMusicLibraryPermission() {
+        val permission = if (Build.VERSION.SDK_INT >= 33) {
+            Manifest.permission.READ_MEDIA_AUDIO
+        } else {
+            Manifest.permission.READ_EXTERNAL_STORAGE
+        }
+        requestMusicLibraryPermission.launch(permission)
+    }
+
+    private fun showAllTracks(focusSearch: Boolean = false) {
+        screen = Screen.TRACKS
+        sceneOrchestrator.stop()
+        clearScreenRefs()
+
+        val browser = LocalMusicBrowser(
+            activity = this,
+            canReadMusic = hasMusicLibraryPermission(),
+            onBack = { showLibrary() },
+            onRequestPermission = { askMusicLibraryPermission() },
+            onPickFiles = { chooseTrack() },
+            onSelect = { tracks, selectedIndex ->
+                controller.loadQueue(
+                    tracks.map { track -> QueueTrack(track.uri, track.title) },
+                    selectedIndex,
+                )
+                controller.play()
+                showNowPlaying()
+            },
+        )
+        val root = browser.create(
+            focusSearch = focusSearch,
+            footer = buildPulseDock(),
+        )
+        applySafeArea(root)
+        setContentView(root)
         enableImmersiveFullscreen()
         onPlaybackSnapshot(latestSnapshot)
     }

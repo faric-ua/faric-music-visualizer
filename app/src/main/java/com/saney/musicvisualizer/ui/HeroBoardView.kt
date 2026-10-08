@@ -115,14 +115,22 @@ class HeroBoardView(
             return
         }
 
-        figureThemeId =
-            safe
-        figureAssets =
-            GraphicFigureCatalog
-                .loadAssets(
-                    context,
-                    safe,
-                )
+        applyPreloadedFigureTheme(
+            safe,
+            GraphicFigureCatalog.loadAssets(context, safe),
+        )
+    }
+
+    /**
+     * Assets may be decoded away from the UI thread. Only this short visual
+     * swap runs on UI; native projectM/scene/HUD stay mounted.
+     */
+    fun applyPreloadedFigureTheme(
+        themeId: PlaybackThemeId,
+        preloaded: GraphicFigureAssets,
+    ) {
+        figureThemeId = GraphicFigureCatalog.normalize(themeId)
+        figureAssets = preloaded
         frameBitmap =
             figureAssets.frame
         fxBitmap =

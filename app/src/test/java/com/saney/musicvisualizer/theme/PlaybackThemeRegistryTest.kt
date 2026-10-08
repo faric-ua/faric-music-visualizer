@@ -2,6 +2,8 @@ package com.saney.musicvisualizer.theme
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
+import com.saney.musicvisualizer.board.GraphicFigureCatalog
+import com.saney.musicvisualizer.board.UserHeroPack
 import org.junit.Test
 
 class PlaybackThemeRegistryTest {
@@ -9,6 +11,16 @@ class PlaybackThemeRegistryTest {
     fun allThemeIdsAreUnique() {
         val ids = PlaybackThemeRegistry.all.map { it.id }
         assertEquals(ids.size, ids.distinct().size)
+    }
+
+    @Test
+    fun importedHeroNamesAreUniqueAndAllRegistered() {
+        val heroes = UserHeroPack.heroes
+        assertEquals(10, heroes.size)
+        assertEquals(10, heroes.map { it.id }.distinct().size)
+        assertEquals(10, heroes.map { it.sourceFilename }.distinct().size)
+        assertTrue(GraphicFigureCatalog.ids.containsAll(heroes.map { it.id }))
+        assertTrue(PlaybackThemeRegistry.all.map { it.id }.containsAll(heroes.map { it.id }))
     }
 
     @Test

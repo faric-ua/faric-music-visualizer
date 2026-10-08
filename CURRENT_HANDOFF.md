@@ -4,6 +4,16 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## CURRENT SOURCE CANDIDATE — v0.19.42 / build 131 — Frame rotation and BG/Glow tab
+
+- User screenshots: `606829.jpg` Frame slider view, `606831.jpg` visible app Back, `606827.jpg` Board Frame editor; auto-spin requested and BG/Glow chip is two lines.
+- Implemented: signed Frame-only `autoRotationDegreesPerSecond` control -180..180°/s (0 OFF), manual rotation unchanged; persisted per layer/theme and Composition Set; applied in HeroBoardView and CPU/GPU export using shared time-based rotation helper; BG/Glow selector enlarged and single-line.
+- Build evidence: Validate #1033 PASS; Android #602 triggered for feature + added unit tests. **Android/phone result still pending**; check latest run before claiming APK.
+- Phone result from previous navigation fix: physical projectM Back button **now visible**, but transition freeze **still FAIL/open**. Root cause candidates: UI-thread synchronous `clearScreenRefs` GL release and re-creation, native renderer startup. See `OPEN_FINDINGS.md` PERF-NAV-002. No fix to navigation in this version.
+- Retain pending v0.19.41 fixed-footer export report phone QA, and BUG-EXPORT-001 full-song exit ~48%.
+- Next: await Android #602 PASS, checkpoint immutable source SHA, Termux 3 → 10 → 8; test BG/Glow one line, Frame signed auto speed incl OFF/independent manual rotation, persistence on reopen/Composition Set, 3-second MP4 spin, and separately retest and report navigation stall.
+- Follow permanent format `ASSISTANT_RESPONSE_CONTRACT.md`.
+
 ## CURRENT SOURCE CANDIDATE — v0.19.41 / build 130 — fixed export report actions
 
 - **Observed bug:** screenshot `1791424966546.jpeg`: export result's timing report extends off screen; buttons `Копіювати текст` and `OK` are hidden. A separate completed 3-second exported video `606819.mp4` (1080×1920, 30fps; report says 90 frames and total 5754ms) confirms short export works, **not** full-song stability.

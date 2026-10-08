@@ -1,5 +1,21 @@
 # Open Findings
 
+## UX-BOARD-005 — Frame signed auto-spin and single-line BG/Glow chip
+
+- **Source observation:** User screenshots `606829.jpg` and `606827.jpg`: Board → Frame has only manual `Поворот шару`; user requests an optional independent rotation about the Frame's own center, signed speed and OFF. Screenshot `606829.jpg` shows the narrow selector `BG/Glow` wrapping into two lines, clipped in the row.
+- **Scope:** v0.19.42 / build 131.
+- **Source change:** `BoardLayerTransform.autoRotationDegreesPerSecond` default 0, clamp ±180 °/s and stored per theme/layer; Frame-only editor slider 0=OFF, + clockwise/- counterclockwise. Independent manual rotation preserved. Live `HeroBoardView`, CPU/GPU export `CyberSharkExportRenderer` use the same timeline-based `autoRotationOffsetAt`; explicit FRAME frameReaction continuous baseline spin set to 0, beat reaction retained. Composition Set exports/imports `spinSpeed` for layer transforms.
+- **UI:** BG/Glow selector width 112dp, text size 14sp, `setSingleLine(true)`; horizontal chip scroll remains.
+- **Status:** SOURCE IMPLEMENTED; Validate #1033 PASS; Android #602 pending; **PHONE QA not performed**.
+- **Next phone QA:** Change Frame manual rotation to 60° and auto speed +30/−30/0°/s, confirm only Frame moves; save/reopen board and Composition Set; test 3s export preview with auto speed and observe frame rotation. Check BG/Glow label all on one line.
+
+## PERF-NAV-002 — Existing transitions still pause / freeze
+
+- **Source evidence:** User reported after v0.19.40 fix: visible top-left app Back has returned (PASS), but main player ↔ separate projectM and screen-to-screen visualizer transitions still visibly pause/freeze. Current screenshots `606831.jpg` and `606827.jpg` confirm the visible Back and functioning editors but cannot time the freeze.
+- **Confirmed technical path:** `MainActivity.clearScreenRefs()` synchronously calls `ProjectMView.releaseProjectMBlocking()` for projectM export and main views on the UI thread, then `showNowPlaying()/showBoardTransform()` rebuilds native GL and the entire composite layer tree. The earlier v0.19.40 change only removed blocking GL release on the main-player → separate projectM entry path; it did not change this general screen-reset path or costly GL initialization. Precise delay distribution on the device remains unmeasured.
+- **Status:** OPEN / **not fixed by v0.19.42**. Do not close issue based on presence of Back icon.
+- **Next:** targeted lifecycle architecture/performance pass: instrument time of release, host reattach, native surface initialization, first rendered frame and UI responsiveness; choose safe persistent GL renderer across Board ↔ Now Playing and separate Activity transition without unsafe competing GL contexts. Require phone video/timings after fixing.
+
 ## BUG-UX-004 — export timing report hides Copy / OK buttons
 
 - **Affected version:** v0.19.40 / build 129 and earlier.

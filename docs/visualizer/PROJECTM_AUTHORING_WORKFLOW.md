@@ -230,3 +230,10 @@ Status: TODO after current movable-panel / AUTO phone QA.
 ## Phone QA — signed FG Center auto-spin and per-value reset (2026-10-08)
 
 User reported **5/6 PASS on v0.19.39**, including tap Scale value to 1.00x without changing other parameters; +30°/s spin, -30°/s reverse, 0°/s stopped; persistence on panel reopen / grouped Composition Set test; main-player spin and successful 3-second MP4 export. **Back untested for v0.19.39**, remains pending independently. v0.19.41 contains these controls and adds a fixed-footer export report (CI PASS, phone pending). This evidence does not establish deterministic 5/10/15s projectM preset switching during full-song export.
+
+## v0.19.42 — Board Frame auto spin contract
+
+- Frame layer has an independent saved signed angular velocity -180°/s..+180°/s with default 0. Static manual `Поворот шару` stays independent; signed velocity does not move other layers. Frame's pre-existing 1.15°/s baseline auto drift is replaced by user-authored velocity; beat rotation remains independent.
+- Saved state and Composition Sets store `spinSpeed` for each layer. The same `BoardLayerTransform.autoRotationOffsetAt(timeSeconds)` helper is used in live CPU canvas, export CPU Canvas and export GPU direct path. Timeline rotation is modulo 360 degrees.
+- Selector `BG/Glow` uses an independently wider, one-line tab and retains horizontal scroll.
+- On recent phone evidence, top-left app Back in projectM is now visible; navigation stalls are still reported. A subsequent targeted perf/lifecycle investigation is required rather than claiming prior v0.19.40 navigation fix complete.

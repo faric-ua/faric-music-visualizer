@@ -281,6 +281,19 @@ class ProjectMView(
         }
     }
 
+    fun releaseProjectMThen(
+        onReleased: () -> Unit,
+    ) {
+        queueEvent {
+            ProjectMBridge.destroy()
+            clearOfflineReadbackCache()
+
+            post {
+                onReleased()
+            }
+        }
+    }
+
     fun releaseProjectMBlocking(
         timeoutMs: Long = 1_500L,
     ): Boolean {

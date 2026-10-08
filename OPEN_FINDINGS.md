@@ -4,7 +4,7 @@
 
 - User videos `606999.mp4` (Playback Themes ↔ Player transitions) and `607000.mp4` (3s exported MP4) reinforce that screen navigation should not own GL lifecycle. Most recent 1080×1920 / 90-frame report: **5699 ms**, projectM 790, composition 2005, HUD draw 1097; export timing is not navigation latency.
 - Decision and acceptance contract: `docs/architecture/PULSEDECK_PERSISTENT_SCENE_HOST.md`. **Single native projectM view and one live PulseDeckLayerStack** on foreground playback. Board and Theme Picker draw menu overlays; projectM editor uses in-Activity controls, no native release or second Activity for ordinary installed projectM. Legacy Activity kept for initial library setup fallback.
-- Branch: `feat/pulsedeck-persistent-scene-host`. **v0.19.46 / build 135 is a source candidate, not a phone-approved release.** CI/PR and physical phone QA required before merge. Main stays at v0.19.45 pending acceptance.
+- **CI PASS / PHONE QA PENDING.** PR #2 merged into main at app/source `6ce0a33a893edc78b1126e98ff5cf39181f9daaa`. Validate #1081 PASS; Android #607 PASS (run `37804612518`), artifact `FARIC-Music-Visualizer-v0.19.46-Debug` id `11562008086` (expires 2026-10-11). Immutable source branch `checkpoint/pulsedeck-v0.19.46-2026-10-08`. **Next: Termux 3 → 10 → 8 (do not launch build 9), install build 135 and physically test.** Do not call navigation PASS yet.
 - QA: Player ↔ Board x3 (preserve same rendered background), Player ↔ projectM editor with app/system Back x3 (same native instance, tuned FG/NEXT), open/cancel Theme Picker x3, prefs/Frame/Center survive, 3-second export regression. Full-song export bug remains separate and OPEN.
 
 

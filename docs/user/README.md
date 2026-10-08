@@ -5,9 +5,9 @@
 **Мова:** українська.  
 **Цільова аудиторія:** користувач застосунку, а не розробник.
 
-## Заплановане оновлення v0.19.46 (поки source/CI candidate)
+## Заплановане оновлення v0.19.46 (CI PASS / Phone QA pending)
 
-Архітектурний контракт: [PULSEDECK_PERSISTENT_SCENE_HOST.md](../../docs/architecture/PULSEDECK_PERSISTENT_SCENE_HOST.md). Board, projectM і Theme Picker мають використовувати одну постійну сцену та змінювати лише верхній UI. Поточна випущена редакція посібника 1.0 залишається про v0.19.43; build 135 не позначається телефонно перевіреним. HTML/PDF/DOCX ще не перевидані.
+Архітектурний контракт: [PULSEDECK_PERSISTENT_SCENE_HOST.md](../../docs/architecture/PULSEDECK_PERSISTENT_SCENE_HOST.md). Board, projectM і Theme Picker мають використовувати одну постійну сцену та змінювати лише верхній UI. Збірка v0.19.46 / build 135 уже пройшла Android #607 і знаходиться в main; phone QA ще не пройдено, тому навігаційні зміни не позначаються завершеними. HTML/PDF/DOCX ще не перевидані.
 
 ## Що описує посібник
 

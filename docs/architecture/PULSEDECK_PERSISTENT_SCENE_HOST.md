@@ -1,6 +1,6 @@
 # PulseDeck Persistent Scene Host — architectural contract (2026-10-08)
 
-Status: **APPROVED DIRECTION, INCREMENTAL IMPLEMENTATION / NOT PHONE ACCEPTED**.
+Status: **IMPLEMENTED CANDIDATE ON MAIN / Validate #1081 PASS / Android #607 PASS / PHONE QA PENDING**.
 
 ## Problem evidence
 - Repeated navigation Player ↔ projectM / Board remained FAIL on v0.19.43 and projectM both Back routes remained FAIL on v0.19.44.

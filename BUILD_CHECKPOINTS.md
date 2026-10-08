@@ -20,6 +20,16 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 
 ---
 
+## v0.19.46 / build 135 — persistent Scene Host: CI PASS / PHONE QA PENDING
+
+- Exact app/source SHA: `6ce0a33a893edc78b1126e98ff5cf39181f9daaa`; PR #2 source commit `a501718966e505a3efd4c5221e74e0c8441e6d4e`.
+- Validate #1081 PASS; Android #607 PASS, run `37804612518`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.46-Debug`, id `11562008086`, expires 2026-10-11 (UTC). Immutable checkpoint: `checkpoint/pulsedeck-v0.19.46-2026-10-08`.
+- **Code/CI accomplished:** normal installed projectM authoring uses in-player overlay, Board/editor and Theme browser open over retained live render stack; Android compiled, APK signed. **No PHONE QA yet; performance fix not accepted.**
+- Next resume: Termux **3 → 10 → 8**, install build 135, phone QA navigation 3x both Back paths, Board, Theme browse/cancel, FG/AUTO/prefs, 3s MP4 and confirm no extra `FARIC-projectM` native create on navigation.
+
+---
+
 ## v0.19.45 / build 134 — CI PASS / PHONE QA NOT ACCEPTED (2026-10-08)
 
 - App source: `0ca786f236ab988b8186fc550af3b9877416c91c`.

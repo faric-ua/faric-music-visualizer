@@ -26,7 +26,7 @@ Implemented in v0.19.38:
 - [x] Back release is now asynchronous/non-blocking on the UI thread: finish happens only after queued GL release completes, preserving the renderer race fix without freezing the UI thread.
 - [x] Existing FG tuning persistence/export/Composition Set integration remains intact.
 - [x] Validate #994 PASS on release SHA `ca295375dfcba0765dd1761978123cfe4eb5ba4d`.
-- [ ] Android #591 PASS + artifact.
+- [x] Android #591 PASS · artifact `FARIC-Music-Visualizer-v0.19.38-Debug` · id `11519777909` · digest `sha256:3dd2964c231e0c5e373c4b08bcdaafef16ff1272232f73b922827f58f940cba3`.
 - [ ] Phone QA movable panel, AUTO timing, main Visualizer gear, and non-blocking Back.
 - [ ] Panther remains a separate unfinished Shark-grade art task; do not benchmark Panther yet.
 

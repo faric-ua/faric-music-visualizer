@@ -140,6 +140,11 @@ class ProjectMStateStore(context: Context) {
                     KEY_FG_CENTER_ROTATION,
                     0f,
                 ),
+            centerSpinDegreesPerSecond =
+                prefs.getFloat(
+                    KEY_FG_CENTER_SPIN_SPEED,
+                    0f,
+                ),
             centerOpacity =
                 prefs.getFloat(
                     KEY_FG_CENTER_OPACITY,
@@ -204,6 +209,10 @@ class ProjectMStateStore(context: Context) {
                 safe.centerRotationDegrees,
             )
             .putFloat(
+                KEY_FG_CENTER_SPIN_SPEED,
+                safe.centerSpinDegreesPerSecond,
+            )
+            .putFloat(
                 KEY_FG_CENTER_OPACITY,
                 safe.centerOpacity,
             )
@@ -265,6 +274,8 @@ class ProjectMStateStore(context: Context) {
             "fg_center_scale"
         private const val KEY_FG_CENTER_ROTATION =
             "fg_center_rotation"
+        private const val KEY_FG_CENTER_SPIN_SPEED =
+            "fg_center_spin_speed"
         private const val KEY_FG_CENTER_OPACITY =
             "fg_center_opacity"
         private const val KEY_FG_CENTER_BASS =

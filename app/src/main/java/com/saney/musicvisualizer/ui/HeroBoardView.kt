@@ -218,7 +218,9 @@ class HeroBoardView(
             amplitudeScale = 0.012f,
             beatScale = 0.018f,
             baseAlpha = 0.98f,
-            rotationDegPerSecond = 1.15f,
+            // Only the explicit Frame slider controls continuous spin.
+            // Beat reaction is retained independently.
+            rotationDegPerSecond = 0f,
             beatRotationDeg = 0.8f,
         )
 
@@ -806,12 +808,21 @@ class HeroBoardView(
                 beat = beat,
             )
 
+        val frameTransform =
+            layerTransform(BoardLayerId.FRAME)
         val frameMotion =
             BoardLayerMotionEvaluator.evaluate(
                 frameReaction,
                 audio,
                 timeSeconds,
-            )
+            ).let { motion ->
+                motion.copy(
+                    rotationDegrees =
+                        motion.rotationDegrees +
+                            (timeSeconds *
+                                frameTransform.autoRotationDegreesPerSecond) % 360f,
+                )
+            }
         if (
             isObjectVisible(
                 ObjectId.FRAME,
@@ -833,9 +844,7 @@ class HeroBoardView(
                 baseSize = baseSize,
                 transform = transform,
                 layerTransform =
-                    layerTransform(
-                        BoardLayerId.FRAME,
-                    ),
+                    frameTransform,
                 groupRotationDegrees =
                     groupRotationDegrees,
             )

@@ -226,7 +226,8 @@ class CyberSharkExportRenderer(
             amplitudeScale = 0.012f,
             beatScale = 0.018f,
             baseAlpha = 0.98f,
-            rotationDegPerSecond = 1.15f,
+            // Match live: optional user-authored Frame spin is separate.
+            rotationDegPerSecond = 0f,
             beatRotationDeg = 0.8f,
         )
     private val fxReaction =
@@ -498,7 +499,13 @@ class CyberSharkExportRenderer(
                     layerTransform
                         .rotationDegrees +
                     motion
-                        .rotationDegrees,
+                        .rotationDegrees +
+                    if (layerId == BoardLayerId.FRAME) {
+                        (timeSeconds *
+                            layerTransform.autoRotationDegreesPerSecond) % 360f
+                    } else {
+                        0f
+                    },
             alpha = alpha,
         )
     }
@@ -637,7 +644,16 @@ class CyberSharkExportRenderer(
                         frameReaction,
                         audio,
                         timeSeconds,
-                    ),
+                    ).let { motion ->
+                        val frameTransform =
+                            layerTransform(BoardLayerId.FRAME)
+                        motion.copy(
+                            rotationDegrees =
+                                motion.rotationDegrees +
+                                    (timeSeconds *
+                                        frameTransform.autoRotationDegreesPerSecond) % 360f,
+                        )
+                    },
                 cx,
                 cy,
                 baseSize,

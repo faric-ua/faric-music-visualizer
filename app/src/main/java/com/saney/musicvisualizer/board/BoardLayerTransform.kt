@@ -13,6 +13,9 @@ data class BoardLayerTransform(
     val offsetYFraction: Float = 0f,
     val scale: Float = 1f,
     val rotationDegrees: Float = 0f,
+    // Optional per-layer rotation on top of the manual angle and beat reaction.
+    // Currently exposed by the editor for FRAME only.
+    val autoRotationDegreesPerSecond: Float = 0f,
     val opacity: Float = 1f,
 ) {
     fun sanitized(): BoardLayerTransform =
@@ -36,6 +39,11 @@ data class BoardLayerTransform(
                 rotationDegrees.coerceIn(
                     -90f,
                     90f,
+                ),
+            autoRotationDegreesPerSecond =
+                autoRotationDegreesPerSecond.coerceIn(
+                    -180f,
+                    180f,
                 ),
             opacity =
                 opacity.coerceIn(

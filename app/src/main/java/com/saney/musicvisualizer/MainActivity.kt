@@ -2510,6 +2510,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             value.rotationDegrees,
                         )
                         put(
+                            "spinSpeed",
+                            value.autoRotationDegreesPerSecond,
+                        )
+                        put(
                             "opacity",
                             value.opacity,
                         )
@@ -3357,6 +3361,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                                 item.optDouble(
                                                     "rotation",
                                                     current.rotationDegrees
+                                                        .toDouble(),
+                                                )
+                                                    .toFloat(),
+                                            autoRotationDegreesPerSecond =
+                                                item.optDouble(
+                                                    "spinSpeed",
+                                                    current.autoRotationDegreesPerSecond
                                                         .toDouble(),
                                                 )
                                                     .toFloat(),
@@ -4985,9 +4996,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         layerId
 
                     showBoardTransform()
+                }.apply {
+                    setSingleLine(true)
+                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    includeFontPadding = false
+                    // "BG/Glow" must never wrap into a second line.
+                    if (layerId == BoardLayerId.BACKGROUND) {
+                        textSize = 14f
+                    }
                 },
                 LinearLayout.LayoutParams(
-                    dp(84),
+                    dp(if (layerId == BoardLayerId.BACKGROUND) 112 else 84),
                     dp(42),
                 ).apply {
                     marginEnd = dp(6)
@@ -5648,6 +5667,36 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         layerValue,
                     )
                 }
+
+            if (layerId == BoardLayerId.FRAME) {
+                panelContent.addView(
+                    label(
+                        "Автообертання Frame · навколо власної осі; 0°/с — вимкнено",
+                        11f,
+                        COLOR_MUTED,
+                        false,
+                    ),
+                )
+                addSlider(
+                    title = "Автообертання Frame",
+                    max = 360,
+                    initial =
+                        (layerValue.autoRotationDegreesPerSecond + 180f).toInt(),
+                    valueText = {
+                        "${it - 180}°/с"
+                    },
+                ) { progress ->
+                    layerValue =
+                        layerValue.copy(
+                            autoRotationDegreesPerSecond =
+                                (progress - 180).toFloat(),
+                        )
+                    persistLayerTransform(
+                        layerId,
+                        layerValue,
+                    )
+                }
+            }
 
             opacitySeek =
                 addSlider(

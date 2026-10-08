@@ -43,6 +43,11 @@ class BoardLayerTransformStore(
                     key(prefix, "rotation"),
                     0f,
                 ),
+            autoRotationDegreesPerSecond =
+                prefs.getFloat(
+                    key(prefix, "spin_speed"),
+                    0f,
+                ),
             opacity =
                 prefs.getFloat(
                     key(prefix, "opacity"),
@@ -92,6 +97,10 @@ class BoardLayerTransformStore(
             .putFloat(
                 key(prefix, "rotation"),
                 safe.rotationDegrees,
+            )
+            .putFloat(
+                key(prefix, "spin_speed"),
+                safe.autoRotationDegreesPerSecond,
             )
             .putFloat(
                 key(prefix, "opacity"),

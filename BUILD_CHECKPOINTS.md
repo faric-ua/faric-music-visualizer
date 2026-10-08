@@ -1,5 +1,17 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## v0.19.51 / build 140 — Local Music Library foundation (MAIN CI PASS / PHONE QA PENDING)
+
+- App/source SHA: `1874325cf66f694246d02329d8ca4c1700a130c3`, merged PR #7; immutable checkpoint branch `checkpoint/pulsedeck-v0.19.51-2026-10-09`.
+- Validate #1107 PASS. Android #626 PASS, run `37846915174`; signed artifact `FARIC-Music-Visualizer-v0.19.51-Debug`, ID `11579998603`, expires 2026-10-11 21:30 UTC.
+- Functional MediaStore-based **«Усі треки»** tab from existing PulseDeck Home, searchable by track title/artist/album, efficient lazy ListView. Tap plays the selected/filtered queue via the existing Media3 PlaybackController. Home and bottom-nav Search open the same browser. Separate READ_MEDIA_AUDIO/legacy READ_EXTERNAL_STORAGE permission is prompted by explicit action only; SAF manual picker remains available.
+- Existing Home categories Albums, Artists, Folders, Genres, Years, Favorites and Recent **are not yet functional**. These are planned follow-ups after phone acceptance of the core library and player navigation. Do not claim a persistent standalone database or a fully rebuilt Home.
+- Existing GF/hero artwork left as-is at user's explicit request. Do not continue hero segmentation without renewed request. No changes to immutable PULSEDECK_CENTER_CALIBRATION, HUD, projectM or export engine.
+- **Phone QA PENDING:** permission grant/denial, device music count, title/artist/album search, track selection/Next, Back/rotation and current-player mini-dock. Prior build 139 hero artwork not user-accepted; 3-second MP4 regression remains untested for 140. PERF-NAV-002 and BUG-EXPORT-001 remain open.
+- **Next:** Termux **3 → 10 → 8**, download/install signed 140 (do not press 9), perform phone QA and mark PASS/FAIL. Then plan next library categories and improved Home from actual metadata.
+
+
+
 ## v0.19.50 / build 139 — main signed build PASS / PHONE QA PENDING
 
 - App/source exact SHA: `9825f1d3a16a68aef3dbcf4d507303231cfdab0c` (PR #6 merged).

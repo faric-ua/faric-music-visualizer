@@ -1,5 +1,15 @@
 # Active Plan
 
+## v0.19.47 / build 136 — original projectM UI + live hero switching (CI PASS; PHONE QA PENDING)
+
+- Code in main: `f5ce3e90a33122ee59c3599cc0830b29f08c8093`; PR #3 merged.
+- Validate #1086 PASS; Android #611 PASS, run `37810162017`, artifact `FARIC-Music-Visualizer-v0.19.47-Debug`, id `11565016839`, expires 2026-10-11.
+- Immutable checkpoint branch: `checkpoint/pulsedeck-v0.19.47-2026-10-08`.
+- v0.19.46 phone findings: Board, projectM and Themes browsing smooth; projectM legacy menu was replaced and Shark ↔ Panther still jerked. v0.19.47 restores original projectM 4-row controls, status and ratings within persistent scene; loads GF assets off UI and swaps only HeroBoardView in-place. `FARIC-nav` reports assetDecode and UIApplyAndReturn milliseconds.
+- **Phone QA PENDING.** Next: Termux **3 → 10 → 8** (do not press 9), install build 136. Test original projectM menu, Back/ratings/AUTO/FG; Shark ↔ Panther ×4 without visible stall or GL recreate; Board and Themes Back ×3; short MP4.
+- PERF-NAV-002 remains PARTIAL until theme switch phone PASS; BUG-EXPORT-001 remains OPEN for full-song export.
+
+
 ## v0.19.47 / build 136 — original projectM UI and smooth hero switching
 
 Phone QA of build 135: Board, Themes browse and projectM overlay navigation are smooth. Remaining issue: Shark ↔ Panther swap causes a severe hitch. User asks to restore old projectM layout. Candidate build 136 restores its original four control rows, status, ratings, auto interval and icon Back in the existing overlay. Theme assets are decoded on worker and swapped in place without rebuilding native projectM. CI/phone acceptance pending; keep PERF-NAV-002 open for hero change. See CURRENT_HANDOFF.md.

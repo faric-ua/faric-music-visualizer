@@ -11,7 +11,7 @@
 
 ## Наступний кандидат v0.19.47 / build 136
 
-Зміни тільки у projectM authoring UI (старий компактний вигляд всередині постійної сцени) і переході між Cyber Shark/Panther (async asset load, без recreation scene). Версія ще не пройшла телефонне QA. Посібник v1.0 як і раніше описує попередню стабільну версію.
+Зміни тільки у projectM authoring UI (старий компактний вигляд всередині постійної сцени) і переході між Cyber Shark/Panther (async asset load, без recreation scene). Validate #1086 / Android #611 PASS; APK v0.19.47/build 136 із main готовий до phone QA. Посібник v1.0 як і раніше описує попередню стабільну версію.
 
 ## Що описує посібник
 

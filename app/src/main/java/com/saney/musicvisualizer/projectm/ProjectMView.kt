@@ -58,6 +58,10 @@ class ProjectMView(
     @Volatile
     private var glHeight = 0
 
+    // Old SurfaceView GL threads must never touch the shared native bridge after release.
+    @Volatile
+    private var releaseRequested = false
+
     // Offline export reuses two large readback slots. While Canvas composes
     // frame N, the GL thread may render/read frame N+1 into the other slot.
     // This preserves exact pixels while overlapping GPU->CPU readback with CPU
@@ -130,6 +134,7 @@ class ProjectMView(
                 foregroundTuning =
                     foregroundTuning,
                 manualFrameMode = manualFrameMode,
+                shouldSkipNativeRendering = { releaseRequested },
                 onSurfaceSize = { width, height ->
                     glWidth = width
                     glHeight = height
@@ -275,6 +280,7 @@ class ProjectMView(
     }
 
     fun releaseProjectM() {
+        releaseRequested = true
         queueEvent {
             ProjectMBridge.destroy()
             clearOfflineReadbackCache()
@@ -284,6 +290,7 @@ class ProjectMView(
     fun releaseProjectMThen(
         onReleased: () -> Unit,
     ) {
+        releaseRequested = true
         val queuedNs = System.nanoTime()
         queueEvent {
             val startNs = System.nanoTime()
@@ -305,6 +312,7 @@ class ProjectMView(
     fun releaseProjectMBlocking(
         timeoutMs: Long = 1_500L,
     ): Boolean {
+        releaseRequested = true
         val latch =
             CountDownLatch(
                 1,
@@ -1072,6 +1080,7 @@ class ProjectMView(
         private val foregroundEdgeFxVisible: Boolean,
         private val foregroundTuning: ProjectMForegroundTuning,
         private val manualFrameMode: Boolean,
+        private val shouldSkipNativeRendering: () -> Boolean,
         private val onSurfaceSize: (Int, Int) -> Unit,
     ) : GLSurfaceView.Renderer {
         private var created = false
@@ -1085,6 +1094,7 @@ class ProjectMView(
         }
 
         override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
+            if (shouldSkipNativeRendering()) return
             onSurfaceSize(
                 width,
                 height,
@@ -1127,7 +1137,7 @@ class ProjectMView(
         }
 
         override fun onDrawFrame(gl: GL10?) {
-            if (manualFrameMode) {
+            if (manualFrameMode || shouldSkipNativeRendering()) {
                 return
             }
 

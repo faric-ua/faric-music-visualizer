@@ -5,6 +5,7 @@ import android.graphics.Color
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import android.view.Gravity
 import android.view.View
 import android.view.ViewGroup
@@ -452,21 +453,30 @@ class ProjectMActivity : ComponentActivity() {
         cancelAuto()
         status.text = "Повертаюся в плеєр…"
 
-        val view =
-            projectMView
-        projectMView =
-            null
+        val view = projectMView
 
         if (view == null) {
             finish()
             return
         }
 
+        // Do not null the field until the old GL thread is paused; onPause()
+        // otherwise misses the GLSurfaceView entirely.
+        val exitStartedNs = System.nanoTime()
+        Log.i("FARIC-nav", "projectM exit: native release queued")
         view.releaseProjectMThen {
-            if (
-                !isFinishing &&
-                !isDestroyed
-            ) {
+            if (!isFinishing && !isDestroyed) {
+                val pauseStartedNs = System.nanoTime()
+                view.onPause()
+                projectMView = null
+                Log.i(
+                    "FARIC-nav",
+                    "projectM exit: release=" +
+                        ((pauseStartedNs - exitStartedNs) / 1_000_000L) +
+                        "ms, GL pause=" +
+                        ((System.nanoTime() - pauseStartedNs) / 1_000_000L) +
+                        "ms; finishing Activity",
+                )
                 finish()
             }
         }

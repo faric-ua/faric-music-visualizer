@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 133
-        versionName = "0.19.44"
-        // v0.19.44: non-blocking Board/player GL release and projectM-only return restore with nav timings.
+        versionCode = 134
+        versionName = "0.19.45"
+        // v0.19.45: prevent released projectM GL views from rendering and pause on exit before finishing.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

@@ -4,6 +4,13 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## SOURCE CANDIDATE — v0.19.45 / build 134 (projectM exit GL ownership)
+
+- **New phone evidence on v0.19.44 / 133:** projectM → app Back FAIL; projectM → Android system Back FAIL; Board and Frame/Center NOT TESTED; 3-second MP4 PASS (1080×1920, 90 frames, total 5789 ms). PERF-NAV-002 remains OPEN.
+- **Audit:** ProjectMActivity.exitToPlayer nulled projectMView before Android onPause; old continuous GLSurfaceView may render against destroyed singleton bridge. This is a code-level race risk, not a phone-confirmed root cause.
+- **v0.19.45 source:** keep exiting view until release callback, explicitly GL-pause before finish; add volatile release guard to skip old renderer onDrawFrame/onSurfaceChanged; log exit release/pause timings under FARIC-nav.
+- **CI / PHONE QA: PENDING.** No claim of improved smoothness until tested. Validate + Android build on new main commit, then Termux 3 → 10 → 8. Test both projectM Back paths 3 times, Board, Frame/Center retention, 3s MP4. BUG-EXPORT-001 still OPEN.
+
 ## NEW SOURCE CANDIDATE — v0.19.44 / build 133 (navigation timing and GL release)
 
 - Parent app release v0.19.43 / build 132 had **phone QA 3 PASS/2 FAIL**: export report Copy/OK PASS; player ↔ projectM and player ↔ Board transitions FAIL. QA is saved in `docs/checkpoints/2026-10-08-v0.19.43-export-copy-lifecycle.md`.

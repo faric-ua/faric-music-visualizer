@@ -52,6 +52,22 @@ jobs:
           set -euo pipefail
           ! git grep -nE 'AlertDialog\.Builder|android\.app\.AlertDialog|MaterialAlertDialogBuilder|import android\.widget\.Button' -- app/src/main/java
 
+      - name: Export result fixed-footer contract
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY'
+          from pathlib import Path
+          dialog = Path("app/src/main/java/com/saney/musicvisualizer/ui/PulseDeckDialogs.kt").read_text()
+          main = Path("app/src/main/java/com/saney/musicvisualizer/MainActivity.kt").read_text()
+          assert "scrollableMessage = true" in main, "export report must opt into scrollable message"
+          assert "if (scrollableMessage) 0 else context.dp(420)" in dialog, "scrolling message must use weighted remaining height"
+          assert "weight = 1f" in dialog, "weighted scroll region required"
+          assert "ViewGroup.LayoutParams.MATCH_PARENT,\n                    ViewGroup.LayoutParams.MATCH_PARENT" in dialog, "bounded dialog panel must fill viewport"
+          assert "displayMetrics.heightPixels * 0.82f" in dialog, "long dialog window needs viewport height cap"
+          assert dialog.index("        actions.forEachIndexed") > dialog.index("if (scrollableMessage) 0 else context.dp(420)"), "action footer must follow scrollable message"
+          PY
+
       - name: PulseDeck dialog text-fit contract
         shell: bash
         run: |

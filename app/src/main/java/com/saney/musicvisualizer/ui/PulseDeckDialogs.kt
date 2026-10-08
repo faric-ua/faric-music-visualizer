@@ -382,6 +382,9 @@ object PulseDeckDialogs {
         message: String,
         primaryLabel: String = "OK",
         secondaryLabel: String? = null,
+        // The export timing report can exceed the viewport. Opt in to
+        // scrolling only its message, not the title or action footer.
+        scrollableMessage: Boolean = false,
         onSecondary: (() -> Unit)? = null,
     ): Dialog =
         show(
@@ -413,6 +416,7 @@ object PulseDeckDialogs {
                     )
                 },
             dismissAfterAction = true,
+            scrollableMessage = scrollableMessage,
         )
 
     fun show(
@@ -422,6 +426,7 @@ object PulseDeckDialogs {
         body: View? = null,
         actions: List<Action>,
         dismissAfterAction: Boolean = true,
+        scrollableMessage: Boolean = false,
     ): Dialog {
         lateinit var dialog:
             Dialog
@@ -514,6 +519,7 @@ object PulseDeckDialogs {
                 )
 
             if (
+                scrollableMessage ||
                 message.length >
                     900
             ) {
@@ -533,10 +539,13 @@ object PulseDeckDialogs {
                     },
                     LinearLayout.LayoutParams(
                         ViewGroup.LayoutParams.MATCH_PARENT,
-                        context.dp(
-                            420,
-                        ),
+                        // Give a tall report only the remaining space;
+                        // its action buttons stay pinned below the scroll.
+                        if (scrollableMessage) 0 else context.dp(420),
                     ).apply {
+                        if (scrollableMessage) {
+                            weight = 1f
+                        }
                         topMargin =
                             context.dp(
                                 10,
@@ -617,9 +626,19 @@ object PulseDeckDialogs {
             )
         }
 
-        dialog.setContentView(
-            panel,
-        )
+        if (scrollableMessage) {
+            dialog.setContentView(
+                panel,
+                ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                ),
+            )
+        } else {
+            dialog.setContentView(
+                panel,
+            )
+        }
         dialog.show()
 
         dialog.window
@@ -638,8 +657,14 @@ object PulseDeckDialogs {
                             PANEL_WIDTH_FRACTION
                         )
                         .toInt(),
-                    ViewGroup.LayoutParams
-                        .WRAP_CONTENT,
+                    if (scrollableMessage) {
+                        // Respect the visible screen: report body scrolls
+                        // while Copy / OK remain reachable at all times.
+                        (context.resources.displayMetrics.heightPixels * 0.82f)
+                            .toInt()
+                    } else {
+                        ViewGroup.LayoutParams.WRAP_CONTENT
+                    },
                 )
                 setGravity(
                     Gravity.CENTER,

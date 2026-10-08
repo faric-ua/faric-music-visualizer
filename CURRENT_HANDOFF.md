@@ -4,6 +4,15 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## CURRENT SOURCE CANDIDATE — v0.19.41 / build 130 — fixed export report actions
+
+- **Observed bug:** screenshot `1791424966546.jpeg`: export result's timing report extends off screen; buttons `Копіювати текст` and `OK` are hidden. A separate completed 3-second exported video `606819.mp4` (1080×1920, 30fps; report says 90 frames and total 5754ms) confirms short export works, **not** full-song stability.
+- **Source change:** `PulseDeckDialogs.showMessage(scrollableMessage = true)` opt-in used by `MainActivity.showExportTimingResult`; report message occupies a weighted ScrollView in a bounded-height dialog, title and Copy/OK action footer remain fixed outside scroll. Generic small app dialogs remain unchanged.
+- **Status:** Source implemented; Validate / Android and phone QA **pending**. This change is only export report UX, not a full-song export crash fix.
+- **Next:** run CI, record successful build before installation. On phone, create 3-second preview, scroll report to the very bottom, copy report text then repeat and tap OK; actions must always be visible. Retest v0.19.40 nested Layers / Back findings separately if they remain open.
+- **Open:** BUG-EXPORT-001 full-song export app exit ~48% (unconfirmed root cause); PERF-PLAYER-001 irregular movement; projectM Back/lifecycle remains unaccepted until phone QA. See `OPEN_FINDINGS.md`.
+- **Contract:** `ASSISTANT_RESPONSE_CONTRACT.md`: Termux menu 3 / 10 / 8 after CI PASS, then 3-6 specific phone tests.
+
 ## CURRENT SOURCE CANDIDATE — v0.19.40 / build 129 — nested panel and navigation fix
 
 - Video findings: `606815.mp4` demonstrates Layers parent closing on Visualizer ⚙; `606816.mp4` shows navigation delays; `606817.jpg` confirms missing visual Back control.

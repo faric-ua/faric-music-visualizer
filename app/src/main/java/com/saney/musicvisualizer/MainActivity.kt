@@ -8968,6 +8968,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             message = message,
             primaryLabel = "OK",
             secondaryLabel = "Копіювати текст",
+            scrollableMessage = true,
         ) {
             val clipboard =
                 getSystemService(

@@ -1,5 +1,14 @@
 # Open Findings
 
+## BUG-UX-004 — export timing report hides Copy / OK buttons
+
+- **Affected version:** v0.19.40 / build 129 and earlier.
+- **Evidence:** Phone screenshot `1791424966546.jpeg` shows `Експорт завершено` with many timing lines but neither `Копіювати текст` nor `OK` visible at bottom. User also provided a completed 3-second MP4 `606819.mp4` (1080×1920, 30fps, 90 frames on timing screenshot) for separate export proof.
+- **Expected:** Styled result dialog remains within the visible viewport; only long timing message scrolls; heading and both buttons remain fixed and tappable, including at the bottom of report.
+- **Root cause:** generic `PulseDeckDialogs.showMessage` only wraps messages longer than 900 chars in a fixed 420dp ScrollView; dialog window itself uses WRAP_CONTENT, so large reports can exceed the screen and push action buttons out of view.
+- **Source fix:** v0.19.41 / build 130 opts the export result into a capped-height dialog; message uses a weight=1 `ScrollView`; fixed actions remain outside that scroll area. Other smaller app dialogues retain previous sizing.
+- **Status:** SOURCE FIX — Android CI and phone QA pending. Do not mark phone PASS until the user scrolls the report and tests Copy and OK.
+
 ## BUG-UX-002 — Nested Visualizer settings closes Layers parent
 - **Affected version:** v0.19.39 / build 128 and prior.
 - **Evidence:** Phone video `606815.mp4` (~8s): player → PulseDeck tools → Layers → Visualizer ⚙. The Layers dialog disappears on opening the movable FG settings panel and does not return when the child is closed.

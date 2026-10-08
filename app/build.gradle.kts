@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 129
-        versionName = "0.19.40"
-        // v0.19.40: nested Layers dialog lifecycle, visible projectM Back and non-blocking player-to-projectM GL handoff.
+        versionCode = 130
+        versionName = "0.19.41"
+        // v0.19.41: bounded export timing report with scrollable content and fixed Copy/OK footer.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

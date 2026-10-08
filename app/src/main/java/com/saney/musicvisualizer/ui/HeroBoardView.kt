@@ -819,8 +819,7 @@ class HeroBoardView(
                 motion.copy(
                     rotationDegrees =
                         motion.rotationDegrees +
-                            (timeSeconds *
-                                frameTransform.autoRotationDegreesPerSecond) % 360f,
+                            frameTransform.autoRotationOffsetAt(timeSeconds),
                 )
             }
         if (

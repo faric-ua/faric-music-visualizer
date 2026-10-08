@@ -52,6 +52,13 @@ data class BoardLayerTransform(
                 ),
         )
 
+    /**
+     * Timeline-based angle shared by live preview and offline export.
+     * Modulo limits the angle to protect precision on long tracks.
+     */
+    fun autoRotationOffsetAt(timeSeconds: Float): Float =
+        ((timeSeconds * autoRotationDegreesPerSecond) % 360f)
+
     companion object {
         fun default(): BoardLayerTransform =
             BoardLayerTransform()

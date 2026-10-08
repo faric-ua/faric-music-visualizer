@@ -501,8 +501,7 @@ class CyberSharkExportRenderer(
                     motion
                         .rotationDegrees +
                     if (layerId == BoardLayerId.FRAME) {
-                        (timeSeconds *
-                            layerTransform.autoRotationDegreesPerSecond) % 360f
+                        layerTransform.autoRotationOffsetAt(timeSeconds)
                     } else {
                         0f
                     },
@@ -650,8 +649,7 @@ class CyberSharkExportRenderer(
                         motion.copy(
                             rotationDegrees =
                                 motion.rotationDegrees +
-                                    (timeSeconds *
-                                        frameTransform.autoRotationDegreesPerSecond) % 360f,
+                                    frameTransform.autoRotationOffsetAt(timeSeconds),
                         )
                     },
                 cx,

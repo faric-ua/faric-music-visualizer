@@ -150,3 +150,39 @@ For the first tuning implementation:
 5. Return to the main player and confirm the same tuned result is used there.
 6. Export only after the authoring result is visually accepted.
 
+
+## Authoring panel UX refinement — 2026-10-08
+
+Phone QA showed the first Center/Edge dialogs were visually correct but too large and modal: they covered the exact composition area the user was trying to tune.
+
+Final authoring UX contract:
+- use one **movable PulseDeck-styled projectM settings panel** instead of separate blocking Center/Edge dialogs;
+- panel header is draggable and its last X/Y position persists;
+- panel can be reset to its default position;
+- panel is non-modal / non-dimming so the live composition remains visible behind it;
+- tabs inside one panel: **AUTO / CENTER / EDGE FX**;
+- Center/Edge parameter edits apply live without closing the panel;
+- the same panel is available from the separate projectM authoring screen and from the main PulseDeck Layers panel;
+- Main Layers -> Visualizer gets its own **⚙** button, analogous to the GF settings gear, so projectM/FG can be tuned while looking at the full composite player.
+
+AUTO semantics are explicit:
+- the previous screen could show `MANUAL` while the lower button still said `5s`; in that state no automatic change was expected, which was confusing;
+- the lower control now shows **AUTO OFF** when manual mode is active and **AUTO 5s / AUTO 10s / AUTO 15s** when automatic switching is active;
+- tapping the AUTO interval control while manual re-enables AUTO using the current interval;
+- while AUTO is active, tapping cycles 5 -> 10 -> 15 -> 5;
+- choosing 5/10/15 inside the movable AUTO tab always enables AUTO immediately.
+
+Exit lifecycle refinement:
+- do not block the UI thread waiting for the GL renderer to be destroyed;
+- Back starts a queued GL release and finishes the activity from the release callback;
+- this preserves the no-race ownership fix while avoiding the visible UI freeze caused by `releaseProjectMBlocking()` on the main thread.
+
+Phone QA:
+1. Open projectM settings and drag the panel to all screen sides; confirm preview remains visible and interactive enough to judge changes.
+2. Close/reopen and confirm panel position is remembered.
+3. Set MANUAL with NEXT; confirm button says AUTO OFF.
+4. Tap AUTO OFF; confirm it becomes AUTO <current>s and presets start changing.
+5. Verify 5s/10s/15s timing.
+6. Open Layers on the main player; Visualizer row must show a gear; open it and tune Center/Edge over the full composite.
+7. Back from projectM using both PulseDeck Back and system Back; there should be no blocking/frozen pause before return and no late renderer corruption.
+

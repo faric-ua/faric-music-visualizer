@@ -4,6 +4,15 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## DOCUMENTATION SYNC / RECOVERY — mandatory contract (2026-10-08)
+
+- **Authoritative plan:** `docs/user/DOCUMENTATION_SYNC_CONTRACT.md`. This is the persistent and explicitly scoped commitment for future chats: keep the guide updated with each user-facing change, safely preserve completed documents, and work toward fully automated documentation delivery.
+- **Already working:** main Termux **3** synchronizes committed tracked GitHub files; main menu **20** opens Documentation. Markdown source lives in `docs/user/FARIC_USER_GUIDE_UK.md` and survives chat loss if committed. **No assistant continues working in the background after a chat stops.**
+- **Still NOT automatic:** published screenshot-rich PDF/DOCX/HTML remain from chat/Downloads and do not update via `3`. `20 → 1` can generate HTML from Markdown only when pre-imported HTML is absent; do not call HTML freshness guaranteed with an imported older copy.
+- **Next planned engineering work — DOCSYNC-001:** reproducible CI builds HTML/PDF/DOCX, manifest + SHA256, durable GitHub publishing, read-only safe Termux sync during item **3** with unchanged menu 1–20, preserves previous docs, checks QA. **DOCSYNC-002:** CI/release documentation freshness guard. These are explicit TODOs, not shipped.
+- User-identified cosmetic issue: stretched Shark cover in older PDF must be corrected with aspect-ratio-safe rendering when PDF/DOCX rebuilt.
+- **Handoff rule:** at each release and before chat migration link this contract and update version / app SHA / guide revision / CI and phone QA. No false claim of full sync or remote durability for files only attached to chat.
+
 ## TERMUX DOCUMENTATION SUBMENU — 2026-10-08
 
 - In `scripts/termux-menu.sh` the single new **`20 — Documentation →`** entry opens `tools/termux/documentation-menu.sh`. Main menu options **1–19 remain unchanged**. Android APK source/version is unchanged (still v0.19.43 / build 132).

@@ -284,9 +284,17 @@ class ProjectMView(
     fun releaseProjectMThen(
         onReleased: () -> Unit,
     ) {
+        val queuedNs = System.nanoTime()
         queueEvent {
+            val startNs = System.nanoTime()
             ProjectMBridge.destroy()
             clearOfflineReadbackCache()
+            Log.i(
+                TAG,
+                "native release: queued=" +
+                    ((startNs - queuedNs) / 1_000_000L) + "ms, destroy=" +
+                    ((System.nanoTime() - startNs) / 1_000_000L) + "ms",
+            )
 
             post {
                 onReleased()
@@ -1083,12 +1091,19 @@ class ProjectMView(
             )
 
             if (!created) {
+                val createStartedNs = System.nanoTime()
                 ProjectMBridge.create(
                     width = width,
                     height = height,
                     presetPath = presetPath,
                     texturePath = texturePath,
                     profile = profile,
+                )
+                Log.i(
+                    TAG,
+                    "native create: " +
+                        ((System.nanoTime() - createStartedNs) / 1_000_000L) +
+                        " ms · profile=" + profile.name,
                 )
                 // FARIC owns AUTO/MANUAL timing. projectM internal switching stays locked.
                 ProjectMBridge.enableAutoPresetSwitching(false)
@@ -1117,6 +1132,9 @@ class ProjectMView(
             }
 
             ProjectMBridge.render()
+            if (frameCount == 0) {
+                Log.i(TAG, "first GL render frame after surface setup")
+            }
 
             frameCount++
             if (frameCount >= 120) {

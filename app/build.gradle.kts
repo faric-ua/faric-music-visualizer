@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 132
-        versionName = "0.19.43"
-        // v0.19.43: copy timing report without closing it until OK.
+        versionCode = 133
+        versionName = "0.19.44"
+        // v0.19.44: non-blocking Board/player GL release and projectM-only return restore with nav timings.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

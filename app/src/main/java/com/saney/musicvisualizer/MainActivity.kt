@@ -145,6 +145,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var projectMMainView: ProjectMView? = null
     private var projectMMainResumed = false
     private var projectMOpenPending = false
+    private var projectMRebuildPending = false
+    private var projectMRebuildTarget: Screen? = null
     private var projectMExportSnapshot: Bitmap? = null
     private var projectMExportLiveView: ProjectMView? = null
     private var projectMExportLiveResumed = false
@@ -268,7 +270,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
 
             if (screen == Screen.NOW_PLAYING) {
-                showNowPlaying()
+                // The player and its HUD stayed mounted underneath projectM.
+                // Restore only the native visualizer slot after the other
+                // Activity released our shared ProjectMBridge.
+                val stack = pulseDeckLayerStack
+                if (stack != null) {
+                    val startNs = System.nanoTime()
+                    val restoredView = createLayer0ProjectMView()
+                    projectMMainView = restoredView
+                    stack.setContent(
+                        PulseDeckLayerStack.Layer.VISUALIZER,
+                        restoredView,
+                    )
+                    applyVisualizerRenderSlots()
+                    updateProjectMRenderState()
+                    Log.i(
+                        "FARIC-nav",
+                        "projectM return: restored only visualizer slot in " +
+                            ((System.nanoTime() - startNs) / 1_000_000L) + " ms",
+                    )
+                } else {
+                    showNowPlaying()
+                }
             }
         }
 
@@ -1097,9 +1120,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         onPlaybackSnapshot(latestSnapshot)
     }
 
-    private fun attachLayer0Visualizer(
-        stack: PulseDeckLayerStack,
-    ) {
+    private fun createLayer0ProjectMView(): ProjectMView? {
         val projectMState =
             ProjectMStateStore(
                 this,
@@ -1150,8 +1171,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 null
             }
 
-        projectMMainView =
-            projectM
+        return projectM
+    }
+
+    private fun attachLayer0Visualizer(
+        stack: PulseDeckLayerStack,
+    ) {
+        val projectM = createLayer0ProjectMView()
+        projectMMainView = projectM
 
         stack.setContent(
             PulseDeckLayerStack.Layer.VISUALIZER,
@@ -1308,6 +1335,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showNowPlaying() {
+        if (
+            deferMainProjectMRebuild(
+                Screen.NOW_PLAYING,
+            )
+        ) {
+            return
+        }
         screen = Screen.NOW_PLAYING
         clearScreenRefs()
 
@@ -4657,6 +4691,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showBoardTransform() {
+        if (
+            deferMainProjectMRebuild(
+                Screen.BOARD_TRANSFORM,
+            )
+        ) {
+            return
+        }
         val gfThemeId =
             currentGraphicFigureThemeId()
 
@@ -8583,6 +8624,60 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 animate = false,
             )
         }
+    }
+
+    /**
+     * releaseProjectMBlocking() waited on GLThread on the Android UI thread
+     * for up to 1.5 seconds on every Board ↔ Player rebuild. The native bridge
+     * is a singleton, so a new view may only be installed AFTER old GL release.
+     *
+     * Queue the native release on the existing GL thread, keep the currently
+     * visible screen interactive, then render the last requested destination.
+     * Other screen types retain their prior handling until separately audited.
+     */
+    private fun deferMainProjectMRebuild(
+        target: Screen,
+    ): Boolean {
+        if (projectMRebuildPending) {
+            projectMRebuildTarget = target
+            return true
+        }
+
+        val oldView = projectMMainView ?: return false
+        if (projectMOpenPending) return true
+
+        projectMRebuildPending = true
+        projectMRebuildTarget = target
+        val startNs = System.nanoTime()
+        Log.i("FARIC-nav", "Board/player GL release queued → $target")
+
+        oldView.releaseProjectMThen {
+            if (projectMMainView === oldView) {
+                projectMMainView = null
+                if (projectMMainResumed) {
+                    oldView.onPause()
+                    projectMMainResumed = false
+                }
+            }
+
+            projectMRebuildPending = false
+            val destination = projectMRebuildTarget
+            projectMRebuildTarget = null
+
+            Log.i(
+                "FARIC-nav",
+                "Board/player GL released in " +
+                    ((System.nanoTime() - startNs) / 1_000_000L) + " ms",
+            )
+            if (!isFinishing && !isDestroyed) {
+                when (destination) {
+                    Screen.NOW_PLAYING -> showNowPlaying()
+                    Screen.BOARD_TRANSFORM -> showBoardTransform()
+                    else -> Unit
+                }
+            }
+        }
+        return true
     }
 
     private fun clearScreenRefs() {

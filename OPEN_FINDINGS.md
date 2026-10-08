@@ -1,5 +1,14 @@
 # Open Findings
 
+## PERF-NAV-002 — v0.19.44 candidate (build 133): targeted navigation ownership fix
+
+- **Source implementation (not yet phone-accepted):** `MainActivity.deferMainProjectMRebuild` ensures Board ↔ Player's shared projectM bridge is destroyed on the original GL thread **before** the new screen/replacement bridge is created; the Android UI thread no longer waits inside `releaseProjectMBlocking` on this specific route. Rapid repeat rebuild requests are coalesced to their latest destination.
+- **Separate projectM Activity return:** instead of calling `showNowPlaying()` and rebuilding all PulseDeck/HUD/Board layers on ActivityResult, restore only the projectM visualizer slot in the preserved `PulseDeckLayerStack`; then update render state. First app launch and missing stack retain the old full rendering fallback.
+- **Diagnostics:** `FARIC-nav` reports queued and completed Board/player transition times and projectM slot restoration; `FARIC-projectM` logs native release queue/destroy and native create times, first rendered frame.
+- **Limit:** MainActivity's generic `clearScreenRefs()` still blocks on other transitions (Library/Export/Theme); projectM native initialization and SurfaceView attach can still cause delays. No claim of freeze-free performance until phone QA.
+- **Status:** SOURCE CANDIDATE; Android Validate and phone QA pending.
+- **Acceptance:** 1) Repeat Board ↔ Player 3 times, no visible freeze/black scene and maintained projectM background; 2) repeat player → projectM → app Back and Android system Back 3 times, background restored and HUD stable; 3) long/signed Frame and Center spin unaffected; 4) 3-second MP4 proof regression, no full-song export until separately diagnosed.
+
 ## PHONE QA — v0.19.43 / build 132 — 3 PASS / 2 FAIL (2026-10-08)
 
 **User-submitted results (unambiguous):**

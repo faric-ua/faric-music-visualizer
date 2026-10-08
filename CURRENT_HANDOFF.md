@@ -4,6 +4,14 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## NEW SOURCE CANDIDATE — v0.19.44 / build 133 (navigation timing and GL release)
+
+- Parent app release v0.19.43 / build 132 had **phone QA 3 PASS/2 FAIL**: export report Copy/OK PASS; player ↔ projectM and player ↔ Board transitions FAIL. QA is saved in `docs/checkpoints/2026-10-08-v0.19.43-export-copy-lifecycle.md`.
+- Code candidate **v0.19.44 build 133**: async GL release before Board/Player screen rebuild, coalescing repeat navigation; separate projectM return restores only visualizer layer in the existing player stack (not full PulseDeck/HUD recreation); timing diagnostics in `FARIC-nav` and `FARIC-projectM`.
+- This is a **targeted partial fix**: generic screen teardown, EGL attach and native initialization may still pause, and unrelated full-song export bug is not fixed. **Do not mark PERF-NAV-002 PASS until phone confirms.**
+- Once CI Android passes, create immutable checkpoint and present Termux 3 → 10 → 8; phone test Board/Player repeats, separate projectM both Back buttons, no lost background, then quick 3-second export regression.
+- Canonical docs rule still applies; no new visual features or user-facing menu labels were introduced.
+
 ## PHONE QA — v0.19.43 / build 132: 3 PASS / 2 FAIL
 
 - **Phone-accepted:** 3-second export report opens with Copy/OK; Copy copies without dismissing; OK closes report only — **3/3 PASS**. No repeated QA needed for unchanged report code.

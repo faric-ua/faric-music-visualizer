@@ -383,6 +383,7 @@ object ProjectMSettingsPanel {
             label: String,
             value: () -> Float,
             step: Float,
+            defaultValue: Float = 1f,
             format: (Float) -> String,
             update: (Float) -> Unit,
         ) {
@@ -444,6 +445,13 @@ object ProjectMSettingsPanel {
                     includeFontPadding =
                         false
                 }
+
+            valueView.contentDescription =
+                "$label: натисни, щоб скинути до стандартного значення"
+            valueView.setOnClickListener {
+                update(defaultValue)
+                valueView.text = format(value())
+            }
 
             fun applyDelta(
                 delta: Float,
@@ -653,7 +661,7 @@ object ProjectMSettingsPanel {
 
         fun buildCenter() {
             addHint(
-                "FG Center змінюється наживо. Панель можна відтягнути вбік, щоб бачити результат.",
+                "FG Center змінюється наживо. Перетягни панель убік. Натисни на число — скинеться лише цей параметр.",
             )
 
             addValueRow(
@@ -682,6 +690,7 @@ object ProjectMSettingsPanel {
                     tuning.centerRotationDegrees
                 },
                 step = 5f,
+                defaultValue = 0f,
                 format = {
                     "%.0f°".format(
                         it,
@@ -692,6 +701,24 @@ object ProjectMSettingsPanel {
                         tuning.copy(
                             centerRotationDegrees =
                                 next,
+                        ),
+                    )
+                },
+            )
+            addValueRow(
+                label = "Автообертання",
+                value = {
+                    tuning.centerSpinDegreesPerSecond
+                },
+                step = 5f,
+                defaultValue = 0f,
+                format = {
+                    "%.0f°/с".format(it)
+                },
+                update = { next ->
+                    persistTuning(
+                        tuning.copy(
+                            centerSpinDegreesPerSecond = next,
                         ),
                     )
                 },
@@ -807,6 +834,7 @@ object ProjectMSettingsPanel {
                         tuning.copy(
                             centerScale = 1f,
                             centerRotationDegrees = 0f,
+                            centerSpinDegreesPerSecond = 0f,
                             centerOpacity = 1f,
                             centerBassGain = 1f,
                             centerMidGain = 1f,
@@ -828,7 +856,7 @@ object ProjectMSettingsPanel {
 
         fun buildEdge() {
             addHint(
-                "FG Edge FX — окремий боковий/крайовий шар. Налаштовується незалежно від Center.",
+                "FG Edge FX — окремий крайовий шар. Натисни на число, щоб скинути лише цей параметр.",
             )
 
             addValueRow(

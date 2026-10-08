@@ -26,6 +26,18 @@ open_guide() {
   if [ -d "$DOC_DIR" ]; then
     found="$(find "$DOC_DIR" -maxdepth 2 -type f -name "FARIC_User_Guide_UK_v*.$ext" 2>/dev/null | sort -V | tail -n 1)"
   fi
+  # HTML is always available from the tracked Markdown even before importing
+  # the original screenshot-rich HTML from the ZIP. Cache outside Git.
+  if { [ -z "$found" ] || [ ! -f "$found" ]; } && [ "$ext" = "html" ]; then
+    local converter="$REPO/tools/termux/render-documentation-html.py"
+    local guide="$REPO/docs/user/FARIC_USER_GUIDE_UK.md"
+    local cache="$HOME/.cache/faric-music-visualizer/documentation"
+    if command -v python3 >/dev/null 2>&1 && [ -f "$converter" ] && [ -f "$guide" ]; then
+      if mkdir -p "$cache" && python3 "$converter" "$guide" "$cache/FARIC_User_Guide_UK_offline.html"; then
+        found="$cache/FARIC_User_Guide_UK_offline.html"
+      fi
+    fi
+  fi
   if [ -z "$found" ] || [ ! -f "$found" ]; then
     echo "Файл .$ext поки відсутній у Documentation."
     echo "Завантаж FARIC_User_Guide_UK_v0.19.43_COMPLETE.zip із чату в Download."

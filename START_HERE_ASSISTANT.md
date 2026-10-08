@@ -4,6 +4,14 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## USER MANUAL / USER GUIDE — canonical documentation (2026-10-08)
+
+- The user's comprehensive Ukrainian manual is **`docs/user/FARIC_USER_GUIDE_UK.md`**; entrypoint/update rules **`docs/user/README.md`**.
+- Edition 1.0 covers Android v0.19.43/build 132: local file selection and PulseDeck playback, working themes, Layers/Board GF, projectM Center/Edge/AUTO, Composition Sets, Export Lab PNG/3s MP4/full-song status, supported ratios, saved files, common bugs, and pending features. It has user-friendly routes and a term glossary.
+- Two user-downloadable artifacts **PDF (11 pages with clickable contents and 4 prior-build test screenshots) and editable DOCX** were created in the originating conversation; they are not stored as binary repo assets. GitHub canonical Markdown embeds existing repository reference illustrations and is the update source.
+- **From now on, for user-facing feature changes/update releases update the guide and `docs/user/README.md`**. Do not silently mark planned features as working, or phone-untested features as accepted. When regenerating PDF/DOCX, render and inspect.
+- Keep technical Termux developer menu commands out of Android user-facing guide unless explicitly placed in a separate developer appendix. Current known defects: PERF-NAV-002, BUG-EXPORT-001, PERF-PLAYER-001.
+
 ## NEW VIDEO RESEARCH TRACK — Heroes vs Audioforms (2026-10-08)
 
 - Proposed user-visible categories: **Герої (Heroes)** = Cyber Shark / Cyber Panther illustrated theme packs; **Аудіоформи (Audioforms)** = new independent bass/beat-deforming shapes; **Оформлення (Decor)** = frames/logos; **Ефекти (FX)** = particles/glow. Keep projectM as its own visualizer engine. This is a **naming/architecture proposal pending approval**, not a code rename.

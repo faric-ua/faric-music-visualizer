@@ -142,6 +142,9 @@ while true; do
   echo "18 — Імпортувати PulseDeck HUD skin (Downloads / вибір файлу)"
   echo "19 — Імпортувати PulseDeck Clean Blocks v2 (Downloads / вибір файлу)"
   echo
+  echo "DOCUMENTATION"
+  echo "20 — Documentation →"
+  echo
   echo "0 — Вийти"
   echo
   printf "Вибір: "
@@ -167,6 +170,7 @@ while true; do
     17) run_tool "$REPO/tools/termux/sync-cyber-shark-production-to-app.sh" ;;
     18) run_tool "$REPO/tools/termux/import-pulsedeck-hud-skin.sh" ;;
     19) run_tool "$REPO/tools/termux/import-pulsedeck-master-plate.sh" ;;
+    20) bash "$REPO/tools/termux/documentation-menu.sh" ;;
     0) clear; exit 0 ;;
     *) echo "Невідомий пункт."; sleep 1 ;;
   esac

@@ -60,6 +60,7 @@ import com.saney.musicvisualizer.projectm.ProjectMBridge
 import com.saney.musicvisualizer.projectm.ProjectMLibraryManager
 import com.saney.musicvisualizer.projectm.ProjectMOfflineFrameRequest
 import com.saney.musicvisualizer.projectm.ProjectMPerformanceProfile
+import com.saney.musicvisualizer.projectm.ProjectMSettingsPanel
 import com.saney.musicvisualizer.projectm.ProjectMStateStore
 import com.saney.musicvisualizer.projectm.ProjectMView
 import com.saney.musicvisualizer.scene.SceneOrchestrator
@@ -3505,6 +3506,37 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         showNowPlaying()
     }
 
+    private fun showProjectMSettingsPanel() {
+        val state =
+            ProjectMStateStore(
+                this,
+            )
+
+        ProjectMSettingsPanel.show(
+            context = this,
+            stateStore = state,
+            initialSection =
+                ProjectMSettingsPanel
+                    .Section
+                    .CENTER,
+            onAutoChanged = {
+                    _,
+                    _,
+                ->
+                // AUTO sequencing is authored on the projectM screen.
+                // The selected state is already persisted by the panel.
+            },
+            onTuningChanged = { tuning ->
+                projectMMainView
+                    ?.setForegroundTuning(
+                        tuning,
+                    )
+                projectMExportSnapshot =
+                    null
+            },
+        )
+    }
+
     private fun showPulseDeckLayersDialog() {
         val metrics =
             resources.displayMetrics
@@ -4248,6 +4280,74 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             dp(42),
                         ).apply {
                             marginStart = dp(6)
+                        },
+                    )
+
+                    container.addView(
+                        layerRow,
+                    )
+                } else if (
+                    layer ==
+                        PulseDeckLayerStack.Layer.VISUALIZER
+                ) {
+                    val layerRow =
+                        LinearLayout(this).apply {
+                            orientation =
+                                LinearLayout.HORIZONTAL
+                            gravity =
+                                Gravity.CENTER_VERTICAL
+                        }
+
+                    layerRow.addView(
+                        layerBox,
+                        LinearLayout.LayoutParams(
+                            0,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                            1f,
+                        ),
+                    )
+
+                    layerRow.addView(
+                        TextView(this).apply {
+                            text =
+                                "⚙"
+                            textSize =
+                                20f
+                            gravity =
+                                Gravity.CENTER
+                            contentDescription =
+                                "Налаштувати projectM / FG"
+                            setTextColor(
+                                COLOR_ACCENT_CYAN,
+                            )
+                            background =
+                                panelDrawable(
+                                    Color.argb(
+                                        105,
+                                        8,
+                                        18,
+                                        24,
+                                    ),
+                                    18,
+                                    Color.argb(
+                                        95,
+                                        80,
+                                        220,
+                                        255,
+                                    ),
+                                    1,
+                                )
+                            setOnClickListener {
+                                dialog.dismiss()
+                                showProjectMSettingsPanel()
+                            }
+                        },
+                        LinearLayout.LayoutParams(
+                            dp(42),
+                            dp(42),
+                        ).apply {
+                            marginStart =
+                                dp(6)
                         },
                     )
 

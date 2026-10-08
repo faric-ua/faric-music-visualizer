@@ -530,7 +530,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         showLibrary()
                     }
                 }
-                Screen.LIBRARY -> finish()
+                Screen.LIBRARY -> {
+                    if (mediaMenuOverlay != null) showNowPlaying() else finish()
+                }
             }
         }
 
@@ -961,7 +963,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             (
                 screen == Screen.NOW_PLAYING ||
                     screen == Screen.BOARD_TRANSFORM ||
-                    (screen == Screen.THEME_PICKER && themeMenuOverlay != null)
+                    (screen == Screen.THEME_PICKER && themeMenuOverlay != null) ||
+                    ((screen == Screen.LIBRARY || screen == Screen.TRACKS) &&
+                        mediaMenuOverlay != null)
                 ) &&
                 latestSnapshot.isPlaying &&
                 layerVisible(
@@ -1026,7 +1030,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             (
                 screen == Screen.NOW_PLAYING ||
                     screen == Screen.BOARD_TRANSFORM ||
-                    (screen == Screen.THEME_PICKER && themeMenuOverlay != null)
+                    (screen == Screen.THEME_PICKER && themeMenuOverlay != null) ||
+                    ((screen == Screen.LIBRARY || screen == Screen.TRACKS) &&
+                        mediaMenuOverlay != null)
                 ) &&
                 (projectMSurfaceVisible() || projectMFocusOverlay != null) &&
                 projectMMainView !=
@@ -1148,7 +1154,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         modes.addView(modeChip("♫", "Бібліотека", "Моя музика", true) { })
         modes.addView(modeChip("▥", "Tone Lab", "Звук і ефекти", false) { toast("Tone Lab — наступний етап") })
-        modes.addView(modeChip("◉", "Scene Lab", "Візуальні сцени", false) { showThemePicker() })
+        modes.addView(modeChip("◉", "Scene Lab", "Візуальні сцени", false) {
+            if (mediaMenuOverlay != null) showNowPlaying()
+            showThemePicker()
+        })
         modeScroller.addView(modes)
         content.addView(modeScroller)
 
@@ -1601,6 +1610,35 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             updateSceneOrchestratorState()
             enableImmersiveFullscreen()
             Log.i("FARIC-nav", "Themes browser closed; native GL retained")
+            return
+        }
+        if ((screen == Screen.LIBRARY || screen == Screen.TRACKS) &&
+            mediaMenuOverlay != null &&
+            persistentSceneRoot != null
+        ) {
+            val host = persistentSceneRoot
+            (mediaMenuOverlay?.parent as? ViewGroup)?.removeView(mediaMenuOverlay)
+            mediaMenuOverlay = null
+            screen = Screen.NOW_PLAYING
+            // Dock belongs to the dismissed menu, not to the persistent skin.
+            miniPulseView = null
+            dock = null
+            dockTitle = null
+            dockSubtitle = null
+            dockPlay = null
+            dockProgress = null
+            activeVerticalScroll = null
+            activeHorizontalScroll = null
+            updateProjectMRenderState()
+            updateSceneOrchestratorState()
+            enableImmersiveFullscreen()
+            onPlaybackSnapshot(latestSnapshot)
+            Log.i(
+                "FARIC-nav",
+                "Media overlay returned; same sceneRoot=" + System.identityHashCode(host) +
+                    " projectM=" + System.identityHashCode(projectMMainView) +
+                    " stack=" + System.identityHashCode(pulseDeckLayerStack),
+            )
             return
         }
         if (
@@ -9523,6 +9561,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusPresets = emptyList()
         boardMenuOverlay = null
         themeMenuOverlay = null
+        mediaMenuOverlay = null
         themeMenuOriginalTheme = null
         themeMenuLiveHeroSwitch = false
         heroAssetLoadGeneration++

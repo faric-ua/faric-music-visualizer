@@ -31,16 +31,20 @@ Implemented in v0.19.38:
 - [x] Existing FG tuning persistence/export/Composition Set integration remains intact.
 - [x] Validate #994 PASS on release SHA `ca295375dfcba0765dd1761978123cfe4eb5ba4d`.
 - [x] Android #591 PASS · artifact `FARIC-Music-Visualizer-v0.19.38-Debug` · id `11519777909` · digest `sha256:3dd2964c231e0c5e373c4b08bcdaafef16ff1272232f73b922827f58f940cba3`.
-- [ ] Phone QA movable panel, AUTO timing, main Visualizer gear, and non-blocking Back.
+- [ ] Phone QA: 5/6 user-reported PASS; **Back lifecycle remains untested**. AUTO 5s preview confirmed; 10s/15s and AUTO export sequencing not independently confirmed.
 - [ ] Panther remains a separate unfinished Shark-grade art task; do not benchmark Panther yet.
 
-Phone QA:
-1. confirm `v0.19.38 · build 127`;
-2. open **⚙ FG**, drag the panel away from Center, change scale/rotation/reaction and watch live result;
-3. close/reopen and confirm panel position is remembered;
-4. press NEXT -> verify `AUTO OFF`; tap AUTO -> verify presets start changing; check 5/10/15;
-5. return to main player -> Layers -> Visualizer -> **⚙** -> tune Center/Edge while seeing the full composition;
-6. test both PulseDeck Back and Android system Back; no frozen pause and no renderer glitch.
+Phone QA — user-reported results (2026-10-08, v0.19.38 / build 127):
+- [x] **PASS** — **⚙ FG** panel drags with finger.
+- [x] **PASS** — changing **Center scale** gives immediate visible result without closing panel.
+- [x] **PASS** — panel position persists after close/reopen.
+- [x] **PASS** — **AUTO 5s** visibly changes preview visualization approximately every 5 seconds.
+- [x] **PASS** — main player **Шари → Visualizer → ⚙** allows editing over full composition.
+- [ ] **NOT TESTED** — **Back lifecycle**: leave projectM using on-screen Back, return and then use Android system Back; ideally repeat several times. Expect prompt return, no frozen pause and no missing/black/glitched projectM visual when main player resumes.
+
+Release status: **5/6 phone checks PASS; phone QA remains OPEN until Back is verified**. The user's reported results do not independently establish AUTO 10s/15s timing, Rotation, or deterministic timed switching during Export (which remains TODO). Do not trigger another build just for this QA note.
+
+Next immediate user action: test both Back paths on the **already installed build 127** and report PASS/FAIL.
 
 
 ## CURRENT CANDIDATE — v0.19.37 / build 126 — projectM authoring controls

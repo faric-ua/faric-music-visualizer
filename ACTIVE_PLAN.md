@@ -4,6 +4,13 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## ARCHITECTURE CANDIDATE — v0.19.46 / build 135 (persistent Scene Host)
+
+- User videos `606999.mp4` (Playback Themes ↔ Player transitions) and `607000.mp4` (3s exported MP4) reinforce that screen navigation should not own GL lifecycle. Most recent 1080×1920 / 90-frame report: **5699 ms**, projectM 790, composition 2005, HUD draw 1097; export timing is not navigation latency.
+- Decision and acceptance contract: `docs/architecture/PULSEDECK_PERSISTENT_SCENE_HOST.md`. **Single native projectM view and one live PulseDeckLayerStack** on foreground playback. Board and Theme Picker draw menu overlays; projectM editor uses in-Activity controls, no native release or second Activity for ordinary installed projectM. Legacy Activity kept for initial library setup fallback.
+- Branch: `feat/pulsedeck-persistent-scene-host`. **v0.19.46 / build 135 is a source candidate, not a phone-approved release.** CI/PR and physical phone QA required before merge. Main stays at v0.19.45 pending acceptance.
+- QA: Player ↔ Board x3 (preserve same rendered background), Player ↔ projectM editor with app/system Back x3 (same native instance, tuned FG/NEXT), open/cancel Theme Picker x3, prefs/Frame/Center survive, 3-second export regression. Full-song export bug remains separate and OPEN.
+
 ## SOURCE CANDIDATE — v0.19.45 / build 134 (projectM exit GL ownership)
 
 - **New phone evidence on v0.19.44 / 133:** projectM → app Back FAIL; projectM → Android system Back FAIL; Board and Frame/Center NOT TESTED; 3-second MP4 PASS (1080×1920, 90 frames, total 5789 ms). PERF-NAV-002 remains OPEN.

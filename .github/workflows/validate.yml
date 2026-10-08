@@ -61,6 +61,10 @@ jobs:
           dialog = Path("app/src/main/java/com/saney/musicvisualizer/ui/PulseDeckDialogs.kt").read_text()
           main = Path("app/src/main/java/com/saney/musicvisualizer/MainActivity.kt").read_text()
           assert "scrollableMessage = true" in main, "export report must opt into scrollable message"
+          assert "keepOpenOnSecondary = true" in main, "copy export stats must not dismiss result dialog"
+          assert "val dismissOnClick: Boolean = true" in dialog, "other dialogs must retain default close behavior"
+          assert "dismissOnClick =\n                                    !keepOpenOnSecondary" in dialog, "secondary action must honor keep-open option"
+          assert "dismissAfterAction &&\n                            action.dismissOnClick" in dialog, "dismissal must be per-action"
           assert "if (scrollableMessage) 0 else context.dp(420)" in dialog, "scrolling message must use weighted remaining height"
           assert "weight = 1f" in dialog, "weighted scroll region required"
           assert "ViewGroup.LayoutParams.MATCH_PARENT,\n                    ViewGroup.LayoutParams.MATCH_PARENT" in dialog, "bounded dialog panel must fill viewport"

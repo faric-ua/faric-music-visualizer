@@ -25,6 +25,7 @@ object PulseDeckDialogs {
         val label: String,
         val accent: Boolean = false,
         val destructive: Boolean = false,
+        val dismissOnClick: Boolean = true,
         val onClick: () -> Unit,
     )
 
@@ -385,6 +386,7 @@ object PulseDeckDialogs {
         // The export timing report can exceed the viewport. Opt in to
         // scrolling only its message, not the title or action footer.
         scrollableMessage: Boolean = false,
+        keepOpenOnSecondary: Boolean = false,
         onSecondary: (() -> Unit)? = null,
     ): Dialog =
         show(
@@ -400,6 +402,8 @@ object PulseDeckDialogs {
                             Action(
                                 label =
                                     secondaryLabel,
+                                dismissOnClick =
+                                    !keepOpenOnSecondary,
                             ) {
                                 onSecondary
                                     ?.invoke()
@@ -604,7 +608,8 @@ object PulseDeckDialogs {
                     action.onClick()
 
                     if (
-                        dismissAfterAction
+                        dismissAfterAction &&
+                            action.dismissOnClick
                     ) {
                         dialog.dismiss()
                     }

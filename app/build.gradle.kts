@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 131
-        versionName = "0.19.42"
-        // v0.19.42: Frame signed auto-spin and single-line BG/Glow selector; transition-stall followup.
+        versionCode = 132
+        versionName = "0.19.43"
+        // v0.19.43: copy timing report without closing it until OK.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

@@ -1,5 +1,15 @@
 # Current Handoff
 
+## v0.19.50 / build 139 — MAIN SIGNED BUILD PASS; PHONE QA PENDING
+
+- Exact app/source SHA `9825f1d3a16a68aef3dbcf4d507303231cfdab0c`; PR #6 merged. Validate #1101 PASS; Android #624 PASS, run `37841244483`; artifact `FARIC-Music-Visualizer-v0.19.50-Debug` ID `11577179740` (expires 2026-10-11). Immutable checkpoint `checkpoint/pulsedeck-v0.19.50-2026-10-08`.
+- New Hero chooser fixes uneven tiles: 248dp tall two-column cards, 126dp preview region, restricted titles/subtitles, concise status, no repeated Layered Board tech prose.
+- Prepared ten-user-hero graphics are separated `frame/fx/creature/wordmark` 1024x1024 lossless WebP plus `full` and thumbnail `preview`; source created from uploaded Pictures2 archive, checked 10/10 and CRC/dimensions. Some edges still require hand cleanup; no final Cyber Shark-quality art acceptance.
+- **Critical:** binary pack is NOT in GitHub assets for this signed APK. Download chat-generated `FARIC-Heroes-Prepared-v0.19.50.zip` and import prepared ZIP once via `Додати підготовлений пакет героїв`; original `Pictures2.zip` is no longer accepted as prepared layers. Future embedded asset build requires committing 10 hero folders under `skin/hero_packs/<slug>`.
+- Previous user build-138 evidence: expanded Heroes group PASS, card geometry/image crop FAIL; user excludes test #4 from PASS, 3-second MP4 NOT TESTED. Pending phone QA on build139: equal 12 cards, prepared pack import 10/10, render, live navigation, Board Back, 3s MP4. Existing full-song `BUG-EXPORT-001` and PERF-NAV-002 remain open.
+- **Next:** Termux **3 → 10 → 8**, install signed 139 and test. Do not press 9.
+
+
 ## v0.19.50 / build 139 — Hero tiles / separated user art (CI PASS, PHONE QA PENDING)
 
 - **PHONE EVIDENCE** from user's build 138 screenshots `607060.jpg`, `607062.jpg`: expandable Heroes family PASS; tiles are unequal heights and thumbnails look clipped or blank FAIL. User excluded test #4 from PASS; 3-second MP4 was NOT TESTED. Do not close PERF-NAV-002 / BUG-EXPORT-001.

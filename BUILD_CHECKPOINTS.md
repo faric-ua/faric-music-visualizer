@@ -20,6 +20,16 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 
 ---
 
+## 2026-10-08 — v0.19.44 / build 133 — partial GL navigation fix — Android PASS
+
+- Status: **Validate PASS / Android PASS / Phone QA PENDING**.
+- Exact source SHA `cf3a517695a591df933137b767956358a1458a59`; Validate #1075 PASS (run 37784827455); Android #604 PASS (run 37784827579).
+- Artifact `FARIC-Music-Visualizer-v0.19.44-Debug`, id `11554186369`, SHA256 ZIP `sha256:7c12ef288310e9f2cc386184f2773ae45f54b0cfdaed995a9e3b30c5e0bdb733`, expires 2026-10-11.
+- Fix candidate: Board/Player async GL destroy callback before rebuild; separate projectM return restores visualizer slot alone; tagged release/create timing. No extra feature or changed controls.
+- Previous v0.19.43: 3/3 export-report PASS; 2/2 nav FAIL. Build 133 nav improvements **must still pass PHONE QA**. Generic other-screen blocking and native-init pauses may persist.
+- Recovery branch: `checkpoint/pulsedeck-v0.19.44-2026-10-08`; detail: `docs/checkpoints/2026-10-08-v0.19.44-nav-handoff.md`.
+- Next: Termux **3 → 10 → 8**; phone test 3× Board↔Player, 3× projectM↔Player with app Back and system Back; confirm no missing background; short export optional. **Do not repeat the already accepted Copy/OK test unnecessarily.**
+
 ## 2026-10-08 — v0.19.43 / build 132 — Copy keeps export report open — Android PASS
 
 - Status: Validate PASS / Android PASS / **PHONE QA 3 PASS / 2 FAIL** (export report lifecycle PASS; two transitions FAIL).

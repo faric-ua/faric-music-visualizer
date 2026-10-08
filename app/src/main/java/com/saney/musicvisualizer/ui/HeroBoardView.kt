@@ -17,6 +17,7 @@ import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardAudioState
 import com.saney.musicvisualizer.board.BoardGroupReaction
 import com.saney.musicvisualizer.board.GraphicFigureCatalog
+import com.saney.musicvisualizer.board.GraphicFigureAssets
 import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerMotion
 import com.saney.musicvisualizer.board.BoardLayerMotionEvaluator

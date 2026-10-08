@@ -8,10 +8,10 @@ Before replying about FARIC Music Visualizer releases, builds, Termux or phone Q
 
 - User screenshots: `606829.jpg` Frame slider view, `606831.jpg` visible app Back, `606827.jpg` Board Frame editor; auto-spin requested and BG/Glow chip is two lines.
 - Implemented: signed Frame-only `autoRotationDegreesPerSecond` control -180..180°/s (0 OFF), manual rotation unchanged; persisted per layer/theme and Composition Set; applied in HeroBoardView and CPU/GPU export using shared time-based rotation helper; BG/Glow selector enlarged and single-line.
-- Build evidence: Validate #1033 PASS; Android #602 triggered for feature + added unit tests. **Android/phone result still pending**; check latest run before claiming APK.
+- Build evidence: Validate #1033 **PASS**; Android #602 **PASS** (run `37718078044`) from SHA `d3bfbeb20fcc3168dc52db038d76f06841d3bc71`. Signed artifact `FARIC-Music-Visualizer-v0.19.42-Debug` id `11525215496`, expires 2026-10-11. **Phone QA remains pending**. Recovery: `docs/checkpoints/2026-10-08-v0.19.42-frame-spin.md` / `checkpoint/pulsedeck-v0.19.42-2026-10-08`.
 - Phone result from previous navigation fix: physical projectM Back button **now visible**, but transition freeze **still FAIL/open**. Root cause candidates: UI-thread synchronous `clearScreenRefs` GL release and re-creation, native renderer startup. See `OPEN_FINDINGS.md` PERF-NAV-002. No fix to navigation in this version.
 - Retain pending v0.19.41 fixed-footer export report phone QA, and BUG-EXPORT-001 full-song exit ~48%.
-- Next: await Android #602 PASS, checkpoint immutable source SHA, Termux 3 → 10 → 8; test BG/Glow one line, Frame signed auto speed incl OFF/independent manual rotation, persistence on reopen/Composition Set, 3-second MP4 spin, and separately retest and report navigation stall.
+- Next: **Termux 3 → 10 → 8** (no repeat build); install build 131; verify BG/Glow one line, signed Frame speed incl OFF/independent manual angle, settings/Composition Set persistence, 3-second video. Track separate unresolved navigation stall.
 - Follow permanent format `ASSISTANT_RESPONSE_CONTRACT.md`.
 
 ## CURRENT SOURCE CANDIDATE — v0.19.41 / build 130 — fixed export report actions

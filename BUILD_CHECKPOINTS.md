@@ -20,6 +20,18 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 
 ---
 
+## 2026-10-08 — v0.19.42 / build 131 — Frame auto spin, BG/Glow single line — Android PASS
+
+- Status: BUILD PASS / phone QA pending.
+- Source SHA `d3bfbeb20fcc3168dc52db038d76f06841d3bc71`. Android #602 PASS (run `37718078044`); Validate #1033 PASS (run `37718078010`).
+- Signed APK artifact `FARIC-Music-Visualizer-v0.19.42-Debug`, id `11525215496`, SHA256 ZIP `63afaed32576c43ecdb4a06ca1bd91b64f1153b7b0c41ebd1461f70b86935b29`.
+- Features: Frame-only ±180°/s optional auto-spin 0=off, manual rotation independent, live and CPU/GPU export angle in shared helper, per-layer store and Composition Sets, widened single-line BG/Glow selector.
+- Tests: BoardLayerTransform signed spin / clamp unit tests PASS; APK signer and upload PASS. **No phone proof yet**.
+- Phone findings carried forward: physical projectM Back icon appeared, but UI transitions still freeze; PERF-NAV-002 OPEN. v0.19.41 export Copy/OK scrolling still awaits phone acceptance.
+- Other open issues: BUG-EXPORT-001 full-song app exit at ~48%; irregular frame pacing PERF-PLAYER-001.
+- Recovery branch: `checkpoint/pulsedeck-v0.19.42-2026-10-08`; detailed recovery: `docs/checkpoints/2026-10-08-v0.19.42-frame-spin.md`.
+- Next action: Termux **3 → 10 → 8** → install build 131 → targeted phone QA in checkpoint above. No new build needed.
+
 ## 2026-10-08 — v0.19.41 / build 130 — export report fixed footer — Android PASS
 
 - Status: BUILD PASS / phone QA pending.

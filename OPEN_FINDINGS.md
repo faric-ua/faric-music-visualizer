@@ -6,7 +6,7 @@
 - **Scope:** v0.19.42 / build 131.
 - **Source change:** `BoardLayerTransform.autoRotationDegreesPerSecond` default 0, clamp ±180 °/s and stored per theme/layer; Frame-only editor slider 0=OFF, + clockwise/- counterclockwise. Independent manual rotation preserved. Live `HeroBoardView`, CPU/GPU export `CyberSharkExportRenderer` use the same timeline-based `autoRotationOffsetAt`; explicit FRAME frameReaction continuous baseline spin set to 0, beat reaction retained. Composition Set exports/imports `spinSpeed` for layer transforms.
 - **UI:** BG/Glow selector width 112dp, text size 14sp, `setSingleLine(true)`; horizontal chip scroll remains.
-- **Status:** SOURCE IMPLEMENTED; Validate #1033 PASS; Android #602 pending; **PHONE QA not performed**.
+- **Status:** SOURCE + CI **PASS**: Validate #1033, Android #602 / build 131, signed APK artifact 11525215496. **Phone QA PENDING**; don't close without user tests.
 - **Next phone QA:** Change Frame manual rotation to 60° and auto speed +30/−30/0°/s, confirm only Frame moves; save/reopen board and Composition Set; test 3s export preview with auto speed and observe frame rotation. Check BG/Glow label all on one line.
 
 ## PERF-NAV-002 — Existing transitions still pause / freeze

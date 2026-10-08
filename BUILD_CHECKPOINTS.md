@@ -20,6 +20,21 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 
 ---
 
+## 2026-10-08 — v0.19.40 / build 129 — nested Layers and projectM Back — Android PASS
+
+- Status: BUILD PASS / phone QA PENDING.
+- Source commit: `1cc7c889b7b79657f1d3958bf86d7e7ce09a2014`.
+- Validate #1028: PASS, run `37716105314`.
+- Android #599: PASS, run `37716105287`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.40-Debug`, id `11524315208`, digest `sha256:a6f421292678f2ba1669b1d38bd250728ab7b5ec71d393d43f72d4d7c470a8eb`.
+- Verified: Unit tests, native Android compile, debug APK signing/verification, artifact upload.
+- Changes: preserve Layers parent under projectM ⚙, fix Back icon asset path, async player→projectM GL release, exit feedback.
+- Phone proof still required for visual Back button, modal parent state, repeated navigation both ways and frame pacing. This build does NOT assert all lag fixed.
+- Preserves v0.19.39 per-parameter reset and signed Center auto-spin.
+- Open independent defects: BUG-EXPORT-001 app exit at ~48% of full-song export; PERF-PLAYER-001 irregular visual motion.
+- Recovery branch: `checkpoint/pulsedeck-v0.19.40-2026-10-08`.
+- Resume: `docs/checkpoints/2026-10-08-v0.19.40-layers-navigation.md`, then Termux **3 → 10 → 8**, phone QA.
+
 ## 2026-10-08 — v0.19.38 / build 127 — movable projectM authoring — Android PASS
 
 - Status: BUILD PASS / phone QA partially accepted (5/6 PASS, Back pending).

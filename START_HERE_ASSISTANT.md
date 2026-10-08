@@ -9,9 +9,9 @@ Before replying about FARIC Music Visualizer releases, builds, Termux or phone Q
 - Video findings: `606815.mp4` demonstrates Layers parent closing on Visualizer ⚙; `606816.mp4` shows navigation delays; `606817.jpg` confirms missing visual Back control.
 - Source fixes: (1) preserve Layers parent when FG settings opens, (2) load projectM Back asset at correct packaged path, (3) replace 1.5-second UI-thread `releaseProjectMBlocking` on entering projectM with queued GL release + callback, (4) show brief return status, maintain shared renderer ordering.
 - Existing v0.19.39 reset-on-number and FG Center spin controls remain included.
-- Status: **SOURCE CHANGES SUBMITTED; Android CI and phone QA pending.** Do not claim full smoothness or phone PASS until validated. See `OPEN_FINDINGS.md` BUG-UX-002/003.
+- Status: **Validate #1028 PASS, Android #599 PASS** on source `1cc7c889b7b79657f1d3958bf86d7e7ce09a2014`; APK `FARIC-Music-Visualizer-v0.19.40-Debug` artifact id `11524315208`. **Phone QA pending**; full smoothness not claimed. Recovery: `docs/checkpoints/2026-10-08-v0.19.40-layers-navigation.md` and `checkpoint/pulsedeck-v0.19.40-2026-10-08`.
 - Other open bugs: BUG-EXPORT-001 (reported full-song export process exit at ~48%, root cause unconfirmed) and PERF-PLAYER-001 (live/export motion irregularity still needs separate timing analysis).
-- Next: Validate/Android for build 129; after PASS, phone-check nested Layers → ⚙ → X, visible Back, repeated player ↔ projectM transitions and renderer stability. Exact menu format: `ASSISTANT_RESPONSE_CONTRACT.md`.
+- Next: Termux **3 → 10 → 8**, install build 129; phone-check nested Layers → ⚙ → X, visible Back, repeated player ↔ projectM transitions and renderer stability. Exact menu format: `ASSISTANT_RESPONSE_CONTRACT.md`.
 
 ## CURRENT SOURCE CANDIDATE — v0.19.39 / build 128 — individual FG reset + auto-spin
 
@@ -20,7 +20,7 @@ Before replying about FARIC Music Visualizer releases, builds, Termux or phone Q
 - **Validation:** CI Validate #1022 PASS on the feature commit. Android #598 triggered automatically; **do not claim Android PASS or APK ready until that run completes successfully.**
 - **Open user-reported blocker:** BUG-EXPORT-001 — existing build 127 reportedly exits at ~48% of full-song export near concurrent player end. Root cause **unknown**; separate from UI changes. Need crash/process-death diagnostics and controlled export reproductions; no export fix is claimed.
 - **Open visual issue:** PERF-PLAYER-001 — jerkiness / asymmetric entrances. User refers to a video but there is no attached video file in this turn. Need actual video for frame-level diagnosis.
-- **Previous release:** v0.19.38 / build 127 had 5/6 phone checks PASS; on-screen + system Back remained **NOT TESTED** and must not be retrospectively marked PASS.
+- **Previous release:** v0.19.38 / build 127 had 5/6 phone checks PASS; system Back / return smoothness now **reported FAIL** on v0.19.38 video evidence; v0.19.40 needs retest.
 - **Phone QA after Android #598 PASS:** (1) tap modified Scale/Opacity value → individual reset; (2) Center auto-spin +30/-30/0°/s → both directions and stop; (3) restart/reopen and Composition Set save/load persist speed; (4) tune in main player and confirm live full composite; (5) run 3s MP4 export proof; (6) test both Back paths. **Do not demand a repeated full-song export without obtaining crash logs first.**
 - **Single next action:** Check Android #598 status and compile result, inspect build logs on failure; when PASS, record a new `BUILD_CHECKPOINT` and present exact Termux 3 → 10 → 8 steps. User installs and performs targeted phone QA.
 

@@ -5,7 +5,7 @@
 - **Evidence:** Phone video `606815.mp4` (~8s): player → PulseDeck tools → Layers → Visualizer ⚙. The Layers dialog disappears on opening the movable FG settings panel and does not return when the child is closed.
 - **Expected:** Layers stays present under the child dialog; close X dismisses only FG settings and returns to the same Layers state/position without resetting the composition.
 - **Root cause:** `MainActivity.showPulseDeckLayersDialog()` Visualizer-gear callback explicitly called `dialog.dismiss()` before showing projectM settings.
-- **Status:** SOURCE FIX v0.19.40 / build 129; phone QA OPEN.
+- **Status:** source in v0.19.40 / build 129 — Validate #1028 and Android #599 PASS; **phone QA OPEN**.
 
 ## BUG-UX-003 — projectM Back button missing and navigation stalls
 - **Affected version:** v0.19.39 / build 128 and prior.
@@ -13,7 +13,7 @@
 - **Expected:** Visible, clickable PulseDeck Back on separate projectM screen; quick entry and exit, no UI-thread wait, no corrupted shared projectM renderer.
 - **Confirmed code causes:** `ProjectMActivity` looks for `skin/pulsedeck_hud/utility/back.png` even though Gradle packages `skin/` as assets root, so the correct runtime path is `pulsedeck_hud/utility/back.png`. `MainActivity` explicitly called `releaseProjectMBlocking(1500)` on the UI thread before entering projectM.
 - **Source changes:** Fix icon path, keep shared-GL release ordering but use `releaseProjectMThen` callback on entry, prevent repeat entry, and show a return status while queued release finishes.
-- **Status:** SOURCE FIX v0.19.40 / build 129; phone QA OPEN. Renderer teardown / initialization and live preview frame pacing still require phone evidence; no unconditional smoothness claim.
+- **Status:** source in v0.19.40 / build 129 — Validate #1028 and Android #599 PASS; **phone QA OPEN**. Renderer teardown / initialization and live preview frame pacing still require phone evidence; no unconditional smoothness claim.
 
 ## BUG-EXPORT-001 — Full-song export loses app/process at ~48%
 

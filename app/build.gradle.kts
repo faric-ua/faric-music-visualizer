@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 139
-        versionName = "0.19.50"
-        // v0.19.50: equal Hero tiles + independent prepared-layer pack, visual QA pending.
+        versionCode = 140
+        versionName = "0.19.51"
+        // v0.19.51: functional local tracks catalog, MediaStore browsing and search.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

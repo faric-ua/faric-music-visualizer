@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 136
-        versionName = "0.19.47"
-        // v0.19.47: legacy projectM UI restored, live Hero swap off UI thread.
+        versionCode = 137
+        versionName = "0.19.48"
+        // v0.19.48: one persistent live Theme engine + projectM Android system bars.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

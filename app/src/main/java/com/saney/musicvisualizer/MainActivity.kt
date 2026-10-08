@@ -737,7 +737,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
-            enableImmersiveFullscreen()
+            if (projectMFocusOverlay != null) {
+                showProjectMSystemBars()
+            } else {
+                enableImmersiveFullscreen()
+            }
         }
     }
 
@@ -1383,6 +1387,40 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
+    /**
+     * Every implemented Playback Theme shares one live Scene Host. A theme
+     * switches the visible central Hero only, never the projectM SurfaceView,
+     * HUD, Player Activity, or playback state.
+     */
+    private fun applyLiveThemeVisibility() {
+        val standalone = isStandaloneHeroTheme(selectedThemeId)
+        heroBoardView?.visibility =
+            if (standalone) View.GONE else View.VISIBLE
+        heroThemeView?.visibility =
+            if (standalone) View.VISIBLE else View.GONE
+        if (standalone) {
+            heroThemeView?.setTheme(selectedThemeId)
+        }
+        pulseDeckLayerStack?.setLayerVisible(
+            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+            if (standalone) true else
+                layerVisible(PulseDeckLayerStack.Layer.GRAPHIC_FIGURES),
+        )
+    }
+
+    private fun activateLivePlaybackTheme(
+        theme: PlaybackThemeId,
+        preloaded: GraphicFigureAssets? = null,
+    ) {
+        if (isLayeredBoardTheme(theme)) {
+            setGraphicFigureThemeId(theme, preloaded)
+        } else {
+            selectedThemeId = theme
+            themeStore.selectedThemeId = theme
+        }
+        applyLiveThemeVisibility()
+    }
+
     private fun showNowPlaying() {
         // Menu-only return from Board: the underlying composition and native
         // projectM are the exact same instances as before the editor opened.
@@ -1401,6 +1439,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     layerVisible(PulseDeckLayerStack.Layer.GRAPHIC_FIGURES),
                 )
             }
+            applyLiveThemeVisibility()
             applyVisualizerRenderSlots()
             updateProjectMRenderState()
             updateSceneOrchestratorState()
@@ -1536,11 +1575,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 )
             }
 
-        heroBoardView =
-            boardView
+        heroBoardView = boardView
         layerStack.setContent(
             PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
             boardView,
+        )
+
+        // A single central Hero slot supports all implemented themes.
+        // The Canvas-based themes stay mounted and reuse this same scene
+        // rather than calling showNowPlaying() for each selection.
+        val standaloneHero = HeroThemeView(this).also { view ->
+            view.setTheme(selectedThemeId)
+            view.updateSignal(latestSignal)
+            view.setPlaying(latestSnapshot.isPlaying)
+            view.setMetadata(latestSnapshot.trackName, null)
+        }
+        heroThemeView = standaloneHero
+        layerStack.slot(PulseDeckLayerStack.Layer.GRAPHIC_FIGURES).addView(
+            standaloneHero,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
         )
 
         val skinView =
@@ -1719,6 +1775,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         applyPulseDeckLayerVisibility(layerStack)
+        applyLiveThemeVisibility()
 
         setContentView(root)
         updateProjectMRenderState()
@@ -3681,6 +3738,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
+        // ProjectM's original screen showed both Android system bars. Honor
+        // the same behavior inside the persistent player Activity, with
+        // inset padding limited to the controls (not the underlying GL view).
+        ViewCompat.setOnApplyWindowInsetsListener(overlay) { view, insets ->
+            val bars = insets.getInsets(
+                WindowInsetsCompat.Type.systemBars() or
+                    WindowInsetsCompat.Type.displayCutout(),
+            )
+            view.setPadding(bars.left, bars.top, bars.right, bars.bottom)
+            insets
+        }
+        showProjectMSystemBars()
         updateProjectMRenderState()
         Log.i("FARIC-nav", "projectM overlay opened; live GL retained")
 
@@ -4004,6 +4073,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         }
         updateProjectMRenderState()
+        enableImmersiveFullscreen()
         Log.i("FARIC-nav", "projectM overlay closed; live GL retained")
     }
 
@@ -5249,6 +5319,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             true,
         )
         if (retainedHost != null) {
+            // Board is always an editor of the actual GF artwork, even when a
+            // standalone theme happens to be currently selected.
+            heroBoardView?.visibility = View.VISIBLE
+            heroThemeView?.visibility = View.GONE
             // The HUD belongs to Player UI, not to the Board editor.
             previewStack.setLayerVisible(
                 PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
@@ -8643,18 +8717,36 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         return@setOnClickListener
                     }
 
-                    // Shark ↔ Panther is a change to the live HeroBoardView,
-                    // not a reason to tear down projectM, the HUD or any scene.
-                    // Decoding several large PNGs on UI caused a second hitch.
+                    // Canonical live switch: no full player rebuild for any
+                    // implemented theme (Shark/Panther/Neon/Energy/Orbital/
+                    // Star/Wave/Vinyl/Cassette/projectM).
                     if (retainedHost != null &&
                         themeMenuOverlay != null &&
-                        isLayeredBoardTheme(spec.id) &&
-                        heroBoardView != null
+                        latestSnapshot.trackName != null &&
+                        (isLayeredBoardTheme(spec.id) ||
+                            isStandaloneHeroTheme(spec.id) ||
+                            spec.id == PlaybackThemeId.VISUALIZER)
                     ) {
                         val requestedTheme = spec.id
                         if (requestedTheme == selectedThemeId) {
                             showNowPlaying()
+                        } else if (!isLayeredBoardTheme(requestedTheme)) {
+                            // Canvas themes have no PNG decode; just change
+                            // the theme on the existing HeroThemeView.
+                            val startNs = System.nanoTime()
+                            heroAssetLoadGeneration++
+                            activateLivePlaybackTheme(requestedTheme)
+                            themeMenuLiveHeroSwitch = true
+                            showNowPlaying()
+                            Log.i(
+                                "FARIC-nav",
+                                "Live theme: $requestedTheme; UIApplyAndReturn=" +
+                                    ((System.nanoTime() - startNs) / 1_000_000L) +
+                                    "ms; native projectM retained",
+                            )
                         } else {
+                            // Only bitmap-based GF themes need background PNG
+                            // decode; apply preloaded images to existing view.
                             val generation = ++heroAssetLoadGeneration
                             val requestedOverlay = themeMenuOverlay
                             thread(name = "faric-hero-assets") {
@@ -8678,15 +8770,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         return@runOnUiThread
                                     }
                                     val applyStartNs = System.nanoTime()
-                                    setGraphicFigureThemeId(
+                                    activateLivePlaybackTheme(
                                         requestedTheme,
-                                        readyAssets = assets,
+                                        preloaded = assets,
                                     )
                                     themeMenuLiveHeroSwitch = true
                                     showNowPlaying()
                                     Log.i(
                                         "FARIC-nav",
-                                        "Hero switched in place: $requestedTheme; " +
+                                        "Live GF: $requestedTheme; " +
                                             "assetDecode=${loadMs}ms; " +
                                             "UIApplyAndReturn=" +
                                             ((System.nanoTime() - applyStartNs) / 1_000_000L) +
@@ -9288,6 +9380,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
             pendingRestoreScrollX = null
         }
+    }
+
+    private fun showProjectMSystemBars() {
+        WindowCompat.setDecorFitsSystemWindows(window, false)
+        WindowCompat.getInsetsController(window, window.decorView).show(
+            WindowInsetsCompat.Type.systemBars(),
+        )
+        projectMFocusOverlay?.let(ViewCompat::requestApplyInsets)
     }
 
     private fun enableImmersiveFullscreen() {

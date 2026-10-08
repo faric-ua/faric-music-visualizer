@@ -25,8 +25,36 @@ jobs:
         run: |
           set -euo pipefail
           bash -n scripts/termux-menu.sh
+          bash -n tools/termux/documentation-menu.sh
+          python3 -m py_compile tools/termux/import-documentation.py
+          grep -q '20 — Documentation' scripts/termux-menu.sh
           bash -n tools/install_termux_aliases.sh
           bash -n tools/install_termux_widget.sh
+
+      - name: Documentation menu and safe ZIP import smoke
+        shell: bash
+        run: |
+          set -euo pipefail
+          tmp="$(mktemp -d)"
+          trap 'rm -rf "$tmp"' EXIT
+          mkdir -p "$tmp/home/storage/downloads"
+          python3 - "$tmp/home/storage/downloads" <<'PY'
+          from pathlib import Path
+          import sys
+          import zipfile
+          target = Path(sys.argv[1]) / "FARIC_User_Guide_UK_v0.19.43_COMPLETE.zip"
+          with zipfile.ZipFile(target, "w") as z:
+              z.writestr("FARIC_User_Guide_UK_v0.19.43.pdf", b"%PDF-1.4 smoke")
+              z.writestr("FARIC_User_Guide_UK_v0.19.43.html", b"<html>smoke</html>")
+              z.writestr("../escape.txt", b"must not extract")
+          PY
+          HOME="$tmp/home" FARIC_DOC_DEST="$tmp/out" python3 tools/termux/import-documentation.py
+          test -f "$tmp/out/v0.19.43/FARIC_User_Guide_UK_v0.19.43.pdf"
+          test -f "$tmp/out/v0.19.43/FARIC_User_Guide_UK_v0.19.43.html"
+          test ! -f "$tmp/out/escape.txt"
+          test ! -f "$tmp/escape.txt"
+          printf '0\n' | FARIC_DOC_DIR="$tmp/out" bash tools/termux/documentation-menu.sh >/dev/null
+          echo "Documentation menu and ZIP import smoke PASS"
 
       - name: Repository contracts
         shell: bash

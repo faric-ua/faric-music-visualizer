@@ -1,5 +1,17 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## v0.19.49 / build 138 — grouped Hero gallery + ZIP import (PR CI PASS / PHONE QA PENDING)
+
+- Pre-merge app/source: `dcd41b2ae2a477f9c6181ebb5edcdf62f4c13933`, PR #5.
+- Validate #1092 PASS; Android #615 PASS, workflow run `37825625591`.
+- Android artifact: `FARIC-Music-Visualizer-v0.19.49-Debug`, ID `11570559985`, expires 2026-10-11. PR artifact is a CI proof; after merge, verify the signed **main** build and record its exact SHA before asking for Termux install.
+- Code: one expandable «Герої» family; compact 2-column image tiles for Shark/Panther + 10 imported user heroes; other themes remain independent. Safe SAF selection of Pictures2.zip, exact entry-name identity mapping, source PNG storage, thumbnail decoding off UI thread; live Scene Host preserved. No changes to immutable center calibration.
+- **Artwork acceptance incomplete:** originals are composite design sheets. The imported preview is currently a flattened top-left emblem, not separated approved Frame/FX/Creature/Wordmark. This is a phone-visual-QA gate; no production art-quality PASS is claimed.
+- **PHONE QA PENDING:** gallery expand/collapse, ZIP import 10/10, card previews and selection, smooth return to Player, Shark/Panther regressions, projectM bars, 3-second MP4.
+- PERF-NAV-002 remains open pending phone QA; unrelated BUG-EXPORT-001 remains open.
+- Single resume step: merge PR #5 after docs handoff, confirm signed main Android PASS, record final checkpoint, then Termux **3 → 10 → 8**.
+
+
 ## v0.19.48 / build 137 — Canonical Live Themes + projectM system bars (CI PASS / PHONE QA PENDING)
 
 - App/source: `edd69d6cbf5c3abb4bc7859f5c54a5f9cdd7a3ff` (PR #4 merged).

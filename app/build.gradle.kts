@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 127
-        versionName = "0.19.38"
-        // v0.19.38 adds a movable projectM settings panel, main-player tuning gear, explicit AUTO semantics, and non-blocking Back release.
+        versionCode = 128
+        versionName = "0.19.39"
+        // v0.19.39: tap individual FG value to reset it; Center auto-spin speed (degrees per second).
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

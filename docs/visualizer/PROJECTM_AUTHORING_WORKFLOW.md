@@ -186,3 +186,22 @@ Phone QA:
 6. Open Layers on the main player; Visualizer row must show a gear; open it and tune Center/Edge over the full composite.
 7. Back from projectM using both PulseDeck Back and system Back; there should be no blocking/frozen pause before return and no late renderer corruption.
 
+
+## Export sequencing TODO
+
+The 5 / 10 / 15 second AUTO interval currently governs the projectM authoring/browser preview.
+
+The user's intended final workflow is broader: after tuning the composition, **Export should reproduce the authored behavior**, including timed projectM preset changes when AUTO is enabled.
+
+Do not silently claim this is already implemented.
+
+Required future export behavior:
+- when AUTO is OFF: export the selected/current projectM preset as today;
+- when AUTO is ON: deterministic export changes projectM presets on the stored 5/10/15 second boundaries;
+- preset order must be deterministic for a given export run / Composition Set;
+- transitions must use export timeline time, never wall-clock preview time;
+- output must remain reproducible even when the live player is paused;
+- Composition Sets must preserve the AUTO flag, interval and enough preset-sequence state to reproduce the intended result.
+
+Status: TODO after current movable-panel / AUTO phone QA.
+

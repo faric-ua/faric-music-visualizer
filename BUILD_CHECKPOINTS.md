@@ -1,5 +1,15 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## v0.19.48 / build 137 — Canonical Live Themes + projectM system bars (CI PASS / PHONE QA PENDING)
+
+- App/source: `edd69d6cbf5c3abb4bc7859f5c54a5f9cdd7a3ff` (PR #4 merged).
+- Validate #1089 PASS; Android #613 PASS, workflow run `37813832199`, artifact `FARIC-Music-Visualizer-v0.19.48-Debug`, ID `11566826167`, expires 2026-10-11.
+- Immutable checkpoint branch: `checkpoint/pulsedeck-v0.19.48-2026-10-08`.
+- Code/CI: live central theme switching across Shark, Panther, Neon, Energy, Orbital, Star, Wave, Vinyl, Cassette and Visualizer without full Scene Host teardown. Separate HeroThemeView mounted in GF layer. projectM authoring explicitly shows Android status/navigation bars, restores immersive player on exit. Wave Idol catalog deduplicated. Registry uniqueness unit test PASS.
+- Phone QA NOT YET DONE: check bars on projectM and after Back, all theme transitions without black/freezes, Board, projectM preset/ratings and short MP4. PERF-NAV-002 remains open, full-song BUG-EXPORT-001 independent.
+- Termux next: **3 → 10 → 8**; do not start build 9.
+
+
 ## v0.19.47 / build 136 — original projectM UI + live hero switching (CI PASS; PHONE QA PENDING)
 
 - Code in main: `f5ce3e90a33122ee59c3599cc0830b29f08c8093`; PR #3 merged.

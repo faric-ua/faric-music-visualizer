@@ -13,9 +13,9 @@
 
 Зміни тільки у projectM authoring UI (старий компактний вигляд всередині постійної сцени) і переході між Cyber Shark/Panther (async asset load, без recreation scene). Validate #1086 / Android #611 PASS; APK v0.19.47/build 136 із main готовий до phone QA. Посібник v1.0 як і раніше описує попередню стабільну версію.
 
-## Canonical Themes / projectM системні панелі — v0.19.48 (source candidate)
+## Canonical Themes / projectM системні панелі — v0.19.48 (Android #613 PASS; Phone QA pending)
 
-У кандидаті build 137 всі реалізовані Playback Themes використовують спільну постійну сцену без повторного створення projectM. Вікно projectM знов показує Android status bar і navigation bar, а на виході повертає повноекранний плеєр. Виправлено повтор Wave Idol у каталозі; збережено наявні ID та Composition Sets. **CI і телефонний QA ще не завершено**.
+У кандидаті build 137 всі реалізовані Playback Themes використовують спільну постійну сцену без повторного створення projectM. Вікно projectM знов показує Android status bar і navigation bar, а на виході повертає повноекранний плеєр. Виправлено повтор Wave Idol у каталозі; збережено наявні ID та Composition Sets. **Android #613 та Validate #1089 пройшли; телефонний QA ще очікується.**
 
 ## Що описує посібник
 

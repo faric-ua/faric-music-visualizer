@@ -1,5 +1,44 @@
 # Active Plan
 
+## CURRENT CANDIDATE — v0.19.38 / build 127 — movable projectM authoring panel
+
+Source of truth:
+- `docs/visualizer/PROJECTM_AUTHORING_WORKFLOW.md`
+
+Phone evidence / decisions:
+- [x] v0.19.37 Center and Edge tuning controls work and visually match PulseDeck.
+- [x] First tuning dialogs are too large/modal for practical visual tuning because they cover the composition.
+- [x] projectM Back no longer corrupts the main renderer, but the blocking release still causes a short visible freeze before exit.
+- [x] AUTO 5/10/15 UX was ambiguous: screenshot showed `MANUAL` while the lower button still showed `5s`; interval alone did not re-enable AUTO.
+
+Implemented in v0.19.38:
+- [x] New reusable `ProjectMSettingsPanel`: PulseDeck-styled, movable, non-dimming, non-modal, persistent X/Y position.
+- [x] One composite settings panel with tabs: **AUTO / CENTER / EDGE FX**.
+- [x] Center/Edge edits remain live while the panel stays open and can be dragged away from the area being judged.
+- [x] Separate projectM authoring screen opens the movable panel from **⚙ FG**.
+- [x] Main player Layers -> Visualizer now has its own **⚙** button, analogous to the GF gear, opening the same projectM tuning panel over the full composite player.
+- [x] AUTO button semantics are explicit:
+  - manual state -> `AUTO OFF`;
+  - active -> `AUTO 5s / 10s / 15s`;
+  - tapping while manual re-enables AUTO at the current interval;
+  - tapping while AUTO cycles 5 -> 10 -> 15;
+  - selecting 5/10/15 in the settings panel enables AUTO immediately.
+- [x] Back release is now asynchronous/non-blocking on the UI thread: finish happens only after queued GL release completes, preserving the renderer race fix without freezing the UI thread.
+- [x] Existing FG tuning persistence/export/Composition Set integration remains intact.
+- [x] Validate #994 PASS on release SHA `ca295375dfcba0765dd1761978123cfe4eb5ba4d`.
+- [ ] Android #591 PASS + artifact.
+- [ ] Phone QA movable panel, AUTO timing, main Visualizer gear, and non-blocking Back.
+- [ ] Panther remains a separate unfinished Shark-grade art task; do not benchmark Panther yet.
+
+Phone QA:
+1. confirm `v0.19.38 · build 127`;
+2. open **⚙ FG**, drag the panel away from Center, change scale/rotation/reaction and watch live result;
+3. close/reopen and confirm panel position is remembered;
+4. press NEXT -> verify `AUTO OFF`; tap AUTO -> verify presets start changing; check 5/10/15;
+5. return to main player -> Layers -> Visualizer -> **⚙** -> tune Center/Edge while seeing the full composition;
+6. test both PulseDeck Back and Android system Back; no frozen pause and no renderer glitch.
+
+
 ## CURRENT CANDIDATE — v0.19.37 / build 126 — projectM authoring controls
 
 Source of truth:

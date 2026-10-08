@@ -4,11 +4,19 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## PHONE QA — 2026-10-08 — v0.19.42 / build 131
+
+- **5/6 PASS**: Frame auto-spin +30°/s / −30°/s / 0°/s, Frame only, unchanged manual angle; Board and Composition Set persistence; BG/Glow one line; 3-second spinning-Frame MP4 and visible Copy/OK.
+- **1/6 NOT TESTED**: navigation player ↔ projectM / both Back buttons. Prior stutter remains PERF-NAV-002 OPEN; separate app Back icon was already visible.
+- New user-export report: **1080×1920, 90 frames, 5976ms**, projectM 791ms, composition 1935ms, encoder 873ms, GPU direct; GPU overlay 664ms, HUD draw 1051ms. Full metrics in `docs/checkpoints/2026-10-08-v0.19.42-frame-spin.md`.
+- Copy report works but auto-closes the dialog. User accepts behavior; **no code changes needed**. Full scrolling and OK tap were not individually tested. Full-song export crash remains OPEN.
+- No rebuild required to record results. **Next engineering priority: PERF-NAV-002** (shared projectM lifecycle stalls).
+
 ## CURRENT SOURCE CANDIDATE — v0.19.42 / build 131 — Frame rotation and BG/Glow tab
 
 - User screenshots: `606829.jpg` Frame slider view, `606831.jpg` visible app Back, `606827.jpg` Board Frame editor; auto-spin requested and BG/Glow chip is two lines.
 - Implemented: signed Frame-only `autoRotationDegreesPerSecond` control -180..180°/s (0 OFF), manual rotation unchanged; persisted per layer/theme and Composition Set; applied in HeroBoardView and CPU/GPU export using shared time-based rotation helper; BG/Glow selector enlarged and single-line.
-- Build evidence: Validate #1033 **PASS**; Android #602 **PASS** (run `37718078044`) from SHA `d3bfbeb20fcc3168dc52db038d76f06841d3bc71`. Signed artifact `FARIC-Music-Visualizer-v0.19.42-Debug` id `11525215496`, expires 2026-10-11. **Phone QA remains pending**. Recovery: `docs/checkpoints/2026-10-08-v0.19.42-frame-spin.md` / `checkpoint/pulsedeck-v0.19.42-2026-10-08`.
+- Build evidence: Validate #1033 **PASS**; Android #602 **PASS** (run `37718078044`) from SHA `d3bfbeb20fcc3168dc52db038d76f06841d3bc71`. Signed artifact `FARIC-Music-Visualizer-v0.19.42-Debug` id `11525215496`, expires 2026-10-11. **Phone QA 5/6 PASS; navigation NOT TESTED on v0.19.42**. Recovery: `docs/checkpoints/2026-10-08-v0.19.42-frame-spin.md` / `checkpoint/pulsedeck-v0.19.42-2026-10-08`.
 - Phone result from previous navigation fix: physical projectM Back button **now visible**, but transition freeze **still FAIL/open**. Root cause candidates: UI-thread synchronous `clearScreenRefs` GL release and re-creation, native renderer startup. See `OPEN_FINDINGS.md` PERF-NAV-002. No fix to navigation in this version.
 - Retain pending v0.19.41 fixed-footer export report phone QA, and BUG-EXPORT-001 full-song exit ~48%.
 - Next: **Termux 3 → 10 → 8** (no repeat build); install build 131; verify BG/Glow one line, signed Frame speed incl OFF/independent manual angle, settings/Composition Set persistence, 3-second video. Track separate unresolved navigation stall.

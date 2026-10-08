@@ -6,7 +6,7 @@
 - **Scope:** v0.19.42 / build 131.
 - **Source change:** `BoardLayerTransform.autoRotationDegreesPerSecond` default 0, clamp ±180 °/s and stored per theme/layer; Frame-only editor slider 0=OFF, + clockwise/- counterclockwise. Independent manual rotation preserved. Live `HeroBoardView`, CPU/GPU export `CyberSharkExportRenderer` use the same timeline-based `autoRotationOffsetAt`; explicit FRAME frameReaction continuous baseline spin set to 0, beat reaction retained. Composition Set exports/imports `spinSpeed` for layer transforms.
 - **UI:** BG/Glow selector width 112dp, text size 14sp, `setSingleLine(true)`; horizontal chip scroll remains.
-- **Status:** SOURCE + CI **PASS**: Validate #1033, Android #602 / build 131, signed APK artifact 11525215496. **Phone QA PENDING**; don't close without user tests.
+- **Status:** SOURCE + CI **PASS**: Validate #1033, Android #602 / build 131, signed APK artifact 11525215496. **Phone QA 5/6 PASS on v0.19.42** (Frame ±/0 speed, isolation, persistence/Composition Set, BG/Glow one-line, 3s MP4). Navigation NOT TESTED on this build; prior stalls OPEN.
 - **Next phone QA:** Change Frame manual rotation to 60° and auto speed +30/−30/0°/s, confirm only Frame moves; save/reopen board and Composition Set; test 3s export preview with auto speed and observe frame rotation. Check BG/Glow label all on one line.
 
 ## PERF-NAV-002 — Existing transitions still pause / freeze
@@ -23,7 +23,7 @@
 - **Expected:** Styled result dialog remains within the visible viewport; only long timing message scrolls; heading and both buttons remain fixed and tappable, including at the bottom of report.
 - **Root cause:** generic `PulseDeckDialogs.showMessage` only wraps messages longer than 900 chars in a fixed 420dp ScrollView; dialog window itself uses WRAP_CONTENT, so large reports can exceed the screen and push action buttons out of view.
 - **Source fix:** v0.19.41 / build 130 opts the export result into a capped-height dialog; message uses a weight=1 `ScrollView`; fixed actions remain outside that scroll area. Other smaller app dialogues retain previous sizing.
-- **Status:** SOURCE + CI PASS on v0.19.41 / build 130 (Validate #1030, Android #600); **PHONE QA PENDING**. Test full report scroll, copy full text, and OK before closing finding.
+- **Status:** SOURCE + CI PASS on v0.19.41 / build 130 (Validate #1030, Android #600); **PHONE PARTIALLY ACCEPTED**: Copy/OK visible, user successfully copied long report on build 131. Copy dismisses dialog; user agrees to retain it. Full scrolling to last line / separate OK tap not explicitly confirmed.
 
 ## BUG-UX-002 — Nested Visualizer settings closes Layers parent
 - **Affected version:** v0.19.39 / build 128 and prior.

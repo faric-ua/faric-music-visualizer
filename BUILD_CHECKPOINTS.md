@@ -20,6 +20,42 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 
 ---
 
+## 2026-10-08 — v0.19.38 / build 127 — movable projectM authoring — Android PASS
+
+- Status: BUILD PASS / phone QA pending.
+- App/source commit: `ca295375dfcba0765dd1761978123cfe4eb5ba4d`.
+- Validate workflow: #994 — PASS.
+- Android workflow: #591 — PASS.
+- Workflow run id: `37706775447`.
+- Artifact: `FARIC-Music-Visualizer-v0.19.38-Debug`.
+- Artifact id: `11519777909`.
+- Artifact digest: `sha256:3dd2964c231e0c5e373c4b08bcdaafef16ff1272232f73b922827f58f940cba3`.
+- Artifact size: 11,319,954 bytes.
+- Successfully completed in this build:
+  - projectM authoring settings moved to one PulseDeck-styled movable/non-dimming panel;
+  - tabs: AUTO / CENTER / EDGE FX;
+  - panel X/Y position persists and can be reset;
+  - main Layers -> Visualizer has a projectM/FG settings gear opening the same tuning panel over the composite player;
+  - AUTO UX is explicit: AUTO OFF in manual mode, AUTO 5s/10s/15s when active; tapping while manual enables AUTO;
+  - Center/Edge tuning remains live and persisted;
+  - Back uses non-blocking queued GL release callback instead of blocking the UI thread while preserving renderer ownership ordering;
+  - v0.19.37 tuning/export/Composition Set persistence remains included.
+- Phone QA still required:
+  - drag/reopen panel and verify remembered position;
+  - AUTO OFF -> AUTO 5/10/15 and verify actual preset timing;
+  - main Layers -> Visualizer -> gear and live composite tuning;
+  - PulseDeck Back + Android system Back without visible freeze or renderer corruption.
+- Explicit open TODO:
+  - deterministic Export sequencing for AUTO 5/10/15 is not implemented yet; current interval controls projectM authoring/browser preview.
+  - Panther remains a separate unfinished Shark-grade art task.
+- Recovery checkpoint:
+  - `docs/checkpoints/2026-10-08-v0.19.38-projectm-authoring.md`.
+- Resume exactly here:
+  1. install build 127 artifact;
+  2. run the four phone QA checks above;
+  3. if AUTO preview passes, decide next between deterministic AUTO export sequencing and Panther art.
+
+
 ## 2026-10-05 — v0.19.1 / build 90 — Android PASS
 
 - Status: BUILD PASS / phone QA pending.

@@ -3,6 +3,7 @@ package com.saney.musicvisualizer.projectm
 data class ProjectMForegroundTuning(
     val centerScale: Float = 1f,
     val centerRotationDegrees: Float = 0f,
+    val centerSpinDegreesPerSecond: Float = 0f,
     val centerOpacity: Float = 1f,
     val centerBassGain: Float = 1f,
     val centerMidGain: Float = 1f,
@@ -23,6 +24,11 @@ data class ProjectMForegroundTuning(
                 ),
             centerRotationDegrees =
                 centerRotationDegrees.coerceIn(
+                    -180f,
+                    180f,
+                ),
+            centerSpinDegreesPerSecond =
+                centerSpinDegreesPerSecond.coerceIn(
                     -180f,
                     180f,
                 ),

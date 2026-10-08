@@ -229,7 +229,7 @@ class ProjectMActivity : ComponentActivity() {
 
                 addView(
                     control(
-                        "FG TUNE",
+                        "⚙ FG",
                     ) {
                         showForegroundTuningChooser()
                     },
@@ -451,15 +451,24 @@ class ProjectMActivity : ComponentActivity() {
             true
         cancelAuto()
 
-        projectMView
-            ?.releaseProjectMBlocking(
-                timeoutMs =
-                    1_500L,
-            )
+        val view =
+            projectMView
         projectMView =
             null
 
-        finish()
+        if (view == null) {
+            finish()
+            return
+        }
+
+        view.releaseProjectMThen {
+            if (
+                !isFinishing &&
+                !isDestroyed
+            ) {
+                finish()
+            }
+        }
     }
 
     private fun openFastFromRememberedState() {
@@ -726,6 +735,7 @@ class ProjectMActivity : ComponentActivity() {
             cancelAuto()
         }
 
+        updateAutoIntervalLabel()
         updateStatus()
     }
 
@@ -745,6 +755,7 @@ class ProjectMActivity : ComponentActivity() {
         autoEnabled = false
         stateStore.autoEnabled = false
         cancelAuto()
+        updateAutoIntervalLabel()
 
         advancePreset(manual = true)
     }
@@ -1003,6 +1014,43 @@ class ProjectMActivity : ComponentActivity() {
                 "EDGE FX"
     }
 
+    private fun applyAutoSettings(
+        enabled: Boolean,
+        seconds: Int,
+    ) {
+        autoSwitchSeconds =
+            seconds.takeIf {
+                it in
+                    ProjectMStateStore
+                        .AUTO_SWITCH_OPTIONS
+            }
+                ?: 10
+        autoEnabled =
+            enabled
+
+        stateStore.autoSwitchSeconds =
+            autoSwitchSeconds
+        stateStore.autoEnabled =
+            autoEnabled
+
+        if (autoEnabled) {
+            if (presetQueue == null) {
+                activateMode(
+                    mode =
+                        currentBackgroundMode,
+                    auto = true,
+                )
+            } else {
+                scheduleAuto()
+            }
+        } else {
+            cancelAuto()
+        }
+
+        updateAutoIntervalLabel()
+        updateStatus()
+    }
+
     private fun cycleAutoInterval() {
         val options =
             intArrayOf(
@@ -1010,6 +1058,16 @@ class ProjectMActivity : ComponentActivity() {
                 10,
                 15,
             )
+
+        if (!autoEnabled) {
+            applyAutoSettings(
+                enabled = true,
+                seconds =
+                    autoSwitchSeconds,
+            )
+            return
+        }
+
         val currentIndex =
             options.indexOf(
                 autoSwitchSeconds,
@@ -1018,8 +1076,7 @@ class ProjectMActivity : ComponentActivity() {
                     it >= 0
                 }
                 ?: 1
-
-        autoSwitchSeconds =
+        val next =
             options[
                 (
                     currentIndex +
@@ -1028,21 +1085,20 @@ class ProjectMActivity : ComponentActivity() {
                     options.size
             ]
 
-        stateStore.autoSwitchSeconds =
-            autoSwitchSeconds
-        updateAutoIntervalLabel()
-
-        if (autoEnabled) {
-            scheduleAuto()
-        }
-
-        updateStatus()
+        applyAutoSettings(
+            enabled = true,
+            seconds = next,
+        )
     }
 
     private fun updateAutoIntervalLabel() {
         autoIntervalControl
             ?.text =
-            "⏱ ${autoSwitchSeconds}s"
+            if (autoEnabled) {
+                "AUTO ${autoSwitchSeconds}s"
+            } else {
+                "AUTO OFF"
+            }
     }
 
     private fun applyForegroundTuning(
@@ -1060,35 +1116,30 @@ class ProjectMActivity : ComponentActivity() {
     }
 
     private fun showForegroundTuningChooser() {
-        PulseDeckDialogs.showActionList(
+        ProjectMSettingsPanel.show(
             context = this,
-            title = "FG налаштування",
-            items =
-                listOf(
-                    "FG Center · форма та реакція",
-                    "FG Edge FX · реакція",
-                    "Скинути всі FG налаштування",
-                ),
-            cancelLabel = "Закрити",
-        ) { which ->
-            when (which) {
-                0 ->
-                    showCenterTuningDialog()
-
-                1 ->
-                    showEdgeTuningDialog()
-
-                2 -> {
-                    applyForegroundTuning(
-                        ProjectMForegroundTuning
-                            .default(),
-                    )
-                    toast(
-                        "FG налаштування скинуто",
-                    )
-                }
-            }
-        }
+            stateStore = stateStore,
+            initialSection =
+                ProjectMSettingsPanel
+                    .Section
+                    .CENTER,
+            onAutoChanged = {
+                    enabled,
+                    seconds,
+                ->
+                applyAutoSettings(
+                    enabled =
+                        enabled,
+                    seconds =
+                        seconds,
+                )
+            },
+            onTuningChanged = { value ->
+                applyForegroundTuning(
+                    value,
+                )
+            },
+        )
     }
 
     private fun showCenterTuningDialog() {

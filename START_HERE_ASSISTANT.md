@@ -1,5 +1,14 @@
 # FARIC Music Visualizer — START HERE
 
+## v0.19.48 / build 137 — Canonical Theme Host + visible system bars in projectM
+
+- **User phone QA, build 136:** Shark ↔ Panther switches quickly, legacy projectM menu correct, Board and Theme browse return smooth. **FAIL remains** when changing from a layered GF theme to Neon/Energy/Core/Star/Wave/Vinyl/Cassette or back: legacy Theme Picker path calls `showNowPlaying()`, `clearScreenRefs()`, and recreates projectM. projectM authoring still hides Android **status + navigation bars**, contrary to original UI. Clips `607032.mp4`, `607033.mp4` and screenshot `607030.jpg` supplied in chat.
+- **v0.19.48 source candidate:** unified live routing for all implemented Playback Themes, mounted `HeroThemeView` alongside `HeroBoardView` in the existing GF slot, switch visible central renderer without calling `clearScreenRefs` or constructing a new projectM view. Bitmapped Shark/Panther remain background-loaded; Neon Emblem, Energy Core, Orbital Crown, Star Seed, Wave Idol, Vinyl and Cassette switch an existing Canvas view; VISUALIZER shares the same return path. No schema migration, no alteration of immutable center calibration.
+- Canonical catalog: duplicate Wave Idol entry removed while preserving its ID and original first description; registry unit tests assert unique theme IDs and expected implemented themes. Unimplemented Portrait Halo / Glass Core / Poster stay `СКОРО`.
+- projectM overlay explicitly calls WindowInsetsController.show(systemBars), applies system bar/cutout padding to overlay controls only, and restores player immersive mode upon exit. onWindowFocusChanged honors projectM-specific bar policy, rather than immediately rehiding them.
+- **Status: SOURCE CANDIDATE; Android Validate/build and physical phone QA PENDING.** Test all implemented themes in multiple transition chains, user bars during projectM and after Back, projectM AUTO/ratings and Board, short 3s MP4. Full-song export BUG-EXPORT-001 remains independently OPEN. Do not mark PERF-NAV-002 fully closed until phone validation.
+
+
 ## v0.19.47 / build 136 — original projectM UI + live hero switching (CI PASS; PHONE QA PENDING)
 
 - Code in main: `f5ce3e90a33122ee59c3599cc0830b29f08c8093`; PR #3 merged.

@@ -191,20 +191,6 @@ object PlaybackThemeRegistry {
                 previewOrder = 65,
             ),
             PlaybackThemeSpec(
-                id = PlaybackThemeId.WAVE_IDOL,
-                title = "Wave Idol",
-                subtitle = "Живий центральний силует із хвиль та аури",
-                family = ThemeFamily.HERO,
-                capabilities = setOf(
-                    ThemeCapability.CUSTOM_LOGO,
-                    ThemeCapability.BACKGROUND_IMAGE,
-                    ThemeCapability.BACKGROUND_VIDEO,
-                    ThemeCapability.TRACK_METADATA,
-                    ThemeCapability.REACTIVE_BANDS,
-                ),
-                previewOrder = 65,
-            ),
-            PlaybackThemeSpec(
                 id = PlaybackThemeId.VINYL,
                 title = "Vinyl",
                 subtitle = "Платівка, label, назва треку та виконавець",

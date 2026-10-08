@@ -13,6 +13,10 @@
 
 Зміни тільки у projectM authoring UI (старий компактний вигляд всередині постійної сцени) і переході між Cyber Shark/Panther (async asset load, без recreation scene). Validate #1086 / Android #611 PASS; APK v0.19.47/build 136 із main готовий до phone QA. Посібник v1.0 як і раніше описує попередню стабільну версію.
 
+## Canonical Themes / projectM системні панелі — v0.19.48 (source candidate)
+
+У кандидаті build 137 всі реалізовані Playback Themes використовують спільну постійну сцену без повторного створення projectM. Вікно projectM знов показує Android status bar і navigation bar, а на виході повертає повноекранний плеєр. Виправлено повтор Wave Idol у каталозі; збережено наявні ID та Composition Sets. **CI і телефонний QA ще не завершено**.
+
 ## Що описує посібник
 
 Послідовний практичний маршрут: вибрати локальний аудіофайл → керувати відтворенням → вибрати Playback Theme → налаштувати шари та Board → projectM і його FG → зберегти Composition Set → виконати offline analysis → експортувати PNG / пробний MP4 → знайти файл. Окремо: налаштування PulseDeck, типові проблеми, словник і функції «СКОРО».

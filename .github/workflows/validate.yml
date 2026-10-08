@@ -27,6 +27,7 @@ jobs:
           bash -n scripts/termux-menu.sh
           bash -n tools/termux/documentation-menu.sh
           python3 -m py_compile tools/termux/import-documentation.py
+          python3 -m py_compile tools/termux/render-documentation-html.py
           grep -q '20 — Documentation' scripts/termux-menu.sh
           bash -n tools/install_termux_aliases.sh
           bash -n tools/install_termux_widget.sh
@@ -54,7 +55,16 @@ jobs:
           test ! -f "$tmp/out/escape.txt"
           test ! -f "$tmp/escape.txt"
           printf '0\n' | FARIC_DOC_DIR="$tmp/out" bash tools/termux/documentation-menu.sh >/dev/null
-          echo "Documentation menu and ZIP import smoke PASS"
+          # HTML must also work without previously downloaded ZIP/files.
+          python3 tools/termux/render-documentation-html.py \
+            docs/user/FARIC_USER_GUIDE_UK.md "$tmp/guide.html"
+          test -s "$tmp/guide.html"
+          grep -q 'FARIC / DOCUMENTATION' "$tmp/guide.html"
+          grep -q 'data:image/' "$tmp/guide.html"
+          printf '1\n\n0\n' | HOME="$tmp/home" FARIC_DOC_DIR="$tmp/not-imported" \
+            bash tools/termux/documentation-menu.sh >"$tmp/offline.log"
+          test -s "$tmp/home/.cache/faric-music-visualizer/documentation/FARIC_User_Guide_UK_offline.html"
+          echo "Documentation menu, offline HTML and ZIP import smoke PASS"
 
       - name: Repository contracts
         shell: bash

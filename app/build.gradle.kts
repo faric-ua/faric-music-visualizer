@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 140
-        versionName = "0.19.51"
-        // v0.19.51: functional local tracks catalog, MediaStore browsing and search.
+        versionCode = 141
+        versionName = "0.19.52"
+        // v0.19.52: retain native Scene Host while navigating Library/Tracks and back.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

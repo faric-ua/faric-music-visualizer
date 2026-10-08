@@ -163,6 +163,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var persistentSceneRoot: FrameLayout? = null
     private var boardMenuOverlay: FrameLayout? = null
     private var themeMenuOverlay: FrameLayout? = null
+    private var mediaMenuOverlay: FrameLayout? = null
     private var themeMenuOriginalTheme: PlaybackThemeId? = null
     private var themeMenuLiveHeroSwitch = false
     private var heroAssetLoadGeneration = 0
@@ -529,7 +530,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         showLibrary()
                     }
                 }
-                Screen.LIBRARY -> finish()
+                Screen.LIBRARY -> {
+                    if (mediaMenuOverlay != null) showNowPlaying() else finish()
+                }
             }
         }
 
@@ -960,7 +963,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             (
                 screen == Screen.NOW_PLAYING ||
                     screen == Screen.BOARD_TRANSFORM ||
-                    (screen == Screen.THEME_PICKER && themeMenuOverlay != null)
+                    (screen == Screen.THEME_PICKER && themeMenuOverlay != null) ||
+                    ((screen == Screen.LIBRARY || screen == Screen.TRACKS) &&
+                        mediaMenuOverlay != null)
                 ) &&
                 latestSnapshot.isPlaying &&
                 layerVisible(
@@ -1025,7 +1030,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             (
                 screen == Screen.NOW_PLAYING ||
                     screen == Screen.BOARD_TRANSFORM ||
-                    (screen == Screen.THEME_PICKER && themeMenuOverlay != null)
+                    (screen == Screen.THEME_PICKER && themeMenuOverlay != null) ||
+                    ((screen == Screen.LIBRARY || screen == Screen.TRACKS) &&
+                        mediaMenuOverlay != null)
                 ) &&
                 (projectMSurfaceVisible() || projectMFocusOverlay != null) &&
                 projectMMainView !=
@@ -1046,18 +1053,56 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
+    /** Library and Tracks menus have no ownership of projectM or the scene. */
+    private fun hasRetainedMediaScene(): Boolean =
+        persistentSceneRoot != null &&
+            pulseDeckLayerStack != null &&
+            (screen == Screen.NOW_PLAYING ||
+                ((screen == Screen.LIBRARY || screen == Screen.TRACKS) &&
+                    mediaMenuOverlay != null))
+
+    private fun installMediaMenu(root: FrameLayout, retainScene: Boolean) {
+        val host = persistentSceneRoot
+        if (retainScene && host != null) {
+            mediaMenuOverlay?.let { old ->
+                (old.parent as? ViewGroup)?.removeView(old)
+            }
+            host.addView(
+                root,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                ),
+            )
+            mediaMenuOverlay = root
+            Log.i(
+                "FARIC-nav",
+                "Media overlay retained sceneRoot=" + System.identityHashCode(host) +
+                    " projectM=" + System.identityHashCode(projectMMainView) +
+                    " stack=" + System.identityHashCode(pulseDeckLayerStack),
+            )
+            updateSceneOrchestratorState()
+            updateProjectMRenderState()
+        } else {
+            setContentView(root)
+        }
+    }
+
     private fun showLibrary() {
+        val retainScene = hasRetainedMediaScene()
         screen = Screen.LIBRARY
-        sceneOrchestrator.stop()
-        clearScreenRefs()
+        if (!retainScene) {
+            sceneOrchestrator.stop()
+            clearScreenRefs()
+        }
 
         val root = FrameLayout(this).apply {
             setBackgroundColor(COLOR_BG)
         }
 
-        attachExportProjectMPreview(
-            root,
-        )
+        if (!retainScene) {
+            attachExportProjectMPreview(root)
+        }
         applySafeArea(root)
 
         val scroll = ScrollView(this).apply {
@@ -1109,7 +1154,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         modes.addView(modeChip("♫", "Бібліотека", "Моя музика", true) { })
         modes.addView(modeChip("▥", "Tone Lab", "Звук і ефекти", false) { toast("Tone Lab — наступний етап") })
-        modes.addView(modeChip("◉", "Scene Lab", "Візуальні сцени", false) { showThemePicker() })
+        modes.addView(modeChip("◉", "Scene Lab", "Візуальні сцени", false) {
+            if (mediaMenuOverlay != null) showNowPlaying()
+            showThemePicker()
+        })
         modeScroller.addView(modes)
         content.addView(modeScroller)
 
@@ -1212,7 +1260,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM),
         )
 
-        setContentView(root)
+        installMediaMenu(root, retainScene)
         restorePendingScrollPositions()
         enableImmersiveFullscreen()
         onPlaybackSnapshot(latestSnapshot)
@@ -1237,9 +1285,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showAllTracks(focusSearch: Boolean = false) {
+        val retainScene = hasRetainedMediaScene()
         screen = Screen.TRACKS
-        sceneOrchestrator.stop()
-        clearScreenRefs()
+        if (!retainScene) {
+            sceneOrchestrator.stop()
+            clearScreenRefs()
+        }
 
         val browser = LocalMusicBrowser(
             activity = this,
@@ -1261,7 +1312,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             footer = buildPulseDock(),
         )
         applySafeArea(root)
-        setContentView(root)
+        installMediaMenu(root, retainScene)
         enableImmersiveFullscreen()
         onPlaybackSnapshot(latestSnapshot)
     }
@@ -1559,6 +1610,35 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             updateSceneOrchestratorState()
             enableImmersiveFullscreen()
             Log.i("FARIC-nav", "Themes browser closed; native GL retained")
+            return
+        }
+        if ((screen == Screen.LIBRARY || screen == Screen.TRACKS) &&
+            mediaMenuOverlay != null &&
+            persistentSceneRoot != null
+        ) {
+            val host = persistentSceneRoot
+            (mediaMenuOverlay?.parent as? ViewGroup)?.removeView(mediaMenuOverlay)
+            mediaMenuOverlay = null
+            screen = Screen.NOW_PLAYING
+            // Dock belongs to the dismissed menu, not to the persistent skin.
+            miniPulseView = null
+            dock = null
+            dockTitle = null
+            dockSubtitle = null
+            dockPlay = null
+            dockProgress = null
+            activeVerticalScroll = null
+            activeHorizontalScroll = null
+            updateProjectMRenderState()
+            updateSceneOrchestratorState()
+            enableImmersiveFullscreen()
+            onPlaybackSnapshot(latestSnapshot)
+            Log.i(
+                "FARIC-nav",
+                "Media overlay returned; same sceneRoot=" + System.identityHashCode(host) +
+                    " projectM=" + System.identityHashCode(projectMMainView) +
+                    " stack=" + System.identityHashCode(pulseDeckLayerStack),
+            )
             return
         }
         if (
@@ -9481,6 +9561,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusPresets = emptyList()
         boardMenuOverlay = null
         themeMenuOverlay = null
+        mediaMenuOverlay = null
         themeMenuOriginalTheme = null
         themeMenuLiveHeroSwitch = false
         heroAssetLoadGeneration++

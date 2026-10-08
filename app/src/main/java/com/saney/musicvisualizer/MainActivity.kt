@@ -45,6 +45,7 @@ import com.saney.musicvisualizer.board.BoardGroupReaction
 import com.saney.musicvisualizer.board.BoardGroupReactionStore
 import com.saney.musicvisualizer.board.GraphicFigureCatalog
 import com.saney.musicvisualizer.board.GraphicFigureAssets
+import com.saney.musicvisualizer.board.UserHeroPack
 import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerTransform
 import com.saney.musicvisualizer.board.BoardLayerTransformStore
@@ -243,6 +244,35 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
 
     private var pendingOpenAfterPermission = false
+
+    private var heroCatalogExpanded = false
+
+    private val openHeroArchive =
+        registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
+            if (uri != null) {
+                toast("Імпорт героїв…")
+                thread(name = "faric-import-user-heroes") {
+                    val result = runCatching { UserHeroPack.importZip(applicationContext, uri) }
+                    runOnUiThread {
+                        result.onSuccess { count ->
+                            toast("Імпортовано героїв: $count")
+                            if (screen == Screen.THEME_PICKER) {
+                                heroCatalogExpanded = true
+                                if (themeMenuOverlay != null && persistentSceneRoot != null) {
+                                    (themeMenuOverlay?.parent as? ViewGroup)
+                                        ?.removeView(themeMenuOverlay)
+                                    themeMenuOverlay = null
+                                    screen = Screen.NOW_PLAYING
+                                }
+                                showThemePicker()
+                            }
+                        }.onFailure { error ->
+                            toast("ZIP: ${error.message ?: "Помилка імпорту"}")
+                        }
+                    }
+                }
+            }
+        }
 
     private val openAudio =
         registerForActivityResult(ActivityResultContracts.OpenMultipleDocuments()) { uris ->
@@ -8611,11 +8641,71 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
         )
 
+        // One expandable hero family, with a compact two-column visual grid.
+        // All other themes remain first-class separate choices below it.
+        val heroFamily = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(12), dp(12), dp(12), dp(12))
+            background = panelDrawable(COLOR_PANEL, 20, COLOR_ACCENT_CYAN, 1)
+        }
+        val heroTiles = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            visibility = if (heroCatalogExpanded) View.VISIBLE else View.GONE
+        }
+        val toggleLabel = label(
+            (if (heroCatalogExpanded) "▾ " else "▸ ") +
+                "Герої · ${GraphicFigureCatalog.ids.size}",
+            20f, Color.WHITE, true,
+        )
+        heroFamily.addView(toggleLabel)
+        heroFamily.addView(label(
+            "Кібергерої FARIC / FMV / FVMP · натисни для вибору",
+            12f, COLOR_MUTED, false,
+        ))
+        heroFamily.setOnClickListener {
+            heroCatalogExpanded = !heroCatalogExpanded
+            heroTiles.visibility = if (heroCatalogExpanded) View.VISIBLE else View.GONE
+            toggleLabel.text =
+                (if (heroCatalogExpanded) "▾ " else "▸ ") +
+                "Герої · ${GraphicFigureCatalog.ids.size}"
+        }
+        content.addView(heroFamily)
+        val importArchiveButton = label(
+            "＋ Імпортувати Pictures2.zip (10 героїв)",
+            14f, COLOR_ACCENT_CYAN, true,
+        ).apply {
+            setPadding(dp(12), dp(16), dp(12), dp(16))
+            setOnClickListener {
+                openHeroArchive.launch(arrayOf(
+                    "application/zip",
+                    "application/x-zip-compressed",
+                    "application/octet-stream",
+                ))
+            }
+        }
+        heroTiles.addView(importArchiveButton)
+        val heroGrid = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        heroTiles.addView(heroGrid)
+        content.addView(heroTiles)
+        content.addView(label(
+            "Інші теми", 17f, Color.WHITE, true,
+        ), LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            ViewGroup.LayoutParams.WRAP_CONTENT,
+        ).apply { topMargin = dp(18); bottomMargin = dp(12) })
+        var heroRow: LinearLayout? = null
+        var heroCount = 0
+
         PlaybackThemeRegistry.all.forEach { spec ->
-            val implemented =
+            val installed = GraphicFigureCatalog.isInstalled(this, spec.id)
+            val figure = isLayeredBoardTheme(spec.id)
+            val implemented = installed && (
                 spec.id == PlaybackThemeId.VISUALIZER ||
-                    isLayeredBoardTheme(spec.id) ||
+                    figure ||
                     isStandaloneHeroTheme(spec.id)
+            )
 
             val selected =
                 spec.id == selectedThemeId
@@ -8652,12 +8742,35 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         1,
                     )
 
+                if (figure && installed) {
+                    val image = ImageView(this@MainActivity).apply {
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                        adjustViewBounds = false
+                    }
+                    addView(image, LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(128),
+                    ).apply { bottomMargin = dp(8) })
+                    thread(name = "faric-hero-tile") {
+                        val preview = runCatching {
+                            GraphicFigureCatalog.loadPreview(applicationContext, spec.id)
+                        }.getOrNull()
+                        runOnUiThread {
+                            if (!isDestroyed && image.parent != null) {
+                                image.setImageBitmap(preview)
+                            } else {
+                                preview?.recycle()
+                            }
+                        }
+                    }
+                }
                 addView(
                     label(
                         buildString {
                             if (selected) append("✓  ")
                             append(spec.title)
-                            if (!implemented) append("  · СКОРО")
+                            if (!installed) append("  · ZIP")
+                            else if (!implemented) append("  · СКОРО")
                         },
                         18f,
                         Color.WHITE,
@@ -8712,6 +8825,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 )
 
                 setOnClickListener {
+                    if (!installed) {
+                        toast("Спочатку імпортуй Pictures2.zip")
+                        return@setOnClickListener
+                    }
                     if (!implemented) {
                         toast("${spec.title}: ще будуємо")
                         return@setOnClickListener
@@ -8803,15 +8920,29 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
             }
 
-            content.addView(
-                card,
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply {
-                    bottomMargin = dp(10)
-                },
-            )
+            if (figure) {
+                if (heroCount % 2 == 0) {
+                    heroRow = LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                    }
+                    heroGrid.addView(heroRow)
+                }
+                heroRow?.addView(
+                    card,
+                    LinearLayout.LayoutParams(
+                        0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
+                    ).apply { setMargins(dp(3), dp(4), dp(3), dp(4)) },
+                )
+                heroCount++
+            } else {
+                content.addView(
+                    card,
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply { bottomMargin = dp(10) },
+                )
+            }
         }
 
         scroll.addView(content)
@@ -8836,11 +8967,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun isLayeredBoardTheme(
         id: PlaybackThemeId,
-    ): Boolean =
-        id ==
-            PlaybackThemeId.CYBER_SHARK ||
-            id ==
-            PlaybackThemeId.CYBER_PANTHER
+    ): Boolean = id in GraphicFigureCatalog.ids
 
     private fun isStandaloneHeroTheme(
         id: PlaybackThemeId,

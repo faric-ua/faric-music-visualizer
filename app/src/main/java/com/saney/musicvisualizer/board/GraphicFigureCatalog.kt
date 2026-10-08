@@ -19,7 +19,7 @@ object GraphicFigureCatalog {
         listOf(
             PlaybackThemeId.CYBER_SHARK,
             PlaybackThemeId.CYBER_PANTHER,
-        )
+        ) + UserHeroPack.heroes.map { it.id }
 
     fun normalize(
         themeId: PlaybackThemeId,
@@ -33,7 +33,7 @@ object GraphicFigureCatalog {
     fun title(
         themeId: PlaybackThemeId,
     ): String =
-        when (normalize(themeId)) {
+        UserHeroPack.find(themeId)?.title ?: when (normalize(themeId)) {
             PlaybackThemeId.CYBER_PANTHER ->
                 "Cyber Panther"
 
@@ -44,7 +44,7 @@ object GraphicFigureCatalog {
     fun creatureLabel(
         themeId: PlaybackThemeId,
     ): String =
-        when (normalize(themeId)) {
+        UserHeroPack.find(themeId)?.title ?: when (normalize(themeId)) {
             PlaybackThemeId.CYBER_PANTHER ->
                 "Panther"
 
@@ -55,7 +55,9 @@ object GraphicFigureCatalog {
     fun supportedLayers(
         themeId: PlaybackThemeId,
     ): Set<BoardLayerId> =
-        when (normalize(themeId)) {
+        if (UserHeroPack.find(themeId) != null) {
+            setOf(BoardLayerId.BACKGROUND, BoardLayerId.CREATURE)
+        } else when (normalize(themeId)) {
             PlaybackThemeId.CYBER_PANTHER ->
                 BoardLayerId.entries.toSet()
 
@@ -76,7 +78,14 @@ object GraphicFigureCatalog {
         context: Context,
         themeId: PlaybackThemeId,
     ): GraphicFigureAssets =
-        when (normalize(themeId)) {
+        if (UserHeroPack.find(themeId) != null) {
+            GraphicFigureAssets(
+                frame = null,
+                fx = null,
+                creature = UserHeroPack.loadEmblem(context, themeId),
+                wordmark = null,
+            )
+        } else when (normalize(themeId)) {
             PlaybackThemeId.CYBER_PANTHER ->
                 GraphicFigureAssets(
                     frame =
@@ -120,6 +129,28 @@ object GraphicFigureCatalog {
                         ),
                 )
         }
+
+    fun isInstalled(context: Context, themeId: PlaybackThemeId): Boolean =
+        UserHeroPack.find(themeId) == null || UserHeroPack.isInstalled(context, themeId)
+
+    fun loadPreview(context: Context, themeId: PlaybackThemeId): Bitmap? {
+        if (UserHeroPack.find(themeId) != null) {
+            return UserHeroPack.loadEmblem(context, themeId, preview = true)
+        }
+        val drawable = when (themeId) {
+            PlaybackThemeId.CYBER_PANTHER -> R.drawable.cyber_panther_full
+            else -> R.drawable.cyber_shark_creature
+        }
+        return BitmapFactory.decodeResource(
+            context.resources,
+            drawable,
+            BitmapFactory.Options().apply {
+                inScaled = false
+                inSampleSize = 4
+                inPreferredConfig = Bitmap.Config.ARGB_8888
+            },
+        )
+    }
 
     private fun decodePantherCreature(
         context: Context,

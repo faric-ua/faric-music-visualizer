@@ -1,5 +1,14 @@
 # FARIC Music Visualizer — START HERE
 
+
+## v0.19.49 / build 138 — expandable «Герої» & Pictures2.zip (CI PASS / PHONE QA PENDING)
+
+- New PR #5 groups Cyber Shark/Panther and 10 new user-provided PNG themes in a two-column thumbnail grid. Neon/Energy/Orbital/Star/Wave/Vinyl/Cassette/Visualizer remain separate. Group expand and import do not intentionally recreate the live Scene Host.
+- Artwork input: user `Pictures2.zip` (10 transparent 1122x1402 composite art sheets). Explicit Android SAF ZIP import stores originals in app-private files; **the APK does not yet bundle this ZIP**. New figures initially use a cropped single-emblem preview, not approved modular Frame/FX/Creature/Wordmark. Full asset separation and Cyber Shark-grade visuals remain separate open art QA.
+- Code/PR source `dcd41b2ae2a477f9c6181ebb5edcdf62f4c13933`; Validate #1092 PASS and Android #615 PASS, run `37825625591`, artifact `FARIC-Music-Visualizer-v0.19.49-Debug` id `11570559985` (expires 2026-10-11).
+- **Next:** finish PR #5 / verify signed Android build on `main`, write release checkpoint; only then Termux **3 → 10 → 8**. Phone QA: Hero group expand, Pictures2 ZIP 10/10, previews/selection, fast scene return, legacy Shark/Panther, projectM system bars and 3-second MP4. No Phone QA PASS yet. PERF-NAV-002 and BUG-EXPORT-001 remain open.
+
+
 ## v0.19.48 / build 137 — Canonical Theme Host + visible system bars in projectM
 
 - **User phone QA, build 136:** Shark ↔ Panther switches quickly, legacy projectM menu correct, Board and Theme browse return smooth. **FAIL remains** when changing from a layered GF theme to Neon/Energy/Core/Star/Wave/Vinyl/Cassette or back: legacy Theme Picker path calls `showNowPlaying()`, `clearScreenRefs()`, and recreates projectM. projectM authoring still hides Android **status + navigation bars**, contrary to original UI. Clips `607032.mp4`, `607033.mp4` and screenshot `607030.jpg` supplied in chat.

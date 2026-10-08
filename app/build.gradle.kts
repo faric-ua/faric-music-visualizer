@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 137
-        versionName = "0.19.48"
-        // v0.19.48: one persistent live Theme engine + projectM Android system bars.
+        versionCode = 138
+        versionName = "0.19.49"
+        // v0.19.49: grouped Hero gallery + explicit ZIP artwork import; persistent Scene Host.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

@@ -8658,12 +8658,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             val generation = ++heroAssetLoadGeneration
                             val requestedOverlay = themeMenuOverlay
                             thread(name = "faric-hero-assets") {
+                                val loadStartNs = System.nanoTime()
                                 val assets = runCatching {
                                     GraphicFigureCatalog.loadAssets(
                                         applicationContext,
                                         requestedTheme,
                                     )
                                 }.getOrNull()
+                                val loadMs =
+                                    (System.nanoTime() - loadStartNs) / 1_000_000L
                                 runOnUiThread {
                                     if (isFinishing || isDestroyed ||
                                         heroAssetLoadGeneration != generation ||
@@ -8674,16 +8677,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         toast("Не вдалося завантажити тему")
                                         return@runOnUiThread
                                     }
+                                    val applyStartNs = System.nanoTime()
                                     setGraphicFigureThemeId(
                                         requestedTheme,
                                         readyAssets = assets,
                                     )
                                     themeMenuLiveHeroSwitch = true
+                                    showNowPlaying()
                                     Log.i(
                                         "FARIC-nav",
-                                        "Hero changed in place: $requestedTheme; native projectM retained",
+                                        "Hero switched in place: $requestedTheme; " +
+                                            "assetDecode=${loadMs}ms; " +
+                                            "UIApplyAndReturn=" +
+                                            ((System.nanoTime() - applyStartNs) / 1_000_000L) +
+                                            "ms; native projectM retained",
                                     )
-                                    showNowPlaying()
                                 }
                             }
                         }

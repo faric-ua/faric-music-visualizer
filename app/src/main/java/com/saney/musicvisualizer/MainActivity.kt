@@ -13,6 +13,7 @@ import android.net.Uri
 import android.os.Handler
 import android.os.Looper
 import android.os.Bundle
+import android.os.Build
 import android.provider.OpenableColumns
 import android.provider.DocumentsContract
 import android.util.Log
@@ -81,6 +82,7 @@ import com.saney.musicvisualizer.theme.PlaybackThemeStore
 import com.saney.musicvisualizer.theme.ThemeInput
 import com.saney.musicvisualizer.ui.HeroBoardView
 import com.saney.musicvisualizer.ui.HeroThemeView
+import com.saney.musicvisualizer.ui.LocalMusicBrowser
 import com.saney.musicvisualizer.ui.PulseMiniView
 import com.saney.musicvisualizer.ui.PulseDeckControlRail
 import com.saney.musicvisualizer.ui.PulseDeckIconButton
@@ -110,6 +112,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private enum class Screen {
         LIBRARY,
+        TRACKS,
         NOW_PLAYING,
         THEME_PICKER,
         BOARD_TRANSFORM,
@@ -270,6 +273,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             toast("ZIP: ${error.message ?: "Помилка імпорту"}")
                         }
                     }
+                }
+            }
+        }
+
+    private val requestMusicLibraryPermission =
+        registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
+            if (screen == Screen.TRACKS) {
+                showAllTracks()
+                if (!granted) {
+                    toast("Доступ до музики не надано. Оберіть файли вручну.")
                 }
             }
         }
@@ -505,6 +518,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
             when (screen) {
                 Screen.NOW_PLAYING -> showLibrary()
+                Screen.TRACKS -> showLibrary()
                 Screen.THEME_PICKER,
                 Screen.BOARD_TRANSFORM,
                 Screen.EXPORT_LAB,
@@ -1063,7 +1077,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         header.addView(label("FARIC", 28f, Color.WHITE, true))
         header.addView(label("  PulseDeck", 22f, COLOR_MUTED, false))
         header.addView(Space(this), LinearLayout.LayoutParams(0, 1, 1f))
-        header.addView(iconButton("⌕") { toast("Пошук з'явиться разом з локальним індексом") })
+        header.addView(iconButton("⌕") { showAllTracks(focusSearch = true) })
         header.addView(iconButton("⋮") { toast("Меню PulseDeck — наступна хвиля") })
 
         content.addView(header)
@@ -9065,7 +9079,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f),
         )
         nav.addView(
-            navItem("⌕", "Пошук", false) { toast("Пошук — після media scanner") },
+            navItem("⌕", "Пошук", false) { showAllTracks(focusSearch = true) },
             LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1f),
         )
         nav.addView(
@@ -9478,6 +9492,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         when (target) {
             Screen.LIBRARY ->
                 showLibrary()
+
+            Screen.TRACKS ->
+                showAllTracks()
 
             Screen.NOW_PLAYING ->
                 showNowPlaying()

@@ -4,12 +4,20 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## CURRENT SOURCE CANDIDATE — v0.19.43 / build 132 — Copy stays open until OK
+
+- Phone-reported 3-second export timing: 1080×1920, 90 frames, **5976ms total**, projectM 791ms, composition 1935ms, GPU direct, encoder 873ms, GPU overlay 664ms, HUD draw 1051ms. Export result text was successfully copied, but the dialog dismissed automatically on Copy.
+- User expected `Копіювати текст` to copy without dismissal, and `OK` to close. Source **v0.19.43 (build 132)** now does that: `PulseDeckDialogs.Action.dismissOnClick` defaults true; only export report `showMessage(keepOpenOnSecondary=true)` keeps its Copy action open. Other dialogs retain existing behavior.
+- Validate **#1037 PASS**; Android **#603 is running** from source commit `364f39627f7bb41c7315021b91f484b72ebdc63c`. Never label APK ready before Android PASS.
+- After build PASS: **Termux 3 → 10 → 8**, 3-second export → scroll → Copy → report remains visible → OK dismisses. Previous v0.19.42 Frame spin / BG/Glow 5/6 user PASS remain accepted; navigation back smoothness still pending/previously FAIL.
+- Independently OPEN: BUG-EXPORT-001 (~48% full-song export app exit) and PERF-NAV-002 (transition freezes) — no fix for either here.
+
 ## PHONE QA — 2026-10-08 — v0.19.42 / build 131
 
 - **5/6 PASS**: Frame auto-spin +30°/s / −30°/s / 0°/s, Frame only, unchanged manual angle; Board and Composition Set persistence; BG/Glow one line; 3-second spinning-Frame MP4 and visible Copy/OK.
 - **1/6 NOT TESTED**: navigation player ↔ projectM / both Back buttons. Prior stutter remains PERF-NAV-002 OPEN; separate app Back icon was already visible.
 - New user-export report: **1080×1920, 90 frames, 5976ms**, projectM 791ms, composition 1935ms, encoder 873ms, GPU direct; GPU overlay 664ms, HUD draw 1051ms. Full metrics in `docs/checkpoints/2026-10-08-v0.19.42-frame-spin.md`.
-- Copy report works but auto-closes the dialog. User accepts behavior; **no code changes needed**. Full scrolling and OK tap were not individually tested. Full-song export crash remains OPEN.
+- Copy report works but auto-closes in build 131. Follow-up source v0.19.43 changes Copy to **keep the dialog open** until OK; phone QA still pending. Full scrolling and OK tap were not individually tested. Full-song export crash remains OPEN.
 - No rebuild required to record results. **Next engineering priority: PERF-NAV-002** (shared projectM lifecycle stalls).
 
 ## CURRENT SOURCE CANDIDATE — v0.19.42 / build 131 — Frame rotation and BG/Glow tab

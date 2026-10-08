@@ -1,5 +1,14 @@
 # Open Findings
 
+## UX-EXPORT-006 — Copy report closes unexpectedly before OK
+
+- **Observed on phone (2026-10-08):** user successfully copied full 3-second export report at 1080×1920, 90 frames, total 5976ms, but window closed immediately. They expected Copy to leave the report open for an explicit OK.
+- **Existing cause:** generic `PulseDeckDialogs` dismisses after every action, including Copy.
+- **Fix source:** v0.19.43 build 132: opt-in `keepOpenOnSecondary = true` in export result; per-action `dismissOnClick` false on Copy, true on OK; previous default kept for every other caller. Maintains fixed footer and scrolling result introduced v0.19.41.
+- **Status:** source implemented, Validate #1037 PASS, Android #603 running, **phone QA pending**.
+- **Acceptance:** copy full report → dialog remains and buttons stay usable → OK closes; other dialogs remain unchanged.
+- **Metric evidence:** projectM 791ms; composition 1935ms; encoder 873ms; GPU overlay 664ms; Cyber Shark 359ms; HUD draw 1051ms; total 5976ms. This short export does not close BUG-EXPORT-001 (full-song exit around 48%).
+
 ## UX-BOARD-005 — Frame signed auto-spin and single-line BG/Glow chip
 
 - **Source observation:** User screenshots `606829.jpg` and `606827.jpg`: Board → Frame has only manual `Поворот шару`; user requests an optional independent rotation about the Frame's own center, signed speed and OFF. Screenshot `606829.jpg` shows the narrow selector `BG/Glow` wrapping into two lines, clipped in the row.

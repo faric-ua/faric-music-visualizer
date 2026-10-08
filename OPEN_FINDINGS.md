@@ -5,7 +5,7 @@
 - **Observed on phone (2026-10-08):** user successfully copied full 3-second export report at 1080×1920, 90 frames, total 5976ms, but window closed immediately. They expected Copy to leave the report open for an explicit OK.
 - **Existing cause:** generic `PulseDeckDialogs` dismisses after every action, including Copy.
 - **Fix source:** v0.19.43 build 132: opt-in `keepOpenOnSecondary = true` in export result; per-action `dismissOnClick` false on Copy, true on OK; previous default kept for every other caller. Maintains fixed footer and scrolling result introduced v0.19.41.
-- **Status:** source implemented, Validate #1037 PASS, Android #603 running, **phone QA pending**.
+- **Status:** source + CI **PASS** in v0.19.43 build 132 (Validate #1037, Android #603); **phone QA remains PENDING**. User's copied report was from earlier APK, not acceptance of this fix.
 - **Acceptance:** copy full report → dialog remains and buttons stay usable → OK closes; other dialogs remain unchanged.
 - **Metric evidence:** projectM 791ms; composition 1935ms; encoder 873ms; GPU overlay 664ms; Cyber Shark 359ms; HUD draw 1051ms; total 5976ms. This short export does not close BUG-EXPORT-001 (full-song exit around 48%).
 

@@ -3,6 +3,7 @@ package com.saney.musicvisualizer.board
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.Canvas
 import android.net.Uri
 import com.saney.musicvisualizer.theme.PlaybackThemeId
 import java.io.File
@@ -125,6 +126,17 @@ object UserHeroPack {
         val cropH = (original.height * 0.54f).toInt().coerceAtLeast(1)
         val emblem = Bitmap.createBitmap(original, 0, 0, cropW, cropH)
         if (emblem !== original) original.recycle()
-        return emblem
+        // HeroBoardView draws square canvases: transparent padding prevents
+        // distorting the cropped original design sheet into a square.
+        val side = maxOf(cropW, cropH)
+        val square = Bitmap.createBitmap(side, side, Bitmap.Config.ARGB_8888)
+        Canvas(square).drawBitmap(
+            emblem,
+            (side - cropW) / 2f,
+            (side - cropH) / 2f,
+            null,
+        )
+        emblem.recycle()
+        return square
     }
 }

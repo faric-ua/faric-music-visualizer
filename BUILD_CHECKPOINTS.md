@@ -1,5 +1,18 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## v0.19.52 / build 141 — Live Library/Tracks navigation, no GL rebuild (MAIN CI PASS / PHONE QA PENDING)
+
+- App/source commit `ffc0591c0099e17410f15b7113cc572fc10d660d` (PR #8). Immutable checkpoint branch `checkpoint/pulsedeck-v0.19.52-2026-10-09`.
+- Validate #1110 PASS; Android #628 PASS, run `37851207873`; signed artifact `FARIC-Music-Visualizer-v0.19.52-Debug`, ID `11582750197`, expires 2026-10-11 22:08 UTC.
+- **Phone source v0.19.51 / build 140:** user reports local media library and playback PASS; ordinary Player ↔ Library / Tracks ↔ Player causes visible jank FAIL; evidence `607184.mp4`. Export 3-second MP4 NOT TESTED (explicitly postponed). Hero art editing DEFERRED/UNCHANGED.
+- Root cause: `showLibrary()` and `showAllTracks()` called `clearScreenRefs()`, including `projectMMainView.releaseProjectMBlocking()`, and returned through full `showNowPlaying()` rebuild. Additionally, Home could create a duplicate export-preview `ProjectMView`.
+- New contract: with a live player scene, Home and All Tracks use **opaque replaceable overlays on the same persistentSceneRoot**; back/mini-dock just closes overlay, never destroys the existing projectM/GL, scene, GF, HUD or audio session. When live scene retained, Home skips creating an extra projectM preview. `FARIC-nav` records sceneRoot/projectM/stack identities.
+- Audit (authoritative): `docs/audits/2026-10-09-LIBRARY_LIVE_SCENE_NAVIGATION_AUDIT.md`; finding `PERF-NAV-003` remains **OPEN** until user confirms physical navigation PASS.
+- **Phone QA pending:** (1) Player → Home → Player ×5, no hitch or black frame; (2) Player → Home → All Tracks → Home → Player, same scene; (3) search/select different song → Player → Home → Player, audio and queue work; (4) Android Back from live Library returns to Player; (5) Theme/Board menu unaffected. Do NOT request 3-second MP4 export in this phone-QA round.
+- **Next:** Termux **3 → 10 → 8** for signed build141 (do not press 9). After phone PASS, proceed to Albums/Artists/Folder/Collections; leave Hero rework and export testing deferred at user's request.
+
+
+
 ## v0.19.51 / build 140 — Local Music Library foundation (MAIN CI PASS / PHONE QA PENDING)
 
 - App/source SHA: `1874325cf66f694246d02329d8ca4c1700a130c3`, merged PR #7; immutable checkpoint branch `checkpoint/pulsedeck-v0.19.51-2026-10-09`.

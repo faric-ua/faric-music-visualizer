@@ -205,3 +205,15 @@ Required future export behavior:
 
 Status: TODO after current movable-panel / AUTO phone QA.
 
+
+## v0.19.39 individual reset and auto-spin — implementation contract
+
+- Numeric fields in the movable projectM settings panel use the shared **minus / numeric value / plus** row.
+- **Tap the numeric value** to reset **only that parameter** to its default. The existing **Скинути Center / Скинути Edge FX** group buttons remain unchanged. The reset uses the same live persistence callback as the +/- controls.
+- **FG Center → Автообертання** controls angular velocity in **degrees per second** in the inclusive range **-180 .. +180**, with **5°/s** steps. **0°/s** is OFF. Negative speed reverses direction.
+- The manual **Поворот** angle remains independent from the ongoing animated rotation.
+- Auto spin persists in `ProjectMStateStore`, Composition Sets and the main player authoring panel; the native foreground shader receives a frame-timeline-derived modulo-360 spin angle to avoid precision loss and preserve export timeline determinism.
+- Behavior requires physical phone validation: tap an altered value -> only it resets; choose + speed -> FG Center rotates; choose - speed -> opposite direction; choose 0 -> stops; save/reload a Composition Set; test three-second Export proof.
+- This is separate from projectM background AUTO preset changes (5/10/15s). That deterministic preset-sequence Export feature remains TODO.
+- A user-reported full-song export app exit at ~48% remains an independent HIGH-priority open issue. Do not characterize it as resolved by this UI update. See `OPEN_FINDINGS.md` BUG-EXPORT-001.
+

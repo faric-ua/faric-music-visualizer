@@ -53,3 +53,14 @@ Phone tests (mark each PASS or FAIL only after observation):
 - `PERF-NAV-003` closes only after user's phone PASS of scene continuity on the target build.
 - `PERF-NAV-002` remains tracked for earlier cross-theme/navigation problems; `BUG-EXPORT-001` remains open and independent.
 - Hero cleanup and export testing postponed at the user's explicit request.
+
+## Implementation in candidate v0.19.52 / build 141
+
+- Branch `fix/v0.19.52-library-live-scene`; source patch before final merge/build PASS.
+- Added `mediaMenuOverlay` and reusable media-screen mount helper in `MainActivity`: Home/Tracks rebuild only an opaque overlay; the existing `persistentSceneRoot` and `PulseDeckLayerStack` stay mounted.
+- The `showLibrary` and `showAllTracks` fast paths skip `clearScreenRefs()` and `sceneOrchestrator.stop()`; Home skips `attachExportProjectMPreview()` whenever an active scene is retained.
+- Back or miniplayer return in `showNowPlaying` removes the overlay directly, rather than releasing/recreating the native view.
+- The active-scene conditions in `updateSceneOrchestratorState()` and `updateProjectMRenderState()` include live Library/Tracks overlays. The same native projectM stays owned by Player.
+- Opening Scene Lab from an active Library overlay first returns to the retained Player and then enters the already supported Theme overlay lifecycle.
+- Added `FARIC-nav` logs with `sceneRoot`, `projectM`, and layer-stack identity values for before/after navigation. Do not treat hash identity logs alone as timing proof.
+- **No user Phone PASS yet.** Confirm the absence of stalls/black frames on the installed build before closing.

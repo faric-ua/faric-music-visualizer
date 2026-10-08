@@ -36,6 +36,7 @@ static GLint g_u_center_visible = -1;
 static GLint g_u_edge_visible = -1;
 static GLint g_u_center_scale = -1;
 static GLint g_u_center_rotation = -1;
+static GLint g_u_center_spin_angle = -1;
 static GLint g_u_center_opacity = -1;
 static GLint g_u_center_bass_gain = -1;
 static GLint g_u_center_mid_gain = -1;
@@ -51,6 +52,7 @@ static std::atomic<bool> g_foreground_center_visible{true};
 static std::atomic<bool> g_foreground_edge_visible{true};
 static std::atomic<float> g_center_scale{1.0f};
 static std::atomic<float> g_center_rotation_degrees{0.0f};
+static std::atomic<float> g_center_spin_degrees_per_second{0.0f};
 static std::atomic<float> g_center_opacity{1.0f};
 static std::atomic<float> g_center_bass_gain{1.0f};
 static std::atomic<float> g_center_mid_gain{1.0f};
@@ -109,6 +111,7 @@ uniform float uCenterVisible;
 uniform float uEdgeVisible;
 uniform float uCenterScale;
 uniform float uCenterRotation;
+uniform float uCenterSpinAngle;
 uniform float uCenterOpacity;
 uniform float uCenterBassGain;
 uniform float uCenterMidGain;
@@ -131,7 +134,7 @@ void main() {
     vec2 p = vUv * 2.0 - 1.0;
     p.x *= uResolution.x / max(uResolution.y, 1.0);
 
-    float centerRadians = uCenterRotation * PI / 180.0;
+    float centerRadians = (uCenterRotation + uCenterSpinAngle) * PI / 180.0;
     float centerCos = cos(centerRadians);
     float centerSin = sin(centerRadians);
     p =
@@ -664,6 +667,7 @@ static void destroy_foreground_locked() {
     g_u_edge_visible = -1;
     g_u_center_scale = -1;
     g_u_center_rotation = -1;
+    g_u_center_spin_angle = -1;
     g_u_center_opacity = -1;
     g_u_center_bass_gain = -1;
     g_u_center_mid_gain = -1;
@@ -801,6 +805,10 @@ static bool create_foreground_locked() {
     g_u_center_rotation = glGetUniformLocation(
         g_foreground_program,
         "uCenterRotation"
+    );
+    g_u_center_spin_angle = glGetUniformLocation(
+        g_foreground_program,
+        "uCenterSpinAngle"
     );
     g_u_center_opacity = glGetUniformLocation(
         g_foreground_program,
@@ -1017,6 +1025,13 @@ static void draw_foreground_locked(GLuint targetFramebuffer = 0) {
         g_u_center_rotation,
         g_center_rotation_degrees.load(std::memory_order_relaxed)
     );
+    // Modulo keeps the angular uniform stable on mediump fragment shaders.
+    // Offline exports use timeline seconds; live preview uses elapsed time.
+    const float spinAngle = std::fmod(
+        timeSeconds * g_center_spin_degrees_per_second.load(std::memory_order_relaxed),
+        360.0f
+    );
+    glUniform1f(g_u_center_spin_angle, spinAngle);
     glUniform1f(
         g_u_center_opacity,
         g_center_opacity.load(std::memory_order_relaxed)
@@ -1715,6 +1730,7 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetForegroundTuning
         jclass,
         jfloat centerScale,
         jfloat centerRotationDegrees,
+        jfloat centerSpinDegreesPerSecond,
         jfloat centerOpacity,
         jfloat centerBassGain,
         jfloat centerMidGain,
@@ -1735,6 +1751,14 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetForegroundTuning
     g_center_rotation_degrees.store(
         std::clamp(
             static_cast<float>(centerRotationDegrees),
+            -180.0f,
+            180.0f
+        ),
+        std::memory_order_relaxed
+    );
+    g_center_spin_degrees_per_second.store(
+        std::clamp(
+            static_cast<float>(centerSpinDegreesPerSecond),
             -180.0f,
             180.0f
         ),

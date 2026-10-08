@@ -8,8 +8,8 @@ Before replying about FARIC Music Visualizer releases, builds, Termux or phone Q
 
 - Phone-reported 3-second export timing: 1080×1920, 90 frames, **5976ms total**, projectM 791ms, composition 1935ms, GPU direct, encoder 873ms, GPU overlay 664ms, HUD draw 1051ms. Export result text was successfully copied, but the dialog dismissed automatically on Copy.
 - User expected `Копіювати текст` to copy without dismissal, and `OK` to close. Source **v0.19.43 (build 132)** now does that: `PulseDeckDialogs.Action.dismissOnClick` defaults true; only export report `showMessage(keepOpenOnSecondary=true)` keeps its Copy action open. Other dialogs retain existing behavior.
-- Validate **#1037 PASS**; Android **#603 is running** from source commit `364f39627f7bb41c7315021b91f484b72ebdc63c`. Never label APK ready before Android PASS.
-- After build PASS: **Termux 3 → 10 → 8**, 3-second export → scroll → Copy → report remains visible → OK dismisses. Previous v0.19.42 Frame spin / BG/Glow 5/6 user PASS remain accepted; navigation back smoothness still pending/previously FAIL.
+- Validate **#1037 PASS**, Android **#603 PASS**, exact APK source `364f39627f7bb41c7315021b91f484b72ebdc63c`; artifact `FARIC-Music-Visualizer-v0.19.43-Debug`, id `11526295056`. **Phone QA PENDING**. Immutable checkpoint: `checkpoint/pulsedeck-v0.19.43-2026-10-08`; full resume: `docs/checkpoints/2026-10-08-v0.19.43-export-copy-lifecycle.md`.
+- **Next:** Termux **3 → 10 → 8** (Android #603 PASS; no new build) → install build 132 → 3-second export → scroll → Copy → report remains visible → OK dismisses. Prior v0.19.42 Frame / BG-Glow 5/6 PASS remain accepted; navigation smoothness still OPEN.
 - Independently OPEN: BUG-EXPORT-001 (~48% full-song export app exit) and PERF-NAV-002 (transition freezes) — no fix for either here.
 
 ## PHONE QA — 2026-10-08 — v0.19.42 / build 131

@@ -1,5 +1,14 @@
 # Current Handoff
 
+## v0.19.50 / build 139 — Hero tiles / separated user art (CI PASS, PHONE QA PENDING)
+
+- **PHONE EVIDENCE** from user's build 138 screenshots `607060.jpg`, `607062.jpg`: expandable Heroes family PASS; tiles are unequal heights and thumbnails look clipped or blank FAIL. User excluded test #4 from PASS; 3-second MP4 was NOT TESTED. Do not close PERF-NAV-002 / BUG-EXPORT-001.
+- **Source work:** Hero tiles fixed at 248dp equal height with bounded text; repeated layer descriptions removed. Original `Pictures2.zip` is no longer used as a runtime flattened crop. Ten user heroes can load true aligned 1024x1024 frame/fx/creature/wordmark plus compact preview from `skin/hero_packs/<slug>` embedded APK assets, or an explicitly imported pre-processed pack.
+- **Binary art:** assistant created downloadable `FARIC-Heroes-Prepared-v0.19.50.zip` (ten artist-source-derived packs). The **binary WebP assets are NOT committed to the GitHub repo yet**; current APK's new hero slots require import of the prepared pack. Some boundaries require hand cleanup; Cyber Shark-grade image QA is pending.
+- **CI for code:** PR #6 source `f482ba11227b44ca56e14e83de94db9c45f367e9`; Validate #1097 PASS; Android #620 PASS. After merge verify a signed main Android build; then only send Termux **3 → 10 → 8**.
+- **Next:** release/phone QA equal cards, prepared-pack 10/10, layer reactions, Panther preview, Board Back, 3-second MP4. No immutable calibration or original Shark/Panther changes.
+
+
 
 ## v0.19.49 / build 138 — expandable «Герої» & Pictures2.zip (CI PASS / PHONE QA PENDING)
 

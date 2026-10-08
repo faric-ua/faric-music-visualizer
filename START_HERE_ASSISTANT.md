@@ -4,6 +4,19 @@
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
 
+## CURRENT SOURCE CANDIDATE — v0.19.39 / build 128 — individual FG reset + auto-spin
+
+- **Source feature commit:** `951506c33070bc46c2c6615d72000f93a657d72d` (subsequent documentation-only commits may advance main).
+- **Changes implemented:** tap each numeric FG value to reset only that field; Center adds signed auto-spin speed -180..+180 °/s, 0=off, default 0; saved to projectM state and Composition Sets; same shader applies in preview and deterministic frame-time export.
+- **Validation:** CI Validate #1022 PASS on the feature commit. Android #598 triggered automatically; **do not claim Android PASS or APK ready until that run completes successfully.**
+- **Open user-reported blocker:** BUG-EXPORT-001 — existing build 127 reportedly exits at ~48% of full-song export near concurrent player end. Root cause **unknown**; separate from UI changes. Need crash/process-death diagnostics and controlled export reproductions; no export fix is claimed.
+- **Open visual issue:** PERF-PLAYER-001 — jerkiness / asymmetric entrances. User refers to a video but there is no attached video file in this turn. Need actual video for frame-level diagnosis.
+- **Previous release:** v0.19.38 / build 127 had 5/6 phone checks PASS; on-screen + system Back remained **NOT TESTED** and must not be retrospectively marked PASS.
+- **Phone QA after Android #598 PASS:** (1) tap modified Scale/Opacity value → individual reset; (2) Center auto-spin +30/-30/0°/s → both directions and stop; (3) restart/reopen and Composition Set save/load persist speed; (4) tune in main player and confirm live full composite; (5) run 3s MP4 export proof; (6) test both Back paths. **Do not demand a repeated full-song export without obtaining crash logs first.**
+- **Single next action:** Check Android #598 status and compile result, inspect build logs on failure; when PASS, record a new `BUILD_CHECKPOINT` and present exact Termux 3 → 10 → 8 steps. User installs and performs targeted phone QA.
+
+Source details: `docs/visualizer/PROJECTM_AUTHORING_WORKFLOW.md`; findings: `OPEN_FINDINGS.md`; reply format: `ASSISTANT_RESPONSE_CONTRACT.md`.
+
 ## CURRENT CANDIDATE — v0.19.38 / build 127 — movable projectM authoring panel
 
 Source of truth:

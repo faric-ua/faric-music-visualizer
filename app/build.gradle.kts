@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 126
-        versionName = "0.19.37"
-        // v0.19.37 adds projectM auto interval authoring and live FG Center / Edge FX tuning.
+        versionCode = 127
+        versionName = "0.19.38"
+        // v0.19.38 adds a movable projectM settings panel, main-player tuning gear, explicit AUTO semantics, and non-blocking Back release.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

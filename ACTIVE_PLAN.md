@@ -1,5 +1,9 @@
 # Active Plan
 
+## PERMANENT RESPONSE FORMAT — READ FIRST
+
+Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.
+
 ## CURRENT CANDIDATE — v0.19.38 / build 127 — movable projectM authoring panel
 
 Source of truth:

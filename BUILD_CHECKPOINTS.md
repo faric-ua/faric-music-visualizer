@@ -20,6 +20,16 @@ A CI build checkpoint is not phone acceptance. Keep those evidence levels separa
 
 ---
 
+## v0.19.45 / build 134 — CI PASS / PHONE QA NOT ACCEPTED (2026-10-08)
+
+- App source: `0ca786f236ab988b8186fc550af3b9877416c91c`.
+- Validate #1079 PASS. Android #605 PASS, run `37798305659`, artifact `FARIC-Music-Visualizer-v0.19.45-Debug` id `11560057074`.
+- Code-level GL exit guard and explicit view pause compiled and built successfully. No claim of smooth projectM navigation on the phone.
+- Latest user's 5699ms short export lacks an explicit build attribution; do not assume it proves phone navigation performance for v0.19.45.
+- Next resume: persistent Scene Host v0.19.46 branch with PR CI and targeted phone testing.
+
+---
+
 ## 2026-10-08 — v0.19.44 / build 133 — partial GL navigation fix — Android PASS
 
 - Status: **Validate PASS / Android PASS / Phone QA PENDING**.

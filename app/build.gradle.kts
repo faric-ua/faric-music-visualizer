@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 134
-        versionName = "0.19.45"
-        // v0.19.45: prevent released projectM GL views from rendering and pause on exit before finishing.
+        versionCode = 135
+        versionName = "0.19.46"
+        // v0.19.46: persistent live PulseDeck scene; projectM, Board and Themes overlays.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

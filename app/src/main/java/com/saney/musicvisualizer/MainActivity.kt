@@ -9,6 +9,8 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.GradientDrawable
 import android.net.Uri
+import android.os.Handler
+import android.os.Looper
 import android.os.Bundle
 import android.provider.OpenableColumns
 import android.provider.DocumentsContract
@@ -82,6 +84,7 @@ import com.saney.musicvisualizer.ui.OverVisualizationView
 import com.saney.musicvisualizer.ui.PulseDeckLayerStack
 import com.saney.musicvisualizer.ui.PulseDeckDialogs
 import com.saney.musicvisualizer.ui.ReactiveSceneView
+import java.io.File
 import java.util.Locale
 import java.util.concurrent.CancellationException
 import java.util.concurrent.atomic.AtomicBoolean
@@ -145,6 +148,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var projectMMainView: ProjectMView? = null
     private var projectMMainResumed = false
     private var projectMOpenPending = false
+
+    // One live render stack per player screen; projectM authoring is a menu
+    // above that stack, never a second Activity/native bridge.
+    private var persistentSceneRoot: FrameLayout? = null
+    private var boardMenuOverlay: FrameLayout? = null
+    private var themeMenuOverlay: FrameLayout? = null
+    private var themeMenuOriginalTheme: PlaybackThemeId? = null
+    private var projectMFocusOverlay: FrameLayout? = null
+    private var projectMFocusSavedVisibility:
+        Map<PulseDeckLayerStack.Layer, Boolean>? = null
+    private var projectMFocusPresets: List<File> = emptyList()
+    private var projectMFocusCatalogGeneration = 0
+    private val projectMFocusHandler = Handler(Looper.getMainLooper())
+    private val projectMFocusAutoTick = object : Runnable {
+        override fun run() {
+            if (projectMFocusOverlay == null) return
+            val state = ProjectMStateStore(this@MainActivity)
+            if (!state.autoEnabled) return
+            advanceProjectMFocusPreset(manual = false)
+            projectMFocusHandler.postDelayed(this, state.autoSwitchSeconds * 1_000L)
+        }
+    }
     private var projectMRebuildPending = false
     private var projectMRebuildTarget: Screen? = null
     private var projectMExportSnapshot: Bitmap? = null
@@ -432,6 +457,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         currentScene = sceneOrchestrator.currentScene()
 
         onBackPressedDispatcher.addCallback(this) {
+            if (projectMFocusOverlay != null) {
+                closeProjectMFocusOverlay()
+                return@addCallback
+            }
             when (screen) {
                 Screen.NOW_PLAYING -> showLibrary()
                 Screen.THEME_PICKER,
@@ -702,6 +731,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onStart() {
         super.onStart()
+        if (projectMFocusOverlay != null) scheduleProjectMFocusAuto()
         controller.listener = this
         controller.emitCurrentState()
         updateProjectMRenderState()
@@ -719,6 +749,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     override fun onStop() {
+        projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
         // Do not pause playback here. Screen lock and Home both stop the Activity,
         // but a music player must keep playing. A MediaSessionService migration is
         // tracked separately for full long-lived background playback/notification.
@@ -736,6 +767,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     override fun onDestroy() {
+        projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
         sceneOrchestrator.close()
         ProjectMBridge
             .endOfflineExport()
@@ -867,7 +899,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val active =
             (
                 screen == Screen.NOW_PLAYING ||
-                    screen == Screen.BOARD_TRANSFORM
+                    screen == Screen.BOARD_TRANSFORM ||
+                    (screen == Screen.THEME_PICKER && themeMenuOverlay != null)
                 ) &&
                 latestSnapshot.isPlaying &&
                 layerVisible(
@@ -931,9 +964,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val shouldRender =
             (
                 screen == Screen.NOW_PLAYING ||
-                    screen == Screen.BOARD_TRANSFORM
+                    screen == Screen.BOARD_TRANSFORM ||
+                    (screen == Screen.THEME_PICKER && themeMenuOverlay != null)
                 ) &&
-                projectMSurfaceVisible() &&
+                (projectMSurfaceVisible() || projectMFocusOverlay != null) &&
                 projectMMainView !=
                     null
 
@@ -1335,6 +1369,45 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showNowPlaying() {
+        // Menu-only return from Board: the underlying composition and native
+        // projectM are the exact same instances as before the editor opened.
+        if (screen == Screen.BOARD_TRANSFORM && boardMenuOverlay != null) {
+            val panel = boardMenuOverlay
+            (panel?.parent as? ViewGroup)?.removeView(panel)
+            boardMenuOverlay = null
+            screen = Screen.NOW_PLAYING
+            pulseDeckLayerStack?.let { stack ->
+                stack.setLayerVisible(
+                    PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
+                    layerVisible(PulseDeckLayerStack.Layer.PULSEDECK_LOCKED),
+                )
+                stack.setLayerVisible(
+                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                    layerVisible(PulseDeckLayerStack.Layer.GRAPHIC_FIGURES),
+                )
+            }
+            applyVisualizerRenderSlots()
+            updateProjectMRenderState()
+            updateSceneOrchestratorState()
+            enableImmersiveFullscreen()
+            Log.i("FARIC-nav", "Board overlay returned; GL/scene retained")
+            return
+        }
+        if (
+            screen == Screen.THEME_PICKER &&
+            themeMenuOverlay != null &&
+            themeMenuOriginalTheme == selectedThemeId
+        ) {
+            (themeMenuOverlay?.parent as? ViewGroup)?.removeView(themeMenuOverlay)
+            themeMenuOverlay = null
+            themeMenuOriginalTheme = null
+            screen = Screen.NOW_PLAYING
+            updateProjectMRenderState()
+            updateSceneOrchestratorState()
+            enableImmersiveFullscreen()
+            Log.i("FARIC-nav", "Themes browser closed; native GL retained")
+            return
+        }
         if (
             deferMainProjectMRebuild(
                 Screen.NOW_PLAYING,
@@ -1349,6 +1422,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             FrameLayout(this).apply {
                 setBackgroundColor(COLOR_BG)
             }
+
+        persistentSceneRoot = root
 
         val layerStack =
             PulseDeckLayerStack(this)
@@ -1600,52 +1675,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         "board" ->
                             showBoardTransform()
 
-                        "visualizer" -> {
-                            if (!projectMOpenPending) {
-                                projectMOpenPending = true
-
-                                // The bridge is shared by both Activities.
-                                // Release on the GL thread first, then open
-                                // projectM without blocking the UI thread.
-                                val previousView = projectMMainView
-                                val enterProjectM = {
-                                    if (projectMMainView === previousView) {
-                                        projectMMainView = null
-                                    }
-                                    if (
-                                        previousView != null &&
-                                        projectMMainResumed
-                                    ) {
-                                        previousView.onPause()
-                                        projectMMainResumed = false
-                                    }
-
-                                    projectMOpenPending = false
-                                    if (
-                                        !isFinishing &&
-                                        !isDestroyed &&
-                                        screen == Screen.NOW_PLAYING
-                                    ) {
-                                        openProjectMVisualizer.launch(
-                                            Intent(
-                                                this,
-                                                com.saney.musicvisualizer
-                                                    .projectm
-                                                    .ProjectMActivity::class.java,
-                                            ),
-                                        )
-                                    }
-                                }
-
-                                if (previousView != null) {
-                                    previousView.releaseProjectMThen {
-                                        enterProjectM()
-                                    }
-                                } else {
-                                    enterProjectM()
-                                }
-                            }
-                        }
+                        "visualizer" ->
+                            openProjectMFocusOverlay()
 
                         "export" ->
                             openExportLabWithProjectMCapture()
@@ -3587,6 +3618,275 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         showNowPlaying()
     }
 
+    /**
+     * The foreground projectM controls are an overlay on the current player
+     * scene, not another Activity. Never destroy/recreate native projectM
+     * on normal enter/exit; temporarily mask unrelated render layers only.
+     */
+    private fun openProjectMFocusOverlay() {
+        if (projectMFocusOverlay != null) return
+        val host = persistentSceneRoot ?: return
+        val stack = pulseDeckLayerStack ?: return
+        if (screen != Screen.NOW_PLAYING) return
+        if (projectMMainView == null) {
+            // First-time projectM library installation still uses its legacy
+            // setup Activity. Normal installed playback never launches it.
+            openProjectMVisualizer.launch(
+                Intent(
+                    this,
+                    com.saney.musicvisualizer.projectm.ProjectMActivity::class.java,
+                ),
+            )
+            return
+        }
+
+        val previousVisibility =
+            PulseDeckLayerStack.Layer.entries
+                .associateWith { stack.isLayerVisible(it) }
+        projectMFocusSavedVisibility = previousVisibility
+
+        val overlay = FrameLayout(this).apply {
+            setBackgroundColor(Color.TRANSPARENT)
+        }
+        projectMFocusOverlay = overlay
+        PulseDeckLayerStack.Layer.entries.forEach { layer ->
+            stack.setLayerVisible(
+                layer,
+                layer == PulseDeckLayerStack.Layer.VISUALIZER,
+            )
+        }
+        // The exact underlying GLSurfaceView and native renderer survive.
+        host.addView(
+            overlay,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT,
+            ),
+        )
+        updateProjectMRenderState()
+        Log.i("FARIC-nav", "projectM overlay opened; live GL retained")
+
+        val top = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            setPadding(dp(12), dp(8), dp(12), dp(8))
+            background = panelDrawable(
+                Color.argb(225, 5, 12, 19), 20,
+                Color.argb(100, 56, 202, 255), 1,
+            )
+        }
+        top.addView(actionPill(text = "‹ Назад", accent = false) {
+            closeProjectMFocusOverlay()
+        })
+        top.addView(
+            label("projectM · LIVE", 17f, COLOR_ACCENT_CYAN, true),
+            LinearLayout.LayoutParams(
+                0,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                1f,
+            ).apply { marginStart = dp(14) },
+        )
+        overlay.addView(
+            top,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.TOP,
+            ).apply { topMargin = dp(12) },
+        )
+
+        val controls = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+            setPadding(dp(10), dp(8), dp(10), dp(12))
+            background = panelDrawable(
+                Color.argb(228, 5, 12, 19), 22,
+                Color.argb(90, 56, 202, 255), 1,
+            )
+        }
+        fun row(vararg items: Pair<String, () -> Unit>) {
+            val buttons = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+            }
+            items.forEach { (title, action) ->
+                buttons.addView(
+                    actionPill(text = title, accent = false) { action() },
+                    LinearLayout.LayoutParams(0, dp(44), 1f).apply {
+                        marginStart = dp(2)
+                        marginEnd = dp(2)
+                    },
+                )
+            }
+            controls.addView(
+                buttons,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply { bottomMargin = dp(6) },
+            )
+        }
+
+        row(
+            "ТОП" to {
+                loadProjectMFocusPresets(
+                    com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP,
+                )
+            },
+            "ВСІ" to {
+                loadProjectMFocusPresets(
+                    com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL,
+                )
+            },
+            "NEXT" to { advanceProjectMFocusPreset(manual = true) },
+            "FG" to {
+                val state = ProjectMStateStore(this)
+                state.foregroundSample = state.foregroundSample.next()
+                projectMMainView?.setForegroundSample(state.foregroundSample)
+            },
+        )
+        row(
+            "BG" to {
+                val state = ProjectMStateStore(this)
+                state.backgroundVisible = !state.backgroundVisible
+                projectMMainView?.setBackgroundVisible(state.backgroundVisible)
+            },
+            "CENTER" to {
+                val state = ProjectMStateStore(this)
+                state.foregroundCenterVisible = !state.foregroundCenterVisible
+                projectMMainView?.setForegroundVisibility(
+                    state.foregroundCenterVisible,
+                    state.foregroundEdgeFxVisible,
+                )
+            },
+            "EDGE" to {
+                val state = ProjectMStateStore(this)
+                state.foregroundEdgeFxVisible = !state.foregroundEdgeFxVisible
+                projectMMainView?.setForegroundVisibility(
+                    state.foregroundCenterVisible,
+                    state.foregroundEdgeFxVisible,
+                )
+            },
+            "⚙ FG" to { showProjectMSettingsPanel() },
+        )
+        row(
+            "AUTO" to {
+                val state = ProjectMStateStore(this)
+                state.autoEnabled = !state.autoEnabled
+                scheduleProjectMFocusAuto()
+                toast(if (state.autoEnabled) "AUTO ${state.autoSwitchSeconds}s" else "AUTO OFF")
+            },
+            "5s" to {
+                ProjectMStateStore(this).apply {
+                    autoSwitchSeconds = 5
+                    autoEnabled = true
+                }
+                scheduleProjectMFocusAuto()
+            },
+            "10s" to {
+                ProjectMStateStore(this).apply {
+                    autoSwitchSeconds = 10
+                    autoEnabled = true
+                }
+                scheduleProjectMFocusAuto()
+            },
+            "15s" to {
+                ProjectMStateStore(this).apply {
+                    autoSwitchSeconds = 15
+                    autoEnabled = true
+                }
+                scheduleProjectMFocusAuto()
+            },
+        )
+        overlay.addView(
+            controls,
+            FrameLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+                Gravity.BOTTOM,
+            ).apply {
+                leftMargin = dp(8)
+                rightMargin = dp(8)
+                bottomMargin = dp(12)
+            },
+        )
+        loadProjectMFocusPresets(ProjectMStateStore(this).backgroundMode)
+        scheduleProjectMFocusAuto()
+    }
+
+    private fun loadProjectMFocusPresets(
+        mode: com.saney.musicvisualizer.projectm.ProjectMBackgroundMode,
+    ) {
+        val state = ProjectMStateStore(this)
+        state.backgroundMode = mode
+        val generation = ++projectMFocusCatalogGeneration
+        thread(name = "projectm-focus-catalog") {
+            val pool = runCatching {
+                when (mode) {
+                    com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP ->
+                        ProjectMLibraryManager.fastPresetFiles(this)
+                    com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL ->
+                        ProjectMLibraryManager.allPresetFiles(this)
+                }
+            }.getOrDefault(emptyList())
+            runOnUiThread {
+                if (projectMFocusOverlay == null ||
+                    generation != projectMFocusCatalogGeneration
+                ) return@runOnUiThread
+                projectMFocusPresets = pool.filter { it.isFile }
+                if (projectMFocusPresets.isEmpty()) {
+                    toast("Для ${mode.name} немає встановлених preset")
+                }
+            }
+        }
+    }
+
+    private fun advanceProjectMFocusPreset(manual: Boolean) {
+        val state = ProjectMStateStore(this)
+        if (manual) {
+            state.autoEnabled = false
+            projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
+        }
+        val pool = projectMFocusPresets
+        if (pool.isEmpty()) return
+        val current = state.lastPresetPath
+        val index = pool.indexOfFirst { it.absolutePath == current }
+        val next = pool[(index + 1) % pool.size]
+        if (next.absolutePath != current) {
+            state.lastPresetPath = next.absolutePath
+            projectMMainView?.loadPreset(next, smoothTransition = false)
+        }
+    }
+
+    private fun scheduleProjectMFocusAuto() {
+        projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
+        if (projectMFocusOverlay == null) return
+        val state = ProjectMStateStore(this)
+        if (state.autoEnabled) {
+            projectMFocusHandler.postDelayed(
+                projectMFocusAutoTick,
+                state.autoSwitchSeconds * 1_000L,
+            )
+        }
+    }
+
+    private fun closeProjectMFocusOverlay() {
+        val overlay = projectMFocusOverlay ?: return
+        projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
+        projectMFocusCatalogGeneration++
+        (overlay.parent as? ViewGroup)?.removeView(overlay)
+        projectMFocusOverlay = null
+        val saved = projectMFocusSavedVisibility
+        projectMFocusSavedVisibility = null
+        projectMFocusPresets = emptyList()
+        val stack = pulseDeckLayerStack
+        if (saved != null && stack != null) {
+            saved.forEach { (layer, visible) ->
+                stack.setLayerVisible(layer, visible)
+            }
+        }
+        updateProjectMRenderState()
+        Log.i("FARIC-nav", "projectM overlay closed; live GL retained")
+    }
+
     private fun showProjectMSettingsPanel() {
         val state =
             ProjectMStateStore(
@@ -3600,12 +3900,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ProjectMSettingsPanel
                     .Section
                     .CENTER,
-            onAutoChanged = {
-                    _,
-                    _,
-                ->
-                // AUTO sequencing is authored on the projectM screen.
-                // The selected state is already persisted by the panel.
+            onAutoChanged = { _, _ ->
+                scheduleProjectMFocusAuto()
             },
             onTuningChanged = { tuning ->
                 projectMMainView
@@ -4691,10 +4987,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showBoardTransform() {
+        val retainedHost =
+            persistentSceneRoot?.takeIf {
+                pulseDeckLayerStack != null &&
+                    (screen == Screen.NOW_PLAYING ||
+                        (screen == Screen.BOARD_TRANSFORM && boardMenuOverlay != null))
+            }
         if (
-            deferMainProjectMRebuild(
-                Screen.BOARD_TRANSFORM,
-            )
+            retainedHost == null &&
+            deferMainProjectMRebuild(Screen.BOARD_TRANSFORM)
         ) {
             return
         }
@@ -4702,8 +5003,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             currentGraphicFigureThemeId()
 
         screen = Screen.BOARD_TRANSFORM
-        sceneOrchestrator.stop()
-        clearScreenRefs()
+        if (retainedHost == null) {
+            sceneOrchestrator.stop()
+            clearScreenRefs()
+        } else {
+            boardMenuOverlay?.let { (it.parent as? ViewGroup)?.removeView(it) }
+            boardMenuOverlay = null
+        }
 
         var transform =
             boardTransformStore.load(gfThemeId)
@@ -4733,124 +5039,101 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         val root =
             FrameLayout(this).apply {
-                setBackgroundColor(COLOR_BG)
+                setBackgroundColor(
+                    if (retainedHost != null) Color.TRANSPARENT else COLOR_BG,
+                )
             }
 
-        // Keep the preview on the same full physical viewport as Now Playing.
-        // Applying safe-area padding to the root would change GF↔Visualizer
-        // registration while the user is editing it.
-        // Board Transform is a composition editor, not an isolated GF screen.
-        // Keep the real lower layers visible so GF position/scale is adjusted
-        // against the same visualizer/background the user sees in Now Playing.
+        // Board edits the actual live scene when entered from the player.
+        // No second PulseDeckLayerStack, native bridge, or SurfaceView exists.
         val previewStack =
-            PulseDeckLayerStack(this)
-
-        root.addView(
-            previewStack,
-            FrameLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.MATCH_PARENT,
-            ),
-        )
-
-        attachLayer0Visualizer(
-            previewStack,
-        )
-
-        previewStack.setContent(
-            PulseDeckLayerStack.Layer.OVER_VISUALIZATION,
-            OverVisualizationView(this),
-        )
-
-        val previewEqualizer =
-            BigEqualizerView(this).also { view ->
-                view.updateSignal(
-                    latestSignal,
-                )
-                view.setPlaying(
-                    latestSnapshot.isPlaying,
-                )
+            if (retainedHost != null) {
+                requireNotNull(pulseDeckLayerStack)
+            } else {
+                PulseDeckLayerStack(this).also { stack ->
+                    root.addView(
+                        stack,
+                        FrameLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                        ),
+                    )
+                    attachLayer0Visualizer(stack)
+                    stack.setContent(
+                        PulseDeckLayerStack.Layer.OVER_VISUALIZATION,
+                        OverVisualizationView(this),
+                    )
+                    val previewEqualizer =
+                        BigEqualizerView(this).also { view ->
+                            view.updateSignal(latestSignal)
+                            view.setPlaying(latestSnapshot.isPlaying)
+                        }
+                    bigEqualizerView = previewEqualizer
+                    stack.setContent(
+                        PulseDeckLayerStack.Layer.BIG_EQUALIZER,
+                        previewEqualizer,
+                    )
+                }
             }
-        bigEqualizerView =
-            previewEqualizer
-        previewStack.setContent(
-            PulseDeckLayerStack.Layer.BIG_EQUALIZER,
-            previewEqualizer,
-        )
 
-        previewStack.setLayerVisible(
-            PulseDeckLayerStack.Layer.VISUALIZER,
-            layerVisible(
+        if (retainedHost == null) {
+            previewStack.setLayerVisible(
                 PulseDeckLayerStack.Layer.VISUALIZER,
-            ),
-        )
-        previewStack.setLayerVisible(
-            PulseDeckLayerStack.Layer.FARIC_REACTIVE,
-            layerVisible(
+                layerVisible(PulseDeckLayerStack.Layer.VISUALIZER),
+            )
+            previewStack.setLayerVisible(
                 PulseDeckLayerStack.Layer.FARIC_REACTIVE,
-            ),
-        )
-        previewStack.setLayerVisible(
-            PulseDeckLayerStack.Layer.OVER_VISUALIZATION,
-            layerVisible(
+                layerVisible(PulseDeckLayerStack.Layer.FARIC_REACTIVE),
+            )
+            previewStack.setLayerVisible(
                 PulseDeckLayerStack.Layer.OVER_VISUALIZATION,
-            ),
-        )
-        previewStack.setLayerVisible(
-            PulseDeckLayerStack.Layer.BIG_EQUALIZER,
-            layerVisible(
+                layerVisible(PulseDeckLayerStack.Layer.OVER_VISUALIZATION),
+            )
+            previewStack.setLayerVisible(
                 PulseDeckLayerStack.Layer.BIG_EQUALIZER,
-            ),
-        )
+                layerVisible(PulseDeckLayerStack.Layer.BIG_EQUALIZER),
+            )
+        }
 
         val boardView =
-            HeroBoardView(
-                this,
-                gfThemeId,
-            ).also { view ->
-                view.setGroupTransform(
-                    transform,
-                )
-                view.setGroupReaction(
-                    groupReaction,
-                )
-                view.setLayerTransforms(
-                    boardLayerTransformStore.loadAll(
-                        gfThemeId,
-                    ),
-                )
-                HeroBoardView.ObjectId.entries
-                    .forEach { objectId ->
-                        view.setObjectVisible(
-                            objectId,
-                            layerObjectVisible(
-                                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-                                objectId.name.lowercase(),
-                            ),
-                        )
-                    }
-                view.setPlaying(
-                    latestSnapshot.isPlaying,
-                )
-                view.updateSignal(
-                    latestSignal,
-                )
+            if (retainedHost != null) {
+                requireNotNull(heroBoardView)
+            } else {
+                HeroBoardView(this, gfThemeId)
             }
+        boardView.setGroupTransform(transform)
+        boardView.setGroupReaction(groupReaction)
+        boardView.setLayerTransforms(boardLayerTransformStore.loadAll(gfThemeId))
+        HeroBoardView.ObjectId.entries.forEach { objectId ->
+            boardView.setObjectVisible(
+                objectId,
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                    objectId.name.lowercase(),
+                ),
+            )
+        }
+        boardView.setPlaying(latestSnapshot.isPlaying)
+        boardView.updateSignal(latestSignal)
+        heroBoardView = boardView
 
-        heroBoardView =
-            boardView
-
-        previewStack.setContent(
-            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-            boardView,
-        )
-
-        // Force only the edited GF container visible in the editor. Its child
-        // visibility still mirrors the live composition.
+        if (retainedHost == null) {
+            previewStack.setContent(
+                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                boardView,
+            )
+        }
         previewStack.setLayerVisible(
             PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
             true,
         )
+        if (retainedHost != null) {
+            // The HUD belongs to Player UI, not to the Board editor.
+            previewStack.setLayerVisible(
+                PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
+                false,
+            )
+        }
 
         fun layerTitle(
             layerId: BoardLayerId?,
@@ -5968,7 +6251,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
         )
 
-        setContentView(root)
+        if (retainedHost != null) {
+            retainedHost.addView(
+                root,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                ),
+            )
+            boardMenuOverlay = root
+            Log.i("FARIC-nav", "Board editor opened over retained scene")
+        } else {
+            setContentView(root)
+        }
         updateProjectMRenderState()
         updateSceneOrchestratorState()
         restorePendingScrollPositions()
@@ -8036,9 +8331,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
     private fun showThemePicker() {
+        val retainedHost =
+            persistentSceneRoot?.takeIf {
+                screen == Screen.NOW_PLAYING &&
+                    pulseDeckLayerStack != null
+            }
         screen = Screen.THEME_PICKER
-        sceneOrchestrator.stop()
-        clearScreenRefs()
+        if (retainedHost == null) {
+            sceneOrchestrator.stop()
+            clearScreenRefs()
+        } else {
+            themeMenuOriginalTheme = selectedThemeId
+        }
 
         val root = FrameLayout(this).apply {
             setBackgroundColor(COLOR_BG)
@@ -8252,7 +8556,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         scroll.addView(content)
         root.addView(scroll)
 
-        setContentView(root)
+        if (retainedHost != null) {
+            retainedHost.addView(
+                root,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                ),
+            )
+            themeMenuOverlay = root
+            Log.i("FARIC-nav", "Theme menu opened; native GL retained")
+        } else {
+            setContentView(root)
+        }
         restorePendingScrollPositions()
         enableImmersiveFullscreen()
     }
@@ -8681,6 +8997,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun clearScreenRefs() {
+        projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
+        projectMFocusCatalogGeneration++
+        projectMFocusOverlay = null
+        projectMFocusSavedVisibility = null
+        projectMFocusPresets = emptyList()
+        boardMenuOverlay = null
+        themeMenuOverlay = null
+        themeMenuOriginalTheme = null
+        persistentSceneRoot = null
         ProjectMBridge
             .endOfflineExport()
         projectMExportLiveView

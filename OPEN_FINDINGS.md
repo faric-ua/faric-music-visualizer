@@ -1,5 +1,18 @@
 # Open Findings
 
+## BUG-EXPORT-001 — full-song ends, application exits, no MP4 (new phone report 2026-10-09)
+
+**User-confirmed symptom:** choosing **full-song** conversion rather than the 3-second proof makes a long rendering run; the song eventually stops playing, application exits/closes, and **no converted MP4 is found**. The exact crash stack and last progress stage were not captured, so do not assert exact root cause or conflate playback completion with render completion. Prior mitigation v0.19.53 only locked rotation and confirmed cancel; it did not solve storage-heavy finalize or process death.
+
+**Source-confirmed risk removed by v0.19.57 / build146 PR #14:** previously the pipeline generated the full encoded video MP4 and AAC temporary audio, then **another full-length muxed MP4 in app cache, then copied that large result to MediaStore**. If space becomes insufficient near the end, this can fail after the expensive render, leaving no deliverable. For Android 10+, new direct seekable FD mux into pending `Movies/FARIC` creates no second complete muxed-cache file; pending record is published only on success and deleted on failure. Early free-space budget, finite AAC/mux cancellation, video-temp cleanup and stage-specific UI/logging also added. Pre-Android 10 keeps old fallback.
+
+**Release:** merged app SHA `1c7a58f5b6f649127f37a3a1df546235737edd3f`. PR Validate #1168 PASS and Android #644 PASS. Main Validate #1169 PASS; main Android #645 **RUNNING at time of finding**; signed artifact and physical QA must be separately confirmed before claiming readiness.
+
+**STATUS: OPEN / PHONE QA PENDING.** When signed main build146 passes, one focused phone test: complete an entire song, keep screen active, check visible progress transitions video→AAC→finalize, confirm completed MP4 actually appears in `Movies/FARIC`, plays video+audio and lasts entire track. A single pass/fail is sufficient. If app still exits, capture `AndroidRuntime FATAL EXCEPTION`, `FARIC-export`, device free space and stage; investigate real stack, not another speculative workaround.
+
+**Separate architectural gap:** export still depends on Activity-owned GL and is not a fully process-death-resumable foreground service. `LIFE-ROT-001` remains open; no promises of surviving OS kill/force-stop while backgrounded.
+
+
 ## LIB-SYS-001 — system status/navigation bars hidden on Home and media browser (2026-10-09)
 
 **Phone report, v0.19.54 / build 143:** User says the library/home categories work, but Android system status and navigation panels are missing, making device control awkward. Source-confirmed cause: `showLibrary()` and `showAllTracks()` called `enableImmersiveFullscreen()`, and `onWindowFocusChanged()` re-hid bars.

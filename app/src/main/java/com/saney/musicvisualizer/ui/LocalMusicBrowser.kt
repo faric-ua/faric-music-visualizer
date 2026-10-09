@@ -179,24 +179,19 @@ class LocalMusicBrowser(
         tools.addView(sortButton, LinearLayout.LayoutParams(0, dp(48), 1f))
         val playlistAction = button("＋ Добірка") {
             if (openedGroup == null) {
-                val nameField = EditText(activity).apply {
-                    hint = "Назва нової добірки"
-                    setSingleLine(true)
-                    setTextColor(Color.WHITE)
-                    setHintTextColor(muted)
-                }
-                android.app.AlertDialog.Builder(activity)
-                    .setTitle("Створити добірку")
-                    .setView(nameField)
-                    .setNegativeButton("Назад", null)
-                    .setPositiveButton("Створити") { _, _ ->
-                        val created = state.createPlaylist(nameField.text.toString())
-                        if (!created) {
-                            android.widget.Toast.makeText(activity, "Вкажи іншу назву добірки", android.widget.Toast.LENGTH_SHORT).show()
-                        }
-                        render?.invoke()
+                PulseDeckDialogs.showTextInput(
+                    context = activity,
+                    title = "Створити добірку",
+                    hint = "Назва нової добірки",
+                    positiveLabel = "Створити",
+                    negativeLabel = "Назад",
+                ) { entered ->
+                    val created = state.createPlaylist(entered)
+                    if (!created) {
+                        android.widget.Toast.makeText(activity, "Вкажи іншу назву добірки", android.widget.Toast.LENGTH_SHORT).show()
                     }
-                    .show()
+                    render?.invoke()
+                }
             } else {
                 addingTracks = !addingTracks
                 render?.invoke()
@@ -260,15 +255,17 @@ class LocalMusicBrowser(
                     if (category == LocalMusicCategory.PLAYLISTS) {
                         holder.action.text = "×"
                         holder.action.setOnClickListener {
-                            android.app.AlertDialog.Builder(activity)
-                                .setTitle("Видалити добірку?")
-                                .setMessage(group.title + " — треки залишаться на телефоні.")
-                                .setNegativeButton("Назад", null)
-                                .setPositiveButton("Видалити") { _, _ ->
-                                    state.deletePlaylist(group.title)
-                                    render?.invoke()
-                                }
-                                .show()
+                            PulseDeckDialogs.showConfirm(
+                                context = activity,
+                                title = "Видалити добірку?",
+                                message = group.title + " — треки залишаться на телефоні.",
+                                positiveLabel = "Видалити",
+                                negativeLabel = "Назад",
+                                destructive = true,
+                            ) {
+                                state.deletePlaylist(group.title)
+                                render?.invoke()
+                            }
                         }
                     } else {
                         holder.action.text = "›"

@@ -130,7 +130,7 @@ class LocalMusicBrowser(
     }
 
     fun create(focusSearch: Boolean = false, footer: View? = null): FrameLayout {
-        val viewRoot = FrameLayout(activity).apply { setBackgroundColor(background) }
+        val viewRoot = FrameLayout(activity).apply { setBackgroundColor(this@LocalMusicBrowser.background) }
         root = viewRoot
         val body = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL

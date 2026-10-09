@@ -10,10 +10,11 @@ enum class LocalMusicCategory(val title: String, val icon: String) {
     GENRES("Жанри", "✦"),
     YEARS("Роки", "20"),
     FAVORITES("Улюблені", "♥"),
-    RECENT("Нещодавні", "↺");
+    RECENT("Нещодавні", "↺"),
+    PLAYLISTS("Мої добірки", "▤");
 
     val grouped: Boolean
-        get() = this in listOf(FOLDERS, ALBUMS, ARTISTS, GENRES, YEARS)
+        get() = this in listOf(FOLDERS, ALBUMS, ARTISTS, GENRES, YEARS, PLAYLISTS)
 }
 
 data class LocalMusicGroup(

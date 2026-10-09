@@ -15,6 +15,27 @@ class LocalMusicSearchTest {
     }
 
     @Test
+    fun incrementalKeyboardQueryMatchesLatinAndUkrainianWithoutChangingCatalog() {
+        val song = LocalMusicTrack(
+            id = 101L,
+            uri = org.mockito.Mockito.mock(android.net.Uri::class.java),
+            title = "Horizon / Горизонт",
+            artist = "Night Drive",
+            album = "Ambient",
+            durationMs = 300_000L,
+            folder = "Music/Chill",
+            genre = "Electronic",
+            year = 2023,
+        )
+        val catalog = listOf(song)
+        for (needle in listOf("H", "HO", "HOR", "HORIZ", "Г", "ГО", "ГОР")) {
+            assertTrue(LocalMusicSearch.matches(song, needle))
+            assertTrue(catalog.filter { LocalMusicSearch.matches(it, needle) }.size == 1)
+        }
+        assertFalse(LocalMusicSearch.matches(song, "not-a-song"))
+    }
+
+    @Test
     fun blankSearchShowsEntireCatalog() {
         assertTrue(LocalMusicSearch.matches("Song", "Artist", "Album", ""))
         assertTrue(LocalMusicSearch.matches("Song", "Artist", "Album", "  "))

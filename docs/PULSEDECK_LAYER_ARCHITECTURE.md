@@ -85,6 +85,10 @@ flowchart TB
     GF --> F
 ```
 
+## Planned reusable GF asset composer (not the current implementation)
+
+The current Cyber Shark GF production sublayers (**Background/Glow, Frame, FX, Creature, Wordmark**) remain unchanged. Do not confuse those currently implemented sublayer roles with **four or five independent source-art elements per user-created hero pack**. The latter adds an optional `creature-half` drawn portrait only for chosen packs. Frames, FX, full characters and FARIC/FMV/FVMP wordmarks are drawn from a **shared cross-pack catalog** and combined in Layer 3 as independent, transformable instances. A source-art pack identifies where an item came from, not which frame/hero/wordmark it is permitted to accompany. Each composition persists references and transform state. Current `UserHeroPack.kt` does not yet implement this generic catalog. Keep Layer 0–7 positions and `PULSEDECK_CENTER_CALIBRATION` immutable. See [GF_MODULAR_ASSET_LIBRARY_CONTRACT.md](architecture/GF_MODULAR_ASSET_LIBRARY_CONTRACT.md).
+
 ## Naming distinction
 
 ```text

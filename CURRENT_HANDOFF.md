@@ -1,11 +1,14 @@
 # Current Handoff
 
-## HERO ASSETS CORRECTION — user confirmed 2026-10-09 (DO NOT MISREAD)
+## HERO MODULAR ASSET LIBRARY — final user clarification, 2026-10-09
 
-**User explicitly corrected assistant:** the **fifth art element for EACH of the ten original `Pictures2.zip` heroes** must be an **assistant-illustrated/drawn half-body hero**, specially recreated to sit inside the frame. It must **NOT** be an automatically cropped fragment of the original full-body/composite, a mask, or a cutout of `creature.webp`. Draw/complete any missing anatomy/edges using the reference hero's style. Store as separate independent transparent layer (proposed `creature-half.webp`, name not yet wired into runtime). Existing independent frame/fx/creature/wordmark plus new half hero = **five separate editable elements**; full/preview are additional composites/thumbnails. Respect Cyber Shark visual standard.
+**Important: supersedes the previous inaccurate statement that ALL ten heroes need a fifth half-body layer.** Each hero/source pack can have **four core independent art types** (frame, fx, creature, wordmark) and an **OPTIONAL fifth** newly illustrated `creature-half` only where required. Where used, the assistant DRAWS/COMPLETES it, never just crops the original. Do not force five files for all source packs.
 
-**Current source situation:** previously prepared `FARIC-Heroes-Prepared-v0.19.50.zip` is *not accepted* as final quality; original ten-PNG `Pictures2.zip` not available in current attached/Library/repo files. Do not pretend it is attached. **No images or code have been generated or changed for this instruction.** Next step when source ZIP is provided: inspect originals and produce clean independently registered layers and a genuinely newly illustrated bust/half-body for each hero; have user approve art before shipping. Do not shift current build/phone QA.
+**Critical new direction:** all frames, characters, FX, and lettered `wordmark` art from **FARIC / FMV / FVMP** should be **reusable in a shared asset library**. Any chosen frame can be combined with any chosen hero and any chosen text/logo, even if they originated in DIFFERENT packs. Preserve which original pack the asset came from (provenance), but the source pack DOES NOT restrict mixing. Each placement is separately movable/scalable/rotatable/opacity-adjustable; user-built mixes save as independent compositions/presets without changing original source art. An original complete themed hero remains selectable. `full` and `preview` are supplemental flattened/thumbnail outputs and not editable layers.
 
+This is a future **Layer 3 GF internal composer**, not a change to the immutable PulseDeck HUD/center calibration or global Layer 0–7 ordering. Runtime `UserHeroPack.kt` does NOT yet implement cross-pack selection or optional fifth artwork. No new images, APK or app source changes in this clarification. The original `Pictures2.zip` is NOT available to the assistant here and must be reattached for faithful asset generation. Prior prepared ZIP segmentation remains NOT visually accepted.
+
+Authoritative contract: `docs/architecture/GF_MODULAR_ASSET_LIBRARY_CONTRACT.md`. Resume art only when original sources are available and user wants production; verify each layer against Cyber Shark before accepting.
 
 ## 2026-10-09 — v0.19.53 / build 142 merged; main signed CI in progress
 

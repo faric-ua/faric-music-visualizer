@@ -73,7 +73,7 @@ internal object LocalAlbumArtwork {
                 main.post {
                     for (weak in listeners) {
                         val target = weak.get() ?: continue
-                        if (target.tag == key && target.isAttachedToWindow) {
+                        if (target.tag == key) {
                             target.setImageBitmap(bitmap)
                         }
                     }
@@ -86,9 +86,12 @@ internal object LocalAlbumArtwork {
 
     private fun decode(context: Context, uri: Uri): Bitmap? {
         return try {
-            val bytes = MediaMetadataRetriever().use { retriever ->
+            val retriever = MediaMetadataRetriever()
+            val bytes = try {
                 retriever.setDataSource(context, uri)
                 retriever.embeddedPicture
+            } finally {
+                retriever.release()
             } ?: return null
             val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
             BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)

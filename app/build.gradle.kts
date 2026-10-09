@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 145
-        versionName = "0.19.56"
-        // v0.19.56: artwork and real playback metadata; playlist rename and ordering.
+        versionCode = 146
+        versionName = "0.19.57"
+        // v0.19.57: direct full-length MediaStore mux, storage guard and finalize cleanup.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

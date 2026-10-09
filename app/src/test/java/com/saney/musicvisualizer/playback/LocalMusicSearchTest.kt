@@ -18,7 +18,7 @@ class LocalMusicSearchTest {
     fun incrementalKeyboardQueryMatchesLatinAndUkrainianWithoutChangingCatalog() {
         val song = LocalMusicTrack(
             id = 101L,
-            uri = android.net.Uri.EMPTY,
+            uri = org.mockito.Mockito.mock(android.net.Uri::class.java),
             title = "Horizon / Горизонт",
             artist = "Night Drive",
             album = "Ambient",

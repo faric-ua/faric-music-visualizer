@@ -1109,6 +1109,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showLibrary() {
+        localMusicBrowser = null
         val retainScene = hasRetainedMediaScene()
         screen = Screen.LIBRARY
         if (!retainScene) {
@@ -1247,6 +1248,30 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 )
             }
             content.addView(row)
+        }
+
+        val summary = label(
+            if (hasMusicLibraryPermission()) "Підрахунок локальної музики…" else "Відкрий «Усі треки» та дозволь доступ до музики",
+            13f,
+            COLOR_MUTED,
+            false,
+        )
+        content.addView(summary)
+        if (hasMusicLibraryPermission()) {
+            thread(name = "faric-library-home-stats") {
+                runCatching {
+                    val tracks = LocalMusicLibrary.scan(applicationContext)
+                    val albums = LocalMusicCatalog.groups(LocalMusicCategory.ALBUMS, tracks).size
+                    val artists = LocalMusicCatalog.groups(LocalMusicCategory.ARTISTS, tracks).size
+                    "${tracks.size} треків · $albums альбомів · $artists виконавців"
+                }.onSuccess { countText ->
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed && root.isAttachedToWindow) {
+                            summary.text = countText
+                        }
+                    }
+                }
+            }
         }
 
         scroll.addView(content)

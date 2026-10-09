@@ -1,5 +1,13 @@
 # Active Plan
 
+## 2026-10-09 — accepted navigation, next release
+
+- [x] **Build 141 phone acceptance** for Player → Home → Player and Player → All Tracks → Back: user's **«Пасс»**; target `PERF-NAV-003` CLOSED for those paths.
+- [ ] Other regression cases (search/queue, theme/board, rotations) NOT individually confirmed; no blanket PASS.
+- [ ] Publish v0.19.53 / build 142 first-slice export rotation guard: PR #10 CI PASS on source `01d8a5730fa136ae604cdfaeb7d383e4cfe3e4f2`. Merge safely, verify signed Android main, checkpoint and give precise Termux 3 → 10 → 8, then phone QA.
+- [ ] `BUG-EXPORT-001` / `LIFE-ROT-001` remain OPEN; protection against Activity/process death and lifecycle reattachment still needed.
+
+
 ## 2026-10-09 — НЕГАЙНА ДІЯ КОРИСТУВАЧА / release boundary (PR #10)
 
 **ЗАРАЗ: НЕ завантажувати й НЕ встановлювати v0.19.53 / build 142 через Termux. НЕ запускати пункт 9.** Android #629 і Validate #1113 завершилися PASS для PR source `01d8a5730fa136ae604cdfaeb7d383e4cfe3e4f2`, але PR #10 ще OPEN / DRAFT, його НЕ злитo з `main`. Підписаний CI artifact PR `FARIC-Music-Visualizer-v0.19.53-Debug`, ID `11590593947`, — це **кандидат PR, а не підтверджений main-реліз у звичайному Termux-меню**. Workflow Android #629 run `37872044684`: unit tests, APK build, signer, artifact upload PASS. Реальне Android phone QA build 142 — NOT TESTED.

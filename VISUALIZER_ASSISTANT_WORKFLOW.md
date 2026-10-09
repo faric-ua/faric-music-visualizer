@@ -1,5 +1,10 @@
 # FARIC Music Visualizer — Assistant Workflow
 
+## USER FIRST — immediate Termux/APK decision (2026-10-09)
+
+At the START of every PulseDeck release, build or phone-QA answer state one concrete instruction in Ukrainian: **download/install/test now — YES/NO; exact Termux menu numbers or “do nothing”; exact build/version**. This must precede all status updates, technical explanation and changelog. The LAST two blocks remain **Termux — що натиснути** and **Перевірка APK — що перевірити**. Do not offer tests for a build unavailable in the normal Termux release path. Read [ASSISTANT_RESPONSE_CONTRACT.md](ASSISTANT_RESPONSE_CONTRACT.md) every session.
+
+
 ## PERMANENT RESPONSE FORMAT — READ FIRST
 
 Before replying about FARIC Music Visualizer releases, builds, Termux or phone QA, read [`ASSISTANT_RESPONSE_CONTRACT.md`](ASSISTANT_RESPONSE_CONTRACT.md). Finish relevant answers with **(1) exact Termux menu steps** and **(2) 3–6 short APK phone tests (action → expected result)**. This is a repository-wide user requirement and survives new chats; never substitute a long changelog for the phone-test checklist.

@@ -1,5 +1,16 @@
 # Visual Asset Quality Contract
 
+## Mandatory fifth GF element — newly illustrated half-body hero (user correction 2026-10-09)
+
+For each of the ten user-supplied heroes from `Pictures2.zip`, create a **fifth INDEPENDENT illustrated hero element**: `creature-half.webp` (working file name, not yet an implemented runtime schema), a high-quality **newly drawn/painted upper-half hero (portrait / bust)** designed to fit **inside the corresponding frame**.
+
+**Do NOT** simply crop the original full figure, trim it by a mask, re-use `creature.webp`, or present an automatically clipped screenshot as the requested fifth element. The assistant must **draw/extend/reconstruct the missing or occluded figure geometry itself**, consistent with the individual hero's original anatomy/design, colors, highlights and lighting. Compose the visible upper body intentionally for the frame, preserving transparent margins and clean alpha edges. It is a separate usable physical asset. It must be independently positionable/scalable inside the frame, not flattened into the frame artwork.
+
+Each hero needs independent `frame`, `fx`, `creature` (full figure), `wordmark` and **`creature-half` (newly illustrated half figure)**; `full` composite and `preview` are auxiliary outputs, NOT substitutes for any of those five independent layers. File sizes, canvas registration and lossless encoding must meet the Cyber Shark quality contract. Keep both the original high-resolution `Pictures2.zip` sources and reviewed physical layered source assets; do not rework from the previously imprecise prepared pack.
+
+**Status:** requirement confirmed by user; **not generated or implemented yet**. The original `Pictures2.zip` binary is not presently available in this conversation/Project/Library or the GitHub repository; the user will have to attach the original archive before faithfully illustrating the fifth element. Do not invent completion, automated production quality, or APK support for `creature-half`.
+
+
 Status: hard project rule.
 
 ## Gold standard

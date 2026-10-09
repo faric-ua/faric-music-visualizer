@@ -1,5 +1,12 @@
 # PulseDeck — аудит безперервності візуалізації під час навігації
 
+## Phone acceptance update — 2026-10-09 / v0.19.52 build 141
+
+**User: «Пасс».** This answer directly followed a two-route phone test request: (a) Player → Home → Player and (b) Player → All Tracks → Back. **Both targeted routes: PHONE QA PASS.** The user did not separately report native identity hashes, timing metrics, search/queue, projectM rotation, all Board/Theme routes, or an MP4 export; do not invent these observations.
+
+**PERF-NAV-003 — targeted reported navigation regression: CLOSED / PHONE-ACCEPTED for those two routes on build 141.** Broader regression tests remain unverified (NOT TESTED). `BUG-EXPORT-001` and global export/rotation lifecycle work remain independent and OPEN.
+
+
 **Date:** 2026-10-09
 **Finding:** `PERF-NAV-003 — Library/Tracks ↔ Player destroys the live scene`
 **Source baseline:** v0.19.51 / build 140, main app SHA `1874325cf66f694246d02329d8ca4c1700a130c3`.

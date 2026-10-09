@@ -1,5 +1,12 @@
 # Open Findings
 
+## PERF-NAV-003 — target navigation regression PHONE PASS (2026-10-09)
+
+- User explicitly answered **«Пасс»** after being asked to check **Player ↔ Home** and **Player → All Tracks → Back** in v0.19.52 / build 141. Targeted navigation PASS; mark **PERF-NAV-003 CLOSED for those specific routes**.
+- This is **not** a claim that every transition, search/queue, GL identity, animation benchmark, export or rotation scenario passed. Other tests are not confirmed.
+- **BUG-EXPORT-001 / LIFE-ROT-001 remain OPEN**: full-song export interruption around halfway and rotation-safe dialogs, background execution and resource ownership are separate issues.
+
+
 ## v0.19.48 / build 137 — Canonical Theme Host + visible system bars in projectM
 
 - **User phone QA, build 136:** Shark ↔ Panther switches quickly, legacy projectM menu correct, Board and Theme browse return smooth. **FAIL remains** when changing from a layered GF theme to Neon/Energy/Core/Star/Wave/Vinyl/Cassette or back: legacy Theme Picker path calls `showNowPlaying()`, `clearScreenRefs()`, and recreates projectM. projectM authoring still hides Android **status + navigation bars**, contrary to original UI. Clips `607032.mp4`, `607033.mp4` and screenshot `607030.jpg` supplied in chat.

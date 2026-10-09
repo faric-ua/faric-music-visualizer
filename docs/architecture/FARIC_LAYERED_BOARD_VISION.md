@@ -160,11 +160,14 @@ Examples:
 Whole asset mode:
 - one transparent ready-made emblem.
 
-Modular mode:
-- back/frame;
+Modular mode (product direction; not yet fully implemented):
+- frame;
+- dedicated FX/glow;
 - creature/mascot;
-- front wordmark;
-- optional dedicated FX layer.
+- independent wordmark/logo;
+- optionally a **newly illustrated** half-body variant of the same hero for placement inside a frame.
+
+**Shared library contract:** these are individual reusable assets, not locked to a single hero package. Any frame may be combined with a different hero, effect, and independently selected FARIC/FMV/FVMP wordmark. Four components in some packs, optional fifth illustrated half-hero in others; do not generate a half-hero for every pack. Each physical asset retains its source pack attribution; compositions reference it by stable identity with independent placement, scale, rotation, opacity and z-order. Source pack originals are not overwritten. Whole `full` and `preview` are derived outputs. See [GF_MODULAR_ASSET_LIBRARY_CONTRACT.md](GF_MODULAR_ASSET_LIBRARY_CONTRACT.md).
 
 Example heroes already explored:
 - Cyber Shark;

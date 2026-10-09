@@ -146,6 +146,27 @@ object ShortVideoExportProof {
                     ).toInt(),
             )
 
+        if (durationMs >= 20_000L) {
+            // Temp H264 and the MediaStore destination coexist during muxing.
+            // Check BEFORE a long render, not after hundreds of MB were written.
+            val estimate = ExportStorageBudget.estimateRequiredBytes(
+                durationMs = durationMs,
+                width = width,
+                height = height,
+                needsPcm = compositionConfig?.projectMVisible == true,
+            )
+            val available = context.cacheDir.usableSpace
+            Log.i("FARIC-export", "Storage preflight requiredMiB=" +
+                ExportStorageBudget.formatMiB(estimate) + " availableMiB=" +
+                ExportStorageBudget.formatMiB(available))
+            check(ExportStorageBudget.hasCapacity(available, estimate)) {
+                "Недостатньо місця для повного MP4: потрібно приблизно " +
+                    ExportStorageBudget.formatMiB(estimate) + " МБ, доступно " +
+                    ExportStorageBudget.formatMiB(available) + " МБ. " +
+                    "Звільни місце та повтори експорт."
+            }
+        }
+
         val videoTemp =
             File(
                 context.cacheDir,

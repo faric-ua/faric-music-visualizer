@@ -1222,6 +1222,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             Triple("20", "Роки", "Музика за роками"),
             Triple("♡", "Улюблені", "Твої позначки ♥"),
             Triple("↺", "Нещодавні", "Прослухані у FARIC"),
+            Triple("▤", "Мої добірки", "Власні плейлисти"),
         )
 
         categories.chunked(2).forEach { pair ->
@@ -1237,6 +1238,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             "Роки" -> LocalMusicCategory.YEARS
                             "Улюблені" -> LocalMusicCategory.FAVORITES
                             "Нещодавні" -> LocalMusicCategory.RECENT
+                            "Мої добірки" -> LocalMusicCategory.PLAYLISTS
                             else -> LocalMusicCategory.ALL
                         }
                         showAllTracks(category = mode)

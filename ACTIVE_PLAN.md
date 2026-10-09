@@ -1,5 +1,14 @@
 # Active Plan
 
+## Hero art — fifth element explicitly illustrated, not cropped (2026-10-09)
+
+- [x] Requirement clarified by user: for **each** of ten `Pictures2.zip` characters, assistant must **draw a new upper-half/half-body version of that same hero** intended to fit into the frame — not just crop an existing figure.
+- [ ] Obtain exact ORIGINAL `Pictures2.zip` archive; generated `FARIC-Heroes-Prepared-v0.19.50.zip` is inadequate as a final artist source.
+- [ ] Design/reconstruct clean `frame`, `fx`, full `creature`, `wordmark`, and newly DRAWN `creature-half` as fifth independent, aligned, transparent layer for each of ten heroes. `full` and `preview` are auxiliary outputs.
+- [ ] Visual review against Cyber Shark for all ten BEFORE user-approved packaging or Android UI/runtime integration; avoid misleading PASS for previous rough masks.
+- [ ] No code or image work authorized in the present clarification step; existing version/build and unrelated export/nav QA unchanged.
+
+
 ## 2026-10-09 — v0.19.53 / build 142 merged; main signed CI in progress
 
 - Source `c8de4948fc31bca41f5cb18d3bebdaee287c40ec`, PR #10 **MERGED** into main after the user's v0.19.52 / 141 targeted navigation PASS.

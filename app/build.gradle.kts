@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 141
-        versionName = "0.19.52"
-        // v0.19.52: retain native Scene Host while navigating Library/Tracks and back.
+        versionCode = 142
+        versionName = "0.19.53"
+        // v0.19.53: temporary full-song rotation guard; confirmed cancellation and output progress.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

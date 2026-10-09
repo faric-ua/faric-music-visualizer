@@ -2,6 +2,7 @@ package com.saney.musicvisualizer
 
 import android.Manifest
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.content.pm.PackageManager
 import android.database.Cursor
 import android.graphics.Bitmap
@@ -96,6 +97,7 @@ import java.io.File
 import java.util.Locale
 import java.util.concurrent.CancellationException
 import java.util.concurrent.atomic.AtomicBoolean
+import com.saney.musicvisualizer.export.ExportRunGate
 import org.json.JSONArray
 import org.json.JSONObject
 import kotlin.concurrent.thread
@@ -145,6 +147,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     private var exportAspectRatio =
         ExportAspectRatio.VERTICAL_9_16
+
+    private val exportRunGate = ExportRunGate()
+    private var orientationBeforeFullSongExport: Int? = null
 
     private var offlineAnalysis: OfflineAnalysisResult? = null
     private var offlineAnalysisUri: String? = null
@@ -7724,6 +7729,44 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
+    /**
+     * Temporary rotation safety guard while the existing export depends on
+     * MainActivity-owned projectM/GL. Background recovery is a separate task.
+     */
+    private fun beginGuardedExport(fullSong: Boolean): Boolean {
+        if (!exportRunGate.tryStart()) {
+            toast("Експорт уже виконується")
+            return false
+        }
+        if (fullSong) {
+            orientationBeforeFullSongExport = requestedOrientation
+            val lock = runCatching {
+                requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LOCKED
+            }
+            if (lock.isFailure) {
+                Log.e("FARIC-export", "Orientation lock failed", lock.exceptionOrNull())
+                orientationBeforeFullSongExport = null
+                exportRunGate.finish()
+                toast("Не вдалося захистити експорт від повороту")
+                return false
+            }
+        }
+        Log.i("FARIC-export", "Export started; fullSong=$fullSong")
+        return true
+    }
+
+    private fun endGuardedExport() {
+        if (!exportRunGate.isActive()) return
+        exportRunGate.finish()
+        window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        val previous = orientationBeforeFullSongExport
+        orientationBeforeFullSongExport = null
+        if (previous != null && !isFinishing && !isDestroyed) {
+            requestedOrientation = previous
+        }
+        Log.i("FARIC-export", "Export guard released")
+    }
+
     private fun exportCompositionVideo(
         fullSong: Boolean,
     ) {
@@ -7831,6 +7874,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ] !=
                     false
 
+        if (!beginGuardedExport(fullSong)) return
+
         val cancelled =
             AtomicBoolean(
                 false,
@@ -7844,17 +7889,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     android.view.Window
                         .FEATURE_NO_TITLE,
                 )
-                setCancelable(
-                    true,
-                )
-                setCanceledOnTouchOutside(
-                    false,
-                )
-                setOnCancelListener {
-                    cancelled.set(
-                        true,
-                    )
-                }
+                // Back and outside taps must not cancel the encoder.
+                setCancelable(false)
+                setCanceledOnTouchOutside(false)
             }
 
         val panel =
@@ -7949,11 +7986,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 accent =
                     false,
             ) {
-                cancelled.set(
-                    true,
-                )
-                progressStatus.text =
-                    "Скасування…"
+                PulseDeckDialogs.showConfirm(
+                    context = this,
+                    title = "Скасувати експорт?",
+                    message = "Поточний рендер буде зупинено. Готовий MP4 не буде створено.",
+                    positiveLabel = "Так, скасувати",
+                    negativeLabel = "Продовжити",
+                    destructive = true,
+                ) {
+                    cancelled.set(true)
+                    progressStatus.text = "Скасування…"
+                    Log.i("FARIC-export", "Explicit cancellation requested")
+                }
             },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -7963,6 +8007,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     dp(14)
             },
         )
+
+        if (fullSong) {
+            panel.addView(
+                label(
+                    "Під час експорту поворот екрана тимчасово заблоковано.",
+                    12f,
+                    COLOR_MUTED,
+                    false,
+                ),
+            )
+        }
 
         dialog.setContentView(
             panel,
@@ -7999,10 +8054,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 .FLAG_KEEP_SCREEN_ON,
         )
 
+        var lastLoggedDecile = -1
         fun updateProgress(
             progress: Int,
             status: String,
         ) {
+            val decile = progress.coerceIn(0, 100) / 10
+            if (decile != lastLoggedDecile) {
+                lastLoggedDecile = decile
+                Log.i("FARIC-export", "Render progress " + decile * 10 + "%")
+            }
             runOnUiThread {
                 if (!isFinishing) {
                     progressBar.progress =
@@ -8504,13 +8565,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     },
                 )
             }.onSuccess { result ->
+                Log.i("FARIC-export", "Render finished; published=" + (result.uri != null))
                 runOnUiThread {
-                    dialog.dismiss()
-                    window.clearFlags(
-                        android.view.WindowManager
-                            .LayoutParams
-                            .FLAG_KEEP_SCREEN_ON,
-                    )
+                    if (!isDestroyed && !isFinishing) dialog.dismiss()
 
                     if (
                         result.uri !=
@@ -8536,13 +8593,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     }
                 }
             }.onFailure { error ->
+                Log.e("FARIC-export", "Export failed", error)
                 runOnUiThread {
-                    dialog.dismiss()
-                    window.clearFlags(
-                        android.view.WindowManager
-                            .LayoutParams
-                            .FLAG_KEEP_SCREEN_ON,
-                    )
+                    if (!isDestroyed && !isFinishing) dialog.dismiss()
 
                     if (
                         error is
@@ -8579,6 +8632,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         ?.resetOfflineRendererBlocking()
                 }
             }
+            // Keep orientation locked until native GL and PCM cleanup is done.
+            runOnUiThread { endGuardedExport() }
         }
     }
 

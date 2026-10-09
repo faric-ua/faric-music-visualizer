@@ -1331,7 +1331,8 @@ object ShortVideoExportProof {
                     ) /
                     1_000_000L
 
-            onProgress(100)
+            // Only publish() completing can report 100%, not mux completion.
+            onProgress(97)
 
             val publishStartedNs =
                 System.nanoTime()
@@ -1350,6 +1351,7 @@ object ShortVideoExportProof {
                         publishStartedNs
                     ) /
                     1_000_000L
+            if (uri != null) onProgress(100)
 
             return Result(
                 uri = uri,
@@ -1526,21 +1528,13 @@ object ShortVideoExportProof {
                     ?: return null
 
             try {
-                resolver
-                    .openOutputStream(
-                        uri,
-                    )
-                    ?.use {
-                            output ->
-                        FileInputStream(
-                            source,
-                        ).use {
-                                input ->
-                            input.copyTo(
-                                output,
-                            )
-                        }
+                val output = resolver.openOutputStream(uri)
+                    ?: error("Could not open MediaStore MP4 output")
+                output.use { stream ->
+                    FileInputStream(source).use { input ->
+                        input.copyTo(stream)
                     }
+                }
 
                 values.clear()
                 values.put(

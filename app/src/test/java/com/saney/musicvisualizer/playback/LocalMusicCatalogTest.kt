@@ -17,7 +17,9 @@ class LocalMusicCatalogTest {
         time: Long = 0L,
     ) = LocalMusicTrack(
         id = id,
-        uri = Uri.parse("content://media/external/audio/media/$id"),
+        uri = org.mockito.Mockito.mock(Uri::class.java).also { uri ->
+            org.mockito.Mockito.`when`(uri.toString()).thenReturn("content://media/external/audio/media/$id")
+        },
         title = "Song $id",
         artist = artist,
         album = album,

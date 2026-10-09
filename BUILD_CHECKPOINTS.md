@@ -1,5 +1,10 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## Phone QA update — 2026-10-09 / v0.19.52 build 141
+
+Signed main build #628: source `ffc0591c0099e17410f15b7113cc572fc10d660d`, artifact `FARIC-Music-Visualizer-v0.19.52-Debug` (ID `11582750197`). User **PASS** reported on the two requested physical navigation routes Player ↔ Home and Player → All Tracks → Back. `PERF-NAV-003` specifically accepted on those routes; full-song export and other unrelated/untested behaviors remain NOT TESTED. Next: v0.19.53 / build 142 export rotation guard, PR #10, CI before merge already PASS, no main signed release yet at this checkpoint.
+
+
 ## 2026-10-09 — НЕГАЙНА ДІЯ КОРИСТУВАЧА / release boundary (PR #10)
 
 **ЗАРАЗ: НЕ завантажувати й НЕ встановлювати v0.19.53 / build 142 через Termux. НЕ запускати пункт 9.** Android #629 і Validate #1113 завершилися PASS для PR source `01d8a5730fa136ae604cdfaeb7d383e4cfe3e4f2`, але PR #10 ще OPEN / DRAFT, його НЕ злитo з `main`. Підписаний CI artifact PR `FARIC-Music-Visualizer-v0.19.53-Debug`, ID `11590593947`, — це **кандидат PR, а не підтверджений main-реліз у звичайному Termux-меню**. Workflow Android #629 run `37872044684`: unit tests, APK build, signer, artifact upload PASS. Реальне Android phone QA build 142 — NOT TESTED.

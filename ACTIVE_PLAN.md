@@ -1,5 +1,15 @@
 # Active Plan
 
+## 2026-10-09 — НЕГАЙНА ДІЯ КОРИСТУВАЧА / release boundary (PR #10)
+
+**ЗАРАЗ: НЕ завантажувати й НЕ встановлювати v0.19.53 / build 142 через Termux. НЕ запускати пункт 9.** Android #629 і Validate #1113 завершилися PASS для PR source `01d8a5730fa136ae604cdfaeb7d383e4cfe3e4f2`, але PR #10 ще OPEN / DRAFT, його НЕ злитo з `main`. Підписаний CI artifact PR `FARIC-Music-Visualizer-v0.19.53-Debug`, ID `11590593947`, — це **кандидат PR, а не підтверджений main-реліз у звичайному Termux-меню**. Workflow Android #629 run `37872044684`: unit tests, APK build, signer, artifact upload PASS. Реальне Android phone QA build 142 — NOT TESTED.
+
+- Нове правило відповіді користувачу збережено **у main**: `ASSISTANT_RESPONSE_CONTRACT.md`, `VISUALIZER_ASSISTANT_WORKFLOW.md`, `START_HERE_ASSISTANT.md`: першим реченням чітко «завантажувати/встановлювати/тестувати — так чи ні», точні номери Termux, а технічні деталі після.
+- PR #10 `fix/v0.19.53-export-rotation-guard` — перше обмежене виправлення, не повноцінний фоновий експорт: тимчасовий orientation lock під час довгого MP4, confirm cancel, one-run gate, stage logging і 100% тільки після публікації. `BUG-EXPORT-001` і `LIFE-ROT-001` не закрито.
+- Поточна телефонна збірка з main залишається **v0.19.52 / 141**; phone QA `PERF-NAV-003` ще НЕ підтверджено. Якщо 141 вже встановлена, можна продовжити лише навігаційний тест, **без повторного повного MP4 експорту**.
+- Наступний релізний крок асистента: окремо довести PR #10 до main, отримати **main** signed build 142, записати source SHA/CI/artifact, і лише тоді дати однозначне **Termux 3 → 10 → 8** та 3–6 phone-тестів. Не плутати PR CI PASS з готовністю в меню Termux.
+
+
 ## v0.19.52 / build 141 — Live Library/Tracks navigation, no GL rebuild (MAIN CI PASS / PHONE QA PENDING)
 
 - App/source commit `ffc0591c0099e17410f15b7113cc572fc10d660d` (PR #8). Immutable checkpoint branch `checkpoint/pulsedeck-v0.19.52-2026-10-09`.

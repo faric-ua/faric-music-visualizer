@@ -1,5 +1,14 @@
 # Active Plan
 
+## 2026-10-09 — v0.19.53 / build 142 merged; main signed CI in progress
+
+- Source `c8de4948fc31bca41f5cb18d3bebdaee287c40ec`, PR #10 **MERGED** into main after the user's v0.19.52 / 141 targeted navigation PASS.
+- Validate main #1126 **PASS**, workflow run `37873468229`.
+- Android main #630 **RUNNING**, workflow run `37873468238`. No main signed APK claim before successful unit tests, assemble, signer verification and artifact upload.
+- Next action for assistant: check #630 exactly once or in limited bounded checks; if PASS, record artifact ID, create immutable checkpoint and finish docs; then tell user **Termux 3 → 10 → 8**, not 9. If RUNNING/FAILED, do not tell user to download new APK.
+- No Phone QA of build142 yet; export guard is mitigation only. `BUG-EXPORT-001`, `LIFE-ROT-001` remain OPEN, existing full background export remains unfinished.
+
+
 ## 2026-10-09 — accepted navigation, next release
 
 - [x] **Build 141 phone acceptance** for Player → Home → Player and Player → All Tracks → Back: user's **«Пасс»**; target `PERF-NAV-003` CLOSED for those paths.

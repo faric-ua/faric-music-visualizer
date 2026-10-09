@@ -1,5 +1,16 @@
 # Active Plan
 
+## 2026-10-09 — CURRENT DELIVERY: v0.19.55 / build 144 (signed main CI PASS, PHONE QA PENDING)
+
+**ЗАРАЗ: Termux → 3 → 10 → 8, один раз завантажити та встановити APK v0.19.55/build144 поверх старої версії. Пункт 9 НЕ натискати.** Далі **один короткий телефонний тест системних панелей + введення пошуку**. Не змушувати перевіряти всі дев'ять категорій — користувач уже сказав, що вони працюють у build143.
+
+- App/source **`f4daecb3c0d74971491eea0bb8e9c0db52cdad53`**, PR #12 MERGED, Validate **#1154 PASS**, Android signed main **#641 PASS**, run `37971504207`, `FARIC-Music-Visualizer-v0.19.55-Debug`, artifact **`11635204167`** (expires 2026-10-12T18:14:56Z). Exact release note: `docs/checkpoints/2026-10-09-v0.19.55-library-bars-search.md`; immutable app checkpoint branch `checkpoint/pulsedeck-v0.19.55-2026-10-09`.
+- **Phone findings from build143:** (1) Android system status/nav bars absent on Home and library; (2) app apparently closed when entering "горизонт"/H-O-R into top search. Crash cause not proven (no logcat), **DO NOT** claim fixed by CI alone.
+- **Fix candidate:** system bars shown in Home/Library and restored on focus; include status/nav/IME safe area; `adjustResize`; search TextWatcher deferred/debounced 180ms, stale adapter bounds checks, cached grouped catalog, stale view callbacks cleaned; `FARIC-library-search` diagnostics. User's existing Player/projectM immersive policy unchanged.
+- **Phone acceptance scope:** show Home and All Tracks status/nav bars, type H → HO → HOR → HORIZON and/or «горизонт» repeatedly while IME open, return/back and (optionally) rotate; **single PASS/FAIL**, no fragmented testing. On crash collect actual AndroidRuntime FATAL EXCEPTION before theorizing.
+- Open findings: `LIB-SYS-001`, `LIB-SEARCH-001` **PHONE PENDING**; `BUG-EXPORT-001` and `LIFE-ROT-001` remain independent OPEN. Hero source art and immutable calibration untouched.
+
+
 ## v0.19.54 / build 143 — NINE LOCAL MEDIA SECTIONS + PLAYLISTS (SIGNED MAIN CI PASS, PHONE QA PENDING)
 
 **ЗАРАЗ — користувачу:** встановлювати/завантажувати **ОДИН раз** через Termux **3 → 10 → 8**, потім натиснути APK у відкритій папці Android. **НЕ натискати 9** (Android вже PASS). Якщо v0.19.54/build143 уже встановлено — нічого повторно не завантажувати, одразу phone QA.

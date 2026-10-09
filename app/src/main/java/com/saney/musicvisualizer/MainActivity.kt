@@ -8591,7 +8591,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             "Не вдалося зберегти MP4",
                         )
                     }
-                    endGuardedExport()
                 }
             }.onFailure { error ->
                 Log.e("FARIC-export", "Export failed", error)
@@ -8616,7 +8615,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     ),
                         )
                     }
-                    endGuardedExport()
                 }
             }
 
@@ -8634,6 +8632,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         ?.resetOfflineRendererBlocking()
                 }
             }
+            // Keep orientation locked until native GL and PCM cleanup is done.
+            runOnUiThread { endGuardedExport() }
         }
     }
 

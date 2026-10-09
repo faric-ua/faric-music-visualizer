@@ -84,6 +84,10 @@ import com.saney.musicvisualizer.theme.ThemeInput
 import com.saney.musicvisualizer.ui.HeroBoardView
 import com.saney.musicvisualizer.ui.HeroThemeView
 import com.saney.musicvisualizer.ui.LocalMusicBrowser
+import com.saney.musicvisualizer.playback.LocalMusicCatalog
+import com.saney.musicvisualizer.playback.LocalMusicCategory
+import com.saney.musicvisualizer.playback.LocalMusicLibrary
+import com.saney.musicvisualizer.playback.LocalMusicUserState
 import com.saney.musicvisualizer.ui.PulseMiniView
 import com.saney.musicvisualizer.ui.PulseDeckControlRail
 import com.saney.musicvisualizer.ui.PulseDeckIconButton
@@ -169,6 +173,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var boardMenuOverlay: FrameLayout? = null
     private var themeMenuOverlay: FrameLayout? = null
     private var mediaMenuOverlay: FrameLayout? = null
+    private var localMusicBrowser: LocalMusicBrowser? = null
+    private var musicBrowseCategory = LocalMusicCategory.ALL
+    private var musicBrowseGroup: String? = null
+    private var musicBrowseQuery = ""
     private var themeMenuOriginalTheme: PlaybackThemeId? = null
     private var themeMenuLiveHeroSwitch = false
     private var heroAssetLoadGeneration = 0
@@ -286,7 +294,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private val requestMusicLibraryPermission =
         registerForActivityResult(ActivityResultContracts.RequestPermission()) { granted ->
             if (screen == Screen.TRACKS) {
-                showAllTracks()
+                showAllTracks(category = musicBrowseCategory, selectedGroup = musicBrowseGroup, restoredQuery = musicBrowseQuery)
                 if (!granted) {
                     toast("Доступ до музики не надано. Оберіть файли вручну.")
                 }
@@ -524,7 +532,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
             when (screen) {
                 Screen.NOW_PLAYING -> showLibrary()
-                Screen.TRACKS -> showLibrary()
+                Screen.TRACKS -> {
+                    if (localMusicBrowser?.navigateBack() != true) showLibrary()
+                }
                 Screen.THEME_PICKER,
                 Screen.BOARD_TRANSFORM,
                 Screen.EXPORT_LAB,
@@ -551,16 +561,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
                 ?: Screen.LIBRARY
 
+        musicBrowseCategory = savedInstanceState?.getString("local_music_category")?.let {
+            runCatching { LocalMusicCategory.valueOf(it) }.getOrNull()
+        } ?: LocalMusicCategory.ALL
+        musicBrowseGroup = savedInstanceState?.getString("local_music_group")
+        musicBrowseQuery = savedInstanceState?.getString("local_music_query").orEmpty()
         restoreScreen(restoredScreen)
     }
 
     override fun onSaveInstanceState(
         outState: Bundle,
     ) {
-        outState.putString(
-            KEY_SCREEN,
-            screen.name,
-        )
+        outState.putString(KEY_SCREEN, screen.name)
+        outState.putString("local_music_category", musicBrowseCategory.name)
+        outState.putString("local_music_group", musicBrowseGroup)
+        outState.putString("local_music_query", musicBrowseQuery)
         outState.putString(
             KEY_SELECTED_THEME,
             selectedThemeId.name,
@@ -1190,7 +1205,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         content.addView(
-            label("Library Worlds", 20f, Color.WHITE, true),
+            label("Моя медіатека", 20f, Color.WHITE, true),
             LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
                 topMargin = dp(24)
                 bottomMargin = dp(10)
@@ -1198,14 +1213,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         val categories = listOf(
-            Triple("♫", "Усі треки", "локальна бібліотека"),
-            Triple("▰", "Теки", "папки й каталоги"),
-            Triple("◉", "Альбоми", "обкладинки й релізи"),
-            Triple("●", "Виконавці", "артисти"),
-            Triple("✦", "Жанри", "стилі музики"),
-            Triple("20", "Роки", "хронологія"),
-            Triple("♡", "Улюблені", "твоя добірка"),
-            Triple("↺", "Нещодавні", "останні треки"),
+            Triple("♫", "Усі треки", "Вся локальна музика"),
+            Triple("▰", "Теки", "Папки пристрою"),
+            Triple("◉", "Альбоми", "Релізи та трек-листи"),
+            Triple("●", "Виконавці", "Усі виконавці"),
+            Triple("✦", "Жанри", "Стилі музики"),
+            Triple("20", "Роки", "Музика за роками"),
+            Triple("♡", "Улюблені", "Твої позначки ♥"),
+            Triple("↺", "Нещодавні", "Прослухані у FARIC"),
         )
 
         categories.chunked(2).forEach { pair ->
@@ -1213,11 +1228,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pair.forEachIndexed { index, item ->
                 row.addView(
                     libraryCard(item.first, item.second, item.third) {
-                        if (item.second == "Усі треки") {
-                            showAllTracks()
-                        } else {
-                            toast("${item.second}: наступний етап медіатеки")
+                        val mode = when (item.second) {
+                            "Теки" -> LocalMusicCategory.FOLDERS
+                            "Альбоми" -> LocalMusicCategory.ALBUMS
+                            "Виконавці" -> LocalMusicCategory.ARTISTS
+                            "Жанри" -> LocalMusicCategory.GENRES
+                            "Роки" -> LocalMusicCategory.YEARS
+                            "Улюблені" -> LocalMusicCategory.FAVORITES
+                            "Нещодавні" -> LocalMusicCategory.RECENT
+                            else -> LocalMusicCategory.ALL
                         }
+                        showAllTracks(category = mode)
                     },
                     LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply {
                         if (index == 0) marginEnd = dp(6) else marginStart = dp(6)
@@ -1289,7 +1310,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         requestMusicLibraryPermission.launch(permission)
     }
 
-    private fun showAllTracks(focusSearch: Boolean = false) {
+    private fun showAllTracks(
+        focusSearch: Boolean = false,
+        category: LocalMusicCategory = LocalMusicCategory.ALL,
+        selectedGroup: String? = null,
+        restoredQuery: String = "",
+    ) {
+        musicBrowseCategory = category
+        musicBrowseGroup = selectedGroup
+        musicBrowseQuery = restoredQuery
         val retainScene = hasRetainedMediaScene()
         screen = Screen.TRACKS
         if (!retainScene) {
@@ -1300,18 +1329,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val browser = LocalMusicBrowser(
             activity = this,
             canReadMusic = hasMusicLibraryPermission(),
+            category = category,
             onBack = { showLibrary() },
             onRequestPermission = { askMusicLibraryPermission() },
             onPickFiles = { chooseTrack() },
             onSelect = { tracks, selectedIndex ->
+                val selected = tracks[selectedIndex]
+                LocalMusicUserState(this).recordPlay(selected.uri.toString())
                 controller.loadQueue(
-                    tracks.map { track -> QueueTrack(track.uri, track.title) },
+                    tracks.map { item -> QueueTrack(item.uri, item.title) },
                     selectedIndex,
                 )
                 controller.play()
                 showNowPlaying()
             },
+            initialGroup = selectedGroup,
+            initialQuery = restoredQuery,
+            onStateChange = { group, query ->
+                musicBrowseGroup = group
+                musicBrowseQuery = query
+            },
         )
+        localMusicBrowser = browser
         val root = browser.create(
             focusSearch = focusSearch,
             footer = buildPulseDock(),
@@ -9682,7 +9721,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 showLibrary()
 
             Screen.TRACKS ->
-                showAllTracks()
+                showAllTracks(category = musicBrowseCategory, selectedGroup = musicBrowseGroup, restoredQuery = musicBrowseQuery)
 
             Screen.NOW_PLAYING ->
                 showNowPlaying()

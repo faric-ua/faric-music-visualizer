@@ -1,15 +1,22 @@
 # Visual Asset Quality Contract
 
-## Mandatory fifth GF element — newly illustrated half-body hero (user correction 2026-10-09)
+## GF modular asset quality and optional illustrated half-hero (updated 2026-10-09)
 
-For each of the ten user-supplied heroes from `Pictures2.zip`, create a **fifth INDEPENDENT illustrated hero element**: `creature-half.webp` (working file name, not yet an implemented runtime schema), a high-quality **newly drawn/painted upper-half hero (portrait / bust)** designed to fit **inside the corresponding frame**.
+**User clarification overrides the earlier mandatory-for-everyone rule.** A source hero pack can have **four or five independent art elements**:
 
-**Do NOT** simply crop the original full figure, trim it by a mask, re-use `creature.webp`, or present an automatically clipped screenshot as the requested fifth element. The assistant must **draw/extend/reconstruct the missing or occluded figure geometry itself**, consistent with the individual hero's original anatomy/design, colors, highlights and lighting. Compose the visible upper body intentionally for the frame, preserving transparent margins and clean alpha edges. It is a separate usable physical asset. It must be independently positionable/scalable inside the frame, not flattened into the frame artwork.
+1. `frame` — separate frame, reusable with a different creature;
+2. `fx` — separate effect/glow assets;
+3. `creature` — the original/full hero;
+4. `wordmark` — separate logo/lettering asset, **freely reusable with ANY other hero or frame**;
+5. **optional** `creature-half` — only for packs where the user chooses to have an independently illustrated upper-half hero that fits within a frame.
 
-Each hero needs independent `frame`, `fx`, `creature` (full figure), `wordmark` and **`creature-half` (newly illustrated half figure)**; `full` composite and `preview` are auxiliary outputs, NOT substitutes for any of those five independent layers. File sizes, canvas registration and lossless encoding must meet the Cyber Shark quality contract. Keep both the original high-resolution `Pictures2.zip` sources and reviewed physical layered source assets; do not rework from the previously imprecise prepared pack.
+Do **not** generate `creature-half` for every pack automatically. Where requested, the assistant must **draw/reconstruct** the half-body intentionally and complete missing anatomy/armor/lighting in matching style; a crop, mask or simply splitting the existing character is **not** an acceptable newly illustrated fifth element. It is a standalone transparent asset, not fused into the frame.
 
-**Status:** requirement confirmed by user; **not generated or implemented yet**. The original `Pictures2.zip` binary is not presently available in this conversation/Project/Library or the GitHub repository; the user will have to attach the original archive before faithfully illustrating the fifth element. Do not invent completion, automated production quality, or APK support for `creature-half`.
+The source wordmarks/texts include **FARIC**, **FMV**, **FVMP** (verified in the existing catalog). Keep each as its **own reusable transparent graphic in a shared wordmark library**, even if it also belongs to an original themed hero package. The library must also permit cross-pack mixing of frames, effects and heroes. A saved composition records asset identities and per-instance transforms, not destructive edits to original files. Do not restrict a wordmark to the character it originally accompanied. `full` (flattened whole) and `preview` (thumbnail) are **derived outputs**, not members of the four/five editable components.
 
+All reused layers must satisfy the Cyber Shark standard: lossless transparent files, individually clean edges, sufficient resolution, and correct registered alignment. Record provenance/owner pack per asset without restricting its reuse. The current `UserHeroPack.kt` importer still assumes a **fixed** `frame/fx/creature/wordmark/full/preview` pack and does not implement the optional fifth element or general mix-and-match library; **this is a design requirement, not an installed feature**. Wait for the ORIGINAL `Pictures2.zip` before judging/drawing source-specific assets; the prior `FARIC-Heroes-Prepared-v0.19.50.zip` is not final-quality source.
+
+Full behavior contract: [GF_MODULAR_ASSET_LIBRARY_CONTRACT.md](../architecture/GF_MODULAR_ASSET_LIBRARY_CONTRACT.md).
 
 Status: hard project rule.
 

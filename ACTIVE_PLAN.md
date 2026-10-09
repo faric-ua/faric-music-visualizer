@@ -1,5 +1,16 @@
 # Active Plan
 
+## CURRENT RELEASE — v0.19.57 / build146, full-song MP4 finalization (2026-10-09)
+
+**FIRST USER ACTION:** **ЗАРАЗ: встановити підписану v0.19.57 / build146 через Termux 3 → 10 → 8, НЕ натискати 9.** Потім **ОДИН** тест повної пісні (не 3с), не переперевіряти інші функції. До встановлення стару версію з відомим full-song crash не тестувати повторно.
+
+- Phone symptom on prior build: full-song export runs until song ends/stops, application exits, **NO MP4** saved. Real exception trace was not collected. **BUG-EXPORT-001 STILL OPEN / PHONE QA PENDING.**
+- Merged PR #14 app/source SHA **`1c7a58f5b6f649127f37a3a1df546235737edd3f`**. Main **Validate #1169 PASS; Android #645 PASS**, run **`37980098654`**, signed artifact **`FARIC-Music-Visualizer-v0.19.57-Debug` ID `11640602734`** (expires 2026-10-12T19:28:58Z). Source checkpoint `checkpoint/pulsedeck-v0.19.57-2026-10-09`.
+- Fixed source-confirmed end-stage space risk: formerly video-only temp + **second muxed MP4 temp** + copy to MediaStore, now direct Q+ pending MediaStore FD mux (no extra full MP4 temp/copy); delete pending file on failure, early disk-budget check, AAC/mux cancellation, no orphan video temp, phase-specific progress and error logging. No exact crash root-cause claim without logcat; long-running Activity/GL work is NOT a true foreground export service.
+- User QA **one** entire song with screen kept open: progress video→AAC→save; MP4 in `Movies/FARIC` with correct full song duration and audible sound + moving image; respond **PASS** or **FAIL** plus last stage. No repetitive point-by-point questions. Device test needed to close BUG-EXPORT-001; `LIFE-ROT-001` still open.
+- Authoritative: `docs/checkpoints/2026-10-09-v0.19.57-full-song-mp4-finalization.md`. Do not regress existing nine-category library, earlier system-bars/search changes, album covers or artist/playlist order from build145.
+
+
 ## CURRENT DEVELOPMENT — v0.19.56 / build 145 READY IN GITHUB, PHONE QA DEFERRED BY USER (2026-10-09)
 
 **ЗАРАЗ для користувача:** **нічого не завантажувати, не встановлювати й не тестувати спеціально**. Користувач прямо сказав: «я потім подивлюся… ти далі працюй… я поюзаю додаток». Вони користуються вже встановленою попередньою версією; не нав'язувати негайний update. Залишити право на один загальний PASS/FAIL після зручного їм тестування.

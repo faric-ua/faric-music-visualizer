@@ -805,10 +805,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
-            if (projectMFocusOverlay != null) {
-                showProjectMSystemBars()
-            } else {
-                enableImmersiveFullscreen()
+            when {
+                projectMFocusOverlay != null -> showProjectMSystemBars()
+                screen == Screen.LIBRARY || screen == Screen.TRACKS ->
+                    showMediaLibrarySystemBars()
+                else -> enableImmersiveFullscreen()
             }
         }
     }
@@ -1133,7 +1134,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         if (!retainScene) {
             attachExportProjectMPreview(root)
         }
-        applySafeArea(root)
+        applySafeArea(root, includeSystemBars = true)
 
         val scroll = ScrollView(this).apply {
             clipToPadding = false
@@ -1324,7 +1325,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         installMediaMenu(root, retainScene)
         restorePendingScrollPositions()
-        enableImmersiveFullscreen()
+        showMediaLibrarySystemBars()
         onPlaybackSnapshot(latestSnapshot)
     }
 
@@ -1389,9 +1390,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             focusSearch = focusSearch,
             footer = buildPulseDock(),
         )
-        applySafeArea(root)
+        applySafeArea(root, includeSystemBars = true)
         installMediaMenu(root, retainScene)
-        enableImmersiveFullscreen()
+        showMediaLibrarySystemBars()
         onPlaybackSnapshot(latestSnapshot)
     }
 
@@ -9813,6 +9814,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusOverlay?.let(ViewCompat::requestApplyInsets)
     }
 
+    /** Home and media browser intentionally keep Android status + navigation bars visible. */
+    private fun showMediaLibrarySystemBars() {
+        runCatching {
+            WindowCompat.setDecorFitsSystemWindows(window, false)
+            WindowCompat.getInsetsController(window, window.decorView).apply {
+                show(WindowInsetsCompat.Type.systemBars())
+                isAppearanceLightStatusBars = false
+                isAppearanceLightNavigationBars = false
+            }
+            window.decorView.requestApplyInsets()
+        }.onFailure { error ->
+            Log.e("FARIC-library", "Could not show Android system bars", error)
+        }
+    }
+
     private fun enableImmersiveFullscreen() {
         runCatching {
             WindowCompat.setDecorFitsSystemWindows(window, false)
@@ -9825,17 +9841,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
-    private fun applySafeArea(root: View) {
+    private fun applySafeArea(root: View, includeSystemBars: Boolean = false) {
         ViewCompat.setOnApplyWindowInsetsListener(root) { view, insets ->
             runCatching {
                 val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
                 val gestures = insets.getInsets(WindowInsetsCompat.Type.systemGestures())
-
+                val bars = if (includeSystemBars) {
+                    insets.getInsets(WindowInsetsCompat.Type.systemBars())
+                } else {
+                    androidx.core.graphics.Insets.NONE
+                }
+                val keyboard = if (includeSystemBars) {
+                    insets.getInsets(WindowInsetsCompat.Type.ime())
+                } else {
+                    androidx.core.graphics.Insets.NONE
+                }
                 view.setPadding(
-                    cutout.left,
-                    cutout.top,
-                    cutout.right,
-                    maxOf(cutout.bottom, gestures.bottom),
+                    maxOf(cutout.left, bars.left),
+                    maxOf(cutout.top, bars.top),
+                    maxOf(cutout.right, bars.right),
+                    maxOf(cutout.bottom, gestures.bottom, bars.bottom, keyboard.bottom),
                 )
             }
             insets

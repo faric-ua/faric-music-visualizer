@@ -11,6 +11,7 @@ import android.net.Uri
 import java.io.File
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
+import java.util.concurrent.CancellationException
 import kotlin.math.roundToInt
 
 object AudioClipTranscoder {
@@ -30,6 +31,7 @@ object AudioClipTranscoder {
         startMs: Long,
         durationMs: Long,
         outputFile: File,
+        shouldCancel: () -> Boolean = { false },
     ): Result {
         val extractor = MediaExtractor()
         extractor.setDataSource(
@@ -171,6 +173,7 @@ object AudioClipTranscoder {
             encoder.start()
 
             while (!encoderOutputDone) {
+                if (shouldCancel()) throw CancellationException("Export cancelled during AAC")
                 if (!decoderInputDone) {
                     val inputIndex =
                         decoder.dequeueInputBuffer(
@@ -330,6 +333,7 @@ object AudioClipTranscoder {
                                             )
 
                                         queuePcm(
+                                            shouldCancel = shouldCancel,
                                             encoder =
                                                 encoder,
                                             pcm16 =
@@ -372,6 +376,7 @@ object AudioClipTranscoder {
                     !encoderInputDone
                 ) {
                     queueEncoderEos(
+                        shouldCancel = shouldCancel,
                         encoder = encoder,
                         ptsUs = durationUs,
                     )
@@ -488,6 +493,7 @@ object AudioClipTranscoder {
     }
 
     private fun queuePcm(
+        shouldCancel: () -> Boolean,
         encoder: MediaCodec,
         pcm16: ByteArray,
         ptsUs: Long,
@@ -498,9 +504,7 @@ object AudioClipTranscoder {
 
         while (offset < pcm16.size) {
             val inputIndex =
-                waitForEncoderInput(
-                    encoder,
-                )
+                waitForEncoderInput(encoder, shouldCancel)
 
             val inputBuffer =
                 encoder.getInputBuffer(
@@ -552,13 +556,12 @@ object AudioClipTranscoder {
     }
 
     private fun queueEncoderEos(
+        shouldCancel: () -> Boolean,
         encoder: MediaCodec,
         ptsUs: Long,
     ) {
         val inputIndex =
-            waitForEncoderInput(
-                encoder,
-            )
+            waitForEncoderInput(encoder, shouldCancel)
 
         encoder.queueInputBuffer(
             inputIndex,
@@ -571,8 +574,10 @@ object AudioClipTranscoder {
 
     private fun waitForEncoderInput(
         encoder: MediaCodec,
+        shouldCancel: () -> Boolean,
     ): Int {
         while (true) {
+            if (shouldCancel()) throw CancellationException("Export cancelled during AAC")
             val index =
                 encoder.dequeueInputBuffer(
                     TIMEOUT_US,

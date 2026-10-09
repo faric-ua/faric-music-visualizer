@@ -177,6 +177,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var musicBrowseCategory = LocalMusicCategory.ALL
     private var musicBrowseGroup: String? = null
     private var musicBrowseQuery = ""
+    private var lastRecordedMusicUri: String? = null
     private var themeMenuOriginalTheme: PlaybackThemeId? = null
     private var themeMenuLiveHeroSwitch = false
     private var heroAssetLoadGeneration = 0
@@ -868,6 +869,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onPlaybackSnapshot(snapshot: PlaybackSnapshot) {
         latestSnapshot = snapshot
+        // Record actual playing items, including queue Next/Previous, not just taps.
+        if (snapshot.isPlaying && snapshot.trackName != null) {
+            val uri = controller.currentTrackUri()?.toString()
+            if (uri != null && uri != lastRecordedMusicUri) {
+                lastRecordedMusicUri = uri
+                LocalMusicUserState(this).recordPlay(uri)
+            }
+        }
 
         dock?.visibility = if (snapshot.trackName == null) View.GONE else View.VISIBLE
         dockTitle?.text = snapshot.trackName ?: "Нічого не грає"
@@ -1361,8 +1370,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             onRequestPermission = { askMusicLibraryPermission() },
             onPickFiles = { chooseTrack() },
             onSelect = { tracks, selectedIndex ->
-                val selected = tracks[selectedIndex]
-                LocalMusicUserState(this).recordPlay(selected.uri.toString())
                 controller.loadQueue(
                     tracks.map { item -> QueueTrack(item.uri, item.title) },
                     selectedIndex,

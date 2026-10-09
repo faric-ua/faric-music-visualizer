@@ -1,5 +1,12 @@
 # Current Handoff
 
+## HERO ASSETS CORRECTION — user confirmed 2026-10-09 (DO NOT MISREAD)
+
+**User explicitly corrected assistant:** the **fifth art element for EACH of the ten original `Pictures2.zip` heroes** must be an **assistant-illustrated/drawn half-body hero**, specially recreated to sit inside the frame. It must **NOT** be an automatically cropped fragment of the original full-body/composite, a mask, or a cutout of `creature.webp`. Draw/complete any missing anatomy/edges using the reference hero's style. Store as separate independent transparent layer (proposed `creature-half.webp`, name not yet wired into runtime). Existing independent frame/fx/creature/wordmark plus new half hero = **five separate editable elements**; full/preview are additional composites/thumbnails. Respect Cyber Shark visual standard.
+
+**Current source situation:** previously prepared `FARIC-Heroes-Prepared-v0.19.50.zip` is *not accepted* as final quality; original ten-PNG `Pictures2.zip` not available in current attached/Library/repo files. Do not pretend it is attached. **No images or code have been generated or changed for this instruction.** Next step when source ZIP is provided: inspect originals and produce clean independently registered layers and a genuinely newly illustrated bust/half-body for each hero; have user approve art before shipping. Do not shift current build/phone QA.
+
+
 ## 2026-10-09 — v0.19.53 / build 142 merged; main signed CI in progress
 
 - Source `c8de4948fc31bca41f5cb18d3bebdaee287c40ec`, PR #10 **MERGED** into main after the user's v0.19.52 / 141 targeted navigation PASS.

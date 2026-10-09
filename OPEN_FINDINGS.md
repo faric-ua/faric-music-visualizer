@@ -1,5 +1,15 @@
 # Open Findings
 
+## BUG-EXPORT-001 / LIFE-ROT-001 — full-song export progress disappears; rotation ownership unsafe (2026-10-09)
+
+- **New user clarification:** During a full-song export at roughly half the progress, the progress window disappeared. The user is uncertain whether the phone rotated and/or live playback ended at the same moment. The new account **does not confirm a process crash**, and no logs or final output verification were provided.
+- **Confirmed source risks (main v0.19.52 / build 141):** progress `Dialog`, progress widgets and worker/cancellation flag belong to `MainActivity`; rotation state saves Export Lab screen/ratio but **not** the export job/dialog; `onDestroy` calls `ProjectMBridge.endOfflineExport()` and deletes PCM cache independently of worker completion; progress/result callbacks target the old Activity. Thus the current code has a rotation-related lifecycle race and no guaranteed background survival.
+- **Song-end distinction:** `PlaybackController.STATE_ENDED` only updates playback UI; no direct cancellation of offline export identified. Concurrency/resource pressure and process loss remain unverified alternative causes.
+- **Required:** job-level independent ownership, retained progress/UI restoration, deliberate cancel, background execution where permitted, atomic output and all-dialog/panel rotation restoration without auto-operations.
+- **Audit:** [2026-10-09-EXPORT-LIFECYCLE-ROTATION-AUDIT.md](docs/audits/2026-10-09-EXPORT-LIFECYCLE-ROTATION-AUDIT.md) (audit branch); covers Export Lab, generic PulseDeck dialogs, Layer/folder pickers, projectM controls and constructor/calibration Activities, with acceptance matrix.
+- **Status: OPEN / HIGH; SOURCE AUDIT DONE; CODE FIX NOT IMPLEMENTED; NO APK / PHONE QA PASS.** `BUG-EXPORT-001` remains open. Track systemic UI lifecycle as `LIFE-ROT-001`; avoid double-counting identical export incident as a new crash.
+- **Release isolation:** ongoing v0.19.52 / 141 `PERF-NAV-003` phone testing is independent; do not replace installed build while the user tests it. Do not ask for another expensive full-song export until protection and logs are available.
+
 ## v0.19.48 / build 137 — Canonical Theme Host + visible system bars in projectM
 
 - **User phone QA, build 136:** Shark ↔ Panther switches quickly, legacy projectM menu correct, Board and Theme browse return smooth. **FAIL remains** when changing from a layered GF theme to Neon/Energy/Core/Star/Wave/Vinyl/Cassette or back: legacy Theme Picker path calls `showNowPlaying()`, `clearScreenRefs()`, and recreates projectM. projectM authoring still hides Android **status + navigation bars**, contrary to original UI. Clips `607032.mp4`, `607033.mp4` and screenshot `607030.jpg` supplied in chat.

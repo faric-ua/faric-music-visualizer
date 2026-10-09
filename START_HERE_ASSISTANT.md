@@ -1,5 +1,16 @@
 # FARIC Music Visualizer — START HERE
 
+## CURRENT DEVELOPMENT — v0.19.56 / build 145 READY IN GITHUB, PHONE QA DEFERRED BY USER (2026-10-09)
+
+**ЗАРАЗ для користувача:** **нічого не завантажувати, не встановлювати й не тестувати спеціально**. Користувач прямо сказав: «я потім подивлюся… ти далі працюй… я поюзаю додаток». Вони користуються вже встановленою попередньою версією; не нав'язувати негайний update. Залишити право на один загальний PASS/FAIL після зручного їм тестування.
+
+**Latest app/source SHA `c25d813b57c2358f91f4c94d17f992ad191852a8`** (PR #13 merged, **0.19.56 / build145**). **Validate main #1162 PASS; Android main #643 PASS** (run `37975243419`), artifact `FARIC-Music-Visualizer-v0.19.56-Debug` **ID 11638581428**, expires `2026-10-12T18:47:15Z`. Immutable checkpoint `checkpoint/pulsedeck-v0.19.56-2026-10-09`. Full source and QA scope: `docs/checkpoints/2026-10-09-v0.19.56-library-artwork-playlists.md`.
+
+**One implemented feature batch**: embedded offline album art in Albums and track rows (bounded worker/cache), true artist/album metadata via Media3 to player/HUD/mini dock/GF, playlist rename and Up/Down manual order with persistent URI lists. New JVM playlist sorting tests PASS. No changes to Hero art, native scene, original `Pictures2.zip`, immutable center calibration or MP4 export.
+
+**Pending independent user feedback:** phone tests for **v0.19.55/build144** (LIB-SYS-001 system panels and LIB-SEARCH-001 keyboard crash) still not reported. **Do not claim they passed.** New build145 has CI PASS only, **PHONE QA NOT TESTED**. The user may report bugs while trying their existing app; collect all in one batch rather than reissuing test lists. If they later ask to install build145: Termux **3 → 10 → 8**, **not 9**; verify latest APK and ask one combined round with artwork + artist + playlist order + search/system bars, no stepwise demands.
+
+
 ## 2026-10-09 — CURRENT DELIVERY: v0.19.55 / build 144 (signed main CI PASS, PHONE QA PENDING)
 
 **ЗАРАЗ: Termux → 3 → 10 → 8, один раз завантажити та встановити APK v0.19.55/build144 поверх старої версії. Пункт 9 НЕ натискати.** Далі **один короткий телефонний тест системних панелей + введення пошуку**. Не змушувати перевіряти всі дев'ять категорій — користувач уже сказав, що вони працюють у build143.

@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 142
-        versionName = "0.19.53"
-        // v0.19.53: temporary full-song rotation guard; confirmed cancellation and output progress.
+        versionCode = 143
+        versionName = "0.19.54"
+        // v0.19.54: complete on-device media categories + search, favorites, recent.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {
@@ -86,4 +86,5 @@ dependencies {
     implementation("androidx.media3:media3-common:1.11.1")
     implementation("androidx.media3:media3-exoplayer:1.11.1")
     testImplementation("junit:junit:4.13.2")
+    testImplementation("org.mockito:mockito-core:5.12.0")
 }

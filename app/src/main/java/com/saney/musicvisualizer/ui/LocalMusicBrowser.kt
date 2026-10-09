@@ -5,6 +5,9 @@ import android.graphics.Color
 import android.graphics.Typeface
 import android.graphics.drawable.ColorDrawable
 import android.graphics.drawable.GradientDrawable
+import android.os.Handler
+import android.os.Looper
+import android.util.Log
 import android.text.Editable
 import android.text.TextUtils
 import android.text.TextWatcher
@@ -60,6 +63,14 @@ class LocalMusicBrowser(
     private var scanToken = 0
     private var root: FrameLayout? = null
     private var listView: ListView? = null
+    private val searchHandler = Handler(Looper.getMainLooper())
+    private var pendingSearch: Runnable? = null
+    private var cachedGroupSource: List<LocalMusicTrack>? = null
+    private var cachedGroups: List<LocalMusicGroup> = emptyList()
+    private companion object {
+        const val SEARCH_DEBOUNCE_MS = 180L
+        const val LOG_TAG = "FARIC-library-search"
+    }
 
     /** System Back first closes a group, then MainActivity returns to Home. */
     fun navigateBack(): Boolean {
@@ -132,6 +143,15 @@ class LocalMusicBrowser(
     fun create(focusSearch: Boolean = false, footer: View? = null): FrameLayout {
         val viewRoot = FrameLayout(activity).apply { setBackgroundColor(this@LocalMusicBrowser.background) }
         root = viewRoot
+        viewRoot.addOnAttachStateChangeListener(object : View.OnAttachStateChangeListener {
+            override fun onViewAttachedToWindow(view: View) = Unit
+            override fun onViewDetachedFromWindow(view: View) {
+                pendingSearch?.let(searchHandler::removeCallbacks)
+                pendingSearch = null
+                scanToken++
+                if (root === viewRoot) root = null
+            }
+        })
         val body = LinearLayout(activity).apply {
             orientation = LinearLayout.VERTICAL
             setPadding(dp(16), dp(12), dp(16), dp(12))
@@ -217,10 +237,19 @@ class LocalMusicBrowser(
         var groupedView = category.grouped
         val adapter = object : BaseAdapter() {
             override fun getCount() = if (groupedView) visibleGroups.size else visibleTracks.size
-            override fun getItem(position: Int): Any = if (groupedView) visibleGroups[position] else visibleTracks[position]
-            override fun getItemId(position: Int): Long = if (groupedView) position.toLong() else visibleTracks[position].id
+            override fun getItem(position: Int): Any? =
+                if (groupedView) visibleGroups.getOrNull(position) else visibleTracks.getOrNull(position)
+            override fun getItemId(position: Int): Long =
+                if (groupedView) {
+                    if (visibleGroups.getOrNull(position) != null) position.toLong() else -1L
+                } else visibleTracks.getOrNull(position)?.id ?: -1L
 
             override fun getView(position: Int, recycled: View?, parent: ViewGroup): View {
+                // IME resizing can request a stale ListView position after a query
+                // narrows the results. Never index a potentially old adapter row.
+                if (position !in 0 until count) {
+                    return FrameLayout(activity).apply { minimumHeight = dp(1) }
+                }
                 // Use a simple view-holder: do not re-inflate a 10k-row music list on scroll.
                 val cell = if (recycled is LinearLayout && recycled.tag is CellHolder) {
                     recycled
@@ -337,11 +366,18 @@ class LocalMusicBrowser(
         body.addView(emptyHint, LinearLayout.LayoutParams(-1, -2))
 
         fun categoryGroups(items: List<LocalMusicTrack>): List<LocalMusicGroup> {
-            return if (category == LocalMusicCategory.PLAYLISTS) {
-                state.playlists().map { (name, uris) ->
+            if (category == LocalMusicCategory.PLAYLISTS) {
+                return state.playlists().map { (name, uris) ->
                     LocalMusicGroup(name, LocalMusicCatalog.recentTracks(items, uris))
                 }.sortedBy { it.title.lowercase() }
-            } else LocalMusicCatalog.groups(category, items)
+            }
+            // Build album/artist/folder groups once per MediaStore scan, NOT on
+            // each character typed into the IME.
+            if (cachedGroupSource !== items) {
+                cachedGroups = LocalMusicCatalog.groups(category, items)
+                cachedGroupSource = items
+            }
+            return cachedGroups
         }
 
         fun visibleSource(): List<LocalMusicTrack> = when (category) {
@@ -410,8 +446,27 @@ class LocalMusicBrowser(
             override fun onTextChanged(s: CharSequence?, start: Int, before: Int, count: Int) {
                 query = s?.toString().orEmpty()
                 onStateChange(openedGroup, query)
-                render?.invoke()
-                list.setSelection(0)
+                // Never rebuild ListView synchronously inside IME TextWatcher.
+                // Coalesce rapid keystrokes and apply the latest snapshot after
+                // the input/layout callback returns to the main message loop.
+                pendingSearch?.let(searchHandler::removeCallbacks)
+                val expectedQuery = query
+                val task = Runnable {
+                    if (root !== viewRoot || !viewRoot.isAttachedToWindow ||
+                        activity.isFinishing || activity.isDestroyed || query != expectedQuery
+                    ) {
+                        return@Runnable
+                    }
+                    try {
+                        render?.invoke()
+                        list.setSelection(0)
+                    } catch (error: RuntimeException) {
+                        Log.e(LOG_TAG, "Search rendering failed; query length=" + expectedQuery.length, error)
+                        status.text = "Помилка пошуку. Спробуй очистити запит або оновити медіатеку."
+                    }
+                }
+                pendingSearch = task
+                searchHandler.postDelayed(task, SEARCH_DEBOUNCE_MS)
             }
             override fun afterTextChanged(s: Editable?) {}
         })
@@ -439,7 +494,9 @@ class LocalMusicBrowser(
         thread(name = "faric-library-category-index") {
             val result = runCatching { LocalMusicLibrary.scan(activity.applicationContext, force) }
             activity.runOnUiThread {
-                if (token != scanToken || !view.isAttachedToWindow || activity.isFinishing || activity.isDestroyed) {
+                if (token != scanToken || root !== view ||
+                    !view.isAttachedToWindow || activity.isFinishing || activity.isDestroyed
+                ) {
                     return@runOnUiThread
                 }
                 result.onSuccess {

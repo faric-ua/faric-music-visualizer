@@ -14,6 +14,7 @@ import android.net.Uri
 import android.os.Build
 import android.os.Environment
 import android.provider.MediaStore
+import android.util.Log
 import com.saney.musicvisualizer.board.GraphicFigureCatalog
 import com.saney.musicvisualizer.projectm.FaricForegroundSample
 import com.saney.musicvisualizer.projectm.ProjectMOfflineTiming
@@ -151,6 +152,7 @@ object ShortVideoExportProof {
                 "faric-proof-${System.currentTimeMillis()}.mp4",
             )
 
+        try {
         val encoderInfo =
             findSurfaceEncoder()
                 ?: error(
@@ -1298,13 +1300,17 @@ object ShortVideoExportProof {
             val audioStartedNs =
                 System.nanoTime()
 
+            Log.i("FARIC-export", "AAC transcoding start durationMs=$durationMs")
             AudioClipTranscoder.transcodeToAacMp4(
                 context = context,
                 sourceUri = sourceAudioUri,
                 startMs = startMs,
                 durationMs = durationMs,
                 outputFile = audioTemp,
+                shouldCancel = shouldCancel,
             )
+            check(audioTemp.length() > 0L) { "AAC transcode produced an empty file" }
+            Log.i("FARIC-export", "AAC transcoding finished bytes=" + audioTemp.length())
 
             val audioTranscodeMs =
                 (
@@ -1315,43 +1321,48 @@ object ShortVideoExportProof {
 
             onProgress(92)
 
-            val muxStartedNs =
-                System.nanoTime()
-
-            Mp4AvMuxer.mux(
-                videoFile = videoTemp,
-                audioFile = audioTemp,
-                outputFile = muxedTemp,
-            )
-
-            val muxMs =
-                (
-                    System.nanoTime() -
-                        muxStartedNs
-                    ) /
-                    1_000_000L
-
-            // Only publish() completing can report 100%, not mux completion.
-            onProgress(97)
-
-            val publishStartedNs =
-                System.nanoTime()
-
-            val uri =
-                publishMp4(
+            val finalizingStartedNs = System.nanoTime()
+            val displayName = "$displayNamePrefix-${System.currentTimeMillis()}.mp4"
+            Log.i("FARIC-export", "Final MP4 mux started: videoBytes=" +
+                videoTemp.length() + " audioBytes=" + audioTemp.length() +
+                " directMediaStore=" + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q))
+            // On Android 10+ mux directly to pending Movies/FARIC. A second
+            // complete MP4 in cache used to exhaust device storage at the end.
+            val uri: Uri?
+            val muxMs: Long
+            val publishMs: Long
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+                uri = Mp4AvMuxer.muxToMediaStore(
+                    context = context.applicationContext,
+                    videoFile = videoTemp,
+                    audioFile = audioTemp,
+                    displayName = displayName,
+                    shouldCancel = shouldCancel,
+                )
+                muxMs = (System.nanoTime() - finalizingStartedNs) / 1_000_000L
+                publishMs = 0L // Direct FD mux also commits the MediaStore row.
+            } else {
+                Mp4AvMuxer.mux(
+                    videoFile = videoTemp,
+                    audioFile = audioTemp,
+                    outputFile = muxedTemp,
+                    shouldCancel = shouldCancel,
+                )
+                muxMs = (System.nanoTime() - finalizingStartedNs) / 1_000_000L
+                if (shouldCancel()) throw CancellationException("Export cancelled")
+                onProgress(97)
+                val publishingStartedNs = System.nanoTime()
+                uri = publishMp4(
                     context = context,
                     source = muxedTemp,
-                    displayName =
-                        "$displayNamePrefix-${System.currentTimeMillis()}.mp4",
+                    displayName = displayName,
                 )
-
-            val publishMs =
-                (
-                    System.nanoTime() -
-                        publishStartedNs
-                    ) /
-                    1_000_000L
-            if (uri != null) onProgress(100)
+                publishMs = (System.nanoTime() - publishingStartedNs) / 1_000_000L
+            }
+            check(uri != null) { "MP4 was not published to Movies/FARIC" }
+            Log.i("FARIC-export", "Final MP4 published: uri=$uri elapsedMs=" +
+                ((System.nanoTime() - finalizingStartedNs) / 1_000_000L))
+            onProgress(100)
 
             return Result(
                 uri = uri,
@@ -1414,6 +1425,10 @@ object ShortVideoExportProof {
             videoTemp.delete()
             audioTemp.delete()
             muxedTemp.delete()
+        }
+        } finally {
+            // Also clean up if video rendering throws BEFORE the AAC/mux phase.
+            videoTemp.delete()
         }
     }
 

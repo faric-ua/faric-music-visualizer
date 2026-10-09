@@ -59,7 +59,11 @@ class LocalMusicBrowser(
     private var openedGroup: String? = initialGroup
     private var addingTracks = false
     private var query = initialQuery
-    private var sort = if (category == LocalMusicCategory.RECENT) LocalMusicSort.NEWEST else LocalMusicSort.TITLE
+    private var sort = when (category) {
+        LocalMusicCategory.RECENT -> LocalMusicSort.NEWEST
+        LocalMusicCategory.PLAYLISTS -> LocalMusicSort.PLAYLIST_ORDER
+        else -> LocalMusicSort.TITLE
+    }
     private var render: (() -> Unit)? = null
     private var scanToken = 0
     private var root: FrameLayout? = null
@@ -197,7 +201,7 @@ class LocalMusicBrowser(
             gravity = Gravity.CENTER_VERTICAL
         }
         val sortButton = button("Сортувати: ${sort.label}") {
-            sort = sort.next()
+            sort = sort.next(forPlaylist = category == LocalMusicCategory.PLAYLISTS)
             render?.invoke()
         }
         tools.addView(sortButton, LinearLayout.LayoutParams(0, dp(48), 1f))
@@ -302,6 +306,24 @@ class LocalMusicBrowser(
                     val artists = group.tracks.map { it.artist }.distinct().size
                     holder.subtitle.text = "${group.tracks.size} треків · $artists виконавців"
                     if (category == LocalMusicCategory.PLAYLISTS) {
+                        holder.subtitle.text = "${group.tracks.size} треків · затисни для перейменування"
+                        cell.setOnLongClickListener {
+                            PulseDeckDialogs.showTextInput(
+                                context = activity,
+                                title = "Перейменувати добірку",
+                                hint = "Нова назва",
+                                initialValue = group.title,
+                            ) { entered ->
+                                if (!state.renamePlaylist(group.title, entered)) {
+                                    android.widget.Toast.makeText(
+                                        activity, "Назва вже зайнята або порожня",
+                                        android.widget.Toast.LENGTH_SHORT,
+                                    ).show()
+                                }
+                                render?.invoke()
+                            }
+                            true
+                        }
                         holder.action.text = "×"
                         holder.action.setOnClickListener {
                             PulseDeckDialogs.showConfirm(
@@ -317,6 +339,7 @@ class LocalMusicBrowser(
                             }
                         }
                     } else {
+                        cell.setOnLongClickListener(null)
                         holder.action.text = "›"
                         holder.action.setOnClickListener {
                             openedGroup = group.title
@@ -343,6 +366,23 @@ class LocalMusicBrowser(
                         "${track.artist} · ${track.album} · ${track.durationMs / 60_000}:${((track.durationMs / 1000) % 60).toString().padStart(2, '0')}"
                     if (category == LocalMusicCategory.PLAYLISTS && openedGroup != null) {
                         val name = openedGroup!!
+                        cell.setOnLongClickListener {
+                            if (addingTracks) return@setOnLongClickListener false
+                            PulseDeckDialogs.showActionList(
+                                context = activity,
+                                title = track.title,
+                                items = listOf("↑ Підняти", "↓ Опустити", "− Прибрати з добірки"),
+                            ) { selected ->
+                                when (selected) {
+                                    0 -> state.movePlaylistTrack(name, track.uri.toString(), -1)
+                                    1 -> state.movePlaylistTrack(name, track.uri.toString(), 1)
+                                    2 -> state.setPlaylistTrack(name, track.uri.toString(), false)
+                                }
+                                sort = LocalMusicSort.PLAYLIST_ORDER
+                                render?.invoke()
+                            }
+                            true
+                        }
                         val included = state.playlists()[name]?.contains(track.uri.toString()) == true
                         holder.action.text = if (addingTracks) {
                             if (included) "✓" else "+"
@@ -361,6 +401,7 @@ class LocalMusicBrowser(
                             }
                         }
                     } else {
+                        cell.setOnLongClickListener(null)
                         holder.action.text = if (state.isFavorite(track.uri.toString())) "♥" else "♡"
                         holder.action.setOnClickListener {
                             state.toggleFavorite(track.uri.toString())

@@ -1,5 +1,10 @@
 # FARIC Music Visualizer — START HERE
 
+## ОБОВ'ЯЗКОВИЙ ПОЧАТОК ВІДПОВІДІ: ДІЯ З APK (2026-10-09)
+
+Перед технічними подробицями відповідай **одним однозначним реченням**, що користувач має зробити **ЗАРАЗ**: завантажувати/не завантажувати, встановлювати/не встановлювати, тестувати/не тестувати, точний шлях через Termux і номер збірки. Для PR CI PASS без merge/main signed build не пропонуй `3 → 10 → 8`. Докладне правило: [ASSISTANT_RESPONSE_CONTRACT.md](ASSISTANT_RESPONSE_CONTRACT.md). Фінальні блоки **Termux**, **Перевірка APK** обов'язкові, але не замінюють першого речення.
+
+
 ## v0.19.52 / build 141 — Live Library/Tracks navigation, no GL rebuild (MAIN CI PASS / PHONE QA PENDING)
 
 - App/source commit `ffc0591c0099e17410f15b7113cc572fc10d660d` (PR #8). Immutable checkpoint branch `checkpoint/pulsedeck-v0.19.52-2026-10-09`.

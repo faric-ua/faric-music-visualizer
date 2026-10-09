@@ -17,6 +17,7 @@ import android.view.ViewGroup
 import android.widget.BaseAdapter
 import android.widget.EditText
 import android.widget.FrameLayout
+import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.ListView
 import android.widget.TextView
@@ -260,6 +261,14 @@ class LocalMusicBrowser(
                         minimumHeight = dp(70)
                         setPadding(dp(14), dp(8), dp(10), dp(8))
                         background = box()
+                        val artwork = ImageView(activity).apply {
+                            scaleType = ImageView.ScaleType.CENTER_CROP
+                            background = box()
+                            contentDescription = "Обкладинка альбому"
+                        }
+                        addView(artwork, LinearLayout.LayoutParams(dp(52), dp(52)).apply {
+                            marginEnd = dp(12)
+                        })
                         val labels = LinearLayout(activity).apply { orientation = LinearLayout.VERTICAL }
                         val primary = text("", 15f, Color.WHITE, true).apply {
                             maxLines = 1
@@ -276,12 +285,19 @@ class LocalMusicBrowser(
                             gravity = Gravity.CENTER
                         }
                         addView(icon, LinearLayout.LayoutParams(dp(48), dp(50)))
-                        tag = CellHolder(primary, secondary, icon)
+                        tag = CellHolder(primary, secondary, icon, artwork)
                     }
                 }
                 val holder = cell.tag as CellHolder
                 if (groupedView) {
                     val group = visibleGroups[position]
+                    holder.artwork.visibility = if (category == LocalMusicCategory.ALBUMS) View.VISIBLE else View.GONE
+                    if (category == LocalMusicCategory.ALBUMS) {
+                        LocalAlbumArtwork.bind(activity, holder.artwork, group.tracks.firstOrNull()?.uri)
+                    } else {
+                        holder.artwork.setImageDrawable(null)
+                        holder.artwork.tag = null
+                    }
                     holder.title.text = group.title
                     val artists = group.tracks.map { it.artist }.distinct().size
                     holder.subtitle.text = "${group.tracks.size} треків · $artists виконавців"
@@ -320,8 +336,11 @@ class LocalMusicBrowser(
                     }
                 } else {
                     val track = visibleTracks[position]
+                    holder.artwork.visibility = View.VISIBLE
+                    LocalAlbumArtwork.bind(activity, holder.artwork, track.uri)
                     holder.title.text = track.title
-                    holder.subtitle.text = "${track.artist} · ${track.durationMs / 60_000}:${((track.durationMs / 1000) % 60).toString().padStart(2, '0')}"
+                    holder.subtitle.text =
+                        "${track.artist} · ${track.album} · ${track.durationMs / 60_000}:${((track.durationMs / 1000) % 60).toString().padStart(2, '0')}"
                     if (category == LocalMusicCategory.PLAYLISTS && openedGroup != null) {
                         val name = openedGroup!!
                         val included = state.playlists()[name]?.contains(track.uri.toString()) == true
@@ -509,5 +528,10 @@ class LocalMusicBrowser(
         }
     }
 
-    private data class CellHolder(val title: TextView, val subtitle: TextView, val action: TextView)
+    private data class CellHolder(
+        val title: TextView,
+        val subtitle: TextView,
+        val action: TextView,
+        val artwork: ImageView,
+    )
 }

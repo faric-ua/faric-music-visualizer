@@ -1,5 +1,20 @@
 # Open Findings
 
+## LIB-SYS-001 — system status/navigation bars hidden on Home and media browser (2026-10-09)
+
+**Phone report, v0.19.54 / build 143:** User says the library/home categories work, but Android system status and navigation panels are missing, making device control awkward. Source-confirmed cause: `showLibrary()` and `showAllTracks()` called `enableImmersiveFullscreen()`, and `onWindowFocusChanged()` re-hid bars.
+
+**Fix candidate in `main`: v0.19.55 / build 144, merged PR #12**, source SHA `f4daecb3c0d74971491eea0bb8e9c0db52cdad53`. Library/Tracks call `showMediaLibrarySystemBars()`; regained focus reasserts bars; safe area accounts for status/nav/gesture/cutout and keyboard IME. Existing Player and projectM immersive policy retained. **PHONE QA PENDING**; don't mark CLOSED merely from CI.
+
+## LIB-SEARCH-001 — search typing apparently closes app near “HOR/горизонт” (2026-10-09)
+
+**Phone report, v0.19.54 / build 143:** user pressed top search control and typed “горизонт” (possibly Latin H → O → R), around the R key the app closed. **No Android crash stacktrace supplied: exact root cause unverified.** Candidate mechanisms include synchronous ListView adapter rebuilding inside `TextWatcher.onTextChanged` during IME resize and stale list positions; these are *risks*, not a proven exception trace.
+
+**Fix candidate in `main`: v0.19.55 / build 144, merged PR #12**. Debounces edits 180ms, moves list rebuilding off synchronous IME callbacks, cancels stale callbacks on detach, bounds-checks adapter indexes, caches group projection, logs `FARIC-library-search`, adds incremental HOR / Cyrillic query tests. **PHONE QA PENDING**. If crash reproduces, gather Android logcat filtered for `FATAL EXCEPTION`, `AndroidRuntime`, `FARIC-library-search`; investigate actual stack, not assumptions.
+
+**QA scope for this batch:** after signed main build144 and single installation: Android status/nav bars visible in Home and All Tracks/Folders/Albums; keyboard with queries H, HO, HOR, HORIZON and «горизонт» (type normally and quickly), no app close; selecting track and returning Home restores system panels. User reported existing category headers working in build143; do not demand a full repeat of nine-category QA.
+
+
 ## PERF-NAV-003 — target navigation regression PHONE PASS (2026-10-09)
 
 - User explicitly answered **«Пасс»** after being asked to check **Player ↔ Home** and **Player → All Tracks → Back** in v0.19.52 / build 141. Targeted navigation PASS; mark **PERF-NAV-003 CLOSED for those specific routes**.

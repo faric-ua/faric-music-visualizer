@@ -1,5 +1,19 @@
 # FARIC Music Visualizer — START HERE
 
+## v0.19.54 / build 143 — NINE LOCAL MEDIA SECTIONS + PLAYLISTS (SIGNED MAIN CI PASS, PHONE QA PENDING)
+
+**ЗАРАЗ — користувачу:** встановлювати/завантажувати **ОДИН раз** через Termux **3 → 10 → 8**, потім натиснути APK у відкритій папці Android. **НЕ натискати 9** (Android вже PASS). Якщо v0.19.54/build143 уже встановлено — нічого повторно не завантажувати, одразу phone QA.
+
+- Exact signed **main app/source SHA:** `5eed1ec044b359ef1b3c9a3ccd12ef6587d6727f` (merged PR #11).
+- **Validate main #1146 PASS**; **Android main #639 PASS**, workflow run `37942519828`. Unit tests, Kotlin compile, assemble, stable signer verification, zipalign and artifact upload PASS.
+- **Artifact:** `FARIC-Music-Visualizer-v0.19.54-Debug`, ID `11622026485`, expires **2026-10-12 14:16 UTC**. Same-signer signed debug main build; normal Termux point 8 validates hash.
+- **Immutable checkpoint:** `checkpoint/pulsedeck-v0.19.54-2026-10-09`. Release details `docs/checkpoints/2026-10-09-v0.19.54-full-local-library.md`.
+- All nine Home sections are functional: **Усі треки, Теки, Альбоми, Виконавці, Жанри, Роки, Улюблені, Нещодавні, Мої добірки**. Real MediaStore metadata, off-main cached scan, category→group→tracks→existing playback queue, filtering/sorting, persistent favorites, recent FARIC plays including Next, device-only create/add/remove/delete playlists, navigation state restored on rotation, Home library counts.
+- Source boundaries: **no Hero art changed**, `Pictures2.zip` still unavailable; no changes to native GL/export/immutable `PULSEDECK_CENTER_CALIBRATION`. Categories are based on file metadata; no external listening history; no album cover grid or remote playlists. Export lifecycle bugs remain independent OPEN.
+- **Phone QA NOT TESTED** — one bundled pass only: (1) start Home all nine cards open, real counts, (2) folder→track→player and back, (3) albums/artists/genres/years grouping + search/sort, (4) favorite heart persist after revisit/restart, (5) Recent includes playback and Next, (6) My Playlists create/add/remove/play/delete and rotation/back. Report one concise PASS/FAIL with failures, not item-by-item.
+- Next: **wait for user's single bulk Phone PASS/FAIL**; only then fix issues in batch. Do not trigger a redundant Android run.
+
+
 ## ОБОВ'ЯЗКОВИЙ ПОЧАТОК ВІДПОВІДІ: ДІЯ З APK (2026-10-09)
 
 Перед технічними подробицями відповідай **одним однозначним реченням**, що користувач має зробити **ЗАРАЗ**: завантажувати/не завантажувати, встановлювати/не встановлювати, тестувати/не тестувати, точний шлях через Termux і номер збірки. Для PR CI PASS без merge/main signed build не пропонуй `3 → 10 → 8`. Докладне правило: [ASSISTANT_RESPONSE_CONTRACT.md](ASSISTANT_RESPONSE_CONTRACT.md). Фінальні блоки **Termux**, **Перевірка APK** обов'язкові, але не замінюють першого речення.

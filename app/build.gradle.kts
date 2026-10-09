@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 143
-        versionName = "0.19.54"
-        // v0.19.54: complete on-device media categories + search, favorites, recent.
+        versionCode = 144
+        versionName = "0.19.55"
+        // v0.19.55: visible Android system bars in library; debounced and bounded search.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

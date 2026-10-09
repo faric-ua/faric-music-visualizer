@@ -54,6 +54,30 @@ class LocalMusicUserState(context: Context) {
         savePlaylists(playlists().filterKeys { it != name })
     }
 
+    fun renamePlaylist(oldName: String, desiredName: String): Boolean {
+        val title = desiredName.trim().take(60)
+        val saved = playlists()
+        val current = saved[oldName] ?: return false
+        if (title.isEmpty() || saved.keys.any { it != oldName && it.equals(title, ignoreCase = true) }) {
+            return false
+        }
+        val renamed = linkedMapOf<String, List<String>>()
+        saved.forEach { (name, uris) ->
+            renamed[if (name == oldName) title else name] = if (name == oldName) current else uris
+        }
+        savePlaylists(renamed)
+        return true
+    }
+
+    fun movePlaylistTrack(name: String, uri: String, delta: Int): Boolean {
+        val saved = playlists()
+        val current = saved[name] ?: return false
+        val reordered = LocalMusicPlaylistOrder.move(current, uri, delta)
+        if (reordered == current) return false
+        savePlaylists(saved + (name to reordered))
+        return true
+    }
+
     fun setPlaylistTrack(name: String, uri: String, enabled: Boolean) {
         val saved = playlists()
         val current = saved[name] ?: return
@@ -71,5 +95,19 @@ class LocalMusicUserState(context: Context) {
     fun recordPlay(uri: String) {
         val list = (listOf(uri) + recentlyPlayed().filterNot { it == uri }).take(100)
         prefs.edit().putString("recent-uris", list.joinToString("\n")).apply()
+    }
+}
+
+/** Stable, pure ordering operation; never rewrites physical music files. */
+object LocalMusicPlaylistOrder {
+    fun move(uris: List<String>, uri: String, delta: Int): List<String> {
+        val from = uris.indexOf(uri)
+        if (from < 0 || delta == 0) return uris
+        val to = (from + delta).coerceIn(0, uris.lastIndex)
+        if (to == from) return uris
+        return uris.toMutableList().apply {
+            val value = removeAt(from)
+            add(to, value)
+        }
     }
 }

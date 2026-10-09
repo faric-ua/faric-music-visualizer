@@ -881,10 +881,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         dock?.visibility = if (snapshot.trackName == null) View.GONE else View.VISIBLE
         dockTitle?.text = snapshot.trackName ?: "Нічого не грає"
-        dockSubtitle?.text = if (snapshot.analysisActive) {
-            "Локальний файл · reactive ON"
-        } else {
-            "Локальний файл"
+        dockSubtitle?.text = buildString {
+            append(snapshot.trackArtist ?: "Локальний файл")
+            if (snapshot.analysisActive) append(" · reactive ON")
         }
         dockPlay?.text = if (snapshot.isPlaying) "Ⅱ" else "▶"
 
@@ -896,7 +895,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         dockProgress?.progress = ratio
 
         nowTitle?.text = snapshot.trackName ?: "FARIC PulseDeck"
-        nowArtist?.text = if (snapshot.trackName == null) "Оберіть музику" else "Невідомий виконавець"
+        nowArtist?.text = if (snapshot.trackName == null) "Оберіть музику" else
+            snapshot.trackArtist ?: "Невідомий виконавець"
         nowStatus?.text = buildString {
             append(snapshot.status)
             if (snapshot.trackName != null) {
@@ -933,7 +933,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 if (snapshot.trackName == null) {
                     "Оберіть музику"
                 } else {
-                    "Невідомий виконавець"
+                    snapshot.trackArtist ?: "Невідомий виконавець"
                 },
             status =
                 buildString {
@@ -963,7 +963,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
         heroThemeView?.setMetadata(
             title = snapshot.trackName,
-            artist = if (snapshot.trackName == null) null else "Невідомий виконавець",
+            artist = snapshot.trackArtist,
         )
 
         updateSceneOrchestratorState()
@@ -1372,7 +1372,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             onPickFiles = { chooseTrack() },
             onSelect = { tracks, selectedIndex ->
                 controller.loadQueue(
-                    tracks.map { item -> QueueTrack(item.uri, item.title) },
+                    tracks.map { item ->
+                        QueueTrack(item.uri, item.title, item.artist, item.album)
+                    },
                     selectedIndex,
                 )
                 controller.play()

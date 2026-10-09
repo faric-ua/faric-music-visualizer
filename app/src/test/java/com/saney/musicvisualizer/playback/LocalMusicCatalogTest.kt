@@ -59,6 +59,24 @@ class LocalMusicCatalogTest {
         assertEquals(listOf(2L, 1L), LocalMusicCatalog.recentTracks(songs, listOf(two, "missing", one)).map { it.id })
     }
 
+    @Test fun playlistOrderIsStableAndCanMoveUpOrDown() {
+        val order = listOf("one", "two", "three")
+        assertEquals(listOf("two", "one", "three"),
+            LocalMusicPlaylistOrder.move(order, "two", -1))
+        assertEquals(listOf("one", "three", "two"),
+            LocalMusicPlaylistOrder.move(order, "two", 1))
+        assertEquals(order, LocalMusicPlaylistOrder.move(order, "one", -1))
+        assertEquals(order, LocalMusicPlaylistOrder.move(order, "missing", 1))
+        assertEquals(order, LocalMusicPlaylistOrder.move(order, "two", 0))
+    }
+
+    @Test fun playlistSortLeavesSavedOrderUnchanged() {
+        val songs = listOf(item(3), item(1), item(2))
+        assertEquals(listOf(3L, 1L, 2L),
+            LocalMusicCatalog.sortTracks(songs, LocalMusicSort.PLAYLIST_ORDER).map { it.id })
+        assertEquals(LocalMusicSort.TITLE, LocalMusicSort.PLAYLIST_ORDER.next())
+    }
+
     @Test fun folderGenreAndYearSearch() {
         val song = item(1, folder = "Music/DrumAndBass", genre = "Breakbeat", year = 1997)
         assertTrue(LocalMusicSearch.matches(song, "DrumAndBass"))

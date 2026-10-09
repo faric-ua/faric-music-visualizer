@@ -9,6 +9,7 @@ import androidx.lifecycle.AndroidViewModel
 import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor
 import androidx.media3.common.MediaItem
+import androidx.media3.common.MediaMetadata
 import androidx.media3.common.PlaybackException
 import androidx.media3.common.Player
 import androidx.media3.common.util.UnstableApi
@@ -24,10 +25,14 @@ import com.saney.musicvisualizer.projectm.ProjectMBridge
 data class QueueTrack(
     val uri: Uri,
     val displayName: String,
+    val artist: String? = null,
+    val album: String? = null,
 )
 
 data class PlaybackSnapshot(
     val trackName: String? = null,
+    val trackArtist: String? = null,
+    val trackAlbum: String? = null,
     val isPlaying: Boolean = false,
     val positionMs: Long = 0L,
     val durationMs: Long = 0L,
@@ -86,6 +91,8 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
     private var currentSessionId = C.AUDIO_SESSION_ID_UNSET
     private var analysisPermissionGranted = false
     private var trackName: String? = null
+    private var trackArtist: String? = null
+    private var trackAlbum: String? = null
     private var trackUri: Uri? = null
     private var status = "Оберіть локальний аудіофайл"
     private var analysisActive = false
@@ -152,6 +159,13 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
                     .setUri(track.uri)
                     .setMediaId(track.uri.toString())
                     .setTag(track.displayName)
+                    .setMediaMetadata(
+                        MediaMetadata.Builder()
+                            .setTitle(track.displayName)
+                            .setArtist(track.artist)
+                            .setAlbumTitle(track.album)
+                            .build(),
+                    )
                     .build()
             }
         status = "Завантаження…"
@@ -190,6 +204,8 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         trackName = item?.localConfiguration?.tag as? String
             ?: item?.mediaMetadata?.title?.toString()
             ?: trackUri?.lastPathSegment
+        trackArtist = item?.mediaMetadata?.artist?.toString()?.takeIf { it.isNotBlank() }
+        trackAlbum = item?.mediaMetadata?.albumTitle?.toString()?.takeIf { it.isNotBlank() }
     }
 
     fun currentTrackUri(): Uri? =
@@ -235,6 +251,8 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         listener?.onPlaybackSnapshot(
             PlaybackSnapshot(
                 trackName = trackName,
+                trackArtist = trackArtist,
+                trackAlbum = trackAlbum,
                 isPlaying = player.isPlaying,
                 positionMs = player.currentPosition.coerceAtLeast(0L),
                 durationMs = duration.coerceAtLeast(0L),

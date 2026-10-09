@@ -47,6 +47,7 @@ object LocalMusicCatalog {
 
     fun sortTracks(items: List<LocalMusicTrack>, sort: LocalMusicSort): List<LocalMusicTrack> {
         return when (sort) {
+            LocalMusicSort.PLAYLIST_ORDER -> items
             LocalMusicSort.TITLE -> items.sortedWith(
                 compareBy<LocalMusicTrack> { it.title.lowercase(Locale.ROOT) }.thenBy { it.id },
             )
@@ -78,6 +79,11 @@ object LocalMusicCatalog {
 }
 
 enum class LocalMusicSort(val label: String) {
-    TITLE("Назва"), ARTIST("Виконавець"), ALBUM_ORDER("Альбом"), NEWEST("Додані"), DURATION("Тривалість");
-    fun next(): LocalMusicSort = entries[(ordinal + 1) % entries.size]
+    TITLE("Назва"), ARTIST("Виконавець"), ALBUM_ORDER("Альбом"),
+    NEWEST("Додані"), DURATION("Тривалість"), PLAYLIST_ORDER("Порядок");
+
+    fun next(forPlaylist: Boolean = false): LocalMusicSort {
+        val options = if (forPlaylist) entries else entries.filter { it != PLAYLIST_ORDER }
+        return options[(options.indexOf(this).coerceAtLeast(-1) + 1) % options.size]
+    }
 }

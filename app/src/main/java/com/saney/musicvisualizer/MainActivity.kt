@@ -8472,15 +8472,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     title =
                         snapshot.trackName
                             .orEmpty(),
-                    artist =
-                        if (
-                            snapshot.trackName ==
-                                null
-                        ) {
-                            ""
-                        } else {
-                            "Невідомий виконавець"
-                        },
+                    artist = snapshot.trackArtist.orEmpty(),
                     startMs =
                         exportStartMs,
                     compositionConfig =
@@ -8625,18 +8617,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 progress *
                                     renderSpan /
                                     100
-
+                        val stage = when {
+                            progress < 78 -> "Рендерю відео"
+                            progress < 92 -> "Кодую аудіо"
+                            progress < 100 -> "Збираю та зберігаю MP4"
+                            else -> "MP4 успішно збережено"
+                        }
                         updateProgress(
                             mapped,
-                            (
-                                if (fullSong) {
-                                    "Експорт усієї пісні · "
-                                } else {
-                                    "Тестовий MP4 · "
-                                }
-                                ) +
-                                mapped +
-                                "%",
+                            stage + " · " + mapped + "%",
                         )
                     },
                 )

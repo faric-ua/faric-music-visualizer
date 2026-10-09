@@ -1,13 +1,15 @@
 # Active Plan
 
-## Hero art — fifth element explicitly illustrated, not cropped (2026-10-09)
+## GF asset library — 4 core + optional 5th + cross-pack mixing (2026-10-09)
 
-- [x] Requirement clarified by user: for **each** of ten `Pictures2.zip` characters, assistant must **draw a new upper-half/half-body version of that same hero** intended to fit into the frame — not just crop an existing figure.
-- [ ] Obtain exact ORIGINAL `Pictures2.zip` archive; generated `FARIC-Heroes-Prepared-v0.19.50.zip` is inadequate as a final artist source.
-- [ ] Design/reconstruct clean `frame`, `fx`, full `creature`, `wordmark`, and newly DRAWN `creature-half` as fifth independent, aligned, transparent layer for each of ten heroes. `full` and `preview` are auxiliary outputs.
-- [ ] Visual review against Cyber Shark for all ten BEFORE user-approved packaging or Android UI/runtime integration; avoid misleading PASS for previous rough masks.
-- [ ] No code or image work authorized in the present clarification step; existing version/build and unrelated export/nav QA unchanged.
-
+- [x] Record corrected user contract: `frame`, `fx`, `creature`, `wordmark` are four independent art types, `creature-half` is **OPTIONAL**, NOT generated for every hero. Where present it is a separately **drawn** half-body, NOT a crop.
+- [x] Record free mixing of individual frames, heroes, FX and FARIC / FMV / FVMP **wordmarks** across source packs; preserve source provenance, not ownership restrictions. Original complete configurations remain available.
+- [x] Keep `full` and `preview` auxiliary; define separate composition instances with references and per-instance transforms. See `docs/architecture/GF_MODULAR_ASSET_LIBRARY_CONTRACT.md`.
+- [ ] Obtain original `Pictures2.zip` from user (not available in accessible files); **do not** use the rough prepared pack as quality master.
+- [ ] Visually audit originals and decide which hero packs actually warrant a separately illustrated `creature-half`; only generate optional artwork for those.
+- [ ] Rebuild high-quality clean individual assets to Cyber Shark standard; preserve source files, provenance, aligned coordinates, shared catalogs.
+- [ ] Implement optional fifth + independent cross-pack asset selectors + editable GF composition persistence in Android; ensure live preview/export parity and do not change PulseDeck global layers or calibration.
+- [ ] Phone acceptance for the actual compiled feature and visual quality. This discussion made **no Android code, APK, or physical art changes**.
 
 ## 2026-10-09 — v0.19.53 / build 142 merged; main signed CI in progress
 

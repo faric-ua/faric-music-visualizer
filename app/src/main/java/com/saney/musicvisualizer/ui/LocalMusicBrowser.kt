@@ -325,7 +325,7 @@ class LocalMusicBrowser(
             sortButton.visibility = View.GONE
         } else {
             if (focusSearch) search.requestFocus()
-            scan(force = false)
+            viewRoot.post { scan(force = false) }
         }
         return viewRoot
     }

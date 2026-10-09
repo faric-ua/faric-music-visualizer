@@ -53,6 +53,7 @@ class LocalMusicBrowser(
     private val state = LocalMusicUserState(activity)
     private var allTracks: List<LocalMusicTrack> = emptyList()
     private var openedGroup: String? = initialGroup
+    private var addingTracks = false
     private var query = initialQuery
     private var sort = if (category == LocalMusicCategory.RECENT) LocalMusicSort.NEWEST else LocalMusicSort.TITLE
     private var render: (() -> Unit)? = null
@@ -61,6 +62,11 @@ class LocalMusicBrowser(
 
     /** System Back first closes a group, then MainActivity returns to Home. */
     fun navigateBack(): Boolean {
+        if (addingTracks) {
+            addingTracks = false
+            render?.invoke()
+            return true
+        }
         if (openedGroup == null || !category.grouped) return false
         openedGroup = null
         onStateChange(null, query)
@@ -171,6 +177,32 @@ class LocalMusicBrowser(
             render?.invoke()
         }
         tools.addView(sortButton, LinearLayout.LayoutParams(0, dp(48), 1f))
+        val playlistAction = button("＋ Добірка") {
+            if (openedGroup == null) {
+                val nameField = EditText(activity).apply {
+                    hint = "Назва нової добірки"
+                    setSingleLine(true)
+                    setTextColor(Color.WHITE)
+                    setHintTextColor(muted)
+                }
+                android.app.AlertDialog.Builder(activity)
+                    .setTitle("Створити добірку")
+                    .setView(nameField)
+                    .setNegativeButton("Назад", null)
+                    .setPositiveButton("Створити") { _, _ ->
+                        val created = state.createPlaylist(nameField.text.toString())
+                        if (!created) {
+                            android.widget.Toast.makeText(activity, "Вкажи іншу назву добірки", android.widget.Toast.LENGTH_SHORT).show()
+                        }
+                        render?.invoke()
+                    }
+                    .show()
+            } else {
+                addingTracks = !addingTracks
+                render?.invoke()
+            }
+        }
+        tools.addView(playlistAction, LinearLayout.LayoutParams(0, dp(48), 1f).apply { marginStart = dp(6) })
         val countLabel = text("", 12f, muted).apply { gravity = Gravity.CENTER }
         tools.addView(countLabel, LinearLayout.LayoutParams(dp(85), dp(48)).apply { marginStart = dp(8) })
         body.addView(tools, LinearLayout.LayoutParams(-1, dp(48)).apply { bottomMargin = dp(8) })
@@ -225,21 +257,66 @@ class LocalMusicBrowser(
                     holder.title.text = group.title
                     val artists = group.tracks.map { it.artist }.distinct().size
                     holder.subtitle.text = "${group.tracks.size} треків · $artists виконавців"
-                    holder.action.text = "›"
-                    holder.action.setOnClickListener { openedGroup = group.title; onStateChange(openedGroup, query); render?.invoke() }
-                    cell.setOnClickListener { openedGroup = group.title; onStateChange(openedGroup, query); render?.invoke() }
+                    if (category == LocalMusicCategory.PLAYLISTS) {
+                        holder.action.text = "×"
+                        holder.action.setOnClickListener {
+                            android.app.AlertDialog.Builder(activity)
+                                .setTitle("Видалити добірку?")
+                                .setMessage(group.title + " — треки залишаться на телефоні.")
+                                .setNegativeButton("Назад", null)
+                                .setPositiveButton("Видалити") { _, _ ->
+                                    state.deletePlaylist(group.title)
+                                    render?.invoke()
+                                }
+                                .show()
+                        }
+                    } else {
+                        holder.action.text = "›"
+                        holder.action.setOnClickListener {
+                            openedGroup = group.title
+                            onStateChange(openedGroup, query)
+                            render?.invoke()
+                        }
+                    }
+                    cell.setOnClickListener {
+                        openedGroup = group.title
+                        addingTracks = false
+                        onStateChange(openedGroup, query)
+                        render?.invoke()
+                    }
                 } else {
                     val track = visibleTracks[position]
                     holder.title.text = track.title
                     holder.subtitle.text = "${track.artist} · ${track.durationMs / 60_000}:${((track.durationMs / 1000) % 60).toString().padStart(2, '0')}"
-                    holder.action.text = if (state.isFavorite(track.uri.toString())) "♥" else "♡"
-                    holder.action.setOnClickListener {
-                        state.toggleFavorite(track.uri.toString())
-                        render?.invoke()
-                    }
-                    cell.setOnClickListener {
-                        val queue = visibleTracks
-                        if (position in queue.indices) onSelect(queue, position)
+                    if (category == LocalMusicCategory.PLAYLISTS && openedGroup != null) {
+                        val name = openedGroup!!
+                        val included = state.playlists()[name]?.contains(track.uri.toString()) == true
+                        holder.action.text = if (addingTracks) {
+                            if (included) "✓" else "+"
+                        } else "−"
+                        holder.action.setOnClickListener {
+                            state.setPlaylistTrack(name, track.uri.toString(), if (addingTracks) !included else false)
+                            render?.invoke()
+                        }
+                        cell.setOnClickListener {
+                            if (addingTracks) {
+                                state.setPlaylistTrack(name, track.uri.toString(), !included)
+                                render?.invoke()
+                            } else {
+                                val queue = visibleTracks
+                                if (position in queue.indices) onSelect(queue, position)
+                            }
+                        }
+                    } else {
+                        holder.action.text = if (state.isFavorite(track.uri.toString())) "♥" else "♡"
+                        holder.action.setOnClickListener {
+                            state.toggleFavorite(track.uri.toString())
+                            render?.invoke()
+                        }
+                        cell.setOnClickListener {
+                            val queue = visibleTracks
+                            if (position in queue.indices) onSelect(queue, position)
+                        }
                     }
                 }
                 return cell
@@ -254,6 +331,14 @@ class LocalMusicBrowser(
         }
         body.addView(emptyHint, LinearLayout.LayoutParams(-1, -2))
 
+        fun categoryGroups(items: List<LocalMusicTrack>): List<LocalMusicGroup> {
+            return if (category == LocalMusicCategory.PLAYLISTS) {
+                state.playlists().map { (name, uris) ->
+                    LocalMusicGroup(name, LocalMusicCatalog.recentTracks(items, uris))
+                }.sortedBy { it.title.lowercase() }
+            } else LocalMusicCatalog.groups(category, items)
+        }
+
         fun visibleSource(): List<LocalMusicTrack> = when (category) {
             LocalMusicCategory.FAVORITES -> LocalMusicCatalog.favoriteTracks(allTracks, state.favorites())
             LocalMusicCategory.RECENT -> LocalMusicCatalog.recentTracks(allTracks, state.recentlyPlayed())
@@ -263,14 +348,20 @@ class LocalMusicBrowser(
         render = {
             val base = visibleSource()
             val group = if (category.grouped) {
-                LocalMusicCatalog.groups(category, base).firstOrNull { it.title == openedGroup }
+                categoryGroups(base).firstOrNull { it.title == openedGroup }
             } else null
             groupedView = category.grouped && openedGroup == null
             heading.text = if (groupedView || !category.grouped) category.title else group?.title ?: category.title
             sortButton.visibility = if (groupedView) View.GONE else View.VISIBLE
+            playlistAction.visibility = if (category == LocalMusicCategory.PLAYLISTS) View.VISIBLE else View.GONE
+            playlistAction.text = when {
+                openedGroup == null -> "＋ Добірка"
+                addingTracks -> "✓ Готово"
+                else -> "＋ Треки"
+            }
             val needle = query.trim()
             if (groupedView) {
-                visibleGroups = LocalMusicCatalog.groups(category, base).filter {
+                visibleGroups = categoryGroups(base).filter {
                     needle.isBlank() || it.title.contains(needle, ignoreCase = true) ||
                         it.tracks.any { t -> LocalMusicSearch.matches(t, needle) }
                 }
@@ -278,7 +369,9 @@ class LocalMusicBrowser(
                 countLabel.text = "${visibleGroups.size} груп"
                 status.text = "${base.size} треків · ${visibleGroups.size} груп"
             } else {
-                val source = group?.tracks ?: if (category.grouped) emptyList() else base
+                val source = if (addingTracks && category == LocalMusicCategory.PLAYLISTS) {
+                    allTracks
+                } else group?.tracks ?: if (category.grouped) emptyList() else base
                 val filtered = source.filter { LocalMusicSearch.matches(it, needle) }
                 visibleTracks = if (category == LocalMusicCategory.RECENT && sort == LocalMusicSort.NEWEST) {
                     filtered
@@ -287,7 +380,10 @@ class LocalMusicBrowser(
                 }
                 visibleGroups = emptyList()
                 countLabel.text = "${visibleTracks.size} треків"
-                status.text = if (category == LocalMusicCategory.FAVORITES) {
+                status.text = if (category == LocalMusicCategory.PLAYLISTS) {
+                    if (addingTracks) "Додавай треки кнопкою ＋ / ✓, потім натисни «Готово»"
+                    else "Добірка · натисни −, щоб прибрати трек"
+                } else if (category == LocalMusicCategory.FAVORITES) {
                     "♥ Улюблені · натисни ♡ біля треку, щоб додати або прибрати"
                 } else if (category == LocalMusicCategory.RECENT) {
                     "Нещодавно відтворені в FARIC"
@@ -300,6 +396,7 @@ class LocalMusicBrowser(
             emptyHint.text = when (category) {
                 LocalMusicCategory.FAVORITES -> "Поки немає улюблених. Відкрий «Усі треки» та натисни ♡."
                 LocalMusicCategory.RECENT -> "Тут з'являться треки, які ти відтвориш у FARIC."
+                LocalMusicCategory.PLAYLISTS -> if (openedGroup == null) "Створи першу добірку кнопкою «＋ Добірка»" else "Добірка порожня — натисни «＋ Треки»"
                 else -> if (query.isNotBlank()) "За запитом нічого не знайдено" else "Музики в цій категорії немає"
             }
         }
@@ -323,6 +420,7 @@ class LocalMusicBrowser(
                 LinearLayout.LayoutParams(-1, dp(52)).apply { topMargin = dp(7) })
             refresh.visibility = View.GONE
             sortButton.visibility = View.GONE
+            playlistAction.visibility = View.GONE
         } else {
             if (focusSearch) search.requestFocus()
             viewRoot.post { scan(force = false) }

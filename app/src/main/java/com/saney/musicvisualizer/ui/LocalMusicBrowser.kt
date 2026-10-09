@@ -59,18 +59,21 @@ class LocalMusicBrowser(
     private var render: (() -> Unit)? = null
     private var scanToken = 0
     private var root: FrameLayout? = null
+    private var listView: ListView? = null
 
     /** System Back first closes a group, then MainActivity returns to Home. */
     fun navigateBack(): Boolean {
         if (addingTracks) {
             addingTracks = false
             render?.invoke()
+            listView?.setSelection(0)
             return true
         }
         if (openedGroup == null || !category.grouped) return false
         openedGroup = null
         onStateChange(null, query)
         render?.invoke()
+        listView?.setSelection(0)
         return true
     }
 
@@ -208,6 +211,7 @@ class LocalMusicBrowser(
             selector = ColorDrawable(Color.TRANSPARENT)
             cacheColorHint = Color.TRANSPARENT
         }
+        listView = list
         var visibleGroups: List<LocalMusicGroup> = emptyList()
         var visibleTracks: List<LocalMusicTrack> = emptyList()
         var groupedView = category.grouped
@@ -271,15 +275,19 @@ class LocalMusicBrowser(
                         holder.action.text = "›"
                         holder.action.setOnClickListener {
                             openedGroup = group.title
+                            search.setText("")
                             onStateChange(openedGroup, query)
                             render?.invoke()
+                            list.setSelection(0)
                         }
                     }
                     cell.setOnClickListener {
                         openedGroup = group.title
                         addingTracks = false
+                        search.setText("")
                         onStateChange(openedGroup, query)
                         render?.invoke()
+                        list.setSelection(0)
                     }
                 } else {
                     val track = visibleTracks[position]
@@ -388,7 +396,6 @@ class LocalMusicBrowser(
             }
             sortButton.text = "Сортувати: ${sort.label}"
             adapter.notifyDataSetChanged()
-            list.setSelection(0)
             emptyHint.visibility = if (adapter.count == 0 && canReadMusic) View.VISIBLE else View.GONE
             emptyHint.text = when (category) {
                 LocalMusicCategory.FAVORITES -> "Поки немає улюблених. Відкрий «Усі треки» та натисни ♡."
@@ -404,6 +411,7 @@ class LocalMusicBrowser(
                 query = s?.toString().orEmpty()
                 onStateChange(openedGroup, query)
                 render?.invoke()
+                list.setSelection(0)
             }
             override fun afterTextChanged(s: Editable?) {}
         })

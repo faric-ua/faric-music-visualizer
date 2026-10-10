@@ -1,5 +1,15 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## PR candidate checkpoint — GF cross-pack model foundation (2026-10-10)
+
+- **PR #15 draft, NOT MERGED / NOT A RELEASE**. App version remains **v0.19.57 / build146**; no new APK should be installed for this model-only change.
+- Exact PR CI **app/source SHA `72122cdbfcadffa0d2406d02a78f2626157dbf0b`**. Validate **#1179 PASS**, Android **#646 PASS**, workflow run **`38079676264`**.
+- PR artifact **`FARIC-Music-Visualizer-v0.19.57-Debug`**, ID **`11679881857`**, expires 2026-10-13 19:26:55 UTC. This is a PR artifact, not the signed main release intended for Termux 3 → 10 → 8.
+- Unit tests, Kotlin compile, APK assemble and CI gates PASS. Implemented: cross-pack GF asset references, source provenance, optional half-body input, transform/order/opacity model, JSON reference-only preset store, targeted single-layer loading, model tests.
+- **Not yet verified:** user-facing selection/editor (not implemented), per-composition live preview/export (not implemented), visual quality of independent art, Phone QA. `BUG-EXPORT-001` and `LIFE-ROT-001` unchanged/open.
+- **Next:** keep build146 phone-export QA separate; inspect and review PR #15 before choosing merge/release boundary. Then implement saved-composition UI + common preview/export renderer as a separate slice; never alter immutable calibration or production Cyber Shark artwork.
+
+
 ## CURRENT RELEASE — v0.19.57 / build146, full-song MP4 finalization (2026-10-09)
 
 **FIRST USER ACTION:** **ЗАРАЗ: встановити підписану v0.19.57 / build146 через Termux 3 → 10 → 8, НЕ натискати 9.** Потім **ОДИН** тест повної пісні (не 3с), не переперевіряти інші функції. До встановлення стару версію з відомим full-song crash не тестувати повторно.

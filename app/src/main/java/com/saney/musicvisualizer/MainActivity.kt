@@ -9200,9 +9200,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             orientation = LinearLayout.VERTICAL
             visibility = if (heroCatalogExpanded) View.VISIBLE else View.GONE
         }
+        // Count only artwork actually available on this device. Future
+        // prepared hero slots are definitions, not installed graphics.
+        val availableHeroCount =
+            GraphicFigureCatalog.ids.count { GraphicFigureCatalog.isInstalled(this, it) } +
+                ExternalPngHeroLibrary(this).list().size
         val toggleLabel = label(
             (if (heroCatalogExpanded) "▾ " else "▸ ") +
-                "Герої · ${GraphicFigureCatalog.ids.size + ExternalPngHeroLibrary(this).list().size}",
+                "Герої · $availableHeroCount",
             20f, Color.WHITE, true,
         )
         heroFamily.addView(toggleLabel)
@@ -9215,7 +9220,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             heroTiles.visibility = if (heroCatalogExpanded) View.VISIBLE else View.GONE
             toggleLabel.text =
                 (if (heroCatalogExpanded) "▾ " else "▸ ") +
-                "Герої · ${GraphicFigureCatalog.ids.size + ExternalPngHeroLibrary(this).list().size}"
+                "Герої · $availableHeroCount"
         }
         content.addView(
             actionPill(
@@ -9326,6 +9331,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         PlaybackThemeRegistry.all.forEach { spec ->
             val installed = GraphicFigureCatalog.isInstalled(this, spec.id)
             val figure = isLayeredBoardTheme(spec.id)
+            // Hidden from the selector ONLY. Never delete metadata, sources,
+            // saved presets or existing imported external PNGs.
+            // This also means installing a prepared pack later automatically
+            // restores its tile on the next Theme Picker visit.
+            if (figure && !installed) return@forEach
             val implemented = installed && (
                 spec.id == PlaybackThemeId.VISUALIZER ||
                     figure ||

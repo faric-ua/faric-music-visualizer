@@ -1587,46 +1587,67 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun showExternalPngHeroes() {
         val library = ExternalPngHeroLibrary(this)
         val items = library.list()
-        val actions = listOf("📁 Вибрати або змінити папку PNG") +
-            items.mapIndexed { i, hero ->
-                "${i + 1}. ${hero.title}"
-            }
-        PulseDeckDialogs.showActionList(
+        val options = listOf("📁 Обрати або змінити папку PNG") +
+            items.mapIndexed { index, hero -> "${index + 1}. ${hero.title}" }
+        val list = LinearLayout(this).apply {
+            orientation = LinearLayout.VERTICAL
+        }
+        lateinit var dialog: android.app.Dialog
+        options.forEachIndexed { index, title ->
+            list.addView(
+                actionPill(text = title, accent = false) {
+                    dialog.dismiss()
+                    if (index == 0) {
+                        selectExternalPngFolder.launch(library.activeFolder())
+                    } else {
+                        val selected = items[index - 1]
+                        val theme = currentGraphicFigureThemeId()
+                        val ok = gfMixController.showStandalonePng(
+                            sourceId = selected.id,
+                            themeId = theme,
+                            baseline = boardLayerTransformStore.loadAll(theme),
+                            visible = { layer ->
+                                layerObjectVisible(
+                                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                                    layer.name.lowercase(),
+                                )
+                            },
+                            onChanged = {
+                                setLayerVisible(PulseDeckLayerStack.Layer.GRAPHIC_FIGURES, true)
+                                refreshGfMixArtwork(forceOriginal = true)
+                            },
+                        )
+                        if (!ok) {
+                            PulseDeckDialogs.showMessage(
+                                this, "PNG недоступний",
+                                "Файл переміщено або доступ втрачено. Повторно вибери папку.",
+                            )
+                        } else {
+                            toast("PNG-герой: ${selected.title}")
+                            if (screen == Screen.THEME_PICKER) showNowPlaying()
+                        }
+                    }
+                },
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    dp(48),
+                ).apply { bottomMargin = dp(7) },
+            )
+        }
+        val scroll = ScrollView(this).apply {
+            addView(list)
+        }
+        // Ten or more heroes must be reachable; fixed-height scrolling content.
+        scroll.layoutParams = LinearLayout.LayoutParams(
+            ViewGroup.LayoutParams.MATCH_PARENT,
+            (resources.displayMetrics.heightPixels * 0.53f).toInt(),
+        )
+        dialog = PulseDeckDialogs.show(
             context = this,
             title = "Зовнішні PNG-герої · ${items.size}",
-            items = actions,
-        ) { index ->
-            if (index == 0) {
-                selectExternalPngFolder.launch(library.activeFolder())
-            } else {
-                val selected = items[index - 1]
-                val theme = currentGraphicFigureThemeId()
-                val ok = gfMixController.showStandalonePng(
-                    sourceId = selected.id,
-                    themeId = theme,
-                    baseline = boardLayerTransformStore.loadAll(theme),
-                    visible = { layer ->
-                        layerObjectVisible(
-                            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-                            layer.name.lowercase(),
-                        )
-                    },
-                    onChanged = {
-                        setLayerVisible(PulseDeckLayerStack.Layer.GRAPHIC_FIGURES, true)
-                        refreshGfMixArtwork(forceOriginal = true)
-                    },
-                )
-                if (!ok) {
-                    PulseDeckDialogs.showMessage(
-                        this, "PNG недоступний",
-                        "Файл переміщено або доступ втрачено. Повторно вибери папку.",
-                    )
-                } else {
-                    toast("PNG-герой: ${selected.title}")
-                    if (screen == Screen.THEME_PICKER) showNowPlaying()
-                }
-            }
-        }
+            body = scroll,
+            actions = listOf(PulseDeckDialogs.Action("Закрити") {}),
+        )
     }
 
     private fun showGfMixPicker() {

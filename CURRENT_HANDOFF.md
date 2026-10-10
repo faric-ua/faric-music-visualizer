@@ -1,5 +1,13 @@
 # Current Handoff
 
+## 2026-10-10 — GF Quick Mix v0.19.58 / build147 source candidate, PR #15
+
+- **NOT YET MERGED**; signed `main` APK and phone acceptance are pending. New UI in existing Board: `◆ GF Мікс`; independent source selection Frame/FX/Creature/Wordmark from installed hero packs; save/load named user presets; restore original. Same selected source IDs go into live `HeroBoardView` and offline Canvas/GPU export via `CyberSharkExportConfig.assetOverrides`.
+- Per-object X/Y/scale/rotation/frame spin/opacity/visibility are stored on the active GF composition rather than changing the original pack's layer preferences. Bitmap loads are asynchronous in live UI and cached per source for export. No second projectM/scene, no changes to `PULSEDECK_CENTER_CALIBRATION`, Cyber Shark art or full-song mux logic.
+- UI currently covers four canonical ordered slots only. More than one instance of same type, reorderable z layers, mask and optional half-hero selection remain future work despite source model support. Do not claim pixel-perfect visuals for rough previous artwork.
+- Candidate release note: `docs/checkpoints/2026-10-10-v0.19.58-gf-quick-mix.md`. Next: Verify PR Validate/Android, merge only after PASS, verify **main signed** build and checkpoint, then one bundled phone-QA round for mix/presets/export. `BUG-EXPORT-001` remains independently OPEN.
+
+
 ## GF CODE 2026-10-10 — shared asset model foundation (PR CANDIDATE, not shipped)
 
 - Branch `feat/gf-shared-asset-model-foundation` (**PR #15 draft; Validate #1179 PASS, Android #646 PASS / run `38079676264`, PR app/source `72122cdbfcadffa0d2406d02a78f2626157dbf0b`, artifact ID `11679881857`; NOT merged**) : introduce `GfAssetRef` and `GfArtType` (FRAME, FX, CREATURE, CREATURE_HALF optional, WORDMARK), `GfComposition` with independently ordered instances/transforms, `GfCompositionStore` which persists references rather than copying image bytes, and `GfAssetLibrary` for per-source selections. Add JVM model tests.

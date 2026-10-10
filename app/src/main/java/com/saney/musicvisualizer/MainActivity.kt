@@ -1598,6 +1598,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     themeId,
                 )
 
+        gfMixController.clear()
+        gfMixLoadGeneration++
+
         layerPrefs()
             .edit()
             .putString(
@@ -1665,9 +1668,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     .forEach { objectId ->
                         setObjectVisible(
                             objectId,
-                            layerObjectVisible(
-                                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-                                objectId.name.lowercase(),
+                            gfMixController.visible(
+                                BoardLayerId.valueOf(objectId.name),
+                                layerObjectVisible(
+                                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                                    objectId.name.lowercase(),
+                                ),
                             ),
                         )
                     }
@@ -1884,17 +1890,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ),
                 )
                 view.setLayerTransforms(
-                    boardLayerTransformStore.loadAll(
-                        gfThemeId,
-                    ),
+                    activeGfLayerTransforms(gfThemeId),
                 )
                 HeroBoardView.ObjectId.entries
                     .forEach { objectId ->
                         view.setObjectVisible(
                             objectId,
-                            layerObjectVisible(
-                                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-                                objectId.name.lowercase(),
+                            gfMixController.visible(
+                                BoardLayerId.valueOf(objectId.name),
+                                layerObjectVisible(
+                                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                                    objectId.name.lowercase(),
+                                ),
                             ),
                         )
                     }
@@ -1907,6 +1914,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
 
         heroBoardView = boardView
+        refreshGfMixArtwork()
         layerStack.setContent(
             PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
             boardView,
@@ -5553,10 +5561,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         var selectedLayerTransform =
             selectedLayer?.let { layerId ->
-                boardLayerTransformStore.load(
-                    gfThemeId,
-                    layerId,
-                )
+                activeGfLayerTransforms(gfThemeId)[layerId] ?: BoardLayerTransform.default()
             }
 
         val root =
@@ -5625,19 +5630,23 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         boardView.setGroupTransform(transform)
         boardView.setGroupReaction(groupReaction)
-        boardView.setLayerTransforms(boardLayerTransformStore.loadAll(gfThemeId))
+        boardView.setLayerTransforms(activeGfLayerTransforms(gfThemeId))
         HeroBoardView.ObjectId.entries.forEach { objectId ->
             boardView.setObjectVisible(
                 objectId,
-                layerObjectVisible(
-                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-                    objectId.name.lowercase(),
-                ),
+                            gfMixController.visible(
+                                BoardLayerId.valueOf(objectId.name),
+                                layerObjectVisible(
+                                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                                    objectId.name.lowercase(),
+                                ),
+                            ),
             )
         }
         boardView.setPlaying(latestSnapshot.isPlaying)
         boardView.updateSignal(latestSignal)
         heroBoardView = boardView
+        refreshGfMixArtwork()
 
         if (retainedHost == null) {
             previewStack.setContent(
@@ -5777,6 +5786,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 14f,
                 Color.WHITE,
                 true,
+            ),
+        )
+        panelContent.addView(
+            actionPill(
+                text = if (gfMixController.active() != null)
+                    "◆ GF Мікс · активний" else "◆ GF Мікс · обрати свої PNG",
+                accent = gfMixController.active() != null,
+            ) { showGfMixPicker() },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(42),
             ),
         )
 
@@ -5936,11 +5956,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             selectedLayerTransform =
                 safe
 
-            boardLayerTransformStore.save(
-                gfThemeId,
-                layerId,
-                safe,
-            )
+            if (!gfMixController.editTransform(layerId, safe)) {
+                boardLayerTransformStore.save(gfThemeId, layerId, safe)
+            }
 
             boardView.setLayerTransform(
                 layerId,
@@ -6707,10 +6725,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     text = "Reset",
                     accent = false,
                 ) {
-                    boardLayerTransformStore.reset(
-                        gfThemeId,
-                        layerId,
-                    )
+                    persistLayerTransform(layerId, BoardLayerTransform.default())
                     showBoardTransform()
                 },
                 LinearLayout.LayoutParams(
@@ -7740,9 +7755,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     gfThemeId,
                 ),
             layerTransforms =
-                boardLayerTransformStore.loadAll(
-                    gfThemeId,
-                ),
+                activeGfLayerTransforms(gfThemeId),
+            assetOverrides = gfMixController.overrides(),
             visibility =
                 BoardLayerId.entries
                     .associateWith { layerId ->
@@ -7752,9 +7766,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     gfThemeId,
                                     layerId,
                                 ) &&
-                            layerObjectVisible(
-                                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-                                layerId.name.lowercase(),
+                            gfMixController.visible(
+                                layerId,
+                                layerObjectVisible(
+                                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                                    layerId.name.lowercase(),
+                                ),
                             )
                     },
         )

@@ -300,9 +300,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     )
                                     if (selectedType == GfArtType.CREATURE) {
                                         heroCatalogExpanded = true
-                                        if (screen == Screen.THEME_PICKER) {
-                                            showThemePicker()
-                                        } else showExternalPngHeroes()
+                                        showExternalPngHeroes()
                                     } else {
                                         showGfMixPicker()
                                     }
@@ -9204,7 +9202,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         val toggleLabel = label(
             (if (heroCatalogExpanded) "▾ " else "▸ ") +
-                "Герої · ${GraphicFigureCatalog.ids.size}",
+                "Герої · ${GraphicFigureCatalog.ids.size + ExternalPngHeroLibrary(this).list().size}",
             20f, Color.WHITE, true,
         )
         heroFamily.addView(toggleLabel)
@@ -9217,7 +9215,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             heroTiles.visibility = if (heroCatalogExpanded) View.VISIBLE else View.GONE
             toggleLabel.text =
                 (if (heroCatalogExpanded) "▾ " else "▸ ") +
-                "Герої · ${GraphicFigureCatalog.ids.size}"
+                "Герої · ${GraphicFigureCatalog.ids.size + ExternalPngHeroLibrary(this).list().size}"
         }
         content.addView(
             actionPill(
@@ -9260,6 +9258,70 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         ).apply { topMargin = dp(18); bottomMargin = dp(12) })
         var heroRow: LinearLayout? = null
         var heroCount = 0
+
+        val externalHeroes = ExternalPngHeroLibrary(this).list()
+        val externalThumbs = mutableListOf<Pair<ExternalPngHeroLibrary.Hero, ImageView>>()
+        if (externalHeroes.isNotEmpty()) {
+            heroGrid.addView(label(
+                "Мої зовнішні PNG · ${externalHeroes.size}",
+                16f, COLOR_ACCENT_CYAN, true,
+            ))
+            externalHeroes.chunked(2).forEach { pair ->
+                val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+                heroGrid.addView(row)
+                pair.forEach { hero ->
+                    val tile = LinearLayout(this).apply {
+                        orientation = LinearLayout.VERTICAL
+                        setPadding(dp(9), dp(10), dp(9), dp(10))
+                        background = panelDrawable(COLOR_PANEL, 22, COLOR_ACCENT_CYAN, 1)
+                    }
+                    val preview = ImageView(this).apply {
+                        scaleType = ImageView.ScaleType.FIT_CENTER
+                    }
+                    tile.addView(
+                        preview,
+                        LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, dp(132),
+                        ),
+                    )
+                    tile.addView(
+                        label(hero.title, 14f, Color.WHITE, true).apply {
+                            maxLines = 2
+                            ellipsize = android.text.TextUtils.TruncateAt.END
+                        },
+                        LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ).apply { topMargin = dp(9) },
+                    )
+                    tile.setOnClickListener { activateExternalPngHero(hero.id) }
+                    row.addView(
+                        tile,
+                        LinearLayout.LayoutParams(0, dp(205), 1f).apply {
+                            setMargins(dp(3), dp(4), dp(3), dp(4))
+                        },
+                    )
+                    externalThumbs.add(hero to preview)
+                }
+                if (pair.size == 1) {
+                    row.addView(
+                        View(this),
+                        LinearLayout.LayoutParams(0, dp(205), 1f),
+                    )
+                }
+            }
+            thread(name = "faric-theme-external-previews") {
+                val library = ExternalPngHeroLibrary(applicationContext)
+                externalThumbs.forEach { (hero, image) ->
+                    val preview = library.decode(hero.id, preferredDimension = 192)
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed && image.parent != null) {
+                            image.setImageBitmap(preview)
+                        } else preview?.recycle()
+                    }
+                }
+            }
+        }
 
         PlaybackThemeRegistry.all.forEach { spec ->
             val installed = GraphicFigureCatalog.isInstalled(this, spec.id)

@@ -271,12 +271,27 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private var heroCatalogExpanded = false
 
-    private var pendingExternalPngType = GfArtType.CREATURE
+    // The SAF picker may recreate MainActivity while it is open.
+    // A field defaulting to CREATURE used to silently misfile FRAME/FX/WORDMARK
+    // imports under Heroes. Persist an explicit pending role *before* launch.
+    private val pendingPngImportPrefs by lazy {
+        getSharedPreferences("faric_external_png_import_request_v1", MODE_PRIVATE)
+    }
 
     private val selectExternalPngFolder =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-            if (uri != null) {
-                val selectedType = pendingExternalPngType
+            val selectedType = pendingPngImportPrefs
+                .getString("pending_type", null)
+                ?.let { name -> runCatching { GfArtType.valueOf(name) }.getOrNull() }
+            pendingPngImportPrefs.edit().remove("pending_type").apply()
+            if (uri != null && selectedType == null) {
+                PulseDeckDialogs.showMessage(
+                    this, "Не вдалося визначити тип PNG",
+                    "Папку не імпортовано, щоб випадково не додати рамки до героїв. " +
+                        "Повтори вибір через потрібний шар GF Мікс.",
+                )
+            }
+            if (uri != null && selectedType != null) {
                 val access = runCatching {
                     contentResolver.takePersistableUriPermission(
                         uri, Intent.FLAG_GRANT_READ_URI_PERMISSION,
@@ -302,7 +317,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         heroCatalogExpanded = true
                                         showExternalPngHeroes()
                                     } else {
-                                        showGfMixPicker()
+                                        toast(
+                                            "Додано ${scan.accepted} PNG у ${selectedType.fileStem}. " +
+                                                "Тепер вибери потрібний об'єкт."
+                                        )
+                                        showGfMixSourcePicker(selectedType)
                                     }
                                 }.onFailure { e ->
                                     PulseDeckDialogs.showMessage(
@@ -1703,9 +1722,34 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun requestExternalPngFolder(type: GfArtType) {
-        pendingExternalPngType = type
+        // Persist BEFORE Android's document picker takes over; callbacks will
+        // restore the same layer role even after rotation / process recreation.
+        val stored = pendingPngImportPrefs.edit()
+            .putString("pending_type", type.name)
+            .commit()
+        if (!stored) {
+            toast("Не вдалося зберегти тип шару. Імпорт не запущено.")
+            return
+        }
         selectExternalPngFolder.launch(
             ExternalPngHeroLibrary(this).activeFolder(type),
+        )
+    }
+
+    private fun showGfMixSourcePicker(type: GfArtType) {
+        val theme = currentGraphicFigureThemeId()
+        gfMixController.showSourcesFor(
+            type = type,
+            themeId = theme,
+            baseline = boardLayerTransformStore.loadAll(theme),
+            visible = { layerId ->
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                    layerId.name.lowercase(),
+                )
+            },
+            onChanged = { refreshGfMixArtwork(forceOriginal = true) },
+            onImportExternalPng = { requested -> requestExternalPngFolder(requested) },
         )
     }
 

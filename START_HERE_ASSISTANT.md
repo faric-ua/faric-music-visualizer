@@ -1,5 +1,14 @@
 # FARIC Music Visualizer — START HERE
 
+## CURRENT SIGNED MAIN — v0.19.60 / build149 (external PNG thumbnails + independent layers; PHONE QA PENDING)
+
+**FIRST USER ACTION:** Termux **3 → 10 → 8**, do NOT run 9, install signed main v0.19.60/build149 **over** current app WITHOUT clearing data. Merged PR #17 app/source SHA `2798880f049bbf88e93cec952310609c43ee7ce5`; **Validate #1225 PASS / Android #677 PASS**, run `38091849017`, signed artifact `FARIC-Music-Visualizer-v0.19.60-Debug` ID `11684332356`, expires 2026-10-13T22:36:54Z. Checkpoint `BUILD_CHECKPOINTS.md`.
+
+**User reported v0.19.59 finding:** existing ten PNG were found successfully but images didn't show as thumbnails; older `СКОРО` cards still require prepared legacy Hero packs. Fixed in v149: `Мої зовнішні PNG` actual thumbnail cards in expanded Theme Hero gallery and thumbnail rows in external chooser. Existing 10 PNG references preserved, do NOT ask to choose hero folder again if persistent access works. GF Mix frame/FX/wordmark source choices now have `＋ Додати PNG ... із папки`; these need **separate, genuinely independent transparent PNG files** in Documents. User chooses distinct folders for each type; sources never embedded in APK.
+
+**Phone QA NOT DONE for v149:** confirm hero thumbnails, choose 2 external heroes, import 1 PNG frame and 1 wordmark under GF Mix, save/open composition; keep `BUG-EXPORT-001`, `LIFE-ROT-001`, MP4 visual parity separately OPEN. v0.19.58 GF Mix phone 4/4 PASS remains accepted. Full new plan: `docs/checkpoints/2026-10-11-v0.19.60-external-png-layers.md`.
+
+
 ## CURRENT SIGNED RELEASE — v0.19.59 / build148 external PNG hero folder (MAIN CI PASS, PHONE PENDING)
 
 **FIRST USER ACTION:** download the ten-original-PNG zip from current chat, extract only the `PulseDeck_Heroes` folder to Android Documents, then Termux **3 → 10 → 8**, **NOT 9**. Install v0.19.59/build148 signed main APK over existing installation **without clearing data**. Main merged app/source SHA `be0254dc317640f1a245002daebc5c1917040335`, **Validate #1218 PASS**, **Android #675 PASS** (run `38087510985`), signed artifact `FARIC-Music-Visualizer-v0.19.59-Debug` ID `11682599996` expires 2026-10-13T21:28:24Z. Report one new phone round: Theme Picker/Board → `Зовнішні PNG-герої` → select Documents/`PulseDeck_Heroes` → 10 choices → switch 2-3 PNG (incl. scorpion A/B) with music playing → restore original, optionally test relaunch. No old v147 GF Mix repeat.

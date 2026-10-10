@@ -1,5 +1,15 @@
 # Current Handoff
 
+## CURRENT MAIN READY — v0.19.60 / build149, external PNG thumbnail and GF layer import (PHONE QA PENDING)
+
+- **User finding:** v0.19.59 already discovered ten original transparent PNG, but displayed **no miniature images**. They also asked how to separately load FARIC/FMV wordmarks, frames and FX. Root cause: previous external gallery contained text-only action pills; fixed legacy `СКОРО` themes do not map to external solo PNG. Previous code only indexed CREATURE category.
+- **Implemented & merged** PR #17, exact app/source SHA `2798880f049bbf88e93cec952310609c43ee7ce5`; main **Validate #1225 PASS, Android #677 PASS**, signed run `38091849017`, artifact ID `11684332356`, expires 2026-10-13T22:36:54Z. User next Termux **3 → 10 → 8**, **not 9**; install on top, DO NOT CLEAR DATA.
+- New `Мої зовнішні PNG` two-column image tiles inside expanded Theme hero grid and actual previews in `Зовнішні PNG-герої` scrollable chooser. Preview bitmap decoded at target 128/192px off UI; selected full 1254px hero decoded only while active. Existing `items/tree_uri` preferences for 10 creatures unchanged; **no repeated folder import** needed if permission persisted.
+- Separate **FRAME**, **FX**, **WORDMARK** SAF folders and indexed external bitmap refs (plus CREATURE). Board → GF Мікс → choose role → `＋ Додати PNG ... із папки`; pick role folder, then choose file in source list. PNG bytes stay external. No conversion, regeneration or bundling user assets. Existing 10 creature PNGs cannot double as missing original frames/wordmark; those parts must be separate PNG.
+- **PHONE QA PENDING:** thumbnails are visible, two heroes switch without audio restart, select independent frame/wordmark, save/reopen GF. Legacy v147 GF Mix phone acceptance remains 4/4 PASS; full-song `BUG-EXPORT-001` and lifecycle `LIFE-ROT-001` remain separate OPEN, MP4 parity not yet verified. Do not state phone-accepted.
+- Canonical details: `docs/checkpoints/2026-10-11-v0.19.60-external-png-layers.md`; signed main checkpoint `BUILD_CHECKPOINTS.md`.
+
+
 ## CURRENT MAIN SIGNED RELEASE — v0.19.59 / build148, external PNG-only Hero gallery (PHONE PENDING)
 
 - Merged PR #16 app/source `be0254dc317640f1a245002daebc5c1917040335`; main **Validate #1218 PASS / Android #675 PASS**, signed run `38087510985`, artifact `FARIC-Music-Visualizer-v0.19.59-Debug` ID `11682599996`, expiry 2026-10-13T21:28:24Z. Main docs-only commits after that do not change app code.

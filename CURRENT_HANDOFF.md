@@ -1,5 +1,15 @@
 # Current Handoff
 
+## GF CODE 2026-10-10 — shared asset model foundation (PR CANDIDATE, not shipped)
+
+- Branch `feat/gf-shared-asset-model-foundation`: introduce `GfAssetRef` and `GfArtType` (FRAME, FX, CREATURE, CREATURE_HALF optional, WORDMARK), `GfComposition` with independently ordered instances/transforms, `GfCompositionStore` which persists references rather than copying image bytes, and `GfAssetLibrary` for per-source selections. Add JVM model tests.
+- Keep original source-pack provenance informational only; cross-pack combinations FARIC / FMV / FVMP are allowed. The original Cyber Shark/Cyber Panther loading and legacy user hero pack format remain available; imported optional `creature-half.webp` does not change required four-part pack validation.
+- **No changes to existing rendering, UI, export, projectM or immutable centers**. No user-facing custom GF editor yet; this is only a foundation pending CI and follow-on wiring into preview/export. **Not a new signed build/APK.** Do not ask for new phone tests until a merged signed Android main artifact exists.
+- Next: review PR CI, then implement explicit source-pick UI and one consistent saved-composition renderer across preview/export in a separately scoped release. Maintain original full-theme choices and avoid extra GL restarts.
+- Build146 phone full-song MP4 test remains independently PENDING; do not infer BUG-EXPORT-001 PASS from this code.
+
+
+
 ## GF ART 2026-10-10 — 14 real LFS PNG recovered, nine lossless whole-GF candidates made, layered split still QA OPEN
 
 - This is **art repo only**, NOT an Android app/build change. Asset repository: `faric-ua/faric-music-visualizer-assets`.

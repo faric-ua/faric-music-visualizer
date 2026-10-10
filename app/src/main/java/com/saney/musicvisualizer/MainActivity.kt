@@ -47,6 +47,9 @@ import com.saney.musicvisualizer.board.BoardGroupReaction
 import com.saney.musicvisualizer.board.BoardGroupReactionStore
 import com.saney.musicvisualizer.board.GraphicFigureCatalog
 import com.saney.musicvisualizer.board.GraphicFigureAssets
+import com.saney.musicvisualizer.board.GfAssetLibrary
+import com.saney.musicvisualizer.board.GfArtType
+import com.saney.musicvisualizer.board.GfMixController
 import com.saney.musicvisualizer.board.UserHeroPack
 import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerTransform
@@ -210,6 +213,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var bigEqualizerView: BigEqualizerView? = null
     private var pulseDeckLayerStack: PulseDeckLayerStack? = null
     private var heroBoardView: HeroBoardView? = null
+    private val gfMixController by lazy { GfMixController(this) }
+    private var gfMixLoadGeneration = 0
     private var heroThemeView: HeroThemeView? = null
     private var pulseDeckMainSkinView: PulseDeckMainSkinView? = null
     private var miniPulseView: PulseMiniView? = null
@@ -1486,6 +1491,75 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         stack.setContent(
             PulseDeckLayerStack.Layer.FARIC_REACTIVE,
             liveScene,
+        )
+    }
+
+    private fun activeGfLayerTransforms(
+        id: PlaybackThemeId,
+    ): Map<BoardLayerId, BoardLayerTransform> =
+        gfMixController.transforms(boardLayerTransformStore.loadAll(id))
+
+    /**
+     * Replaces only GF bitmaps. No GL, projectM, playback or HUD recreation.
+     * On a theme switch/reset, a newer request invalidates older decode jobs.
+     */
+    private fun refreshGfMixArtwork(forceOriginal: Boolean = false) {
+        val target = heroBoardView ?: return
+        val theme = currentGraphicFigureThemeId()
+        val mix = gfMixController.active()
+        if (mix == null && !forceOriginal) return
+        val request = ++gfMixLoadGeneration
+        thread(name = "faric-gf-mix-load") {
+            val images = if (mix == null) {
+                GraphicFigureCatalog.loadAssets(this, theme)
+            } else {
+                val refs = mix.instances.associate { it.asset.type to it.asset }
+                GraphicFigureAssets(
+                    frame = refs[GfArtType.FRAME]?.let { GfAssetLibrary.load(this, it) },
+                    fx = refs[GfArtType.FX]?.let { GfAssetLibrary.load(this, it) },
+                    creature = refs[GfArtType.CREATURE]?.let { GfAssetLibrary.load(this, it) },
+                    wordmark = refs[GfArtType.WORDMARK]?.let { GfAssetLibrary.load(this, it) },
+                )
+            }
+            runOnUiThread {
+                if (isFinishing || isDestroyed ||
+                    request != gfMixLoadGeneration ||
+                    target !== heroBoardView ||
+                    theme != currentGraphicFigureThemeId()
+                ) return@runOnUiThread
+                target.applyPreloadedFigureTheme(theme, images)
+                target.setLayerTransforms(activeGfLayerTransforms(theme))
+                HeroBoardView.ObjectId.entries.forEach { id ->
+                    val layer = BoardLayerId.valueOf(id.name)
+                    target.setObjectVisible(
+                        id,
+                        gfMixController.visible(
+                            layer,
+                            layerObjectVisible(
+                                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                                id.name.lowercase(),
+                            ),
+                        ),
+                    )
+                }
+            }
+        }
+    }
+
+    private fun showGfMixPicker() {
+        val theme = currentGraphicFigureThemeId()
+        gfMixController.show(
+            themeId = theme,
+            baseline = boardLayerTransformStore.loadAll(theme),
+            visible = { layerId ->
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                    layerId.name.lowercase(),
+                )
+            },
+            onChanged = {
+                refreshGfMixArtwork(forceOriginal = true)
+            },
         )
     }
 

@@ -162,6 +162,55 @@ class GfMixController(private val context: Context) {
         return true
     }
 
+    /**
+     * Selects only resources with the requested GF role. Folder import never
+     * automatically changes Creature or another layer. Explicit selection
+     * makes that layer visible, including when the draft was solo-Hero.
+     */
+    fun showSourcesFor(
+        type: GfArtType,
+        themeId: PlaybackThemeId,
+        baseline: Map<BoardLayerId, BoardLayerTransform>,
+        visible: (BoardLayerId) -> Boolean,
+        onChanged: () -> Unit,
+        onImportExternalPng: (GfArtType) -> Unit,
+    ) {
+        val roleName = when (type) {
+            GfArtType.FRAME -> "Рамка"
+            GfArtType.FX -> "Ефекти"
+            GfArtType.CREATURE -> "Герой"
+            GfArtType.WORDMARK -> "Напис"
+            else -> return
+        }
+        val mix = working(themeId, baseline, visible)
+        val available = GfAssetLibrary.availableAssets(context)
+            .filter { it.type == type }
+        val checked = available.indexOf(
+            mix.instances.firstOrNull { it.asset.type == type }?.asset,
+        )
+        PulseDeckDialogs.showSingleChoice(
+            context = context,
+            title = "GF Мікс · $roleName",
+            labels = available.map { GfAssetLibrary.title(context, it) } +
+                "＋ Додати PNG для $roleName із папки",
+            checkedIndex = checked,
+        ) { selected ->
+            if (selected == available.size) {
+                onImportExternalPng(type)
+            } else {
+                val ref = available[selected]
+                val changed = mix.copy(instances = mix.instances.map { part ->
+                    if (part.asset.type == type) {
+                        part.copy(asset = ref, visible = true)
+                    } else part
+                })
+                if (activate(changed, onChanged)) {
+                    show(themeId, baseline, visible, onChanged, onImportExternalPng)
+                }
+            }
+        }
+    }
+
     fun show(
         themeId: PlaybackThemeId,
         baseline: Map<BoardLayerId, BoardLayerTransform>,
@@ -191,30 +240,14 @@ class GfMixController(private val context: Context) {
             ),
         ) { index ->
             when {
-                index < parts.size -> {
-                    val type = parts[index].first
-                    val available = GfAssetLibrary.availableAssets(context).filter { it.type == type }
-                    run {
-                        val checked = available.indexOf(mix.instances.firstOrNull { it.asset.type == type }?.asset)
-                        PulseDeckDialogs.showSingleChoice(
-                            context, "Обрати · ${parts[index].second}",
-                            available.map { GfAssetLibrary.title(context, it) } +
-                                "＋ Додати PNG для ${parts[index].second} із папки",
-                            checkedIndex = checked,
-                        ) { i ->
-                            if (i == available.size) {
-                                onImportExternalPng(type)
-                            } else {
-                                val changed = mix.copy(instances = mix.instances.map { part ->
-                                    if (part.asset.type == type) part.copy(asset = available[i]) else part
-                                })
-                                if (activate(changed, onChanged)) {
-                                    show(themeId, baseline, visible, onChanged, onImportExternalPng)
-                                }
-                            }
-                        }
-                    }
-                }
+                index < parts.size -> showSourcesFor(
+                    type = parts[index].first,
+                    themeId = themeId,
+                    baseline = baseline,
+                    visible = visible,
+                    onChanged = onChanged,
+                    onImportExternalPng = onImportExternalPng,
+                )
                 index == 4 -> PulseDeckDialogs.showTextInput(
                     context, "Зберегти GF-шаблон",
                     hint = "Назва шаблона", initialValue = mix.title,

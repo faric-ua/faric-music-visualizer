@@ -1,14 +1,16 @@
 # Current Handoff
 
-## 2026-10-10 — GF Quick Mix v0.19.58 / build147 source candidate, PR #15
+## 2026-10-10 — CURRENT MAIN SIGNED RELEASE v0.19.58 / build147, GF Quick Mix
 
-- **NOT YET MERGED**; signed `main` APK and phone acceptance are pending. New UI in existing Board: `◆ GF Мікс`; independent source selection Frame/FX/Creature/Wordmark from installed hero packs; save/load named user presets; restore original. Same selected source IDs go into live `HeroBoardView` and offline Canvas/GPU export via `CyberSharkExportConfig.assetOverrides`.
-- Per-object X/Y/scale/rotation/frame spin/opacity/visibility are stored on the active GF composition rather than changing the original pack's layer preferences. Bitmap loads are asynchronous in live UI and cached per source for export. No second projectM/scene, no changes to `PULSEDECK_CENTER_CALIBRATION`, Cyber Shark art or full-song mux logic.
-- UI currently covers four canonical ordered slots only. More than one instance of same type, reorderable z layers, mask and optional half-hero selection remain future work despite source model support. Do not claim pixel-perfect visuals for rough previous artwork.
-- Candidate release note: `docs/checkpoints/2026-10-10-v0.19.58-gf-quick-mix.md`. Next: Verify PR Validate/Android, merge only after PASS, verify **main signed** build and checkpoint, then one bundled phone-QA round for mix/presets/export. `BUG-EXPORT-001` remains independently OPEN.
+- **MAIN READY**. PR #15 squash-merged as app/source SHA `3831954613e63b7f30d0e12e0c940f36cb819fc0`; **Validate #1201 PASS, Android #668 PASS**, signed run `38084158159`; `FARIC-Music-Visualizer-v0.19.58-Debug` artifact **`11681034643`**, expires 2026-10-13T20:35:51Z. Current main docs-only commits do not change app source.
+- **User next action:** Termux **3 → 10 → 8**, **NOT 9**, install selected APK without clearing data. One bundled phone test: Board → `◆ GF Мікс` → select sources from installed packages → verify live playback remains uninterrupted → save/reopen named preset → alter a layer → restore original; optionally 3s MP4 parity after offline analysis.
+- New code: reusable GF asset refs, stored independently named presets, 4 core selectors (Frame/FX/Creature/Wordmark), optional fifth file support but no half-hero UI, independent per-layer transforms and visibility, source parity for live canvas and offline export (including GPU path), background bitmap loading, preserved legacy full themes.
+- **PHONE QA PENDING**: cannot claim visual quality, motion parity or 3-second/full-song export PASS from CI. **BUG-EXPORT-001** and **LIFE-ROT-001 OPEN**. `PULSEDECK_CENTER_CALIBRATION`, production Cyber Shark art, audio renderer and nine local library categories unchanged. Arbitrary GF z-order, duplicate instances and mask/clip editor remain future UI.
+- Checkpoint: `BUILD_CHECKPOINTS.md`; exact release record: `docs/checkpoints/2026-10-10-v0.19.58-gf-quick-mix.md`.
 
 
-## GF CODE 2026-10-10 — shared asset model foundation (PR CANDIDATE, not shipped)
+
+## HISTORICAL FOUNDATION — GF CODE 2026-10-10 (subsequently shipped in v0.19.58; details above)
 
 - Branch `feat/gf-shared-asset-model-foundation` (**PR #15 draft; Validate #1179 PASS, Android #646 PASS / run `38079676264`, PR app/source `72122cdbfcadffa0d2406d02a78f2626157dbf0b`, artifact ID `11679881857`; NOT merged**) : introduce `GfAssetRef` and `GfArtType` (FRAME, FX, CREATURE, CREATURE_HALF optional, WORDMARK), `GfComposition` with independently ordered instances/transforms, `GfCompositionStore` which persists references rather than copying image bytes, and `GfAssetLibrary` for per-source selections. Add JVM model tests.
 - Keep original source-pack provenance informational only; cross-pack combinations FARIC / FMV / FVMP are allowed. The original Cyber Shark/Cyber Panther loading and legacy user hero pack format remain available; imported optional `creature-half.webp` does not change required four-part pack validation.

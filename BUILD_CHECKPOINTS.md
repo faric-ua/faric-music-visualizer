@@ -1,5 +1,13 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## CURRENT SIGNED MAIN — v0.19.61/build150 hide unavailable Hero tiles
+
+- **App/source SHA:** `a474c46791fc1ca6b085590a7a2d0a00a4f827e5` (merged PR #18). **Validate #1232 PASS, Android #679 PASS**, signed main run `38093806830`. Artifact `FARIC-Music-Visualizer-v0.19.61-Debug` ID **`11684867412`**, archive SHA-256 **`7f57b2ece8fb0fb0ad000a69083bf1b99d229c72252db6bb937484268195d2b0`**, expiry **2026-10-13T23:09:11Z**.
+- User found many blank `СКОРО` tiles for uninstalled prepared Hero packs. Fix filters `figure && !installed` before building corresponding Theme Hero cards; no deletion of planned theme IDs, old installed packs, 10 external PNGs, GF saved presets, SAF grants, original files or playback/export code. Installed packs reappear automatically; existing importer retained. Hero count is accurate.
+- **PHONE QA PENDING**, CI is not phone acceptance. Verify absent unused future Hero cards and intact `Мої зовнішні PNG` 10 preview cards, choose one. Cyber Panther blank thumbnail if any is separate potential preview issue. Full-song MP4 `BUG-EXPORT-001` and orientation `LIFE-ROT-001` still OPEN.
+- **Next Termux:** **3 → 10 → 8**, not 9, install signed main APK over current app without wiping data, do not reimport user's ten PNG masters. Full release detail `docs/checkpoints/2026-10-11-v0.19.61-hero-card-visibility.md`.
+
+
 ## CURRENT SIGNED MAIN — v0.19.60 / build149, external PNG thumbnails + typed layers (2026-10-11)
 
 - **PR #17 merged**, app/source SHA **`2798880f049bbf88e93cec952310609c43ee7ce5`**; **Validate #1225 PASS**, **Android #677 PASS**, signed main run **`38091849017`**. Artifact `FARIC-Music-Visualizer-v0.19.60-Debug` **ID `11684332356`**, archive SHA-256 `12bb343e8276c29b0903638905adffd0b31aa93b870f8a6b0a24095c279c6d5c`, expires **2026-10-13T22:36:54Z**.

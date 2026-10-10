@@ -35,16 +35,6 @@ object GfAssetLibrary {
     fun load(context: Context, asset: GfAssetRef): Bitmap? {
         if (!available(context, asset)) return null
         val packId = PlaybackThemeId.valueOf(asset.sourcePackId)
-        if (UserHeroPack.find(packId) != null) {
-            return UserHeroPack.loadLayer(context, packId, asset.type.fileStem)
-        }
-        val images = GraphicFigureCatalog.loadAssets(context, packId)
-        return when (asset.type) {
-            GfArtType.FRAME -> images.frame
-            GfArtType.FX -> images.fx
-            GfArtType.CREATURE -> images.creature
-            GfArtType.WORDMARK -> images.wordmark
-            GfArtType.CREATURE_HALF -> null
-        }
+        return GraphicFigureCatalog.loadIndividualAsset(context, packId, asset.type)
     }
 }

@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 148
-        versionName = "0.19.59"
-        // v0.19.59: SAF external transparent PNG hero gallery; lazy bitmap loading.
+        versionCode = 149
+        versionName = "0.19.60"
+        // v0.19.60: external PNG thumbnails and individual GF frame/FX/wordmark imports.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

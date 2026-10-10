@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 147
-        versionName = "0.19.58"
-        // v0.19.58: GF Quick Mix picker, persistence, live + export shared asset IDs.
+        versionCode = 148
+        versionName = "0.19.59"
+        // v0.19.59: SAF external transparent PNG hero gallery; lazy bitmap loading.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

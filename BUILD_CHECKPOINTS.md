@@ -1,5 +1,14 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## CURRENT MAIN RELEASE — v0.19.58 / build147, GF Quick Mix (2026-10-10)
+
+- **MERGED PR #15**. Exact merged **app/source SHA `3831954613e63b7f30d0e12e0c940f36cb819fc0`**. `main` **Validate #1201 PASS**, **Android #668 PASS**, run `38084158159`. Signed artifact `FARIC-Music-Visualizer-v0.19.58-Debug` **ID `11681034643`**, uploaded to GitHub, expires **2026-10-13T20:35:51Z**. Artifact archive SHA-256 `1bee5611275518c350c48ee0225b8fc9993166d2778f160c1343127de568f507`.
+- New visible functionality: **Board → GF Мікс** four independent source selectors (FRAME / FX / CREATURE / WORDMARK), named presets and reload, return to original, independent object transforms/visibility/frame auto-spin, same selected source references in live canvas and offline GPU/Canvas MP4 export. Bitmap decode outside UI, no scene/projectM teardown on source swap.
+- Verified: Gradle/JUnit, Android Kotlin app compilation, signed APK check and artifact upload in CI. **Physical-phone GF UI and actual export parity NOT YET TESTED**; no claim of art quality PASS.
+- Open: `BUG-EXPORT-001` full-song MP4 crash observed on prior build, `LIFE-ROT-001`; no unproven fix claims. Optional `creature-half` can be imported but lacks editor selector; arbitrary z-order and masks are next development phases. Immutable `PULSEDECK_CENTER_CALIBRATION` and production Cyber Shark source unchanged.
+- **Next user step:** Termux **3 → 10 → 8**, do **not** press 9, then install opened APK file, keeping app data. One bundled physical-phone QA for Board GF Mix → change frame/hero/wordmark → save/load preset → edit layer → restore original; if convenient, offline-analysis 3s MP4 matching chosen sources. Report a combined PASS/FAIL; full-song export remains independent.
+
+
 ## v0.19.58 / build147 — PR #15 GF Quick Mix candidate (2026-10-10)
 
 - **PR-only source SHA:** `91f39ab31e48722f1139cfd8586d7f17645faeff`. This is **not a main release yet**.

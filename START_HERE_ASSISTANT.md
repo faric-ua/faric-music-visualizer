@@ -1,8 +1,13 @@
 # FARIC Music Visualizer — START HERE
 
-## CURRENT NEXT BUILD — v0.19.58 / build147, GF Quick Mix (PR #15; not yet merged)
+## CURRENT MAIN RELEASE — v0.19.58 / build147, GF Quick Mix (2026-10-10)
 
-**FIRST USER ACTION RIGHT NOW: DO NOT DOWNLOAD/INSTALL/TEST A NEW APK.** PR #15 introduces a working Board GF Mix picker with cross-pack frame/FX/hero/wordmark, named presets, editable per-layer settings, persisted visibility and shared source IDs in the live board and offline export. Draft PR and PR Android CI are not a signed `main` release. Exact QA/release plan: `docs/checkpoints/2026-10-10-v0.19.58-gf-quick-mix.md`. Keep `BUG-EXPORT-001` phone QA open. Do not launch Termux 9 manually while CI runs.
+**FIRST USER ACTION NOW:** **Termux → 3 → 10 → 8**, download the current **v0.19.58 / build147** signed main APK from the opened folder and install over the existing app **WITHOUT clearing data**. **Do not press 9**; main **Validate #1201 PASS**, **Android #668 PASS**, run `38084158159`, signed artifact `FARIC-Music-Visualizer-v0.19.58-Debug` ID `11681034643` (expires 2026-10-13T20:35:51Z), exact signed app/source SHA `3831954613e63b7f30d0e12e0c940f36cb819fc0`. Checkpoint `BUILD_CHECKPOINTS.md`, release guide `docs/checkpoints/2026-10-10-v0.19.58-gf-quick-mix.md`.
+
+- New Board → **GF Мікс** lets the user select independently installed frame/FX/creature/wordmark, save/open named presets, edit transforms/visibility without overwriting the original Hero source, restore original, and export with the same source IDs. CI verified; actual phone look/navigation/export quality is **PENDING**, never say phone PASS without evidence.
+- One user QA round: Board → GF Мікс → choose distinct sources → see live change during playback; save/load; alter transform; restore; optionally after offline analysis compare a 3-second MP4. Report one PASS/FAIL. Full-song export `BUG-EXPORT-001` remains separate and OPEN, as does `LIFE-ROT-001`.
+- Preserve `PULSEDECK_CENTER_CALIBRATION`, original Cyber Shark assets, projectM lifetime and all nine library sections. Optional creature-half UI, arbitrary z-order, mask/clip still backlog.
+
 
 
 ## CURRENT RELEASE — v0.19.57 / build146, full-song MP4 finalization (2026-10-09)

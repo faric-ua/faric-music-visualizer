@@ -1,5 +1,10 @@
 # FARIC Music Visualizer — START HERE
 
+## CURRENT NEXT BUILD — v0.19.58 / build147, GF Quick Mix (PR #15; not yet merged)
+
+**FIRST USER ACTION RIGHT NOW: DO NOT DOWNLOAD/INSTALL/TEST A NEW APK.** PR #15 introduces a working Board GF Mix picker with cross-pack frame/FX/hero/wordmark, named presets, editable per-layer settings, persisted visibility and shared source IDs in the live board and offline export. Draft PR and PR Android CI are not a signed `main` release. Exact QA/release plan: `docs/checkpoints/2026-10-10-v0.19.58-gf-quick-mix.md`. Keep `BUG-EXPORT-001` phone QA open. Do not launch Termux 9 manually while CI runs.
+
+
 ## CURRENT RELEASE — v0.19.57 / build146, full-song MP4 finalization (2026-10-09)
 
 **FIRST USER ACTION:** **ЗАРАЗ: встановити підписану v0.19.57 / build146 через Termux 3 → 10 → 8, НЕ натискати 9.** Потім **ОДИН** тест повної пісні (не 3с), не переперевіряти інші функції. До встановлення стару версію з відомим full-song crash не тестувати повторно.

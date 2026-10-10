@@ -1,5 +1,28 @@
 # Active Plan
 
+## Current development: v0.19.58 / build147 — GF Quick Mix (PR #15)
+
+- [x] Implement four-source GF picker in existing Board editor, named saved presets and reversible original selection.
+- [x] Persist mixed-layer transforms/visibility independently of original hero preferences; include auto-spin.
+- [x] Use the identical selected source IDs in live preview and Canvas/GPU export without per-frame bitmap decoding.
+- [x] Add model/rotation tests; preserve installed old hero packs and global calibration.
+- [ ] PR Validate + Android signed candidate PASS after v147 version bump; verify real state in GitHub.
+- [ ] Merge reviewed PR #15 into main; verify new main Validate/Android and record signed artifact in BUILD_CHECKPOINTS.
+- [ ] User phone QA: source switching, save/load, original restore, lifecycle, 3s MP4 source parity. Full-song BUG-EXPORT-001 remains OPEN.
+- [ ] Future slice: arbitrary GF z-order, clip/mask, optional creature-half UI and missing-asset repair affordance.
+
+
+## GF CODE foundation (2026-10-10)
+
+- [x] Inspect last signed v0.19.57/build146 and source contracts before changing code.
+- [x] Introduce immutable reusable `GfAssetRef`, optional `CREATURE_HALF`, mixed-source `GfComposition` with ordering and transform validation, persistent reference-only store, targeted bitmap resolver and JVM tests on an isolated feature branch.
+- [x] Verify PR Validate #1179 PASS and Android #646 PASS on PR app/source SHA `72122cdbfcadffa0d2406d02a78f2626157dbf0b`. CI is PR-only; no new main release.
+- [ ] Review/merge PR and set an intentional next Android release boundary; no Android/app upgrade while build146 MP4 phone QA is unresolved.
+- [ ] Follow-on: user-facing per-object catalog selectors, saved preset management, common preview/export composition render path and phone QA. Do not claim the foundation alone makes this visible in the APK.
+- [ ] Keep `BUG-EXPORT-001` and `LIFE-ROT-001` open until actual physical-phone evidence; preserve Cyber Shark and the immutable `PULSEDECK_CENTER_CALIBRATION`.
+
+
+
 ## GF ART 2026-10-10 — 14 real LFS PNG recovered, nine lossless whole-GF candidates made, layered split still QA OPEN
 
 - This is **art repo only**, NOT an Android app/build change. Asset repository: `faric-ua/faric-music-visualizer-assets`.

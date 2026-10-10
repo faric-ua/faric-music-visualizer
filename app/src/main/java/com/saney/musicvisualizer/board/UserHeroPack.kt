@@ -37,6 +37,9 @@ object UserHeroPack {
     )
 
     private val layers = listOf("frame", "fx", "creature", "wordmark", "full", "preview")
+    // Optional fifth source part must not break older valid four-part packs.
+    private val optionalLayers = setOf("creature-half")
+    private val allowedLayers = layers + optionalLayers
 
     fun find(id: PlaybackThemeId): Hero? = heroes.firstOrNull { it.id == id }
 
@@ -54,6 +57,16 @@ object UserHeroPack {
             context.assets.open(packagedPath(id, "preview")).use { true }
         }.getOrDefault(false)
 
+    fun hasLayer(context: Context, id: PlaybackThemeId, layer: String): Boolean {
+        if (find(id) == null || layer !in allowedLayers) return false
+        if (packaged(context, id)) {
+            return runCatching {
+                context.assets.open(packagedPath(id, layer)).use { true }
+            }.getOrDefault(false)
+        }
+        return File(localFolder(context, id), "$layer.webp").isFile
+    }
+
     fun isInstalled(context: Context, id: PlaybackThemeId): Boolean {
         if (find(id) == null) return false
         if (packaged(context, id)) return true
@@ -67,7 +80,7 @@ object UserHeroPack {
         layer: String,
         previewOnly: Boolean = false,
     ): Bitmap? {
-        if (find(id) == null || layer !in layers) return null
+        if (!hasLayer(context, id, layer)) return null
         val options = BitmapFactory.Options().apply {
             inScaled = false
             inPreferredConfig = Bitmap.Config.ARGB_8888
@@ -111,7 +124,7 @@ object UserHeroPack {
                         if (!entry.isDirectory &&
                             segments.size == 2 &&
                             segments[0] in expectedFolders &&
-                            segments[1] in layers.map { "$it.webp" }
+                            segments[1] in allowedLayers.map { "$it.webp" }
                         ) {
                             val folder = File(staging, segments[0])
                             check(folder.isDirectory || folder.mkdirs()) {
@@ -144,7 +157,8 @@ object UserHeroPack {
                 check(layers.all { File(folder, "$it.webp").exists() }) {
                     "Неповний пакет: ${hero.title}. Потрібен FARIC-Heroes-Prepared ZIP."
                 }
-                for (layer in listOf("frame", "fx", "creature", "wordmark", "full")) {
+                for (layer in listOf("frame", "fx", "creature", "wordmark", "full", "creature-half")) {
+                    if (layer in optionalLayers && !File(folder, "$layer.webp").isFile) continue
                     val opts = BitmapFactory.Options().apply { inJustDecodeBounds = true }
                     BitmapFactory.decodeFile(File(folder, "$layer.webp").absolutePath, opts)
                     check(opts.outWidth == 1024 && opts.outHeight == 1024) {

@@ -130,6 +130,38 @@ object GraphicFigureCatalog {
                 )
         }
 
+    /**
+     * Decode exactly ONE shared asset when selecting a cross-pack layer.
+     * Do not allocate all four full-resolution bitmaps for one wordmark/frame.
+     */
+    fun loadIndividualAsset(
+        context: Context,
+        themeId: PlaybackThemeId,
+        type: GfArtType,
+    ): Bitmap? {
+        if (themeId !in ids) return null
+        if (UserHeroPack.find(themeId) != null) {
+            return UserHeroPack.loadLayer(context, themeId, type.fileStem)
+        }
+        if (type == GfArtType.CREATURE_HALF) return null
+        return when (themeId) {
+            PlaybackThemeId.CYBER_PANTHER -> when (type) {
+                GfArtType.FRAME -> decode(context, R.drawable.cyber_panther_frame)
+                GfArtType.FX -> decode(context, R.drawable.cyber_panther_fx)
+                GfArtType.CREATURE -> decodePantherCreature(context)
+                GfArtType.WORDMARK -> decode(context, R.drawable.cyber_panther_wordmark)
+                else -> null
+            }
+            PlaybackThemeId.CYBER_SHARK -> when (type) {
+                GfArtType.FRAME -> decode(context, R.drawable.cyber_shark_frame)
+                GfArtType.CREATURE -> decode(context, R.drawable.cyber_shark_creature)
+                GfArtType.WORDMARK -> decode(context, R.drawable.cyber_shark_wordmark)
+                else -> null
+            }
+            else -> null
+        }
+    }
+
     fun isInstalled(context: Context, themeId: PlaybackThemeId): Boolean =
         UserHeroPack.find(themeId) == null || UserHeroPack.isInstalled(context, themeId)
 

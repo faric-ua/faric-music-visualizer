@@ -1,5 +1,15 @@
 # PulseDeck GF — modular cross-pack asset library and composer
 
+## First code slice — isolated GF composition foundation (2026-10-10; PR candidate)
+
+- `board/GfComposition.kt`: stable source-pack/type references and per-instance transforms/visibility/z-order, allowing the same source to be used multiple times and mixing source packs freely.
+- `board/GfCompositionStore.kt`: versioned device-local JSON persistence in SharedPreferences, storing stable artwork references (not image copies). Unknown/missing external artwork is **not silently substituted** for another hero.
+- `board/GfAssetLibrary.kt` and `GraphicFigureCatalog.loadIndividualAsset`: cross-pack discovery/loading, with targeted single-bitmap decoding and the optional half-body layer when a valid file exists.
+- `UserHeroPack`: optional `creature-half.webp` is importable, but four core layers + full/preview remain the old pack's required files. Older prepared packs remain valid.
+- **Not yet implemented:** composition editor UI, actual live layer renderer selection, export parity, embedding new user art or final visual art acceptance. This slice only adds the model and storage foundation; legacy rendering remains unchanged.
+
+
+
 **Status:** user-confirmed product/asset contract, 2026-10-09. **NOT implemented** as a general Android editor or shipped production pack.
 
 ## Intent

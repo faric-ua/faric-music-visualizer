@@ -1,5 +1,26 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## v0.19.58 / build147 — PR #15 GF Quick Mix candidate (2026-10-10)
+
+- **PR-only source SHA:** `91f39ab31e48722f1139cfd8586d7f17645faeff`. This is **not a main release yet**.
+- **PR Validate #1199 PASS**, **Android #666 PASS**, run `38083610456`. Unit tests, app compile, signed APK preparation and artifact upload all completed.
+- Artifact `FARIC-Music-Visualizer-v0.19.58-Debug`, ID `11681048469`, SHA-256 archive digest `8f998b116e0ca0a94fe90387752c82d7d8b61bd541154fc6f03a7e562d1e483f`, expires 2026-10-13T20:27:09Z.
+- Added: live Board `GF Мікс` four-way source picker, named user presets, reload/restore, independent transform and visibility storage, explicit same-source rendering for current live board and offline Canvas/GPU export, async bitmap loading, optional separate half-body file support in source pack model. **No full arbitrary-z editor / half-creature picker** yet.
+- **Phone QA NOT DONE**; `BUG-EXPORT-001` full-song crash and `LIFE-ROT-001` remain OPEN. No claim of visual art acceptance.
+- **Next:** merge after review, verify new **main** signed v0.19.58/build147 run and artifact, then Termux 3 → 10 → 8 and one bundled phone round. Do not install PR-only artifact as an ordinary main APK.
+
+
+
+## PR candidate checkpoint — GF cross-pack model foundation (2026-10-10)
+
+- **PR #15 draft, NOT MERGED / NOT A RELEASE**. App version remains **v0.19.57 / build146**; no new APK should be installed for this model-only change.
+- Exact PR CI **app/source SHA `72122cdbfcadffa0d2406d02a78f2626157dbf0b`**. Validate **#1179 PASS**, Android **#646 PASS**, workflow run **`38079676264`**.
+- PR artifact **`FARIC-Music-Visualizer-v0.19.57-Debug`**, ID **`11679881857`**, expires 2026-10-13 19:26:55 UTC. This is a PR artifact, not the signed main release intended for Termux 3 → 10 → 8.
+- Unit tests, Kotlin compile, APK assemble and CI gates PASS. Implemented: cross-pack GF asset references, source provenance, optional half-body input, transform/order/opacity model, JSON reference-only preset store, targeted single-layer loading, model tests.
+- **Not yet verified:** user-facing selection/editor (not implemented), per-composition live preview/export (not implemented), visual quality of independent art, Phone QA. `BUG-EXPORT-001` and `LIFE-ROT-001` unchanged/open.
+- **Next:** keep build146 phone-export QA separate; inspect and review PR #15 before choosing merge/release boundary. Then implement saved-composition UI + common preview/export renderer as a separate slice; never alter immutable calibration or production Cyber Shark artwork.
+
+
 ## CURRENT RELEASE — v0.19.57 / build146, full-song MP4 finalization (2026-10-09)
 
 **FIRST USER ACTION:** **ЗАРАЗ: встановити підписану v0.19.57 / build146 через Termux 3 → 10 → 8, НЕ натискати 9.** Потім **ОДИН** тест повної пісні (не 3с), не переперевіряти інші функції. До встановлення стару версію з відомим full-song crash не тестувати повторно.

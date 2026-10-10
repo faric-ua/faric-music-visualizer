@@ -1,5 +1,15 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## CURRENT SIGNED MAIN — v0.19.59 / build148 external PNG heroes (2026-10-11)
+
+- Merged **PR #16**, app/source SHA **`be0254dc317640f1a245002daebc5c1917040335`**, main **Validate #1218 PASS**, **Android #675 PASS**, signed build run **`38087510985`**. Verified artifact `FARIC-Music-Visualizer-v0.19.59-Debug` **ID `11682599996`**, archive SHA-256 `5266184c5dfc9321bd8580fdf57ecd4940e3941caae76ff352fb676bafb944e1`, expires `2026-10-13T21:28:24Z`.
+- 10/10 user supplied originals independently checked as true transparent PNG RGBA (1254×1254), none JPG, scorpion 9 and 10 visually related yet different. ZIP of exact source bytes was made available **in conversation only**, **NOT IN APK**: `PulseDeck_10_External_PNG_Heroes.zip`, with precisely 10 PNG in `PulseDeck_Heroes/`. After extracting to Android Documents, Theme Picker or Board → «Зовнішні PNG-герої» → «Вибрати папку PNG»; index read-only SAF references and choose file.
+- Android app bundles **no new user PNG artwork**; sources remain in Documents; selected bitmap loaded in worker and used in live GF and export by reference. Export GF renderer now lazily decodes only the active base pack rather than preloading all ten packs, reducing memory pressure. Displaying a full RGBA 1254² bitmap still requires ~6 MiB RAM (plus render overhead).
+- **CI PASS does not imply phone QA.** Only NEW phone QA needed: import folder → list exactly 10 PNG → switch e.g. dragon/griffin/two scorpions without playback restart → choose original Hero → app restart ensures folder access retained. 3-second MP4 source parity, `BUG-EXPORT-001` full song and `LIFE-ROT-001` remain separate/unverified.
+- Last release v0.19.58/build147 GF Mix phone **4/4 PASS** remains accepted; do not re-test accepted feature. `PULSEDECK_CENTER_CALIBRATION`, source assets, projectM/playing song unaffected.
+- **Next user action now:** download the hero ZIP and unzip `PulseDeck_Heroes` into Documents; Termux **3 → 10 → 8** to obtain/install the main-signed build148 (do NOT press 9), no data clearing; use one bundled phone check. Artifact expires 2026-10-13.
+
+
 ## PHONE QA ACCEPTED — v0.19.58 / build147 GF Quick Mix (user 4/4 PASS)
 
 - User reported exact result: **`Перевірка PulseDeck v0.19.58 / build147: PASS. Усі чотири перевірки пройдено.`**

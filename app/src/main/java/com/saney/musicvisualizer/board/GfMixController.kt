@@ -167,6 +167,7 @@ class GfMixController(private val context: Context) {
         baseline: Map<BoardLayerId, BoardLayerTransform>,
         visible: (BoardLayerId) -> Boolean,
         onChanged: () -> Unit,
+        onImportExternalPng: (GfArtType) -> Unit = {},
     ) {
         val mix = working(themeId, baseline, visible)
         val parts = listOf(
@@ -193,20 +194,23 @@ class GfMixController(private val context: Context) {
                 index < parts.size -> {
                     val type = parts[index].first
                     val available = GfAssetLibrary.availableAssets(context).filter { it.type == type }
-                    if (available.isEmpty()) {
-                        PulseDeckDialogs.showMessage(context, "Немає об'єктів", "Немає встановлених PNG для цього шару.")
-                    } else {
+                    run {
                         val checked = available.indexOf(mix.instances.firstOrNull { it.asset.type == type }?.asset)
                         PulseDeckDialogs.showSingleChoice(
                             context, "Обрати · ${parts[index].second}",
-                            available.map { GfAssetLibrary.title(context, it) },
+                            available.map { GfAssetLibrary.title(context, it) } +
+                                "＋ Додати PNG для ${parts[index].second} із папки",
                             checkedIndex = checked,
                         ) { i ->
-                            val changed = mix.copy(instances = mix.instances.map { part ->
-                                if (part.asset.type == type) part.copy(asset = available[i]) else part
-                            })
-                            if (activate(changed, onChanged)) {
-                                show(themeId, baseline, visible, onChanged)
+                            if (i == available.size) {
+                                onImportExternalPng(type)
+                            } else {
+                                val changed = mix.copy(instances = mix.instances.map { part ->
+                                    if (part.asset.type == type) part.copy(asset = available[i]) else part
+                                })
+                                if (activate(changed, onChanged)) {
+                                    show(themeId, baseline, visible, onChanged, onImportExternalPng)
+                                }
                             }
                         }
                     }
@@ -235,7 +239,7 @@ class GfMixController(private val context: Context) {
                             presets.map { it.title },
                         ) { i ->
                             if (activate(presets[i], onChanged)) {
-                                show(themeId, baseline, visible, onChanged)
+                                show(themeId, baseline, visible, onChanged, onImportExternalPng)
                             }
                         }
                     }

@@ -2506,6 +2506,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 objectId,
             )
 
+        if (layer == PulseDeckLayerStack.Layer.GRAPHIC_FIGURES) {
+            val layerId = BoardLayerId.entries.firstOrNull {
+                it.name.equals(objectId, ignoreCase = true)
+            }
+            if (layerId != null && gfMixController.active() != null) {
+                return gfMixController.visible(
+                    layerId,
+                    prefs.getBoolean(key, defaultValue),
+                )
+            }
+        }
+
         if (prefs.contains(key)) {
             return prefs.getBoolean(
                 key,
@@ -2543,16 +2555,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         objectId: String,
         visible: Boolean,
     ) {
-        layerPrefs()
-            .edit()
-            .putBoolean(
-                layerObjectPreferenceKey(
-                    layer,
-                    objectId,
-                ),
-                visible,
-            )
-            .apply()
+        val layerId = if (layer == PulseDeckLayerStack.Layer.GRAPHIC_FIGURES) {
+            BoardLayerId.entries.firstOrNull {
+                it.name.equals(objectId, ignoreCase = true)
+            }
+        } else null
+        if (layerId == null || !gfMixController.editVisibility(layerId, visible)) {
+            layerPrefs()
+                .edit()
+                .putBoolean(layerObjectPreferenceKey(layer, objectId), visible)
+                .apply()
+        }
 
         when (layer) {
             PulseDeckLayerStack.Layer.VISUALIZER ->

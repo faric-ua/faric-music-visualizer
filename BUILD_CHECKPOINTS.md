@@ -1,5 +1,14 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## CURRENT SIGNED MAIN — v0.19.60 / build149, external PNG thumbnails + typed layers (2026-10-11)
+
+- **PR #17 merged**, app/source SHA **`2798880f049bbf88e93cec952310609c43ee7ce5`**; **Validate #1225 PASS**, **Android #677 PASS**, signed main run **`38091849017`**. Artifact `FARIC-Music-Visualizer-v0.19.60-Debug` **ID `11684332356`**, archive SHA-256 `12bb343e8276c29b0903638905adffd0b31aa93b870f8a6b0a24095c279c6d5c`, expires **2026-10-13T22:36:54Z**.
+- New feature: show real small thumbnails for existing indexed user PNG heroes in Theme `Мої зовнішні PNG` grid and `Зовнішні PNG-герої` chooser. Existing 10 files/persistent SAF permission maintained; no need to re-import. Legacy `СКОРО` Hero tiles are separate prepared packs, not auto-filled.
+- Extend read-only external PNG asset library: separate frame, FX and wordmark folder grants, per-type index and GF Mix `＋ Додати PNG із папки`; same source IDs for live GF and export. Each visual part must exist as a separate transparent PNG, a combined emblem is not automatically split. Art stays in Documents; no PNG master shipped in APK. Tiny preview decoding off UI, no eager decode of 10 full-resolution PNGs.
+- **Phone QA PENDING**, not claimed PASS: thumbnails, switching live solo PNGs, import PNG FRAME and WORDMARK and save/reopen mix. No change to current open `BUG-EXPORT-001` full-song MP4 and `LIFE-ROT-001`; 3s MP4 source parity still unverified. v147 4/4 phone PASS stays accepted.
+- **First action:** Termux **3 → 10 → 8**, never 9, install on top without deleting data. Then inspect previously indexed ten thumbnails and exercise one GF frame/wordmark import. Release details `docs/checkpoints/2026-10-11-v0.19.60-external-png-layers.md`.
+
+
 ## CURRENT SIGNED MAIN — v0.19.59 / build148 external PNG heroes (2026-10-11)
 
 - Merged **PR #16**, app/source SHA **`be0254dc317640f1a245002daebc5c1917040335`**, main **Validate #1218 PASS**, **Android #675 PASS**, signed build run **`38087510985`**. Verified artifact `FARIC-Music-Visualizer-v0.19.59-Debug` **ID `11682599996`**, archive SHA-256 `5266184c5dfc9321bd8580fdf57ecd4940e3941caae76ff352fb676bafb944e1`, expires `2026-10-13T21:28:24Z`.

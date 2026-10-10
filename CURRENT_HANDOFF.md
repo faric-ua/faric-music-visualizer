@@ -1,5 +1,11 @@
 # Current Handoff
 
+## PHONE ACCEPTANCE — v0.19.58 / build147 GF Quick Mix (4/4 PASS)
+
+User confirmed: `Перевірка PulseDeck v0.19.58 / build147: PASS. Усі чотири перевірки пройдено.` This is actual user-reported phone QA for the four requested checks: Board → GF Мікс opens; frame/hero/wordmark from differing source packs change the live emblem without stopping music; save/reopen saved preset; adjust one layer then restore original. Mark **GF-QUICK-MIX-PHONE-001 PASS / ACCEPTED**. No repeat phone testing or reinstallation required for these checks.
+
+Unverified separately: 3-second MP4 matching live mix, full-song export (`BUG-EXPORT-001` still OPEN), rotation (`LIFE-ROT-001` OPEN), optional half-body picker, arbitrary z-order. Suggested next code scope: a clear z-order editor with stable default order and same ordering for live playback and export. Do not alter immutable `PULSEDECK_CENTER_CALIBRATION`, original GF assets, or playback/projectM infrastructure.
+
 ## 2026-10-10 — CURRENT MAIN SIGNED RELEASE v0.19.58 / build147, GF Quick Mix
 
 - **MAIN READY**. PR #15 squash-merged as app/source SHA `3831954613e63b7f30d0e12e0c940f36cb819fc0`; **Validate #1201 PASS, Android #668 PASS**, signed run `38084158159`; `FARIC-Music-Visualizer-v0.19.58-Debug` artifact **`11681034643`**, expires 2026-10-13T20:35:51Z. Current main docs-only commits do not change app source.

@@ -1,5 +1,12 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## PHONE QA ACCEPTED — v0.19.58 / build147 GF Quick Mix (user 4/4 PASS)
+
+- User reported exact result: **`Перевірка PulseDeck v0.19.58 / build147: PASS. Усі чотири перевірки пройдено.`**
+- Scope: Board opens `GF Мікс`; mixing installed frame/hero/wordmark displays live without stopping playback; named presets save/reopen; a layer's position/scale changes; restore original emblem. **Status: GF-QUICK-MIX-PHONE-001 PASS / ACCEPTED**.
+- **NOT INCLUDED:** 3-second MP4 parity, full-song export (`BUG-EXPORT-001` remains OPEN), rotation (`LIFE-ROT-001` OPEN), separate visual-asset masking quality.
+- Current installed/released `v0.19.58 / build147` unchanged. **Do not ask the user to download/install/test the same APK again.** Next feature candidate is custom GF z-order with consistent live/export layer ordering and default backward compatibility.
+
 ## CURRENT MAIN RELEASE — v0.19.58 / build147, GF Quick Mix (2026-10-10)
 
 - **MERGED PR #15**. Exact merged **app/source SHA `3831954613e63b7f30d0e12e0c940f36cb819fc0`**. `main` **Validate #1201 PASS**, **Android #668 PASS**, run `38084158159`. Signed artifact `FARIC-Music-Visualizer-v0.19.58-Debug` **ID `11681034643`**, uploaded to GitHub, expires **2026-10-13T20:35:51Z**. Artifact archive SHA-256 `1bee5611275518c350c48ee0225b8fc9993166d2778f160c1343127de568f507`.

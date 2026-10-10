@@ -59,6 +59,15 @@ class GfMixController(private val context: Context) {
         return active()?.instances?.firstOrNull { it.asset.type == type }?.visible ?: original
     }
 
+    fun editVisibility(layer: BoardLayerId, visible: Boolean): Boolean {
+        val type = typeOf(layer) ?: return false
+        val mix = active() ?: return false
+        store.save(mix.copy(instances = mix.instances.map { part ->
+            if (part.asset.type == type) part.copy(visible = visible) else part
+        }))
+        return true
+    }
+
     fun editTransform(layer: BoardLayerId, value: BoardLayerTransform): Boolean {
         val type = typeOf(layer) ?: return false
         val mix = active() ?: return false

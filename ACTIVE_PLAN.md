@@ -1,13 +1,13 @@
 # Active Plan
 
-## NEXT — v0.19.59/build148 external PNG hero gallery (PR #16)
+## CURRENT DELIVERY — v0.19.59/build148 external PNG hero gallery (signed main CI PASS; phone QA pending)
 
 - [x] Inspect all ten newly uploaded images: actual PNG/RGBA, 1254×1254, real alpha; no JPG. Two cyber-scorpion variants similar but not identical, keep both.
 - [x] Prepare ZIP with the **unchanged ten PNG byte streams** for Documents; do not copy them into APK.
 - [x] Implement read-only SAF DocumentTree folder selection, persisted permission, content signature/alpha validation and byte-identical deduplication with an external URI catalog.
 - [x] Add standalone PNG hero picker from Board and Theme Picker; source can be used as a GF Creature reference and exported, with async decode and current-only bitmap caching.
-- [ ] PR #16 Validate/Android PASS, review then merge.
-- [ ] Main signed build148 CI PASS and release checkpoint; phone installation only afterward via Termux 3 → 10 → 8.
+- [x] PR #16 Validate #1217 / Android #674 PASS; merged into main as app/source `be0254dc317640f1a245002daebc5c1917040335`.
+- [x] Main signed Validate #1218 / Android #675 PASS, artifact `11682599996`; release checkpoint recorded. User may now install via Termux 3 → 10 → 8.
 - [ ] One phone QA batch: import directory, choose 10 items, switch/restore during playback, retain after relaunch; MP4 source parity optional.
 - [ ] Remaining separate: custom GF z-order, half-body selector, full-song MP4 `BUG-EXPORT-001`, `LIFE-ROT-001`.
 

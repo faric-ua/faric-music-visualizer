@@ -1,5 +1,16 @@
 # Active Plan
 
+## CURRENT RELEASE — v0.19.60 / build149 PNG miniatures + typed external GF layers
+
+- [x] Verify user v0.19.59 report: ten external PNG indexed, but external chooser contained text only and old hero `СКОРО` tiles are unrelated prepared-pack cards.
+- [x] Add real PNG thumbnails in external hero selector and separate two-column `Мої зовнішні PNG` tiles in expanded Theme Hero catalog.
+- [x] Maintain old indexed PNG CREATURE records & SAF permission; add separate typed FRAME / WORDMARK / FX PNG folders without app-bundling or original mutation.
+- [x] Add per-type `＋ Додати PNG із папки` to existing GF Mix source selector.
+- [x] PR #17 Validate #1224 PASS, Android #676 PASS, merged SHA `2798880f049bbf88e93cec952310609c43ee7ce5`. Signed main Validate #1225 PASS, Android #677 PASS, artifact `11684332356`, run `38091849017`.
+- [ ] Phone: after Termux **3 → 10 → 8** (not 9) without clearing data, inspect actual hero preview tiles, choose two heroes; GF Mix import independent frame + wordmark PNG from separate folders and save/reopen composition.
+- [ ] Other issues unaltered: `BUG-EXPORT-001` full MP4, `LIFE-ROT-001` rotation, arbitrary GF z-order/creature-half selector.
+
+
 ## CURRENT DELIVERY — v0.19.59/build148 external PNG hero gallery (signed main CI PASS; phone QA pending)
 
 - [x] Inspect all ten newly uploaded images: actual PNG/RGBA, 1254×1254, real alpha; no JPG. Two cyber-scorpion variants similar but not identical, keep both.

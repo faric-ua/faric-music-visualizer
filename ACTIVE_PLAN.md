@@ -8,7 +8,9 @@
 - [x] Add model/rotation tests; preserve installed old hero packs and global calibration.
 - [x] PR Validate #1200 and Android #667 signed candidate PASS; main Validate #1201 and Android #668 PASS on app/source SHA `3831954613e63b7f30d0e12e0c940f36cb819fc0`.
 - [x] Merge reviewed PR #15 into main; verify signed main artifact `11681034643` and record `BUILD_CHECKPOINTS.md`.
-- [ ] User phone QA: source switching, save/load, original restore, lifecycle, 3s MP4 source parity. Full-song BUG-EXPORT-001 remains OPEN.
+- [x] Phone QA for four user-facing GF Mix checks: open/mix layers/live music continuity, save/reopen preset, adjust a layer, restore original. User reported **PASS 4/4**; release feature accepted.
+- [ ] Separate phone QA: orientation/lifecycle, 3-second MP4 source parity, and full-song export `BUG-EXPORT-001` (OPEN). Do not infer these from GF Mix PASS.
+- [ ] Next engineering slice: independent ordering of GF layers (z-order) with live/export visual parity and backward-compatible default ordering.
 - [ ] Future slice: arbitrary GF z-order, clip/mask, optional creature-half UI and missing-asset repair affordance.
 
 

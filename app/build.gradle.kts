@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 149
-        versionName = "0.19.60"
-        // v0.19.60: external PNG thumbnails and individual GF frame/FX/wordmark imports.
+        versionCode = 150
+        versionName = "0.19.61"
+        // v0.19.61: hide uninstalled prepared-hero placeholders from Theme Picker.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

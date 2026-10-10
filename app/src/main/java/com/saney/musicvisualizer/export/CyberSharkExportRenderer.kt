@@ -15,6 +15,8 @@ import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardAudioState
 import com.saney.musicvisualizer.board.BoardGroupReaction
 import com.saney.musicvisualizer.board.GraphicFigureAssets
+import com.saney.musicvisualizer.board.GfAssetRef
+import com.saney.musicvisualizer.board.GfAssetLibrary
 import com.saney.musicvisualizer.board.GraphicFigureCatalog
 import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerMotion
@@ -37,6 +39,7 @@ data class CyberSharkExportConfig(
     val groupReaction: BoardGroupReaction,
     val layerTransforms: Map<BoardLayerId, BoardLayerTransform>,
     val visibility: Map<BoardLayerId, Boolean>,
+    val assetOverrides: Map<BoardLayerId, GfAssetRef> = emptyMap(),
 )
 
 data class CyberSharkGpuGlow(
@@ -75,6 +78,7 @@ data class CyberSharkStageTiming(
 class CyberSharkExportRenderer(
     context: Context,
 ) {
+    private val contextForAssets = context.applicationContext
     private val resources = context.resources
     private val bitmapPaint =
         Paint(
@@ -206,18 +210,33 @@ class CyberSharkExportRenderer(
                     )
             }
 
+    // Export uses the exact same source IDs as the live GF renderer.
+    // Load once per export, never per video frame; don't silently substitute
+    // original artwork when a chosen source asset has disappeared.
+    private val overrideCache = mutableMapOf<GfAssetRef, Bitmap?>()
+
     private fun activeAssets(
         config: CyberSharkExportConfig,
-    ): GraphicFigureAssets =
-        figureAssets[
-            GraphicFigureCatalog
-                .normalize(
-                    config.figureThemeId,
-                )
-        ] ?: figureAssets
-            .getValue(
-                PlaybackThemeId.CYBER_SHARK,
-            )
+    ): GraphicFigureAssets {
+        val defaults = figureAssets[
+            GraphicFigureCatalog.normalize(config.figureThemeId)
+        ] ?: figureAssets.getValue(PlaybackThemeId.CYBER_SHARK)
+
+        fun selected(layer: BoardLayerId, fallback: Bitmap?): Bitmap? {
+            val ref = config.assetOverrides[layer] ?: return fallback
+            if (!overrideCache.containsKey(ref)) {
+                overrideCache[ref] = GfAssetLibrary.load(contextForAssets, ref)
+            }
+            return overrideCache[ref]
+        }
+
+        return if (config.assetOverrides.isEmpty()) defaults else GraphicFigureAssets(
+            frame = selected(BoardLayerId.FRAME, defaults.frame),
+            fx = selected(BoardLayerId.FX, defaults.fx),
+            creature = selected(BoardLayerId.CREATURE, defaults.creature),
+            wordmark = selected(BoardLayerId.WORDMARK, defaults.wordmark),
+        )
+    }
 
     private val frameReaction =
         BoardLayerReaction(

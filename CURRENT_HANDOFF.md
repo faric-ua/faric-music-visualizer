@@ -1,5 +1,14 @@
 # Current Handoff
 
+## CURRENT MAIN — v0.19.61/build150, cleaned Hero catalog (2026-10-11, PHONE QA PENDING)
+
+- User screenshot after build149: empty tiles such as Saber Tiger, Thunder Wolf, Arcane Specter, Inferno Phoenix labelled `СКОРО`; this is a **legacy uninstalled prepared-pack UI placeholder issue**, distinct from the correctly indexed external 10 PNG artworks.
+- **PR #18 merged**, exact app/source SHA `a474c46791fc1ca6b085590a7a2d0a00a4f827e5`; **PR Validate #1231 PASS, Android #678 PASS**; signed MAIN **Validate #1232 PASS, Android #679 PASS**, run `38093806830`, artifact `FARIC-Music-Visualizer-v0.19.61-Debug` ID `11684867412` (expires 2026-10-13T23:09:11Z). Later docs-only SHAs do not alter APK source.
+- Fix: `MainActivity.showThemePicker()` skips legacy `figure && !installed` before creating 248dp empty tile, keeping all installed themes, external `Мої зовнішні PNG` thumbnail cards, nonfigure themes and original ZIP import CTA. Hero count now reflects only installed graphics plus indexed external creature PNGs. Missing future package card will reappear only after prepared pack is installed. Source files, saved presets and SAF grants untouched; no reimport required.
+- **Phone QA required ONLY for new change:** after Termux **3 → 10 → 8**, not 9, install without clearing data. In Theme → Heroes verify future `СКОРО` cards gone and ten external PNG miniatures still present. Built-in Cyber Panther is not a future pack and its blank/unsupported preview, if persistent, needs a separate art-preview investigation.
+- Existing `BUG-EXPORT-001` full MP4, `LIFE-ROT-001` rotation and 3s export parity remain OPEN; prior GF Mix v147 phone 4/4 PASS preserved. Release `docs/checkpoints/2026-10-11-v0.19.61-hero-card-visibility.md`.
+
+
 ## CURRENT MAIN READY — v0.19.60 / build149, external PNG thumbnail and GF layer import (PHONE QA PENDING)
 
 - **User finding:** v0.19.59 already discovered ten original transparent PNG, but displayed **no miniature images**. They also asked how to separately load FARIC/FMV wordmarks, frames and FX. Root cause: previous external gallery contained text-only action pills; fixed legacy `СКОРО` themes do not map to external solo PNG. Previous code only indexed CREATURE category.

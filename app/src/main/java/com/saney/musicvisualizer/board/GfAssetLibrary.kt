@@ -27,12 +27,18 @@ object GfAssetLibrary {
                 }
                 types.map { GfAssetRef(packId.name, it) }
             }
-        } + ExternalPngHeroLibrary(context).list()
-            .map { GfAssetRef(it.id, GfArtType.CREATURE) }
+        } + listOf(
+            GfArtType.CREATURE,
+            GfArtType.FRAME,
+            GfArtType.FX,
+            GfArtType.WORDMARK,
+        ).flatMap { type ->
+            ExternalPngHeroLibrary(context).list(type).map { GfAssetRef(it.id, type) }
+        }
 
     fun title(context: Context, asset: GfAssetRef): String =
         if (asset.sourcePackId.startsWith("png_")) {
-            ExternalPngHeroLibrary(context).title(asset.sourcePackId) ?: "Зовнішній PNG"
+            ExternalPngHeroLibrary(context).title(asset.sourcePackId, asset.type) ?: "Зовнішній PNG"
         } else {
             GraphicFigureCatalog.title(PlaybackThemeId.valueOf(asset.sourcePackId))
         }
@@ -43,9 +49,10 @@ object GfAssetLibrary {
     fun load(context: Context, asset: GfAssetRef): Bitmap? {
         if (!available(context, asset)) return null
         if (asset.sourcePackId.startsWith("png_")) {
-            return if (asset.type == GfArtType.CREATURE) {
-                ExternalPngHeroLibrary(context).decode(asset.sourcePackId)
-            } else null
+            return ExternalPngHeroLibrary(context).decode(
+                id = asset.sourcePackId,
+                type = asset.type,
+            )
         }
         val packId = PlaybackThemeId.valueOf(asset.sourcePackId)
         return GraphicFigureCatalog.loadIndividualAsset(context, packId, asset.type)

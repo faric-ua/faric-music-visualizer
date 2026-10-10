@@ -24,23 +24,37 @@ class ExternalPngHeroLibrary(private val context: Context) {
 
     private val prefs = context.getSharedPreferences("faric_external_png_heroes_v1", Context.MODE_PRIVATE)
 
-    fun list(): List<Hero> = runCatching {
-        val arr = JSONArray(prefs.getString("items", "[]"))
+    private fun itemsKey(type: GfArtType) =
+        if (type == GfArtType.CREATURE) "items" else "items_${type.fileStem}"
+
+    private fun folderKey(type: GfArtType) =
+        if (type == GfArtType.CREATURE) "tree_uri" else "tree_uri_${type.fileStem}"
+
+    fun list(type: GfArtType = GfArtType.CREATURE): List<Hero> = runCatching {
+        val arr = JSONArray(prefs.getString(itemsKey(type), "[]"))
         (0 until arr.length()).map { n ->
             arr.getJSONObject(n).let { Hero(it.getString("id"), it.getString("title"), it.getString("uri")) }
         }
     }.getOrDefault(emptyList())
 
-    fun find(id: String): Hero? = list().firstOrNull { it.id == id }
+    fun find(id: String, type: GfArtType = GfArtType.CREATURE): Hero? =
+        list(type).firstOrNull { it.id == id }
 
-    fun title(id: String): String? = find(id)?.title
+    fun title(id: String, type: GfArtType = GfArtType.CREATURE): String? =
+        find(id, type)?.title
 
     /**
      * Requires the already user-approved ACTION_OPEN_DOCUMENT_TREE Uri.
      * Validation checks actual magic bytes, IHDR alpha color type, and
      * transparent pixels — not a filename ending alone.
      */
-    fun scanFolder(treeUri: Uri): ScanResult {
+    fun scanFolder(
+        treeUri: Uri,
+        type: GfArtType = GfArtType.CREATURE,
+    ): ScanResult {
+        require(type in setOf(GfArtType.CREATURE, GfArtType.FRAME, GfArtType.FX, GfArtType.WORDMARK)) {
+            "Unsupported external PNG category"
+        }
         val documentId = DocumentsContract.getTreeDocumentId(treeUri)
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, documentId)
         val docs = mutableListOf<Pair<String, Uri>>()
@@ -85,8 +99,8 @@ class ExternalPngHeroLibrary(private val context: Context) {
         // Even an empty folder scan is authoritative, but never overwrite
         // previously indexed heroes on a document-provider exception.
         prefs.edit()
-            .putString("tree_uri", treeUri.toString())
-            .putString("items", JSONArray().apply {
+            .putString(folderKey(type), treeUri.toString())
+            .putString(itemsKey(type), JSONArray().apply {
                 found.values.forEach { hero ->
                     put(JSONObject().apply {
                         put("id", hero.id)
@@ -99,12 +113,16 @@ class ExternalPngHeroLibrary(private val context: Context) {
         return ScanResult(found.size, rejected, duplicates)
     }
 
-    fun activeFolder(): Uri? =
-        prefs.getString("tree_uri", null)?.let(Uri::parse)
+    fun activeFolder(type: GfArtType = GfArtType.CREATURE): Uri? =
+        prefs.getString(folderKey(type), null)?.let(Uri::parse)
 
     /** Used only in worker threads, not per frame. Gracefully returns null for inaccessible files. */
-    fun decode(id: String, preferredDimension: Int = 1254): Bitmap? {
-        val hero = find(id) ?: return null
+    fun decode(
+        id: String,
+        preferredDimension: Int = 1254,
+        type: GfArtType = GfArtType.CREATURE,
+    ): Bitmap? {
+        val hero = find(id, type) ?: return null
         val uri = Uri.parse(hero.uri)
         return runCatching {
             if (!validPngHeader(uri)) return null

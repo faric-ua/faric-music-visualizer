@@ -4,7 +4,8 @@
 
 - [x] Inspect last signed v0.19.57/build146 and source contracts before changing code.
 - [x] Introduce immutable reusable `GfAssetRef`, optional `CREATURE_HALF`, mixed-source `GfComposition` with ordering and transform validation, persistent reference-only store, targeted bitmap resolver and JVM tests on an isolated feature branch.
-- [ ] Verify PR Validate/Android CI before merging or releasing. No Android/app upgrade while build146 MP4 phone QA is unresolved.
+- [x] Verify PR Validate #1179 PASS and Android #646 PASS on PR app/source SHA `72122cdbfcadffa0d2406d02a78f2626157dbf0b`. CI is PR-only; no new main release.
+- [ ] Review/merge PR and set an intentional next Android release boundary; no Android/app upgrade while build146 MP4 phone QA is unresolved.
 - [ ] Follow-on: user-facing per-object catalog selectors, saved preset management, common preview/export composition render path and phone QA. Do not claim the foundation alone makes this visible in the APK.
 - [ ] Keep `BUG-EXPORT-001` and `LIFE-ROT-001` open until actual physical-phone evidence; preserve Cyber Shark and the immutable `PULSEDECK_CENTER_CALIBRATION`.
 

@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 146
-        versionName = "0.19.57"
-        // v0.19.57: direct full-length MediaStore mux, storage guard and finalize cleanup.
+        versionCode = 147
+        versionName = "0.19.58"
+        // v0.19.58: GF Quick Mix picker, persistence, live + export shared asset IDs.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

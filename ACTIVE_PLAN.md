@@ -1,5 +1,17 @@
 # Active Plan
 
+## Current development: v0.19.58 / build147 — GF Quick Mix (PR #15)
+
+- [x] Implement four-source GF picker in existing Board editor, named saved presets and reversible original selection.
+- [x] Persist mixed-layer transforms/visibility independently of original hero preferences; include auto-spin.
+- [x] Use the identical selected source IDs in live preview and Canvas/GPU export without per-frame bitmap decoding.
+- [x] Add model/rotation tests; preserve installed old hero packs and global calibration.
+- [ ] PR Validate + Android signed candidate PASS after v147 version bump; verify real state in GitHub.
+- [ ] Merge reviewed PR #15 into main; verify new main Validate/Android and record signed artifact in BUILD_CHECKPOINTS.
+- [ ] User phone QA: source switching, save/load, original restore, lifecycle, 3s MP4 source parity. Full-song BUG-EXPORT-001 remains OPEN.
+- [ ] Future slice: arbitrary GF z-order, clip/mask, optional creature-half UI and missing-asset repair affordance.
+
+
 ## GF CODE foundation (2026-10-10)
 
 - [x] Inspect last signed v0.19.57/build146 and source contracts before changing code.

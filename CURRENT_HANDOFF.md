@@ -1,6 +1,11 @@
 # Current Handoff
 
-## ACTIVE SOURCE WORK — external PNG-only Hero gallery, v0.19.59/build148 PR #16
+## CURRENT MAIN SIGNED RELEASE — v0.19.59 / build148, external PNG-only Hero gallery (PHONE PENDING)
+
+- Merged PR #16 app/source `be0254dc317640f1a245002daebc5c1917040335`; main **Validate #1218 PASS / Android #675 PASS**, signed run `38087510985`, artifact `FARIC-Music-Visualizer-v0.19.59-Debug` ID `11682599996`, expiry 2026-10-13T21:28:24Z. Main docs-only commits after that do not change app code.
+- **User first action:** get chat `PulseDeck_10_External_PNG_Heroes.zip`, extract `PulseDeck_Heroes` into Documents, Termux **3 → 10 → 8** **(not 9)** install over current app keeping all data; Theme Picker/Board → `Зовнішні PNG-герої` → grant read-only folder → choose by filename. 10/10 original RGBA transparent PNG verified, no JPG, final two scorpions distinct.
+- Gallery sources read via persisted SAF file URI only, not embedded/copied into APK or app private data. Only active hero gets decoded; export no longer eagerly loads all hero packs. Standard external hero is the only visible GF object. Original GF assets and preferences remain unmodified, v147 GF Mix 4/4 phone PASS preserved.
+- **Phone QA for v148 NOT DONE**. New acceptance: 10 listed, switch heroes with continuing playback, restore prior original, persist folder after relaunch; short MP4 parity optional. `BUG-EXPORT-001` and `LIFE-ROT-001` stay OPEN, not covered by CI or user v147 acceptance. Next scope GF arbitrary z-order after this phone round.
 
 - User sent ten separate real PNG RGBA (1254×1254) images in this conversation; checked PNG signatures and alpha (0..255), **no JPG**. Both similar scorpion uploads `607614.png` and `607610.png` are different images; retain BOTH. An unmodified original-byte 10-PNG ZIP was prepared for direct user download in chat, not committed to app.
 - Branch `feat/v0.19.59-external-png-heroes`, PR #16. Implemented SAF DocumentTree read-only external directory selection, persistence of directory access, content PNG/RGBA validation (not extension alone), visible-alpha detection, SHA-256 byte-identity dedupe, external indexed URI references, scrollable hero chooser from Board/Theme Picker, solo live PNG display (no old Frame/FX/Wordmark), and support for choosing an external Creature in GF Mix. Bitmap decoded only when active. Replaced export renderer's eager full catalog bitmap decode with lazy current Hero decode.

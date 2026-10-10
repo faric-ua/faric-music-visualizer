@@ -55,6 +55,12 @@ class GfMixController(private val context: Context) {
     }
 
     fun visible(layer: BoardLayerId, original: Boolean): Boolean {
+        if (layer == BoardLayerId.BACKGROUND &&
+            active()?.instances?.any {
+                it.asset.type == GfArtType.CREATURE &&
+                    it.asset.sourcePackId.startsWith("png_")
+            } == true
+        ) return false
         val type = typeOf(layer) ?: return original
         return active()?.instances?.firstOrNull { it.asset.type == type }?.visible ?: original
     }

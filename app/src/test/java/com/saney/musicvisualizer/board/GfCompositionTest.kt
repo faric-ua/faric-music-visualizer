@@ -77,6 +77,23 @@ class GfCompositionTest {
         assertEquals("HERO_VOID_DRAGON", instance.asset.sourcePackId)
     }
 
+    @Test
+    fun storedFrameRotationAndOpacitySurviveSanitization() {
+        val part = GfLayerInstance(
+            "rotating-frame",
+            GfAssetRef("CYBER_PANTHER", GfArtType.FRAME),
+            autoRotationDegreesPerSecond = -54f,
+            rotationDegrees = 20f,
+            opacity = 0.42f,
+        ).sanitized()
+        assertEquals(-54f, part.autoRotationDegreesPerSecond, 0f)
+        assertEquals(20f, part.rotationDegrees, 0f)
+        assertEquals(0.42f, part.opacity, 0f)
+        val invalid = part.copy(autoRotationDegreesPerSecond = Float.POSITIVE_INFINITY)
+            .sanitized()
+        assertEquals(0f, invalid.autoRotationDegreesPerSecond, 0f)
+    }
+
     @Test(expected = IllegalArgumentException::class)
     fun duplicateInstanceIdsAreRejected() {
         val ref = GfAssetRef("CYBER_SHARK", GfArtType.FRAME)

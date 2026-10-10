@@ -271,9 +271,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private var heroCatalogExpanded = false
 
+    private var pendingExternalPngType = GfArtType.CREATURE
+
     private val selectExternalPngFolder =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
             if (uri != null) {
+                val selectedType = pendingExternalPngType
                 val access = runCatching {
                     contentResolver.takePersistableUriPermission(
                         uri, Intent.FLAG_GRANT_READ_URI_PERMISSION,
@@ -285,16 +288,24 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     toast("Перевіряю PNG у вибраній папці…")
                     thread(name = "faric-saf-png-index") {
                         val result = runCatching {
-                            ExternalPngHeroLibrary(applicationContext).scanFolder(uri)
+                            ExternalPngHeroLibrary(applicationContext)
+                                .scanFolder(uri, selectedType)
                         }
                         runOnUiThread {
                             if (!isFinishing && !isDestroyed) {
                                 result.onSuccess { scan ->
                                     toast(
-                                        "PNG героїв: ${scan.accepted} · пропущено: " +
+                                        "PNG ${selectedType.fileStem}: ${scan.accepted} · пропущено: " +
                                             "${scan.rejected} · повтори: ${scan.duplicates}",
                                     )
-                                    showExternalPngHeroes()
+                                    if (selectedType == GfArtType.CREATURE) {
+                                        heroCatalogExpanded = true
+                                        if (screen == Screen.THEME_PICKER) {
+                                            showThemePicker()
+                                        } else showExternalPngHeroes()
+                                    } else {
+                                        showGfMixPicker()
+                                    }
                                 }.onFailure { e ->
                                     PulseDeckDialogs.showMessage(
                                         this, "Помилка PNG",
@@ -1584,69 +1595,119 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
+    private fun activateExternalPngHero(id: String) {
+        val selected = ExternalPngHeroLibrary(this).find(id)
+        if (selected == null) {
+            toast("PNG недоступний. Обери папку повторно.")
+            return
+        }
+        val theme = currentGraphicFigureThemeId()
+        val ok = gfMixController.showStandalonePng(
+            sourceId = selected.id,
+            themeId = theme,
+            baseline = boardLayerTransformStore.loadAll(theme),
+            visible = { layer ->
+                layerObjectVisible(
+                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                    layer.name.lowercase(),
+                )
+            },
+            onChanged = {
+                setLayerVisible(PulseDeckLayerStack.Layer.GRAPHIC_FIGURES, true)
+                refreshGfMixArtwork(forceOriginal = true)
+            },
+        )
+        if (ok) {
+            toast("PNG-герой: ${selected.title}")
+            if (screen == Screen.THEME_PICKER) showNowPlaying()
+        } else {
+            toast("Не вдалося застосувати PNG-героя")
+        }
+    }
+
     private fun showExternalPngHeroes() {
         val library = ExternalPngHeroLibrary(this)
         val items = library.list()
-        val options = listOf("📁 Обрати або змінити папку PNG") +
-            items.mapIndexed { index, hero -> "${index + 1}. ${hero.title}" }
-        val list = LinearLayout(this).apply {
-            orientation = LinearLayout.VERTICAL
-        }
+        val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         lateinit var dialog: android.app.Dialog
-        options.forEachIndexed { index, title ->
-            list.addView(
-                actionPill(text = title, accent = false) {
-                    dialog.dismiss()
-                    if (index == 0) {
-                        selectExternalPngFolder.launch(library.activeFolder())
-                    } else {
-                        val selected = items[index - 1]
-                        val theme = currentGraphicFigureThemeId()
-                        val ok = gfMixController.showStandalonePng(
-                            sourceId = selected.id,
-                            themeId = theme,
-                            baseline = boardLayerTransformStore.loadAll(theme),
-                            visible = { layer ->
-                                layerObjectVisible(
-                                    PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-                                    layer.name.lowercase(),
-                                )
-                            },
-                            onChanged = {
-                                setLayerVisible(PulseDeckLayerStack.Layer.GRAPHIC_FIGURES, true)
-                                refreshGfMixArtwork(forceOriginal = true)
-                            },
-                        )
-                        if (!ok) {
-                            PulseDeckDialogs.showMessage(
-                                this, "PNG недоступний",
-                                "Файл переміщено або доступ втрачено. Повторно вибери папку.",
-                            )
-                        } else {
-                            toast("PNG-герой: ${selected.title}")
-                            if (screen == Screen.THEME_PICKER) showNowPlaying()
-                        }
-                    }
+        list.addView(
+            actionPill(text = "📁 Обрати або змінити папку героїв", accent = false) {
+                dialog.dismiss()
+                requestExternalPngFolder(GfArtType.CREATURE)
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, dp(48),
+            ).apply { bottomMargin = dp(9) },
+        )
+        val thumbs = mutableListOf<Pair<ExternalPngHeroLibrary.Hero, ImageView>>()
+        items.forEachIndexed { index, hero ->
+            val row = LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+            }
+            val image = ImageView(this).apply {
+                scaleType = ImageView.ScaleType.FIT_CENTER
+                setBackgroundColor(COLOR_PANEL)
+            }
+            row.addView(
+                image,
+                LinearLayout.LayoutParams(dp(78), dp(78)).apply {
+                    marginEnd = dp(8)
                 },
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(48),
-                ).apply { bottomMargin = dp(7) },
             )
+            row.addView(
+                actionPill(
+                    text = "${index + 1}. ${hero.title}",
+                    accent = gfMixController.overrides()[BoardLayerId.CREATURE]?.sourcePackId == hero.id,
+                ) {
+                    dialog.dismiss()
+                    activateExternalPngHero(hero.id)
+                },
+                LinearLayout.LayoutParams(0, dp(78), 1f),
+            )
+            list.addView(
+                row, LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply { bottomMargin = dp(8) },
+            )
+            thumbs.add(hero to image)
         }
-        val scroll = ScrollView(this).apply {
-            addView(list)
+        if (items.isEmpty()) {
+            list.addView(label(
+                "Знайдені PNG з'являться тут із мініатюрами після вибору папки.",
+                13f, COLOR_MUTED, false,
+            ))
         }
-        // Ten or more heroes must be reachable; fixed-height scrolling content.
+        val scroll = ScrollView(this).apply { addView(list) }
         scroll.layoutParams = LinearLayout.LayoutParams(
             ViewGroup.LayoutParams.MATCH_PARENT,
-            (resources.displayMetrics.heightPixels * 0.53f).toInt(),
+            (resources.displayMetrics.heightPixels * 0.54f).toInt(),
         )
         dialog = PulseDeckDialogs.show(
             context = this,
-            title = "Зовнішні PNG-герої · ${items.size}",
+            title = "Мої PNG-герої · ${items.size}",
             body = scroll,
             actions = listOf(PulseDeckDialogs.Action("Закрити") {}),
+        )
+        // Decode only 128px previews while this dialog remains on screen.
+        thread(name = "faric-external-png-thumbnails") {
+            thumbs.forEach { (hero, image) ->
+                if (!dialog.isShowing) return@thread
+                val bitmap = library.decode(hero.id, preferredDimension = 128)
+                runOnUiThread {
+                    if (dialog.isShowing && image.parent != null) {
+                        image.setImageBitmap(bitmap)
+                    } else bitmap?.recycle()
+                }
+            }
+        }
+    }
+
+    private fun requestExternalPngFolder(type: GfArtType) {
+        pendingExternalPngType = type
+        selectExternalPngFolder.launch(
+            ExternalPngHeroLibrary(this).activeFolder(type),
         )
     }
 
@@ -1663,6 +1724,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
             onChanged = {
                 refreshGfMixArtwork(forceOriginal = true)
+            },
+            onImportExternalPng = { type ->
+                requestExternalPngFolder(type)
             },
         )
     }

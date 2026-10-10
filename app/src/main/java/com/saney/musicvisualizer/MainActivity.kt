@@ -50,6 +50,7 @@ import com.saney.musicvisualizer.board.GraphicFigureAssets
 import com.saney.musicvisualizer.board.GfAssetLibrary
 import com.saney.musicvisualizer.board.GfArtType
 import com.saney.musicvisualizer.board.GfMixController
+import com.saney.musicvisualizer.board.ExternalPngHeroLibrary
 import com.saney.musicvisualizer.board.UserHeroPack
 import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerTransform
@@ -269,6 +270,43 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var pendingOpenAfterPermission = false
 
     private var heroCatalogExpanded = false
+
+    private val selectExternalPngFolder =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            if (uri != null) {
+                val access = runCatching {
+                    contentResolver.takePersistableUriPermission(
+                        uri, Intent.FLAG_GRANT_READ_URI_PERMISSION,
+                    )
+                }
+                if (access.isFailure) {
+                    toast("Не вдалося зберегти доступ до папки PNG")
+                } else {
+                    toast("Перевіряю PNG у вибраній папці…")
+                    thread(name = "faric-saf-png-index") {
+                        val result = runCatching {
+                            ExternalPngHeroLibrary(applicationContext).scanFolder(uri)
+                        }
+                        runOnUiThread {
+                            if (!isFinishing && !isDestroyed) {
+                                result.onSuccess { scan ->
+                                    toast(
+                                        "PNG героїв: ${scan.accepted} · пропущено: " +
+                                            "${scan.rejected} · повтори: ${scan.duplicates}",
+                                    )
+                                    showExternalPngHeroes()
+                                }.onFailure { e ->
+                                    PulseDeckDialogs.showMessage(
+                                        this, "Помилка PNG",
+                                        e.message ?: "Не вдалося прочитати папку",
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        }
 
     private val openHeroArchive =
         registerForActivityResult(ActivityResultContracts.OpenDocument()) { uri ->
@@ -1541,6 +1579,51 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             ),
                         ),
                     )
+                }
+            }
+        }
+    }
+
+    private fun showExternalPngHeroes() {
+        val library = ExternalPngHeroLibrary(this)
+        val items = library.list()
+        val actions = listOf("📁 Вибрати або змінити папку PNG") +
+            items.mapIndexed { i, hero ->
+                "${i + 1}. ${hero.title}"
+            }
+        PulseDeckDialogs.showActionList(
+            context = this,
+            title = "Зовнішні PNG-герої · ${items.size}",
+            items = actions,
+        ) { index ->
+            if (index == 0) {
+                selectExternalPngFolder.launch(library.activeFolder())
+            } else {
+                val selected = items[index - 1]
+                val theme = currentGraphicFigureThemeId()
+                val ok = gfMixController.showStandalonePng(
+                    sourceId = selected.id,
+                    themeId = theme,
+                    baseline = boardLayerTransformStore.loadAll(theme),
+                    visible = { layer ->
+                        layerObjectVisible(
+                            PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                            layer.name.lowercase(),
+                        )
+                    },
+                    onChanged = {
+                        setLayerVisible(PulseDeckLayerStack.Layer.GRAPHIC_FIGURES, true)
+                        refreshGfMixArtwork(forceOriginal = true)
+                    },
+                )
+                if (!ok) {
+                    PulseDeckDialogs.showMessage(
+                        this, "PNG недоступний",
+                        "Файл переміщено або доступ втрачено. Повторно вибери папку.",
+                    )
+                } else {
+                    toast("PNG-герой: ${selected.title}")
+                    if (screen == Screen.THEME_PICKER) showNowPlaying()
                 }
             }
         }
@@ -5814,6 +5897,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 dp(42),
             ),
         )
+        panelContent.addView(
+            actionPill(
+                text = "▣ Зовнішні PNG-герої · вибір із папки",
+                accent = false,
+            ) { showExternalPngHeroes() },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(42),
+            ),
+        )
 
         val selectorScroll =
             HorizontalScrollView(this).apply {
@@ -9041,6 +9134,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 (if (heroCatalogExpanded) "▾ " else "▸ ") +
                 "Герої · ${GraphicFigureCatalog.ids.size}"
         }
+        content.addView(
+            actionPill(
+                text = "▣ Зовнішні PNG-герої · файли з пам'яті телефону",
+                accent = false,
+            ) { showExternalPngHeroes() },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(48),
+            ).apply { topMargin = dp(10) },
+        )
+
         content.addView(heroFamily)
         val importArchiveButton = label(
             "＋ Додати підготовлений пакет героїв",

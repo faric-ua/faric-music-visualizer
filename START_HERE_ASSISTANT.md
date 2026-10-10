@@ -1,5 +1,12 @@
 # FARIC Music Visualizer — START HERE
 
+## CURRENT DEV — v0.19.59 / build148 external PNG hero folder (PR #16, NOT YET PHONE-ACCEPTED)
+
+- **User next action: DO NOT install an APK until PR merges and main signed Android PASS.** v0.19.58/build147 remains installed and GF Quick Mix has user phone PASS 4/4. New user-provided images were all verified as **ten real transparent RGBA PNG**; last two scorpions similar but distinct. User downloads the separate `PulseDeck_10_External_PNG_Heroes.zip` directly from this conversation (not built into APK), unzips `PulseDeck_Heroes` into Documents; only once a new signed main app build exists, goes to Board or Themes → `Зовнішні PNG-герої` → Android folder chooser → that folder and switches between filenames.
+- New source lives in PR #16 `feat/v0.19.59-external-png-heroes`; PNGs are **never committed/bundled**. App saves SAF read permission and URI refs, reads only the selected actual PNG, rejects JPG/invalid/no-alpha, deduplicates byte-identical PNGs and keeps distinct scorpion variants. New asset gallery is read-only, on-device, no extra projectM/gl restart, and the export renderer no longer eagerly loads the whole Hero asset catalog.
+- Gate: reviewed PR Validate/Android, then merged signed main build148 CI PASS, then one compact phone QA; `BUG-EXPORT-001` MP4 and `LIFE-ROT-001` still open. Contract: `docs/checkpoints/2026-10-11-v0.19.59-external-png-heroes.md`.
+
+
 ## CURRENT MAIN RELEASE — v0.19.58 / build147, GF Quick Mix (PHONE QA 4/4 PASS)
 
 **FIRST USER ACTION RIGHT NOW: NONE.** User explicitly reported on phone: `PulseDeck v0.19.58 / build147: PASS. Усі чотири перевірки пройдено.` Confirmed: Board GF Mix opens, frame/creature/wordmark can be chosen across packs and visibly update without restarting music, a custom preset saves and reopens, per-layer position/scale edits apply, and original emblem restores. The user has already installed and tested this APK. **DO NOT tell the user to reinstall, re-download, or repeat those four tests.**

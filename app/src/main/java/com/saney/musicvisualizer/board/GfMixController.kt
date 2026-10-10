@@ -55,6 +55,12 @@ class GfMixController(private val context: Context) {
     }
 
     fun visible(layer: BoardLayerId, original: Boolean): Boolean {
+        if (layer == BoardLayerId.BACKGROUND &&
+            active()?.instances?.any {
+                it.asset.type == GfArtType.CREATURE &&
+                    it.asset.sourcePackId.startsWith("png_")
+            } == true
+        ) return false
         val type = typeOf(layer) ?: return original
         return active()?.instances?.firstOrNull { it.asset.type == type }?.visible ?: original
     }
@@ -120,6 +126,24 @@ class GfMixController(private val context: Context) {
         )
     }
 
+    fun showStandalonePng(
+        sourceId: String,
+        themeId: PlaybackThemeId,
+        baseline: Map<BoardLayerId, BoardLayerTransform>,
+        visible: (BoardLayerId) -> Boolean,
+        onChanged: () -> Unit,
+    ): Boolean {
+        if (ExternalPngHeroLibrary(context).find(sourceId) == null) return false
+        val initial = working(themeId, baseline, visible)
+        val ref = GfAssetRef(sourceId, GfArtType.CREATURE)
+        val candidate = initial.copy(instances = initial.instances.map { part ->
+            if (part.asset.type == GfArtType.CREATURE) {
+                part.copy(asset = ref, visible = true)
+            } else part.copy(visible = false)
+        })
+        return activate(candidate, onChanged)
+    }
+
     private fun activate(candidate: GfComposition, onChanged: () -> Unit): Boolean {
         val needed = setOf(GfArtType.FRAME, GfArtType.FX, GfArtType.CREATURE, GfArtType.WORDMARK)
         val refs = candidate.instances.filter { it.asset.type in needed }.map { it.asset }
@@ -153,9 +177,8 @@ class GfMixController(private val context: Context) {
         )
         val titles = parts.map { (type, title) ->
             val part = mix.instances.firstOrNull { it.asset.type == type }
-            val source = part?.asset?.sourcePackId?.let {
-                runCatching { GraphicFigureCatalog.title(PlaybackThemeId.valueOf(it)) }.getOrNull()
-            } ?: "відсутній"
+            val source = part?.asset?.let { GfAssetLibrary.title(context, it) }
+                ?: "відсутній"
             "$title · $source"
         }
         PulseDeckDialogs.showActionList(
@@ -176,7 +199,7 @@ class GfMixController(private val context: Context) {
                         val checked = available.indexOf(mix.instances.firstOrNull { it.asset.type == type }?.asset)
                         PulseDeckDialogs.showSingleChoice(
                             context, "Обрати · ${parts[index].second}",
-                            available.map { GraphicFigureCatalog.title(PlaybackThemeId.valueOf(it.sourcePackId)) },
+                            available.map { GfAssetLibrary.title(context, it) },
                             checkedIndex = checked,
                         ) { i ->
                             val changed = mix.copy(instances = mix.instances.map { part ->

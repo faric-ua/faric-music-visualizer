@@ -27,6 +27,14 @@ object GfAssetLibrary {
                 }
                 types.map { GfAssetRef(packId.name, it) }
             }
+        } + ExternalPngHeroLibrary(context).list()
+            .map { GfAssetRef(it.id, GfArtType.CREATURE) }
+
+    fun title(context: Context, asset: GfAssetRef): String =
+        if (asset.sourcePackId.startsWith("png_")) {
+            ExternalPngHeroLibrary(context).title(asset.sourcePackId) ?: "Зовнішній PNG"
+        } else {
+            GraphicFigureCatalog.title(PlaybackThemeId.valueOf(asset.sourcePackId))
         }
 
     fun available(context: Context, asset: GfAssetRef): Boolean =
@@ -34,6 +42,11 @@ object GfAssetLibrary {
 
     fun load(context: Context, asset: GfAssetRef): Bitmap? {
         if (!available(context, asset)) return null
+        if (asset.sourcePackId.startsWith("png_")) {
+            return if (asset.type == GfArtType.CREATURE) {
+                ExternalPngHeroLibrary(context).decode(asset.sourcePackId)
+            } else null
+        }
         val packId = PlaybackThemeId.valueOf(asset.sourcePackId)
         return GraphicFigureCatalog.loadIndividualAsset(context, packId, asset.type)
     }

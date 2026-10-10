@@ -1,5 +1,17 @@
 # Active Plan
 
+## NEXT — v0.19.59/build148 external PNG hero gallery (PR #16)
+
+- [x] Inspect all ten newly uploaded images: actual PNG/RGBA, 1254×1254, real alpha; no JPG. Two cyber-scorpion variants similar but not identical, keep both.
+- [x] Prepare ZIP with the **unchanged ten PNG byte streams** for Documents; do not copy them into APK.
+- [x] Implement read-only SAF DocumentTree folder selection, persisted permission, content signature/alpha validation and byte-identical deduplication with an external URI catalog.
+- [x] Add standalone PNG hero picker from Board and Theme Picker; source can be used as a GF Creature reference and exported, with async decode and current-only bitmap caching.
+- [ ] PR #16 Validate/Android PASS, review then merge.
+- [ ] Main signed build148 CI PASS and release checkpoint; phone installation only afterward via Termux 3 → 10 → 8.
+- [ ] One phone QA batch: import directory, choose 10 items, switch/restore during playback, retain after relaunch; MP4 source parity optional.
+- [ ] Remaining separate: custom GF z-order, half-body selector, full-song MP4 `BUG-EXPORT-001`, `LIFE-ROT-001`.
+
+
 ## CURRENT RELEASE: v0.19.58 / build147 — GF Quick Mix (main signed CI PASS; phone QA PENDING)
 
 - [x] Implement four-source GF picker in existing Board editor, named saved presets and reversible original selection.

@@ -1,5 +1,14 @@
 # Current Handoff
 
+## ACTIVE SOURCE WORK — external PNG-only Hero gallery, v0.19.59/build148 PR #16
+
+- User sent ten separate real PNG RGBA (1254×1254) images in this conversation; checked PNG signatures and alpha (0..255), **no JPG**. Both similar scorpion uploads `607614.png` and `607610.png` are different images; retain BOTH. An unmodified original-byte 10-PNG ZIP was prepared for direct user download in chat, not committed to app.
+- Branch `feat/v0.19.59-external-png-heroes`, PR #16. Implemented SAF DocumentTree read-only external directory selection, persistence of directory access, content PNG/RGBA validation (not extension alone), visible-alpha detection, SHA-256 byte-identity dedupe, external indexed URI references, scrollable hero chooser from Board/Theme Picker, solo live PNG display (no old Frame/FX/Wordmark), and support for choosing an external Creature in GF Mix. Bitmap decoded only when active. Replaced export renderer's eager full catalog bitmap decode with lazy current Hero decode.
+- Users keep their PNGs in Android Documents; none are included in APK, and app never copies PNG bytes to private data. Active image still uses GPU/CPU memory. Existing user-prepared ZIP/WebP mechanism remains separate and backward compatible.
+- **DO NOT** recheck accepted v0.19.58/build147 GF Quick Mix 4/4 PASS. **Phone checks for build148 NOT STARTED**. CI review/merge/main signed artifact needed before asking the user to install new APK; MP4 long-song BUG-EXPORT-001 / rotation LIFE-ROT-001 not closed.
+- Release plan `docs/checkpoints/2026-10-11-v0.19.59-external-png-heroes.md`. Keep immutable calibration, projectM, original GF art and v147 accepted behavior.
+
+
 ## PHONE ACCEPTANCE — v0.19.58 / build147 GF Quick Mix (4/4 PASS)
 
 User confirmed: `Перевірка PulseDeck v0.19.58 / build147: PASS. Усі чотири перевірки пройдено.` This is actual user-reported phone QA for the four requested checks: Board → GF Мікс opens; frame/hero/wordmark from differing source packs change the live emblem without stopping music; save/reopen saved preset; adjust one layer then restore original. Mark **GF-QUICK-MIX-PHONE-001 PASS / ACCEPTED**. No repeat phone testing or reinstallation required for these checks.

@@ -195,20 +195,10 @@ class CyberSharkExportRenderer(
                     1_000_000L,
         )
 
-    private val figureAssets:
-        Map<
-            PlaybackThemeId,
-            GraphicFigureAssets,
-            > =
-        GraphicFigureCatalog
-            .ids
-            .associateWith { themeId ->
-                GraphicFigureCatalog
-                    .loadAssets(
-                        context,
-                        themeId,
-                    )
-            }
+    // Do not decode the full ten-hero collection at export startup.
+    // Only the currently selected base GF may need legacy bitmaps.
+    private val figureAssets = mutableMapOf<PlaybackThemeId, GraphicFigureAssets>()
+
 
     // Export uses the exact same source IDs as the live GF renderer.
     // Load once per export, never per video frame; don't silently substitute
@@ -218,9 +208,19 @@ class CyberSharkExportRenderer(
     private fun activeAssets(
         config: CyberSharkExportConfig,
     ): GraphicFigureAssets {
-        val defaults = figureAssets[
-            GraphicFigureCatalog.normalize(config.figureThemeId)
-        ] ?: figureAssets.getValue(PlaybackThemeId.CYBER_SHARK)
+        val externalSolo = config.assetOverrides[BoardLayerId.CREATURE]
+            ?.sourcePackId?.startsWith("png_") == true &&
+            config.visibility[BoardLayerId.FRAME] == false &&
+            config.visibility[BoardLayerId.FX] == false &&
+            config.visibility[BoardLayerId.WORDMARK] == false
+        val defaults = if (externalSolo) {
+            GraphicFigureAssets(null, null, null, null)
+        } else {
+            val theme = GraphicFigureCatalog.normalize(config.figureThemeId)
+            figureAssets.getOrPut(theme) {
+                GraphicFigureCatalog.loadAssets(contextForAssets, theme)
+            }
+        }
 
         fun selected(layer: BoardLayerId, fallback: Bitmap?): Bitmap? {
             val ref = config.assetOverrides[layer] ?: return fallback

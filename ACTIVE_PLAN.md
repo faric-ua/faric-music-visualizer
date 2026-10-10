@@ -1,5 +1,15 @@
 # Active Plan
 
+## GF CODE foundation (2026-10-10)
+
+- [x] Inspect last signed v0.19.57/build146 and source contracts before changing code.
+- [x] Introduce immutable reusable `GfAssetRef`, optional `CREATURE_HALF`, mixed-source `GfComposition` with ordering and transform validation, persistent reference-only store, targeted bitmap resolver and JVM tests on an isolated feature branch.
+- [ ] Verify PR Validate/Android CI before merging or releasing. No Android/app upgrade while build146 MP4 phone QA is unresolved.
+- [ ] Follow-on: user-facing per-object catalog selectors, saved preset management, common preview/export composition render path and phone QA. Do not claim the foundation alone makes this visible in the APK.
+- [ ] Keep `BUG-EXPORT-001` and `LIFE-ROT-001` open until actual physical-phone evidence; preserve Cyber Shark and the immutable `PULSEDECK_CENTER_CALIBRATION`.
+
+
+
 ## GF ART 2026-10-10 — 14 real LFS PNG recovered, nine lossless whole-GF candidates made, layered split still QA OPEN
 
 - This is **art repo only**, NOT an Android app/build change. Asset repository: `faric-ua/faric-music-visualizer-assets`.

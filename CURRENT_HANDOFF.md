@@ -1,5 +1,16 @@
 # Current Handoff
 
+## GF ART 2026-10-10 — 14 real LFS PNG recovered, nine lossless whole-GF candidates made, layered split still QA OPEN
+
+- This is **art repo only**, NOT an Android app/build change. Asset repository: `faric-ua/faric-music-visualizer-assets`.
+- Exact real source audit: GitHub Actions **`38058620723` PASS**. All **14/14** nine-Hero originals physically downloaded from Git LFS; SHA-256 and sizes exact against manifest; all **1254×1254 true RGBA with transparent exterior**.
+- Workbench whole candidates: GitHub Actions **`38059291642` PASS**, 9/9 physically committed lossless `full.webp` and `preview.webp`, manifest with source hashes at `workbench/whole-gf-candidates/<slug>/`. Decoded WebP exact **visible pixel and alpha** parity with original. **Whole GF candidates are NOT independent layers**; app does not package them yet. User's Cyber Shark benchmark not touched.
+- Actual visual review: all nine high-quality source images visibly flatten **wordmark over creature/frame/FX**. Initial verdict **SEGMENT_PLUS_FIX for all nine**, no whole-hero full redraw warranted merely for source quality. `creature-half` optional only after case-by-case examination, **not universal**.
+- First trial of Panther wordmark extraction **done but VISUAL QA FAIL**: `workbench/cyber-panther/wordmark-mask-prototype/DRAFT_wordmark.png` (plus mask and remainder) has missing letter contours and visual contamination. DO NOT promote to production. Need proper art mask cleanup and selectively reconstruct occluded frame/creature instead of cropping.
+- Real asset repo source of truth: `reports/HERO_SEGMENTATION_WORKPLAN.md`, `reports/HERO_SOURCE_AUDIT.md`, `reports/WHOLE_GF_CANDIDATES.md`. Asset CI workflows and pixel-tested scripts committed. **No user Termux/APK action required for asset preparation**. Original `Pictures2.zip` still absent, but we have earlier master designs from LFS and can continue without user reupload for source reference.
+- **Phone QA for build146 full-song export remains separate and OPEN**; don't mark BUG-EXPORT-001 PASS from this art work, don't change `PULSEDECK_CENTER_CALIBRATION`, audio/export, layer-3 runtime or its signed source SHA.
+
+
 ## CURRENT RELEASE — v0.19.57 / build146, full-song MP4 finalization (2026-10-09)
 
 **FIRST USER ACTION:** **ЗАРАЗ: встановити підписану v0.19.57 / build146 через Termux 3 → 10 → 8, НЕ натискати 9.** Потім **ОДИН** тест повної пісні (не 3с), не переперевіряти інші функції. До встановлення стару версію з відомим full-song crash не тестувати повторно.

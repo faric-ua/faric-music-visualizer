@@ -47,6 +47,7 @@ class GfMixController(private val context: Context) {
                     offsetYFraction = part.y,
                     scale = part.scale,
                     rotationDegrees = part.rotationDegrees,
+                    autoRotationDegreesPerSecond = part.autoRotationDegreesPerSecond,
                     opacity = part.opacity,
                 ).sanitized()
             }
@@ -68,6 +69,7 @@ class GfMixController(private val context: Context) {
                 y = safe.offsetYFraction,
                 scale = safe.scale,
                 rotationDegrees = safe.rotationDegrees,
+                autoRotationDegreesPerSecond = safe.autoRotationDegreesPerSecond,
                 opacity = safe.opacity,
             ) else part
         }))
@@ -102,6 +104,7 @@ class GfMixController(private val context: Context) {
                     visible = visible(layer),
                     x = t.offsetXFraction, y = t.offsetYFraction,
                     scale = t.scale, rotationDegrees = t.rotationDegrees,
+                    autoRotationDegreesPerSecond = t.autoRotationDegreesPerSecond,
                     opacity = t.opacity, zOrder = i,
                 )
             },

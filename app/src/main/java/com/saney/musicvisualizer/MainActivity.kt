@@ -1598,6 +1598,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     themeId,
                 )
 
+        val wasMixed = gfMixController.active() != null
         gfMixController.clear()
         gfMixLoadGeneration++
 
@@ -1693,6 +1694,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             boardEditorLayer =
                 null
         }
+        if (wasMixed) refreshGfMixArtwork(forceOriginal = true)
     }
 
     /**

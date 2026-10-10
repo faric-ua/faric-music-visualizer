@@ -36,6 +36,7 @@ data class GfLayerInstance(
     val y: Float = 0f,
     val scale: Float = 1f,
     val rotationDegrees: Float = 0f,
+    val autoRotationDegreesPerSecond: Float = 0f,
     val opacity: Float = 1f,
     val zOrder: Int = 0,
 ) {
@@ -50,6 +51,7 @@ data class GfLayerInstance(
         y = y.finiteOr(0f).coerceIn(-2f, 2f),
         scale = scale.finiteOr(1f).coerceIn(0.1f, 4f),
         rotationDegrees = rotationDegrees.finiteOr(0f).coerceIn(-360f, 360f),
+        autoRotationDegreesPerSecond = autoRotationDegreesPerSecond.finiteOr(0f).coerceIn(-180f, 180f),
         opacity = opacity.finiteOr(1f).coerceIn(0f, 1f),
     )
 }

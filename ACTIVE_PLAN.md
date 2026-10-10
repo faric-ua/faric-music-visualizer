@@ -1,5 +1,16 @@
 # Active Plan
 
+## CURRENT — v0.19.61/build150 hide unavailable prepared Hero placeholders
+
+- [x] Diagnose user's screenshot of empty legacy `СКОРО` cards; missing prepared art creates dead 248dp tiles in Theme Hero grid, unrelated to ten external indexed PNG creatures.
+- [x] Hide only uninstalled legacy Hero cards, retain installed themes, external PNGs, original import menu and non-Hero themes.
+- [x] Count actually installed GF pack themes + indexed external creature sources, not every planned Hero ID.
+- [x] PR #18 merged; Validate #1231 and Android #678 PASS. Signed main `a474c46791fc1ca6b085590a7a2d0a00a4f827e5` Validate #1232 PASS, Android #679 PASS; artifact `11684867412`, run `38093806830`.
+- [ ] User phone: Termux **3 → 10 → 8** without clearing app data; confirm `СКОРО` tiles absent, 10 external thumbnails present, one external PNG choice works. Do not reimport existing files.
+- [ ] If Cyber Panther preview remains blank, separate targeted image-preview audit; do not remove a valid installed builtin theme by treating it as an uninstalled pack.
+- [ ] Keep full-song `BUG-EXPORT-001`, rotation `LIFE-ROT-001`, 3s MP4 parity open. Custom z-order/half-body picker remains backlog.
+
+
 ## CURRENT RELEASE — v0.19.60 / build149 PNG miniatures + typed external GF layers
 
 - [x] Verify user v0.19.59 report: ten external PNG indexed, but external chooser contained text only and old hero `СКОРО` tiles are unrelated prepared-pack cards.

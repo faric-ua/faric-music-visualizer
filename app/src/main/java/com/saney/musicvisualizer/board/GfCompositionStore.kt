@@ -60,6 +60,7 @@ class GfCompositionStore(context: Context) {
                         put("y", layer.y.toDouble())
                         put("scale", layer.scale.toDouble())
                         put("rotation", layer.rotationDegrees.toDouble())
+                        put("spin", layer.autoRotationDegreesPerSecond.toDouble())
                         put("opacity", layer.opacity.toDouble())
                         put("z", layer.zOrder)
                     })
@@ -84,6 +85,7 @@ class GfCompositionStore(context: Context) {
                 y = raw.getDouble("y").toFloat(),
                 scale = raw.getDouble("scale").toFloat(),
                 rotationDegrees = raw.getDouble("rotation").toFloat(),
+                autoRotationDegreesPerSecond = raw.optDouble("spin", 0.0).toFloat(),
                 opacity = raw.getDouble("opacity").toFloat(),
                 zOrder = raw.getInt("z"),
             ).sanitized()

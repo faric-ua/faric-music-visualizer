@@ -88,6 +88,8 @@ import com.saney.musicvisualizer.theme.PlaybackThemeRegistry
 import com.saney.musicvisualizer.theme.PlaybackThemeStore
 import com.saney.musicvisualizer.theme.ThemeInput
 import com.saney.musicvisualizer.ui.HeroBoardView
+import com.saney.musicvisualizer.ui.HeroGalleryPolicy
+import com.saney.musicvisualizer.ui.PlayerSwipeNavigation
 import com.saney.musicvisualizer.ui.HeroThemeView
 import com.saney.musicvisualizer.ui.LocalMusicBrowser
 import com.saney.musicvisualizer.playback.LocalMusicCatalog
@@ -255,11 +257,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var emergencyRecoveryArmed = false
     private var emergencyRecoveryDownX = 0f
     private var emergencyRecoveryDownY = 0f
+    private var playerSwipeEligible = false
+    private var playerSwipeDownX = 0f
+    private var playerSwipeDownY = 0f
     private val emergencyRecoveryRunnable =
         Runnable {
             if (
                 emergencyRecoveryArmed &&
-                screen == Screen.NOW_PLAYING
+                screen == Screen.NOW_PLAYING &&
+                projectMFocusOverlay == null
             ) {
                 emergencyRecoveryArmed = false
                 window.decorView
@@ -720,81 +726,86 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
-    override fun dispatchTouchEvent(
-        event: MotionEvent,
-    ): Boolean {
-        if (screen == Screen.NOW_PLAYING) {
+    /**
+     * Emergency HUD recovery is driven by the Activity touch stream (not the
+     * optional/hidden skin buttons). Horizontal navigation only accepts a
+     * single-finger swipe beginning in the central artwork zone, away from the
+     * player seek and transport rails and Android's system Back edge.
+     */
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        val active = screen == Screen.NOW_PLAYING && projectMFocusOverlay == null
+        var navigation: PlayerSwipeNavigation.Destination? = null
+        if (active) {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     emergencyRecoveryArmed = true
                     emergencyRecoveryDownX = event.rawX
                     emergencyRecoveryDownY = event.rawY
-                    emergencyRecoveryHandler
-                        .removeCallbacks(
-                            emergencyRecoveryRunnable,
-                        )
-                    emergencyRecoveryHandler
-                        .postDelayed(
-                            emergencyRecoveryRunnable,
-                            EMERGENCY_RECOVERY_HOLD_MS,
-                        )
-                }
+                    emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
+                    emergencyRecoveryHandler.postDelayed(
+                        emergencyRecoveryRunnable, EMERGENCY_RECOVERY_HOLD_MS,
+                    )
 
+                    val width = resources.displayMetrics.widthPixels.toFloat()
+                    val height = resources.displayMetrics.heightPixels.toFloat()
+                    val insideArtwork = event.rawY >= height * 0.12f &&
+                        event.rawY <= height * 0.54f
+                    // Do not compete with OS edge-back, seek, HUD transport,
+                    // or controls located at the top/bottom of the player.
+                    playerSwipeEligible = insideArtwork &&
+                        event.rawX >= dp(32) &&
+                        event.rawX <= width - dp(32)
+                    playerSwipeDownX = event.rawX
+                    playerSwipeDownY = event.rawY
+                }
                 MotionEvent.ACTION_POINTER_DOWN -> {
                     emergencyRecoveryArmed = false
-                    emergencyRecoveryHandler
-                        .removeCallbacks(
-                            emergencyRecoveryRunnable,
-                        )
+                    playerSwipeEligible = false
+                    emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
                 }
-
                 MotionEvent.ACTION_MOVE -> {
-                    val dx =
-                        event.rawX -
-                            emergencyRecoveryDownX
-                    val dy =
-                        event.rawY -
-                            emergencyRecoveryDownY
-                    val limit =
-                        dp(
-                            24,
-                        )
-                            .toFloat()
-
-                    if (
-                        dx * dx +
-                            dy * dy >
-                        limit * limit
-                    ) {
+                    val dx = event.rawX - emergencyRecoveryDownX
+                    val dy = event.rawY - emergencyRecoveryDownY
+                    val slop = dp(44).toFloat()
+                    if (dx * dx + dy * dy > slop * slop) {
                         emergencyRecoveryArmed = false
-                        emergencyRecoveryHandler
-                            .removeCallbacks(
-                                emergencyRecoveryRunnable,
-                            )
+                        emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
                     }
                 }
-
-                MotionEvent.ACTION_UP,
-                MotionEvent.ACTION_CANCEL,
-                -> {
-                    emergencyRecoveryArmed = false
-                    emergencyRecoveryHandler
-                        .removeCallbacks(
-                            emergencyRecoveryRunnable,
+                MotionEvent.ACTION_UP -> {
+                    if (playerSwipeEligible && event.pointerCount == 1) {
+                        navigation = PlayerSwipeNavigation.resolve(
+                            deltaX = event.rawX - playerSwipeDownX,
+                            deltaY = event.rawY - playerSwipeDownY,
+                            minimumDistance = dp(104).toFloat(),
+                            maximumVerticalDrift = dp(64).toFloat(),
                         )
+                    }
+                    playerSwipeEligible = false
+                    emergencyRecoveryArmed = false
+                    emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    playerSwipeEligible = false
+                    emergencyRecoveryArmed = false
+                    emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
                 }
             }
         } else {
+            playerSwipeEligible = false
             emergencyRecoveryArmed = false
-            emergencyRecoveryHandler
-                .removeCallbacks(
-                    emergencyRecoveryRunnable,
-                )
+            emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
         }
 
-        return super.dispatchTouchEvent(
-            event,
-        )
+        // First release the child touch sequence, then navigate. In
+        // particular, a swipe cannot be mistaken for a new seek position.
+        val handled = super.dispatchTouchEvent(event)
+        when (navigation) {
+            PlayerSwipeNavigation.Destination.PROJECTM -> openProjectMFocusOverlay()
+            PlayerSwipeNavigation.Destination.LIBRARY -> showLibrary()
+            null -> Unit
+        }
+        return navigation != null || handled
     }
 
     private fun showEmergencyRecoveryDialog() {
@@ -802,9 +813,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             context = this,
             title = "Аварійне відновлення PulseDeck",
             message =
-                "Меню можна повернути навіть якщо всі кнопки керування були приховані.",
+                "Утримання 10 секунд: тут можна налаштувати потрібні кнопки або відновити приховане меню.",
             actions =
                 listOf(
+                    PulseDeckDialogs.Action(
+                        label = "Налаштувати шари та кнопки",
+                        accent = true,
+                    ) {
+                        showPulseDeckLayersDialog()
+                    },
                     PulseDeckDialogs.Action(
                         label =
                             "Відновити доступ до меню",
@@ -932,6 +949,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     override fun onStop() {
+        emergencyRecoveryArmed = false
+        playerSwipeEligible = false
+        emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
         projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
         // Do not pause playback here. Screen lock and Home both stop the Activity,
         // but a music player must keep playing. A MediaSessionService migration is
@@ -1671,7 +1691,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun showExternalPngHeroes() {
         val library = ExternalPngHeroLibrary(this)
-        val items = library.list()
+        val items = library.list().filter { HeroGalleryPolicy.visibleExternalHero(it.title) }
         val list = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         lateinit var dialog: android.app.Dialog
         list.addView(
@@ -9282,6 +9302,49 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             PlaybackThemeId.CASSETTE,
         )
 
+    /**
+     * Cyber Shark's numbered gallery tile uses the same canonical live-switch
+     * semantics as the former built-in theme tile, with bitmap decoding
+     * outside the UI thread and no projectM or audio recreation.
+     */
+    private fun selectCyberSharkFromGallery() {
+        val requestedTheme = PlaybackThemeId.CYBER_SHARK
+        if (screen != Screen.THEME_PICKER) return
+        if (themeMenuOverlay != null && latestSnapshot.trackName != null) {
+            if (selectedThemeId == requestedTheme) {
+                showNowPlaying()
+                return
+            }
+            val generation = ++heroAssetLoadGeneration
+            val requestedOverlay = themeMenuOverlay
+            thread(name = "faric-shark-gallery-assets") {
+                val assets = runCatching {
+                    GraphicFigureCatalog.loadAssets(applicationContext, requestedTheme)
+                }.getOrNull()
+                runOnUiThread {
+                    if (isFinishing || isDestroyed ||
+                        generation != heroAssetLoadGeneration ||
+                        screen != Screen.THEME_PICKER ||
+                        themeMenuOverlay !== requestedOverlay
+                    ) return@runOnUiThread
+                    if (assets == null) {
+                        toast("Не вдалося завантажити Cyber Shark")
+                        return@runOnUiThread
+                    }
+                    activateLivePlaybackTheme(requestedTheme, preloaded = assets)
+                    themeMenuLiveHeroSwitch = true
+                    showNowPlaying()
+                }
+            }
+        } else {
+            selectedThemeId = requestedTheme
+            themeStore.selectedThemeId = requestedTheme
+            setGraphicFigureThemeId(requestedTheme)
+            if (latestSnapshot.trackName != null) showNowPlaying()
+            else showThemePicker()
+        }
+    }
+
     private fun showThemePicker() {
         val retainedHost =
             persistentSceneRoot?.takeIf {
@@ -9381,9 +9444,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         // Count only artwork actually available on this device. Future
         // prepared hero slots are definitions, not installed graphics.
-        val availableHeroCount =
-            GraphicFigureCatalog.ids.count { GraphicFigureCatalog.isInstalled(this, it) } +
-                ExternalPngHeroLibrary(this).list().size
+        val visibleExternalHeroes = ExternalPngHeroLibrary(this).list()
+            .filter { HeroGalleryPolicy.visibleExternalHero(it.title) }
+        val visibleBuiltinCount = GraphicFigureCatalog.ids.count {
+            it != PlaybackThemeId.CYBER_PANTHER &&
+                GraphicFigureCatalog.isInstalled(this, it)
+        }
+        val availableHeroCount = visibleBuiltinCount + visibleExternalHeroes.size
         val toggleLabel = label(
             (if (heroCatalogExpanded) "▾ " else "▸ ") +
                 "Герої · $availableHeroCount",
@@ -9452,11 +9519,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         var heroRow: LinearLayout? = null
         var heroCount = 0
 
-        val externalHeroes = ExternalPngHeroLibrary(this).list()
+        val externalHeroes = visibleExternalHeroes
+        // A built-in Shark replaces the hidden Scorpion B slot. A null source
+        // is intentionally the built-in theme and never an external PNG URI.
+        val galleryEntries = buildList<ExternalPngHeroLibrary.Hero?> {
+            addAll(externalHeroes)
+            if (GraphicFigureCatalog.isInstalled(this@MainActivity, PlaybackThemeId.CYBER_SHARK)) {
+                add(null)
+            }
+        }
         val externalThumbs = mutableListOf<Pair<ExternalPngHeroLibrary.Hero, ImageView>>()
-        if (externalHeroes.isNotEmpty()) {
+        val sharkThumbs = mutableListOf<ImageView>()
+        if (galleryEntries.isNotEmpty()) {
             heroGrid.addView(label(
-                "Мої зовнішні PNG · ${externalHeroes.size}",
+                "Мої PNG та Cyber Shark · ${galleryEntries.size}",
                 16f, COLOR_ACCENT_CYAN, true,
             ))
             // Fixed-height cards use the same structure in every row:
@@ -9470,7 +9546,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 dp(((fontScale - 1f).coerceAtMost(0.8f) * 48f).toInt())
             val captionHeight = dp((62f * fontScale.coerceAtMost(1.8f)).toInt())
 
-            externalHeroes.withIndex().toList().chunked(columns).forEach { pair ->
+            galleryEntries.withIndex().toList().chunked(columns).forEach { pair ->
                 val row = LinearLayout(this).apply {
                     orientation = LinearLayout.HORIZONTAL
                     gravity = Gravity.TOP
@@ -9483,7 +9559,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         background = panelDrawable(COLOR_PANEL, 22, COLOR_ACCENT_CYAN, 1)
                         isClickable = true
                         isFocusable = true
-                        contentDescription = "Герой ${index + 1}: ${hero.title}"
+                        contentDescription = "Герой ${index + 1}: ${hero?.title ?: "Cyber Shark"}"
                     }
                     val number = label(
                         com.saney.musicvisualizer.ui.ExternalHeroTileLabel.number(index),
@@ -9509,7 +9585,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         ).apply { topMargin = dp(3); bottomMargin = dp(6) },
                     )
                     val caption = label(
-                        com.saney.musicvisualizer.ui.ExternalHeroTileLabel.caption(hero.title),
+                        com.saney.musicvisualizer.ui.ExternalHeroTileLabel.caption(hero?.title ?: "Cyber Shark"),
                         15f, Color.WHITE, true,
                     ).apply {
                         gravity = Gravity.CENTER
@@ -9529,14 +9605,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             ViewGroup.LayoutParams.MATCH_PARENT, captionHeight,
                         ),
                     )
-                    tile.setOnClickListener { activateExternalPngHero(hero.id) }
+                    tile.setOnClickListener {
+                        if (hero == null) selectCyberSharkFromGallery()
+                        else activateExternalPngHero(hero.id)
+                    }
                     row.addView(
                         tile,
                         LinearLayout.LayoutParams(0, cardHeight, 1f).apply {
                             setMargins(dp(6), dp(6), dp(6), dp(6))
                         },
                     )
-                    externalThumbs.add(hero to preview)
+                    if (hero == null) sharkThumbs.add(preview)
+                    else externalThumbs.add(hero to preview)
                 }
                 if (pair.size < columns) {
                     row.addView(
@@ -9557,10 +9637,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         } else preview?.recycle()
                     }
                 }
+                sharkThumbs.forEach { image ->
+                    val bitmap = GraphicFigureCatalog.loadPreview(
+                        applicationContext, PlaybackThemeId.CYBER_SHARK,
+                    )
+                    runOnUiThread {
+                        if (!isFinishing && !isDestroyed && image.parent != null) {
+                            image.setImageBitmap(bitmap)
+                        } else bitmap?.recycle()
+                    }
+                }
             }
         }
 
         PlaybackThemeRegistry.all.forEach { spec ->
+            // Never delete saved Panther source data. It is only hidden from
+            // the selectable gallery while its built-in graphic is blank.
+            // Cyber Shark now has the same numbered tile as external Heroes.
+            if (spec.id == PlaybackThemeId.CYBER_PANTHER ||
+                spec.id == PlaybackThemeId.CYBER_SHARK
+            ) return@forEach
             val installed = GraphicFigureCatalog.isInstalled(this, spec.id)
             val figure = isLayeredBoardTheme(spec.id)
             // Hidden from the selector ONLY. Never delete metadata, sources,

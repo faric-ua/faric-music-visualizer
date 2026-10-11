@@ -1,5 +1,15 @@
 # Current Handoff
 
+## RESUME NOW — v0.19.67/build156 per-layer GF reactions + Android media session (2026-10-11)
+
+- **CURRENT APP/SOURCE SHA:** `f7da5e2de0f89f1ab6139cc6511acf561b29bcf2` (merged PR #25). PR #22 (v154 GUI) Validate #1265 / Android #688 PASS, main Android #689 PASS; PR #23 (v155 layer reaction) Validate #1267 / Android #690 PASS, main Android #691 PASS; PR #25 (v156 system media service) Validate #1269 / Android #692 PASS, main Validate #1270 PASS; **signed main Android #693 run 38146024125 — status to be verified** before installing. All merged, physical phone QA NOT YET ACCEPTED.
+- Screenshots addressed: fixed same-height 3 direct import tiles `+` on first line and label on second; compact **📁 Зовнішні PNG-герої** label on Board and Themes; GF role chooser has 76dp preview thumbnails, role-index labels `Рамка 01/02...` without raw `file 000...` SAF display names, bounded scroll and explicit selected highlight.
+- Group audio reaction preserved. Individual Board layer editor now offers its own `Плавний поворот шару / Stereo L/R шару / Bass ↑↓ шару` for FRAME, FX, CREATURE and WORDMARK. Per-theme/per-layer persisted, default zero = prior built-in motion; live, CPU video and GPU paths share reaction evaluation; Reset усе resets new tunings.
+- Media: new `PlaybackMediaSessionService` + Media3 session, one app-shared ExoPlayer/queue with notification/lockscreen transport and notification tap → NOW_PLAYING; foreground mediaPlayback manifest + audio-focus/noisy. **User phone QA needed** for background, rotation, pause/play, prev/next, notification existence and lock. Four optional direct notification shortcuts to Export, Themes, Board, Visualizer **not implemented**; tracked in GitHub issue #24. Deep link targets are prepared but not yet exposed as notification buttons.
+- **NEXT after signed main CI:** Termux **3 → 10 → 8**, NOT 9, install v0.19.67/build156 OVER existing app without clearing data. Check three equal tiles, no clipping; import independent FRAME folder and choose numbered preview; ten original Heroes retained; per-layer vs whole-GF reaction independently; notification play/pause/prev/next while app background and phone locked; reopen app. Send PASS/FAIL with screenshots if failure. No reimport of original 10 Hero PNG unless truly missing.
+- Still OPEN: full MP4 `BUG-EXPORT-001`, rotation `LIFE-ROT-001`, blank Cyber Panther preview, wider UI-RESP audit, GPU readback bottleneck, optional notification shortcuts. Do not mark phone PASS based only on CI.
+- Details in `docs/checkpoints/2026-10-11-v0.19.67-gf-audio-notification-qa.md`. Do not modify source again before this phone acceptance unless CI detects a defect.
+
 ## CURRENT MAIN — v0.19.64/build153 direct PNG Frame/Wordmark/FX import and responsive Board/Theme buttons
 
 - User photos (2026-10-11): Playback Themes external Heroes button long text overlaps `Герої · 12`; Board `GF Мікс · активний` and `Зовнішні PNG-герої` buttons fixed height 42dp causing text clip and no gap. User explicitly cannot find separate import entry points for rings/frames, logos/text and FX; picking folder appeared hero-only.

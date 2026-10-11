@@ -609,7 +609,10 @@ object PulseDeckDialogs {
             actionsContainer.addView(
                 actionButton(context, action) {
                     action.onClick()
-                    if (dismissAfterAction && action.dismissOnClick) {
+                    if (
+                        dismissAfterAction &&
+                            action.dismissOnClick
+                    ) {
                         dialog.dismiss()
                     }
                 },

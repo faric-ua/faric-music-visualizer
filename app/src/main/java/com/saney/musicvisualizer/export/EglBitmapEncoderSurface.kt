@@ -10,6 +10,7 @@ import android.opengl.EGLSurface
 import android.opengl.GLES20
 import android.opengl.GLUtils
 import android.view.Surface
+import com.saney.musicvisualizer.board.BoardBitmapGeometry
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.projectm.FaricForegroundSample
 import com.saney.musicvisualizer.projectm.ProjectMBridge
@@ -1615,9 +1616,15 @@ class EglBitmapEncoderSurface(
                 true
         }
 
-        val half =
-            layer.size *
-                0.5f
+        // GLES previously drew every bitmap onto a square quad. Preserve
+        // the full decoded PNG canvas (including alpha padding) just like
+        // HeroBoardView and the software MP4 exporter.
+        val extent = BoardBitmapGeometry.fitCanvas(
+            layer.bitmap.width, layer.bitmap.height, layer.size,
+        )
+        if (extent.width <= 0f || extent.height <= 0f) return loaded
+        val halfW = extent.width * 0.5f
+        val halfH = extent.height * 0.5f
         val radians =
             Math.toRadians(
                 layer
@@ -1665,23 +1672,23 @@ class EglBitmapEncoderSurface(
 
         val bottomLeft =
             point(
-                -half,
-                half,
+                -halfW,
+                halfH,
             )
         val bottomRight =
             point(
-                half,
-                half,
+                halfW,
+                halfH,
             )
         val topLeft =
             point(
-                -half,
-                -half,
+                -halfW,
+                -halfH,
             )
         val topRight =
             point(
-                half,
-                -half,
+                halfW,
+                -halfH,
             )
 
         frameVertexBuffer

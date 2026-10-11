@@ -1,5 +1,13 @@
 # Active Plan
 
+## IN REVIEW — v0.19.69/build158 hero catalog and swipe/recovery (2026-10-11)
+
+- [x] On phone image, Scorpion B visually duplicates A; original built-in Cyber Panther theme card has blank art. Hide Scorpion B from Theme and external chooser lists and hide Panther from Theme selector **only**, retaining all original PNGs, SAF indexes, source IDs, and saved GF presets.
+- [x] Built-in Cyber Shark becomes last numbered hero tile after Scorpion A (position 10 when nine external Heroes); same full-image preview, height, caption and selection behavior. Old separate Shark tile hidden to prevent duplication.
+- [x] On central Now Playing artwork, horizontal RIGHT-to-LEFT opens projectM Focus; LEFT-to-RIGHT opens Music Library via persistent overlay. Avoid touch zones for seek/transport/system Back, ignore multi-touch and vertical scroll. Pure direction tests.
+- [x] Ten-second hold recovery already existed but canceled with minor movement beyond 24dp. Set 44dp tolerance, expose direct Layers/buttons settings action inside recovery dialog; preserve restore and reset options.
+- [ ] PR #30 Android and Validate CI; then signed main APK v0.19.69/build158, phone QA for A/B/Shark/Panther, directional swipe x3 each, recovery hold x1 with hidden HUD, and unchanged playback.
+- [ ] v0.19.67 MediaSession, audio-reaction phone QA and existing MP4/rotation bugs remain OPEN. TODO issue #27 gluing/Compare remains on hold pending clarification.
 ## RESUME NOW — PulseDeck v0.19.68/build157 numbered uniform PNG Hero tiles (2026-10-11)
 
 - **App/source main SHA:** `f61da2a3eedebfafcbd70835b49190962ee8de1a` (merged PR #28). PR Validate #1273 PASS, Android #694 PASS. Signed main Validate #1274 PASS, **Android #695 PASS**, run `38148621984`; signed debug artifact `FARIC-Music-Visualizer-v0.19.68-Debug`, ID `11706465894`, expiry 2026-10-14T14:51:44Z. Phone QA **OPEN**.

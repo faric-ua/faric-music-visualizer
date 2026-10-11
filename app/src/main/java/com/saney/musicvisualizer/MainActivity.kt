@@ -6073,7 +6073,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 text = if (gfMixController.active() != null)
                     "◆ GF Мікс · активний" else "◆ GF Мікс · обрати свої PNG",
                 accent = gfMixController.active() != null,
-            ) { showGfMixPicker() },
+            ) { showGfMixPicker() }.apply { minimumHeight = dp(52) },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -6083,7 +6083,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             actionPill(
                 text = "▣ Зовнішні PNG-герої · вибір із папки",
                 accent = false,
-            ) { showExternalPngHeroes() },
+            ) { showExternalPngHeroes() }.apply { minimumHeight = dp(52) },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -9328,7 +9328,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             actionPill(
                 text = "▣ Зовнішні PNG-герої · файли з пам'яті телефону",
                 accent = false,
-            ) { showExternalPngHeroes() },
+            ) { showExternalPngHeroes() }.apply { minimumHeight = dp(52) },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -9873,7 +9873,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             gravity = Gravity.CENTER
             textAlignment = View.TEXT_ALIGNMENT_CENTER
             setPadding(dp(12), dp(10), dp(12), dp(10))
-            minimumHeight = dp(48)
+            // Compact selector chips can remain 42dp; primary actions use
+            // WRAP_CONTENT plus their own >= 48dp minimum.
+            minimumHeight = dp(42)
             breakStrategy = android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY
             background = panelDrawable(
                 if (accent) COLOR_ACCENT_ORANGE else COLOR_PANEL_2,

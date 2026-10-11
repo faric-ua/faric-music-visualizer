@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 151
-        versionName = "0.19.62"
-        // v0.19.62: persist exact SAF import layer role and keep GF source selection isolated.
+        versionCode = 152
+        versionName = "0.19.63"
+        // v0.19.63: native Android system bars stay visible by default on every screen.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

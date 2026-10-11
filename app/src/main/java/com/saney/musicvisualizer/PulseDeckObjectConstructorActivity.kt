@@ -82,6 +82,11 @@ class PulseDeckObjectConstructorActivity : ComponentActivity() {
                 }
         }
 
+    override fun onWindowFocusChanged(hasFocus: Boolean) {
+        super.onWindowFocusChanged(hasFocus)
+        if (hasFocus) PulseDeckSystemBars.apply(this)
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableImmersiveFullscreen()
@@ -148,13 +153,8 @@ class PulseDeckObjectConstructorActivity : ComponentActivity() {
     }
 
     private fun enableImmersiveFullscreen() {
-        @Suppress("DEPRECATION")
-        window.decorView.systemUiVisibility =
-            View.SYSTEM_UI_FLAG_IMMERSIVE_STICKY or
-                View.SYSTEM_UI_FLAG_FULLSCREEN or
-                View.SYSTEM_UI_FLAG_HIDE_NAVIGATION or
-                View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or
-                View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION or
-                View.SYSTEM_UI_FLAG_LAYOUT_STABLE
+        // Keep both native Android bars available; the original visual
+        // master plate and immutable calibration coordinates stay unchanged.
+        PulseDeckSystemBars.apply(this)
     }
 }

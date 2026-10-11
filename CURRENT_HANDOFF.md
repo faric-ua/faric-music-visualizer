@@ -1,5 +1,14 @@
 # Current Handoff
 
+## CURRENT RELEASE — v0.19.62/build151: GF external PNG folder role fix (2026-10-11)
+
+- User screenshot and report: after opening GF Мікс → Frame → import a folder, artwork appeared under Heroes rather than Frames. App used in-memory `pendingExternalPngType = CREATURE`; if Android recreated Activity under SAF picker it could reset. This is a **source-confirmed hazard**, not a confirmed instrumented reproduction. Screenshot also showed visible orange ring with a Hero asset displayed as filename `file 000...` and no visible creature; if still present after correct role selection investigate render/visibility separately, do not invent an explanation.
+- **PR #19 merged**, app/source `75433e0728d8a75006deb67826851ef0fbdb2245`; main Validate #1239 PASS and Android #681 PASS, signed run `38097213918`, artifact `FARIC-Music-Visualizer-v0.19.62-Debug` ID `11686121452` (expiry 2026-10-14T00:08:00Z).
+- Implementation: persistent pending role committed before SAF picker launch, restored and cleared in result; no default on unknown role. Separate role index rejects reusing same folder for Creature/Frame/FX/Wordmark. After Frame/FX/Wordmark index, UI reopens same role-specific source selector and explicit selection sets `visible = true`. No source bitmap copies/clears; input files external.
+- User next **Termux 3 → 10 → 8, not 9**; install over existing app without clearing data. QA: import genuine Frames folder and verify it lists under Frame, not Hero, choose frame, hero thumbnails remain. If previous buggy import overwrote Hero URI index, restore by reselecting previous original Hero folder (only if missing). `BUG-EXPORT-001`, `LIFE-ROT-001`, Panther preview, short MP4 parity remain separate.
+- Release plan `docs/checkpoints/2026-10-11-v0.19.62-gf-folder-role-isolation.md`; checkpoint `BUILD_CHECKPOINTS.md`; calibration and projectM unchanged.
+
+
 ## CURRENT MAIN — v0.19.61/build150, cleaned Hero catalog (2026-10-11, PHONE QA PENDING)
 
 - User screenshot after build149: empty tiles such as Saber Tiger, Thunder Wolf, Arcane Specter, Inferno Phoenix labelled `СКОРО`; this is a **legacy uninstalled prepared-pack UI placeholder issue**, distinct from the correctly indexed external 10 PNG artworks.

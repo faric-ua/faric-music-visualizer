@@ -9459,49 +9459,91 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 "Мої зовнішні PNG · ${externalHeroes.size}",
                 16f, COLOR_ACCENT_CYAN, true,
             ))
-            externalHeroes.chunked(2).forEach { pair ->
-                val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+            // Fixed-height cards use the same structure in every row:
+            // number -> large transparent hero preview -> readable caption.
+            // Do not use variable filename length to size individual tiles.
+            val fontScale = resources.configuration.fontScale.coerceAtLeast(1f)
+            val screenWidthDp =
+                resources.displayMetrics.widthPixels / resources.displayMetrics.density
+            val columns = if (screenWidthDp < 350f || fontScale >= 1.6f) 1 else 2
+            val cardHeight = dp(if (columns == 1) 300 else 258) +
+                dp(((fontScale - 1f).coerceAtMost(0.8f) * 48f).toInt())
+            val captionHeight = dp((62f * fontScale.coerceAtMost(1.8f)).toInt())
+
+            externalHeroes.withIndex().toList().chunked(columns).forEach { pair ->
+                val row = LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.TOP
+                }
                 heroGrid.addView(row)
-                pair.forEach { hero ->
+                pair.forEach { (index, hero) ->
                     val tile = LinearLayout(this).apply {
                         orientation = LinearLayout.VERTICAL
-                        setPadding(dp(9), dp(10), dp(9), dp(10))
+                        setPadding(dp(9), dp(8), dp(9), dp(10))
                         background = panelDrawable(COLOR_PANEL, 22, COLOR_ACCENT_CYAN, 1)
+                        isClickable = true
+                        isFocusable = true
+                        contentDescription = "Герой ${index + 1}: ${hero.title}"
                     }
+                    val number = label(
+                        com.saney.musicvisualizer.ui.ExternalHeroTileLabel.number(index),
+                        16f, COLOR_ACCENT_CYAN, true,
+                    ).apply {
+                        gravity = Gravity.START or Gravity.CENTER_VERTICAL
+                    }
+                    tile.addView(
+                        number,
+                        LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT, dp(26),
+                        ),
+                    )
                     val preview = ImageView(this).apply {
                         scaleType = ImageView.ScaleType.FIT_CENTER
+                        adjustViewBounds = false
+                        contentDescription = null // parent announces number and full name
                     }
                     tile.addView(
                         preview,
                         LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT, dp(132),
-                        ),
+                            ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f,
+                        ).apply { topMargin = dp(3); bottomMargin = dp(6) },
                     )
+                    val caption = label(
+                        com.saney.musicvisualizer.ui.ExternalHeroTileLabel.caption(hero.title),
+                        15f, Color.WHITE, true,
+                    ).apply {
+                        gravity = Gravity.CENTER
+                        textAlignment = View.TEXT_ALIGNMENT_CENTER
+                        maxLines = 3
+                        breakStrategy = android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY
+                        // All cards stay the same height. Auto-fit only long
+                        // labels; preserve the full source name for TalkBack.
+                        setAutoSizeTextTypeUniformWithConfiguration(
+                            11, 16, 1, android.util.TypedValue.COMPLEX_UNIT_SP,
+                        )
+                        ellipsize = android.text.TextUtils.TruncateAt.END
+                    }
                     tile.addView(
-                        label(hero.title, 14f, Color.WHITE, true).apply {
-                            // Let longer file names wrap; never cut the main title.
-                            breakStrategy = android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY
-                        },
+                        caption,
                         LinearLayout.LayoutParams(
-                            ViewGroup.LayoutParams.MATCH_PARENT,
-                            ViewGroup.LayoutParams.WRAP_CONTENT,
-                        ).apply { topMargin = dp(9) },
+                            ViewGroup.LayoutParams.MATCH_PARENT, captionHeight,
+                        ),
                     )
                     tile.setOnClickListener { activateExternalPngHero(hero.id) }
                     row.addView(
                         tile,
-                        LinearLayout.LayoutParams(
-                            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
-                        ).apply {
+                        LinearLayout.LayoutParams(0, cardHeight, 1f).apply {
                             setMargins(dp(6), dp(6), dp(6), dp(6))
                         },
                     )
                     externalThumbs.add(hero to preview)
                 }
-                if (pair.size == 1) {
+                if (pair.size < columns) {
                     row.addView(
                         View(this),
-                        LinearLayout.LayoutParams(0, dp(1), 1f),
+                        LinearLayout.LayoutParams(0, cardHeight, 1f).apply {
+                            setMargins(dp(6), dp(6), dp(6), dp(6))
+                        },
                     )
                 }
             }

@@ -14,6 +14,7 @@ import android.view.MotionEvent
 import android.view.ScaleGestureDetector
 import android.view.View
 import com.saney.musicvisualizer.analysis.SceneSignal
+import com.saney.musicvisualizer.board.BoardBitmapGeometry
 import com.saney.musicvisualizer.board.BoardAudioState
 import com.saney.musicvisualizer.board.BoardGroupReaction
 import com.saney.musicvisualizer.board.GraphicFigureCatalog
@@ -1042,6 +1043,13 @@ class HeroBoardView(
             baseSize *
                 motion.scale *
                 layerTransform.scale
+        // Preserve the original PNG canvas, including its transparent
+        // margins. A non-square FRAME/CREATURE/WORDMARK/FX must not be forced
+        // into a square destination or it becomes elliptical/stretched.
+        val extent = BoardBitmapGeometry.fitCanvas(
+            bitmap.width, bitmap.height, size,
+        )
+        if (extent.width <= 0f || extent.height <= 0f) return
 
         val layerCx =
             cx +
@@ -1069,10 +1077,10 @@ class HeroBoardView(
             bitmap,
             null,
             RectF(
-                layerCx - size * 0.5f,
-                layerCy - size * 0.5f,
-                layerCx + size * 0.5f,
-                layerCy + size * 0.5f,
+                layerCx - extent.width * 0.5f,
+                layerCy - extent.height * 0.5f,
+                layerCx + extent.width * 0.5f,
+                layerCy + extent.height * 0.5f,
             ),
             bitmapPaint,
         )

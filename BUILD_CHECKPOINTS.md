@@ -1,5 +1,15 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## CURRENT SIGNED MAIN — v0.19.64/build153 direct typed PNG imports + responsive controls (2026-10-11)
+
+- **App/source SHA** `ad80cb611e1f900520ea6e789e84365a07278e93`, merged PR #21; **main Validate #1259 PASS, Android #687 PASS** signed run `38138842357`. Artifact `FARIC-Music-Visualizer-v0.19.64-Debug` ID **`11702183610`**, archive SHA-256 `7cd9318e6de451155150a6ab3bd345ac9131ccbe95d6400a8f79e4510a9c863c`, expires **2026-10-14T12:23:13Z**.
+- Screenshot issues fixed in code: Theme external hero chooser label overlapping `Герої · 12`, Board `GF Мікс`/external heroes buttons with fixed 42dp and clipped wrapping. Relevant buttons use natural height with 52dp minimum plus 10–14dp gaps. Two-column Hero titles wrap with growing height; long GF source lists scroll and support multiline action text; Cancel of single-choice picker is not mistaken for index.
+- **Direct actions BOTH on Board and Playback Themes:** `Додати свої PNG-шари` → `＋ Рамки` (FRAME), `＋ Написи` (WORDMARK), `＋ Ефекти` (FX). Each opens SAF folder for its own type, indexes only transparent validated PNG there, then opens `GF Мікс · <type>` source selection. Existing external ten CREATURE refs and local original files, saved GF compositions, calibrated coordinates untouched; no APK asset embedding.
+- **PHONE QA PENDING:** install over current via Termux **3 → 10 → 8**, NOT 9 and NO CLEAR DATA. Confirm spacing and text within borders on Theme and Board, use direct `＋ Рамки` with separate Frames-only folder, see Frame picker and select ring; ten Hero PNGs remain. Test Cancel and long list scroll; optional Wordmark/FX imports. Full-song MP4 `BUG-EXPORT-001`, `LIFE-ROT-001` and generic UI-RESP audit still OPEN.
+- All phone QA prompts use user-approved highly visible RED/ GREEN ✓ indicator card + progress + `Надіслати результат` action.
+
+
+
 ## CURRENT SIGNED MAIN — v0.19.63/build152 native Android bars always visible (2026-10-11)
 
 - **App/source SHA** `1778d49f991562a143df7b54e3ff4ec9261524a9`, PR #20 merged; **main Validate #1250 PASS**, **Android #683 PASS**, signed run `38135415472`. Signed artifact **`FARIC-Music-Visualizer-v0.19.63-Debug` ID `11700399123`**, SHA-256 archive digest `42fa1c227814499851cdf0f163ca6af1ccb778f9750f9aba6d6e71972ba4d347`; expires 2026-10-14T11:27:36Z.

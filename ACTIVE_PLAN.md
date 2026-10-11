@@ -1,5 +1,15 @@
 # Active Plan
 
+## CURRENT RELEASE — v0.19.62/build151 (GF PNG folder import role isolation)
+
+- [x] Reproduce source-level cause: pending import role was transient Activity state with CREATURE fallback after recreation.
+- [x] Persist exact role before OpenDocumentTree, restore in callback or fail-closed, validate separate folder per type, return to typed source picker and reveal selected object.
+- [x] PR #19 Validate #1238 / Android #680 PASS; merged app/source `75433e0728d8a75006deb67826851ef0fbdb2245`. MAIN Validate #1239 PASS / signed Android #681 PASS, artifact `11686121452`, run `38097213918`.
+- [ ] Phone QA: Termux **3 → 10 → 8** without clearing data, add a Frame PNG folder and select frame, ensure Frame source and Hero source remain isolated. No need to touch original ten Heroes if listed.
+- [ ] If older wrong import replaced indexed Creature list, repair only with original Hero folder re-selection; do not delete PNG files or presets.
+- [ ] Separate follow-up if needed: actual GF hero rendered invisible despite valid thumbnail and source ref. `BUG-EXPORT-001`, `LIFE-ROT-001`, MP4 source parity, and custom GF z-order remain open.
+
+
 ## CURRENT — v0.19.61/build150 hide unavailable prepared Hero placeholders
 
 - [x] Diagnose user's screenshot of empty legacy `СКОРО` cards; missing prepared art creates dead 248dp tiles in Theme Hero grid, unrelated to ten external indexed PNG creatures.

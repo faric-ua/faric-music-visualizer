@@ -1,5 +1,16 @@
 # FARIC Music Visualizer — START HERE
 
+## CURRENT MAIN RELEASE — v0.19.63/build152; visible system bars and approved outdoor test cards (PHONE QA PENDING)
+
+**NEXT ACTION:** Termux **3 → 10 → 8**, never manual 9, install current signed `v0.19.63/build152` over existing app **WITHOUT wiping data**. PR #20 main app/source SHA `1778d49f991562a143df7b54e3ff4ec9261524a9`, **Validate #1250 PASS / Android #683 PASS**, run `38135415472`, artifact `FARIC-Music-Visualizer-v0.19.63-Debug` ID `11700399123`, expiry 2026-10-14T11:27:36Z. `BUILD_CHECKPOINTS.md`.
+
+**New default:** top Android status bar and bottom navigation bar visible on EVERY PulseDeck screen (including Export, Board, GF Mix, calibration and constructors). Tools menu → **Системні панелі Android** → visible (default) / immersive. Option persisted across activity/restart; do not claim it can change Android navigation **style**. User photos show difficulty swiping to reveal system bars. No source art, saved GF preset, live projectM rebuild, calibrated master screen coordinates, or exported video aspect changed.
+
+**Future ChatGPT testing messages must use user-approved outdoor contrast:** RED 36px+ empty/not-verified circle, bright GREEN circle with ✓ when checked/PASS, tappable full test row, visible progress counter and `Надіслати результат` button. This is a saved project presentation preference, NOT an app-native setting. Documentation: `docs/checkpoints/2026-10-11-v0.19.63-system-bars-and-test-ui.md`.
+
+**PHONE CHECK:** first show bars with no swipe on Board and **Export Lab** (screenshot 9:16/16:9 and offline analysis), verify bottom Export controls not masked by nav, tools setting and return. Bundle pending v151 role regression: GF Мікс → Рамка → Frames folder → FRAME selector, 10 Hero PNG remain separate. User need not reimport previous 10 PNGs. Previous `BUG-EXPORT-001`/rotation/blank Panther/UI-RESP audit still OPEN.
+
+
 ## RESUME NOW — v0.19.62/build151 phone test + recorded UI spacing audit (2026-10-11)
 
 - **User's immediate request was DOCUMENT, not modify UI code:** recorded `docs/audits/2026-10-11-responsive-controls-and-dialogs.md` on gaps between buttons/tiles, automatic wrapping text and dynamic proportional height, and across Settings/Board/GF Mix/PNG picker/Theme/ProjectM/Export/Help. Identified issues UI-RESP-001…009. **No new app version/build/APK from audit.** Prioritize shared fix later after current phone smoke.

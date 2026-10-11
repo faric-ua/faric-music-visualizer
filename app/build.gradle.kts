@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 152
-        versionName = "0.19.63"
-        // v0.19.63: native Android system bars stay visible by default on every screen.
+        versionCode = 153
+        versionName = "0.19.64"
+        // v0.19.64: role-specific PNG imports visible on Board/Themes; responsive labels and gaps.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

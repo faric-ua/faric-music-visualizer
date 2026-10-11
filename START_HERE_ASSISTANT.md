@@ -1,5 +1,15 @@
 # FARIC Music Visualizer — START HERE
 
+## RESUME FIRST — SIGNED v0.19.64/build153, direct GF PNG importing and button spacing (PHONE QA PENDING)
+
+**NEXT ON PHONE:** Termux **3 → 10 → 8** (never 9), install signed **v0.19.64/build153** over existing without deleting app data. PR #21 app/source SHA `ad80cb611e1f900520ea6e789e84365a07278e93`; **main Validate #1259 PASS / Android #687 PASS**, run `38138842357`, signed artifact `FARIC-Music-Visualizer-v0.19.64-Debug` ID `11702183610`, expires 2026-10-14T12:23:13Z.
+
+**User's latest screenshots:** Playback Themes long `Зовнішні PNG-герої` button overlaps `Герої · 12` card; Board fixed-height `GF Мікс` and Hero chooser labels collide, and the user cannot find where to import separate frames/wordmarks/effects (sees only Hero files). Now add direct `Додати свої PNG-шари` row on BOTH Board and Playback Themes with `＋ Рамки`, `＋ Написи`, `＋ Ефекти` wired to type-isolated SAF scan and source picker for FRAME/WORDMARK/FX. User's existing 10 external PNG heroes and GF presets are never automatically re-imported or cleared. Responsive 52dp minimum actions, multiline text+gaps, scrolling long dialogs, safe Cancel. `docs/checkpoints/2026-10-11-v0.19.64-direct-gf-png-import-responsive-ui.md`.
+
+**Short PHONE TEST:** (1) Playback Themes Hero button no overlap/gap; (2) Board two buttons text fully within outlines; (3) `＋ Рамки` → independent Frames-only PNG folder → `GF Мікс · Рамка` file chooser → select frame, current hero untouched. Verify ten hero cards still there. Send PASS/FAIL, screenshot if fail. **Do not claim phone PASS** based solely on CI. Native system bars v152 still need phone check; UI-RESP audit broader follow-up. Use outdoor high contrast RED not-done / GREEN ✓ PASS 36px indicators, progress and result button.
+
+
+
 ## CURRENT MAIN RELEASE — v0.19.63/build152; visible system bars and approved outdoor test cards (PHONE QA PENDING)
 
 **NEXT ACTION:** Termux **3 → 10 → 8**, never manual 9, install current signed `v0.19.63/build152` over existing app **WITHOUT wiping data**. PR #20 main app/source SHA `1778d49f991562a143df7b54e3ff4ec9261524a9`, **Validate #1250 PASS / Android #683 PASS**, run `38135415472`, artifact `FARIC-Music-Visualizer-v0.19.63-Debug` ID `11700399123`, expiry 2026-10-14T11:27:36Z. `BUILD_CHECKPOINTS.md`.

@@ -1,5 +1,13 @@
 # Active Plan
 
+## TODO / PHONE FINDING — BUG-GF-WORDMARK-001: Wordmark PNG appears stretched (2026-10-11)
+
+- [ ] **User screenshot:** Board · FARIC, active FMV wordmark appears geometrically stretched with «Розмір шару» = **155%**, X=1%, Y=2%, rotation=3°, opacity=100%. Tracking: [GitHub issue #36](https://github.com/faric-ua/faric-music-visualizer/issues/36).
+- [x] Source audit: `HeroBoardView.drawBitmapLayer()` uses a **square destination RectF** for all bitmaps, as does software export `CyberSharkExportRenderer.drawBitmapLayer()`; GPU export uses one `size` scalar. This would distort non-square PNGs. **Verify original decoded bitmap dimensions and alpha bounds** before claiming it is the only cause of this specific picture.
+- [ ] Preserve natural wordmark width:height when scaling (100/155/200%), without altering originals, SAF refs, layer positions, rotation, source IDs, existing GF presets, or calibrated geometry. Create shared/consistent aspect-fit geometry, check wide/tall/square/transparent cases, and maintain Live/CPU/GPU export parity.
+- [ ] Regression tests + visual device QA using exact FMV/FARIC asset at 100%, 155%, 200%; no horizontal/vertical stretching, clipped letters, or regressions to Hero/Frame/FX. **TODO only; no renderer code changed.**
+- [ ] Keep independent ongoing v0.19.70 build159 GF parent-child phone QA and PERF-NAV-004 Export Lab hitch (#32) as separate work.
+
 ## RESUME NOW — PulseDeck v0.19.70/build159 GF parent → child reactions (2026-10-11)
 
 - **APP SOURCE SHA:** `bc7942b538d9182ef9667a7b76a7923ca0aa9030` (merged PR #34); PR Validate #1285 + Android #700 **PASS**; signed MAIN Validate #1286 + Android #701 **PASS** (run `38155527243`, signed artifact `FARIC-Music-Visualizer-v0.19.70-Debug` ID `11708043548`, expires 2026-10-14T16:31:10Z). **PHONE QA NOT YET ACCEPTED.**

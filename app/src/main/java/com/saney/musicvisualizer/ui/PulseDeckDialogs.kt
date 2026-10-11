@@ -746,6 +746,7 @@ object PulseDeckDialogs {
             )
             // Primary action labels must wrap and grow with content, never
             // clip or ellipsize a long imported PNG filename.
+            maxLines = Int.MAX_VALUE
             breakStrategy = android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY
             background =
                 roundedDrawable(

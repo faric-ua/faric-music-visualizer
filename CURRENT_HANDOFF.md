@@ -1,5 +1,13 @@
 # Current Handoff
 
+## RESUME NOW — PulseDeck v0.19.69/build158 hero gallery + player swipes (2026-10-11)
+
+- **APP SOURCE SHA:** `5ba08e4011e4c6daf3df59fe3bfbc1ffc5035bae` (PR #30 merged). Validate #1279 PASS, PR Android #698 PASS; signed MAIN Validate #1280 PASS and Android **#699 PASS**, run `38152754672`, artifact `FARIC-Music-Visualizer-v0.19.69-Debug` ID `11707247865`, expires 2026-10-14 15:51:18Z.
+- Gallery (Theme Picker → Герої) non-destructively hides external `cyber scorpion B` and empty builtin `CYBER_PANTHER` tile. Preserves original source PNGs/SAF IDs/old GF compositions. Cyber Shark moves to last numbered tile after Scorpion A (normally item 10) using same FIT_CENTER preview and caption, removes separate Shark selector card.
+- Player gesture from central artwork (not seek/HUD/system edge): **right-to-left → existing projectM Focus overlay**; **left-to-right → existing Library overlay**. One finger, substantial horizontal motion, no multi-touch; avoids renderer/audio rebuild.
+- 10s stationary single-finger player press still opens Emergency Recovery with new action **Налаштувати шари та кнопки**; slight drift up to 44dp, plus prior restore/reset options. Cancels on release/extra finger/Activity stop.
+- **PHONE QA NOT ACCEPTED YET:** install signed MAIN build158 with Termux **3 → 10 → 8** (never 9), no uninstall/clear/reimport. Screenshot Hero list at bottom verifying A, hidden B/Panther, Shark tile 10. Select Shark. Swipe center right-left x3 → ProjectM & Back; left-right x3 → Library & Back; hold 10s with HUD hidden → edit visibility. Verify audio continuous and seek still scrubs. Also check v0.19.67 MediaSession/individual layer-reaction previous pending tests.
+- Related: issue #27 Compare/«склеювання» is still an ambiguous TODO and untouched. Prior full-song export/rotation bugs remain open. Details `docs/checkpoints/2026-10-11-v0.19.69-hero-swipes.md`.
 ## RESUME NOW — PulseDeck v0.19.68/build157 numbered uniform PNG Hero tiles (2026-10-11)
 
 - **App/source main SHA:** `f61da2a3eedebfafcbd70835b49190962ee8de1a` (merged PR #28). PR Validate #1273 PASS, Android #694 PASS. Signed main Validate #1274 PASS, **Android #695 PASS**, run `38148621984`; signed debug artifact `FARIC-Music-Visualizer-v0.19.68-Debug`, ID `11706465894`, expiry 2026-10-14T14:51:44Z. Phone QA **OPEN**.

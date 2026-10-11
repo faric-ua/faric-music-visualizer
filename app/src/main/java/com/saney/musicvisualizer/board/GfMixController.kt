@@ -188,16 +188,33 @@ class GfMixController(private val context: Context) {
         val checked = available.indexOf(
             mix.instances.firstOrNull { it.asset.type == type }?.asset,
         )
-        PulseDeckDialogs.showSingleChoice(
+        PulseDeckDialogs.showImageChoice(
             context = context,
             title = "GF Мікс · $roleName",
-            labels = available.map { GfAssetLibrary.title(context, it) } +
-                "＋ Додати PNG для $roleName із папки",
+            // Display-only numbers, never replacements for immutable source IDs.
+            labels = available.indices.map { index ->
+                "$roleName " + (index + 1).toString().padStart(2, '0')
+            },
             checkedIndex = checked,
-        ) { selected ->
-            if (selected == available.size) {
-                onImportExternalPng(type)
-            } else {
+            onPreview = { index ->
+                val asset = available[index]
+                if (asset.sourcePackId.startsWith("png_")) {
+                    ExternalPngHeroLibrary(context).decode(
+                        id = asset.sourcePackId,
+                        preferredDimension = 128,
+                        type = type,
+                    )
+                } else {
+                    GfAssetLibrary.load(context, asset)?.let { original ->
+                        val thumbnail = android.graphics.Bitmap.createScaledBitmap(
+                            original, 128, 128, true,
+                        )
+                        if (thumbnail !== original) original.recycle()
+                        thumbnail
+                    }
+                }
+            },
+            onSelected = { selected ->
                 val ref = available[selected]
                 val changed = mix.copy(instances = mix.instances.map { part ->
                     if (part.asset.type == type) {
@@ -207,8 +224,9 @@ class GfMixController(private val context: Context) {
                 if (activate(changed, onChanged)) {
                     show(themeId, baseline, visible, onChanged, onImportExternalPng)
                 }
-            }
-        }
+            },
+            onAdd = { onImportExternalPng(type) },
+        )
     }
 
     fun show(

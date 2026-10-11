@@ -115,6 +115,123 @@ object PulseDeckDialogs {
         )
     }
 
+
+    /**
+     * A scoped GF source chooser: numbered entries with 76dp previews.
+     * SAF file identifiers never become visible labels. All thumbnail I/O
+     * occurs on a worker, not the dialog/UI thread.
+     */
+    fun showImageChoice(
+        context: Context,
+        title: String,
+        labels: List<String>,
+        checkedIndex: Int = -1,
+        onPreview: (Int) -> android.graphics.Bitmap?,
+        onSelected: (Int) -> Unit,
+        onAdd: () -> Unit,
+    ): Dialog {
+        val list = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        val images = mutableListOf<Pair<Int, android.widget.ImageView>>()
+        lateinit var dialog: Dialog
+        labels.forEachIndexed { index, text ->
+            val row = LinearLayout(context).apply {
+                orientation = LinearLayout.HORIZONTAL
+                gravity = Gravity.CENTER_VERTICAL
+                setPadding(context.dp(8), context.dp(6), context.dp(8), context.dp(6))
+                background = roundedDrawable(
+                    context = context,
+                    fill = COLOR_PANEL_2,
+                    radiusDp = 18,
+                    stroke = if (index == checkedIndex) COLOR_CYAN
+                        else Color.argb(115, 255, 255, 255),
+                    strokeDp = 1,
+                )
+                isClickable = true
+                contentDescription = "Вибрати $text"
+                setOnClickListener {
+                    dialog.dismiss()
+                    onSelected(index)
+                }
+            }
+            val image = android.widget.ImageView(context).apply {
+                scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+                contentDescription = "Прев'ю $text"
+            }
+            row.addView(
+                image, LinearLayout.LayoutParams(context.dp(76), context.dp(76))
+                    .apply { rightMargin = context.dp(12) },
+            )
+            row.addView(
+                label(context, text, 15f, COLOR_TEXT, true).apply {
+                    gravity = Gravity.CENTER_VERTICAL
+                    maxLines = 2
+                },
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+            )
+            list.addView(
+                row, LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply { if (index > 0) topMargin = context.dp(10) },
+            )
+            images.add(index to image)
+        }
+        if (labels.isEmpty()) {
+            list.addView(label(
+                context, "PNG ще немає. Додай папку з файлами.", 13f, COLOR_MUTED, false,
+            ))
+        }
+        val scroll = ScrollView(context).apply {
+            isFillViewport = false
+            addView(list)
+        }
+        // The inner scroll has a measured height; show() can safely wrap the
+        // outer body without swallowing this limit, even with 100+ sources.
+        val body = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+            addView(
+                scroll, LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    minOf(
+                        (context.resources.displayMetrics.heightPixels * 0.50f).toInt(),
+                        context.dp(labels.size * 96 + 24).coerceAtLeast(context.dp(68)),
+                    ),
+                ),
+            )
+        }
+        dialog = show(
+            context = context,
+            title = title,
+            body = body,
+            actions = listOf(
+                Action(
+                    label = "＋ Додати PNG із папки",
+                    accent = true,
+                    dismissOnClick = false,
+                ) {
+                    dialog.dismiss()
+                    onAdd()
+                },
+                Action("Закрити") {},
+            ),
+        )
+        val handler = android.os.Handler(android.os.Looper.getMainLooper())
+        kotlin.concurrent.thread(name = "faric-gf-thumbnails") {
+            for ((index, image) in images) {
+                if (!dialog.isShowing) break
+                val bitmap = runCatching { onPreview(index) }.getOrNull()
+                handler.post {
+                    if (dialog.isShowing && image.parent != null) {
+                        image.setImageBitmap(bitmap)
+                    } else {
+                        bitmap?.recycle()
+                    }
+                }
+            }
+        }
+        return dialog
+    }
+
     fun showSingleChoice(
         context: Context,
         title: String,

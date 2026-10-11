@@ -1759,17 +1759,29 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             gravity = Gravity.TOP
         }
         val choices = listOf(
-            GfArtType.FRAME to "＋ Рамки",
-            GfArtType.WORDMARK to "＋ Написи",
-            GfArtType.FX to "＋ Ефекти",
+            GfArtType.FRAME to "Рамки",
+            GfArtType.WORDMARK to "Написи",
+            GfArtType.FX to "Ефекти",
         )
         choices.forEachIndexed { index, (type, title) ->
-            val button = actionPill(title, accent = false) {
+            val button = actionPill("＋\n$title", accent = false) {
                 requestExternalPngFolder(type)
             }.apply {
                 textSize = 14f
-                minimumHeight = dp(56)
-                contentDescription = "Вибрати папку PNG для шару: $title"
+                gravity = Gravity.CENTER
+                minimumHeight = dp(100)
+                minLines = 2
+                maxLines = 2
+                textAlignment = View.TEXT_ALIGNMENT_CENTER
+                // One prominent plus above one label; all tiles use identical
+                // content and minimum-height measurement in the weighted row.
+                text = android.text.SpannableString("＋\n$title").apply {
+                    setSpan(
+                        android.text.style.RelativeSizeSpan(1.55f), 0, 1,
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+                    )
+                }
+                contentDescription = "Вибрати PNG-папку: $title"
             }
             row.addView(
                 button,
@@ -6081,7 +6093,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
         panelContent.addView(
             actionPill(
-                text = "▣ Зовнішні PNG-герої · вибір із папки",
+                text = "📁 Зовнішні PNG-герої",
                 accent = false,
             ) { showExternalPngHeroes() }.apply { minimumHeight = dp(52) },
             LinearLayout.LayoutParams(
@@ -9326,7 +9338,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         content.addView(
             actionPill(
-                text = "▣ Зовнішні PNG-герої · файли з пам'яті телефону",
+                text = "📁 Зовнішні PNG-герої",
                 accent = false,
             ) { showExternalPngHeroes() }.apply { minimumHeight = dp(52) },
             LinearLayout.LayoutParams(

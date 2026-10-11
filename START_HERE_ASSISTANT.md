@@ -1,5 +1,12 @@
 # FARIC Music Visualizer — START HERE
 
+## RESUME NOW — v0.19.62/build151 phone test + recorded UI spacing audit (2026-10-11)
+
+- **User's immediate request was DOCUMENT, not modify UI code:** recorded `docs/audits/2026-10-11-responsive-controls-and-dialogs.md` on gaps between buttons/tiles, automatic wrapping text and dynamic proportional height, and across Settings/Board/GF Mix/PNG picker/Theme/ProjectM/Export/Help. Identified issues UI-RESP-001…009. **No new app version/build/APK from audit.** Prioritize shared fix later after current phone smoke.
+- **Where paused:** v0.19.62/build151 already CI PASS (main app/source `75433e0728d8a75006deb67826851ef0fbdb2245`; Android #681, Validate #1239) but **phone QA NOT confirmed** for fix where Frames were imported to Heroes through SAF picker lifecycle. Next: Termux **3 → 10 → 8** not 9; install over existing app without clearing data; Board → GF Mix → Рамка → import distinct Frames-only folder → verify Frame selector, visible ring and existing ten Hero entries unaffected. Please request only PASS/FAIL + screenshot if failure; do not redo accepted earlier tests.
+- If hero absent despite thumbnail after choosing Creature, record separate visibility bug, not guaranteed role routing. Panther thumbnail remains separate potential issue. `BUG-EXPORT-001`, `LIFE-ROT-001` remain open.
+
+
 ## CURRENT SIGNED MAIN — v0.19.62/build151, SAF GF folder role isolation (PHONE QA PENDING)
 
 **FIRST USER ACTION:** Termux **3 → 10 → 8**, DO NOT press 9, install signed v0.19.62/build151 over existing app **without clearing data**. PR #19 merged app/source SHA `75433e0728d8a75006deb67826851ef0fbdb2245`, main Validate #1239 PASS, Android #681 PASS, run `38097213918`, artifact `FARIC-Music-Visualizer-v0.19.62-Debug` ID `11686121452`, expires 2026-10-14T00:08:00Z.

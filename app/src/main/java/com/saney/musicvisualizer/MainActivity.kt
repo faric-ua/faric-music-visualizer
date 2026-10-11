@@ -1973,9 +1973,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         safe,
                     ),
                 )
-                setGroupReaction(
-                    boardGroupReactionStore.load(
-                        safe,
+                // Parent settings are inherited by children, not applied
+                // a second time as a whole-GF physical animation.
+                setGroupReaction(BoardGroupReaction.neutral())
+                setLayerReactionTunings(
+                    boardLayerReactionTuningStore.loadAll(
+                        safe, boardGroupReactionStore.load(safe),
                     ),
                 )
                 setLayerTransforms(
@@ -2204,12 +2207,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         gfThemeId,
                     ),
                 )
-                view.setGroupReaction(
-                    boardGroupReactionStore.load(
-                        gfThemeId,
+                view.setGroupReaction(BoardGroupReaction.neutral())
+                view.setLayerReactionTunings(
+                    boardLayerReactionTuningStore.loadAll(
+                        gfThemeId, boardGroupReactionStore.load(gfThemeId),
                     ),
                 )
-                view.setLayerReactionTunings(boardLayerReactionTuningStore.loadAll(gfThemeId))
                 view.setLayerTransforms(
                     activeGfLayerTransforms(gfThemeId),
                 )
@@ -4128,6 +4131,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 .toFloat(),
                     ),
                 )
+                boardLayerReactionTuningStore.applyParentToAll(
+                    gfTheme, boardGroupReactionStore.load(gfTheme),
+                )
             }
 
         gfJson
@@ -5967,8 +5973,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 HeroBoardView(this, gfThemeId)
             }
         boardView.setGroupTransform(transform)
-        boardView.setGroupReaction(groupReaction)
-        boardView.setLayerReactionTunings(boardLayerReactionTuningStore.loadAll(gfThemeId))
+        boardView.setGroupReaction(BoardGroupReaction.neutral())
+        boardView.setLayerReactionTunings(
+            boardLayerReactionTuningStore.loadAll(gfThemeId, groupReaction),
+        )
         boardView.setLayerTransforms(activeGfLayerTransforms(gfThemeId))
         HeroBoardView.ObjectId.entries.forEach { objectId ->
             boardView.setObjectVisible(
@@ -6017,11 +6025,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 BoardLayerId.BACKGROUND -> "Background / Glow"
                 BoardLayerId.FRAME -> "Frame"
                 BoardLayerId.FX -> "FX"
-                BoardLayerId.CREATURE ->
-                    GraphicFigureCatalog
-                        .creatureLabel(
-                            gfThemeId,
-                        )
+                // The selected Creature can be a scorpion, griffin or
+                // any external PNG regardless of the backing GF theme ID.
+                BoardLayerId.CREATURE -> "Герой"
                 BoardLayerId.WORDMARK -> "FARIC"
             }
 
@@ -6293,8 +6299,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 groupReaction,
             )
 
-            boardView.setGroupReaction(
-                groupReaction,
+            // Editing ANY parent slider replaces all three values for EVERY
+            // child. The live layer view updates immediately and the exported
+            // video uses those same persisted values.
+            boardLayerReactionTuningStore.applyParentToAll(gfThemeId, groupReaction)
+            boardView.setGroupReaction(BoardGroupReaction.neutral())
+            boardView.setLayerReactionTunings(
+                boardLayerReactionTuningStore.loadAll(gfThemeId, groupReaction),
             )
         }
 
@@ -6712,10 +6723,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     boardTransformStore.reset(
                         gfThemeId,
                     )
-                    boardGroupReactionStore.reset(
-                        gfThemeId,
-                    )
-                    boardLayerReactionTuningStore.resetAll(gfThemeId)
+                    val resetParent = boardGroupReactionStore.reset(gfThemeId)
+                    boardLayerReactionTuningStore.resetAll(gfThemeId, resetParent)
                     boardLayerTransformStore
                         .resetAll(
                             gfThemeId,
@@ -6947,9 +6956,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
 
 
-            // Per-object motion is saved separately from global GF reaction.
-            // Existing layers keep their original built-in motion at zero.
-            var tuning = boardLayerReactionTuningStore.load(gfThemeId, layerId)
+            // Values are absolute for this object; no additive parent motion.
+            // An untouched layer inherits the current all-GF control values.
+            var tuning = boardLayerReactionTuningStore.load(gfThemeId, layerId, groupReaction)
             fun persistLayerReaction(value: BoardLayerReactionTuning) {
                 tuning = value.sanitized()
                 boardLayerReactionTuningStore.save(gfThemeId, layerId, tuning)
@@ -8139,14 +8148,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 boardTransformStore.load(
                     gfThemeId,
                 ),
-            groupReaction =
-                boardGroupReactionStore.load(
-                    gfThemeId,
-                ),
+            groupReaction = BoardGroupReaction.neutral(),
             layerTransforms =
                 activeGfLayerTransforms(gfThemeId),
             assetOverrides = gfMixController.overrides(),
-            layerReactionTunings = boardLayerReactionTuningStore.loadAll(gfThemeId),
+            layerReactionTunings = boardLayerReactionTuningStore.loadAll(
+                gfThemeId, boardGroupReactionStore.load(gfThemeId),
+            ),
             visibility =
                 BoardLayerId.entries
                     .associateWith { layerId ->

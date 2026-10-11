@@ -12,6 +12,7 @@ import android.graphics.RadialGradient
 import android.graphics.RectF
 import android.graphics.Shader
 import com.saney.musicvisualizer.analysis.SceneSignal
+import com.saney.musicvisualizer.board.BoardBitmapGeometry
 import com.saney.musicvisualizer.board.BoardAudioState
 import com.saney.musicvisualizer.board.BoardGroupReaction
 import com.saney.musicvisualizer.board.GraphicFigureAssets
@@ -854,6 +855,10 @@ class CyberSharkExportRenderer(
             baseSize *
                 motion.scale *
                 layerTransform.scale
+        val extent = BoardBitmapGeometry.fitCanvas(
+            bitmap.width, bitmap.height, size,
+        )
+        if (extent.width <= 0f || extent.height <= 0f) return
         val layerCx = cx + width * (layerTransform.offsetXFraction + motion.translateXFraction)
         val layerCy =
             cy +
@@ -874,10 +879,10 @@ class CyberSharkExportRenderer(
             bitmap,
             null,
             RectF(
-                layerCx - size * 0.5f,
-                layerCy - size * 0.5f,
-                layerCx + size * 0.5f,
-                layerCy + size * 0.5f,
+                layerCx - extent.width * 0.5f,
+                layerCy - extent.height * 0.5f,
+                layerCx + extent.width * 0.5f,
+                layerCy + extent.height * 0.5f,
             ),
             bitmapPaint,
         )

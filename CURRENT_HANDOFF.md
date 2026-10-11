@@ -1,5 +1,14 @@
 # Current Handoff
 
+## RESUME NOW — PulseDeck v0.19.71/build160 original PNG canvas aspect (2026-10-11)
+
+- **APP SOURCE MAIN SHA:** `1df725f051bcd250e304e047b47ffbbb981ec47a`, PR #39 merged; PR Validate #1291 PASS, Android #702 PASS; main Validate #1292 PASS. Signed MAIN Android #703 run `38165490259` (check run and signed artifact before installation; phone QA OPEN).
+- User phone feedback: all PNG images, particularly independently imported FRAME rings and FMV wordmark, appeared squashed/elliptical despite transparent source canvas. Source confirmed the SAF decoder already uses original image dimensions with `inScaled=false`; the problem was forced **square texture geometry** in live Canvas, CPU MP4 and GPU/EGL compositor.
+- Shared `BoardBitmapGeometry.fitCanvas(width,height,maxExtent)` uses the original **whole** PNG canvas including transparent pixels, fits longest side to current size-slider extent, scales the other side proportionally. This fixes all physical FRAME/FX/CREATURE/WORDMARK shapes in live `HeroBoardView`, software exporter and GPU encoder quad; square assets unchanged. No destructive import, alpha trimming, canvas rotation, per-layer transform reset or SAF reimport.
+- **Next phone QA after signed #703 PASS:** Termux **3 → 10 → 8**, not 9. Install over previous package, never clear data/reimport. Compare original circular transparent frame PNG to its Board and Now Playing render at 100/155/200%, FMV lettering against original, and 3s MP4 parity. Distinguish circle geometry from rotation or independent music motion.
+- Sources/tests in PR #39, findings #38 and #36; **do not mark these issues resolved without phone screenshots/video confirmation**. Earlier v0.19.70 group-child music reaction phone QA still pending. Separate issue #32 Export Lab → Player hitch remains open.
+- Checkpoint: `docs/checkpoints/2026-10-11-v0.19.71-native-png-aspect.md`.
+
 ## RESUME NOW — PulseDeck v0.19.70/build159 GF parent → child reactions (2026-10-11)
 
 - **APP SOURCE SHA:** `bc7942b538d9182ef9667a7b76a7923ca0aa9030` (merged PR #34); PR Validate #1285 + Android #700 **PASS**; signed MAIN Validate #1286 + Android #701 **PASS** (run `38155527243`, signed artifact `FARIC-Music-Visualizer-v0.19.70-Debug` ID `11708043548`, expires 2026-10-14T16:31:10Z). **PHONE QA NOT YET ACCEPTED.**

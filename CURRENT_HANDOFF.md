@@ -1,5 +1,16 @@
 # Current Handoff
 
+## CURRENT MAIN — v0.19.64/build153 direct PNG Frame/Wordmark/FX import and responsive Board/Theme buttons
+
+- User photos (2026-10-11): Playback Themes external Heroes button long text overlaps `Герої · 12`; Board `GF Мікс · активний` and `Зовнішні PNG-герої` buttons fixed height 42dp causing text clip and no gap. User explicitly cannot find separate import entry points for rings/frames, logos/text and FX; picking folder appeared hero-only.
+- **PR #21 merged**, app/source SHA `ad80cb611e1f900520ea6e789e84365a07278e93`; PR Validate #1258, Android #686 PASS; signed **main Validate #1259, Android #687 PASS**, run `38138842357`, artifact ID `11702183610`, SHA-256 `7cd9318e6de451155150a6ab3bd345ac9131ccbe95d6400a8f79e4510a9c863c`, expires 2026-10-14T12:23:13Z.
+- Both Board editor and Theme picker have explicit `Додати свої PNG-шари` and buttons `＋ Рамки` → FRAME, `＋ Написи` → WORDMARK, `＋ Ефекти` → FX. Preexisting typed SAF callback indexes only selected role and immediately prompts matching source selection. All existing ten Creature PNG records, their original external masters, saved GF Mix configurations, fixed center geometry, animation and export untouched. Do not ask to reimport ten heroes.
+- Primary actions now grow with multiline text and have gaps; external Hero titles wrap with natural tile height; long GF chooser scrolls; Cancel ignored rather than unsafe index. This fixes screenshot examples only; full UI-RESP audit remains backlog.
+- **PHONE QA PENDING**: user can install via Termux **3 → 10 → 8**, not 9, without deleting data. Test Theme button separation, Board actions readability and import separate transparent PNG Frames folder; verify `GF Мікс · Рамка` source list and Frame ring independent of Creature, 10 Hero miniatures remain, optional text/FX. v152 visible Android bars also phone unconfirmed, `BUG-EXPORT-001`, `LIFE-ROT-001`, Cyber Panther old preview and general UI audit OPEN.
+- User-approved all subsequent PulseDeck QA messages: clearly contrasting RED/GREEN circular PASS checklist, progress and `Надіслати результат` button. Release details `docs/checkpoints/2026-10-11-v0.19.64-direct-gf-png-import-responsive-ui.md`.
+
+
+
 ## CURRENT DELIVERY — v0.19.63/build152, native Android system bars (PHONE QA PENDING)
 
 - User asked to preserve new ChatGPT test checklist presentation they liked: big **red unchecked circles**, **green checked PASS circles**, large tap target, progress and result-submit button; future PulseDeck test messages should use this contrast due to outdoor glare. Saved in release note `docs/checkpoints/2026-10-11-v0.19.63-system-bars-and-test-ui.md`. This is NOT the native Android UI setting.

@@ -1,5 +1,14 @@
 # Current Handoff
 
+## CURRENT DELIVERY — v0.19.63/build152, native Android system bars (PHONE QA PENDING)
+
+- User asked to preserve new ChatGPT test checklist presentation they liked: big **red unchecked circles**, **green checked PASS circles**, large tap target, progress and result-submit button; future PulseDeck test messages should use this contrast due to outdoor glare. Saved in release note `docs/checkpoints/2026-10-11-v0.19.63-system-bars-and-test-ui.md`. This is NOT the native Android UI setting.
+- User screenshot on Export screen shows controls, aspect ratio picker and text `Offline analysis`; asked native lower system menu/nav and top bar to remain **always visible on every screen**, not require swipe gestures, including Export. New persisted Tools → **Системні панелі Android** (default visible, alternate prior immersive) now routes previously immersive callers through common `PulseDeckSystemBars`; calibrated master geometry unchanged. Main scroll surfaces account for system bars and keyboard insets; calibration, template and object constructors updated; ProjectMActivity already showed bars.
+- **PR #20 merged**, app/source `1778d49f991562a143df7b54e3ff4ec9261524a9`; PR Validate #1249 PASS, Android #682 PASS; signed **main Validate #1250 PASS, Android #683 PASS**, run `38135415472`, artifact `FARIC-Music-Visualizer-v0.19.63-Debug` ID `11700399123`, expires 2026-10-14T11:27:36Z.
+- **Phone QA PENDING**: install over current app via Termux **3 → 10 → 8**, NOT 9, no clearing data. Board / Export Lab bars visible without swiping and text/buttons usable; Tools → System bars toggle and restart; open Calibration/Constructors if possible. Also previous v151 Frame imported as Hero regression **still phone unverified** and may be bundled: GF Mix Frame imports in own category, original ten Creature PNG cards remain. Do not claim `BUG-EXPORT-001` full MP4, `LIFE-ROT-001` lifecycle, Cyber Panther image or global UI text wrapping fixed.
+- Full record: `BUILD_CHECKPOINTS.md` + `docs/checkpoints/2026-10-11-v0.19.63-system-bars-and-test-ui.md`. Separate UI-RESP audit remains backlog.
+
+
 ## NEW UI/UX AUDIT + RESUME TEST (2026-10-11; no code change)
 
 - User requests a recorded cross-app controls/settings audit: button and card spacing, text often overflowing button borders; labels must **wrap naturally** and containers **grow to the required measured height**, with proportional row/tile/panel sizing, not ellipsize/clipping; consistent responsive gaps. `docs/audits/2026-10-11-responsive-controls-and-dialogs.md` added with source findings **UI-RESP-001…009**, scoped backlog and device QA matrix. Audited `PulseDeckDialogs.kt`, `MainActivity.kt` (Board pills, Theme grid, external PNG chooser), `GfMixController.kt`, and `ProjectMSettingsPanel.kt`. This is **docs-only**, nothing implemented/tested on phone.

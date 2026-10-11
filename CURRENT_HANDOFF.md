@@ -1,5 +1,13 @@
 # Current Handoff
 
+## NEW UI/UX AUDIT + RESUME TEST (2026-10-11; no code change)
+
+- User requests a recorded cross-app controls/settings audit: button and card spacing, text often overflowing button borders; labels must **wrap naturally** and containers **grow to the required measured height**, with proportional row/tile/panel sizing, not ellipsize/clipping; consistent responsive gaps. `docs/audits/2026-10-11-responsive-controls-and-dialogs.md` added with source findings **UI-RESP-001…009**, scoped backlog and device QA matrix. Audited `PulseDeckDialogs.kt`, `MainActivity.kt` (Board pills, Theme grid, external PNG chooser), `GfMixController.kt`, and `ProjectMSettingsPanel.kt`. This is **docs-only**, nothing implemented/tested on phone.
+- Verified examples: dialog buttons 8dp margin, 3-line cap and unbounded action-stack height; Board `actionPill` long text in fixed 42dp; PNG chooser fixed 78dp row; Hero tiles fixed 205dp height + name truncated at 2 lines; projectM numeric row 43dp and 44dp tabs. Design defaults: min touch height 48dp, natural wrap / WRAP_CONTENT, 12dp button/card gap and 16dp section gap, scroll tall dialogs; prioritize actual accessibility/device measurement.
+- **Current installed app is not verified. Latest SIGNED AVAILABLE: v0.19.62/build151**, main app/source `75433e0728d8a75006deb67826851ef0fbdb2245`, Android #681 and Validate #1239 PASS, phone acceptance PENDING. Next simple test: Termux **3 → 10 → 8** (not 9) over current app, Board → GF Mix → Рамка → add external Frames folder → confirm role-specific Frame chooser + selected ring, 10 Heroes preserved, then optionally choose Creature separately. If hero invisible though it has thumbnail, separate render/visibility issue. Cyber Panther blank preview, `BUG-EXPORT-001`, `LIFE-ROT-001` still OPEN.
+- No deletion or automatic re-import of ten user PNGs, no change to existing app sources/calibration/MP4 code. UI audit implementation is future work after phone v151 smoke.
+
+
 ## CURRENT RELEASE — v0.19.62/build151: GF external PNG folder role fix (2026-10-11)
 
 - User screenshot and report: after opening GF Мікс → Frame → import a folder, artwork appeared under Heroes rather than Frames. App used in-memory `pendingExternalPngType = CREATURE`; if Android recreated Activity under SAF picker it could reset. This is a **source-confirmed hazard**, not a confirmed instrumented reproduction. Screenshot also showed visible orange ring with a Hero asset displayed as filename `file 000...` and no visible creature; if still present after correct role selection investigate render/visibility separately, do not invent an explanation.

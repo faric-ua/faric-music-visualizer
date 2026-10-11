@@ -1,5 +1,11 @@
 # Open Findings
 
+## PERF-NAV-004 — Export Lab → Now Playing hitch; apply persistent Scene Host (2026-10-11)
+
+- **Status: OPEN / PHONE REPORT; TODO, no source fix implemented.** User reports a noticeable jerk when returning from video Export Lab to playback. [GitHub #32](https://github.com/faric-ua/faric-music-visualizer/issues/32).
+- **Source evidence:** `MainActivity.showExportLab()` stops scene orchestrator and calls `clearScreenRefs()`, destroying/clearing current `persistentSceneRoot` and live ProjectM/layer references; subsequent `showNowPlaying()` recreates. `attachExportProjectMPreview()` creates a separate ProjectMView and starts offline bridge state. Likely architectural source, actual time distribution not yet captured.
+- **Contract:** `docs/architecture/PULSEDECK_PERSISTENT_SCENE_HOST.md` — ONE retained foreground GL/live Scene Host; Export menu = overlay, Back removes overlay only; preserve playback, GL identity, GF transforms, HUD visibility and ProjectM state. Export renderer/analysis remains logically independent, without competing live/native ProjectM owners or cancellation on menu close.
+- **Acceptance:** repeat Export Lab ↔ Now Playing ×3–5, both Back routes, verify no jerk/black flash/audio restart/new ProjectM creation, compare `FARIC-nav` timings/GL epochs, test 3s MP4 and restore when no active song; `BUG-EXPORT-001` and `LIFE-ROT-001` remain separate.
 ## BUG-EXPORT-001 — full-song ends, application exits, no MP4 (new phone report 2026-10-09)
 
 **User-confirmed symptom:** choosing **full-song** conversion rather than the 3-second proof makes a long rendering run; the song eventually stops playing, application exits/closes, and **no converted MP4 is found**. The exact crash stack and last progress stage were not captured, so do not assert exact root cause or conflate playback completion with render completion. Prior mitigation v0.19.53 only locked rotation and confirmed cancel; it did not solve storage-heavy finalize or process death.

@@ -35,5 +35,12 @@ data class BoardGroupReaction(
 
         fun default(): BoardGroupReaction =
             BoardGroupReaction()
+
+        /**
+         * Parent controls are a preset/broadcast, not a second physical
+         * transform on top of independently controlled child layers.
+         */
+        fun neutral(): BoardGroupReaction =
+            BoardGroupReaction(0f, 0f, 0f)
     }
 }

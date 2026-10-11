@@ -5,7 +5,7 @@ package com.saney.musicvisualizer.ui
  * storage remain untouched; the tile has its own stable display index.
  */
 object ExternalHeroTileLabel {
-    private val leadingOrdinal = Regex("""^\\s*\\d{1,3}(?:[\\s._-]+)""")
+    private val leadingOrdinal = Regex("""^\s*\d{1,3}(?:[\s._-]+|$)""")
 
     fun number(index: Int): String {
         require(index >= 0) { "Hero tile index cannot be negative" }

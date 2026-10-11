@@ -1,5 +1,15 @@
 # Active Plan
 
+## CURRENT CANDIDATE — v0.19.71/build160 natural PNG aspect (2026-10-11)
+
+- **User regression:** FRAME images look oval/egg-shaped and PNG wordmarks/heroes are squashed. User requests rendering exact source canvas with transparency, **not** cropping or replacing original imported PNG files. Issue [#38](https://github.com/faric-ua/faric-music-visualizer/issues/38), related prior wordmark [#36](https://github.com/faric-ua/faric-music-visualizer/issues/36).
+- [x] Source audit: `ExternalPngHeroLibrary.decode()` loads SAF PNG unscaled (`inScaled=false`), with native width/height. The distortion was in downstream square Canvas destination and fixed-size square GPU quad, not source import.
+- [x] Add pure `BoardBitmapGeometry.fitCanvas(bitmapWidth, bitmapHeight, maxExtent)`: maintain original complete PNG aspect and alpha padding; the larger original side fits `size`, other is proportional. Square canvases stay exactly unchanged. Scale remains uniform regardless of slide settings.
+- [x] Route **all** GF physical PNG layers (FRAME, FX, CREATURE, WORDMARK) via the shared calculation in Live `HeroBoardView`, software `CyberSharkExportRenderer.drawBitmapLayer()`, EGL/GPU `EglBitmapEncoderSurface.drawStaticBitmapLayer()`. Background ProjectM and synthetic FX untouched.
+- [x] Regression unit tests for square, wide, tall, transparent full-canvas and scale 100/155/200. No modifications to saved source refs, original PNG, positions, music reactions, template presets, `PULSEDECK_CENTER_CALIBRATION`.
+- [ ] Validate + Android PR CI, signed MAIN build, then phone QA: compare *original frame PNG* and imported role at 100/155/200; verify circle remains round, FMV proportions right, no alpha crop, Board/Now Playing/short MP4 consistent. **No phone PASS claimed until visual verification.**
+- [ ] Keep separate v0.19.70 parent-child audio phone-QA and Export Lab hitch PERF-NAV-004 issue #32 OPEN.
+
 ## TODO / PHONE FINDING — BUG-GF-WORDMARK-001: Wordmark PNG appears stretched (2026-10-11)
 
 - [ ] **User screenshot:** Board · FARIC, active FMV wordmark appears geometrically stretched with «Розмір шару» = **155%**, X=1%, Y=2%, rotation=3°, opacity=100%. Tracking: [GitHub issue #36](https://github.com/faric-ua/faric-music-visualizer/issues/36).

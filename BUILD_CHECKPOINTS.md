@@ -1,5 +1,14 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## CURRENT SIGNED MAIN — v0.19.63/build152 native Android bars always visible (2026-10-11)
+
+- **App/source SHA** `1778d49f991562a143df7b54e3ff4ec9261524a9`, PR #20 merged; **main Validate #1250 PASS**, **Android #683 PASS**, signed run `38135415472`. Signed artifact **`FARIC-Music-Visualizer-v0.19.63-Debug` ID `11700399123`**, SHA-256 archive digest `42fa1c227814499851cdf0f163ca6af1ccb778f9750f9aba6d6e71972ba4d347`; expires 2026-10-14T11:27:36Z.
+- Default new global preference `faric.system_bars_always_visible=true`: shows Android top status + bottom navigation bars on player, Board, GF Mix, Theme picker, **Export Lab/data export controls**, Library, calibration, and both constructors; ProjectMActivity already shows bars. Live tools menu adds **`Системні панелі Android`** to toggle default visible vs legacy immersive screen, persisted across restart. Safe-area bars/IME accounted for in standard scrollable main controls. Frozen `PULSEDECK_CENTER_CALIBRATION` / live master plate full physical coordinates unchanged; PNG/MP4 output does not capture Android chrome.
+- User explicitly approved **high-contrast CHAT QA cards**: unchecked big RED circles, checked bright GREEN circles ✓, large touch rows, counter and `Надіслати результат` button. Saved in `docs/checkpoints/2026-10-11-v0.19.63-system-bars-and-test-ui.md`. These response cards are ChatGPT presentation, **not an Android UI setting**.
+- Phone QA PENDING: Termux **3 → 10 → 8**, do not press 9, install over current app without clearing data. Confirm bars visible WITHOUT swiping on Board and Export, retain usable navigation and content scroll; Tools → system bars option is persisted; optional constructors/Calibration check. Bundled unresolved previous v151 SAF Frame→Hero role isolation still phone QA pending; don't reimport PNG if current ten present.
+- No fixes claimed for `BUG-EXPORT-001` full-song crash, `LIFE-ROT-001`, blank Panther thumbnail or general UI-RESP text wrapping audit.
+
+
 ## CURRENT SIGNED MAIN — v0.19.62 / build151 — PNG folder role isolation (2026-10-11)
 
 - **App/source SHA** `75433e0728d8a75006deb67826851ef0fbdb2245`, merged PR #19. MAIN **Validate #1239 PASS**, **Android #681 PASS**, signed run `38097213918`; artifact **`FARIC-Music-Visualizer-v0.19.62-Debug`** ID **`11686121452`**, archive SHA-256 `c7951e44b944d77618a5981124252df62e446b5810037c15ca140d93b4f1fb51`, expires 2026-10-14T00:08:00Z.

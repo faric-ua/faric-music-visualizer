@@ -1,5 +1,15 @@
 # Active Plan
 
+## CURRENT IN REVIEW — v0.19.68/build157 uniform external hero tiles (2026-10-11)
+
+- [x] New screenshot: two-column external Heroes tiles have variable height because labels wrap; the index `01/02...` is embedded in some source filenames rather than occupying a separate top row.
+- [x] Code: exactly identical row tile height; clear number above large FIT_CENTER transparent hero image; caption in bounded bottom area. The old leading numeric prefix is removed from **display text only** (original title and source IDs persist). Source order and selection untouched.
+- [x] Narrow/high-font layout can use one column; fixed-size tile contract remains consistent; thumbnail decoding remains off main thread.
+- [x] JUnit coverage for display number, title normalization, fallback label. No modifications to image masters, saved GF data, Hero importer, playback service or `PULSEDECK_CENTER_CALIBRATION`.
+- [ ] PR Validate + Android CI, then signed main APK and phone QA: first/last tiles equal dimensions, correct number first/label bottom; whole heroes fit in preview (FIT_CENTER); 10 existing PNG items and selection still work, rotation/font scale and last odd tile.
+- [ ] TODO #27: user also requested unspecified **«склеювання» / Compare**; clarify whether side-by-side comparison, combining separate compositing layers, or flattening/export. Do not implement potentially destructive file changes until scope is clear.
+- [ ] Phone acceptance still OPEN for v0.19.67 media controls/GF reaction and prior regressions. Do not infer phone PASS from CI.
+
 ## RESUME NOW — v0.19.67/build156 per-layer GF reactions + Android media session (2026-10-11)
 
 - **CURRENT APP/SOURCE SHA:** `f7da5e2de0f89f1ab6139cc6511acf561b29bcf2` (merged PR #25). PR #22 (v154 GUI) Validate #1265 / Android #688 PASS, main Android #689 PASS; PR #23 (v155 layer reaction) Validate #1267 / Android #690 PASS, main Android #691 PASS; PR #25 (v156 system media service) Validate #1269 / Android #692 PASS, main Validate #1270 PASS; **signed main Android #693 PASS**, run `38146024125`, artifact `FARIC-Music-Visualizer-v0.19.67-Debug` ID `11704293082` (expires 2026-10-14T14:11:58Z). All merged, physical phone QA NOT YET ACCEPTED.

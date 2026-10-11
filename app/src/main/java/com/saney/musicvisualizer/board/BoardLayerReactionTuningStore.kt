@@ -3,29 +3,45 @@ package com.saney.musicvisualizer.board
 import android.content.Context
 import com.saney.musicvisualizer.theme.PlaybackThemeId
 
-/** Layer- and theme-scoped preferences, never shared with global GF controls. */
+/**
+ * Stored values are absolute child values, not additive differences.
+ *
+ * Backwards compatible: pre-v0.19.70 children had no keys and displayed
+ * misleading zeroes while inheriting motion from the physical GF group.
+ * Missing fields now inherit the saved parent value without rewriting data.
+ * Explicit saved zero stays zero until the user changes "Усе GF" again.
+ */
 class BoardLayerReactionTuningStore(context: Context) {
     private val prefs = context.getSharedPreferences(
         "faric_board_layer_reaction_v1", Context.MODE_PRIVATE,
     )
 
-    fun load(theme: PlaybackThemeId, layer: BoardLayerId): BoardLayerReactionTuning {
+    private val layers = listOf(
+        BoardLayerId.FRAME, BoardLayerId.FX, BoardLayerId.CREATURE, BoardLayerId.WORDMARK,
+    )
+
+    fun load(
+        theme: PlaybackThemeId,
+        layer: BoardLayerId,
+        parent: BoardGroupReaction,
+    ): BoardLayerReactionTuning {
         val key = theme.name + "_" + layer.name + "_"
+        val inherited = BoardLayerReactionTuning.inherited(parent)
         return BoardLayerReactionTuning(
-            rotationSwayDegrees = prefs.getFloat(key + "rotation", 0f),
-            stereoShiftFraction = prefs.getFloat(key + "stereo", 0f),
-            bassFloatFraction = prefs.getFloat(key + "bass", 0f),
+            rotationSwayDegrees = prefs.getFloat(key + "rotation", inherited.rotationSwayDegrees),
+            stereoShiftFraction = prefs.getFloat(key + "stereo", inherited.stereoShiftFraction),
+            bassFloatFraction = prefs.getFloat(key + "bass", inherited.bassFloatFraction),
         ).sanitized()
     }
 
-    fun loadAll(theme: PlaybackThemeId): Map<BoardLayerId, BoardLayerReactionTuning> =
-        listOf(BoardLayerId.FRAME, BoardLayerId.FX, BoardLayerId.CREATURE, BoardLayerId.WORDMARK)
-            .associateWith { layer -> load(theme, layer) }
+    fun loadAll(
+        theme: PlaybackThemeId,
+        parent: BoardGroupReaction,
+    ): Map<BoardLayerId, BoardLayerReactionTuning> =
+        layers.associateWith { layer -> load(theme, layer, parent) }
 
     fun save(theme: PlaybackThemeId, layer: BoardLayerId, tuning: BoardLayerReactionTuning) {
-        require(layer in setOf(
-            BoardLayerId.FRAME, BoardLayerId.FX, BoardLayerId.CREATURE, BoardLayerId.WORDMARK,
-        ))
+        require(layer in layers)
         val key = theme.name + "_" + layer.name + "_"
         val safe = tuning.sanitized()
         prefs.edit()
@@ -35,9 +51,22 @@ class BoardLayerReactionTuningStore(context: Context) {
             .apply()
     }
 
-    fun resetAll(theme: PlaybackThemeId) {
-        for (layer in listOf(
-            BoardLayerId.FRAME, BoardLayerId.FX, BoardLayerId.CREATURE, BoardLayerId.WORDMARK,
-        )) save(theme, layer, BoardLayerReactionTuning())
+    /**
+     * Every parent slider change is an atomic fan-out of all three values.
+     * Previous per-child overrides are replaced, as explicitly requested.
+     */
+    fun applyParentToAll(theme: PlaybackThemeId, parent: BoardGroupReaction) {
+        val inherited = BoardLayerReactionTuning.inherited(parent)
+        prefs.edit().apply {
+            for (layer in layers) {
+                val key = theme.name + "_" + layer.name + "_"
+                putFloat(key + "rotation", inherited.rotationSwayDegrees)
+                putFloat(key + "stereo", inherited.stereoShiftFraction)
+                putFloat(key + "bass", inherited.bassFloatFraction)
+            }
+        }.apply()
     }
+
+    fun resetAll(theme: PlaybackThemeId, parent: BoardGroupReaction) =
+        applyParentToAll(theme, parent)
 }

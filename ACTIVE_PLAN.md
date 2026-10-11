@@ -1,5 +1,16 @@
 # Active Plan
 
+## CURRENT RELEASE — v0.19.63/build152 visible Android system bars + outdoor Chat QA format
+
+- [x] Save user preference: every future PulseDeck ChatGPT interactive QA card uses **large RED unchecked / GREEN ✓ checked circles**, progress counter and conspicuous `Надіслати результат` action. Project reference `docs/checkpoints/2026-10-11-v0.19.63-system-bars-and-test-ui.md`. Chat format not an Android in-app setting.
+- [x] Replace enforced immersive on Main player/Board/Theme/Export with shared Android system bars setting (default on), expose tools menu choice to revert immersive, save preference; account for standard-screen status/nav/IME safe insets.
+- [x] Update calibration, template/object constructor Activities to honor same global bars preference; keep native projectM activity already-visible behavior. Preserve immutable `PULSEDECK_CENTER_CALIBRATION` and render/projectM lifetime.
+- [x] PR #20 Validate #1249/Android #682 PASS and merged main app/source `1778d49f991562a143df7b54e3ff4ec9261524a9`. Signed main Validate #1250/Android #683 PASS, run `38135415472`, artifact `11700399123`.
+- [ ] User install v152 via **Termux 3 → 10 → 8**, NOT 9, app data preserved; phone inspect system bars on player, Board, Export Lab, constructors/calibration, settings toggle persistence, scroll footer vs nav.
+- [ ] Bundle pending v151 SAF role phone test: Frame folder → correct Frame list and existing ten Hero PNG cards independent. Any missing Creature live rendering tracked separately.
+- [ ] Separate backlog: full-song export `BUG-EXPORT-001`, lifecycle `LIFE-ROT-001`, blank Panther preview and global UI-RESP-001…009 responsive text/spacing audit. No accidental acceptance based on CI alone.
+
+
 ## NEW UI/UX AUDIT — responsive settings windows, buttons and tiles (2026-10-11; documentation only)
 
 - [x] Source-audit common `PulseDeckDialogs`, Board `actionPill`, GF Mix seven-action source menu, Theme/Hero tile grid, external PNG picker and draggable projectM Settings. Found fixed 42/43/78/205dp heights, 8dp dialog-action spacing, hard `maxLines=3` and two-line ellipsized tile names, plus unconstrained action-stack dialog height.

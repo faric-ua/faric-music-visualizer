@@ -1,5 +1,12 @@
 # Active Plan
 
+## TODO / PHONE FINDING — PERF-NAV-004: Export Lab → Player jerk (2026-10-11)
+
+- [ ] **Reported on phone:** noticeable hitch when returning from video Export Lab to the Now Playing screen. Scope is **navigation only**; not proof that the export encoder or projectM native renderer itself failed. Track in [GitHub issue #32](https://github.com/faric-ua/faric-music-visualizer/issues/32).
+- [x] **Source audit:** `MainActivity.showExportLab()` calls `sceneOrchestrator.stop()` and `clearScreenRefs()`; the latter nulls `persistentSceneRoot` and releases `projectMMainView`/`projectMExportLiveView` blocking, while Export attaches a separately created `ProjectMView`. App/system Back routes from `Screen.EXPORT_LAB` into `showNowPlaying()` which reconstructs the scene. This architecture is consistent with the reported jerk, though exact latency remains unmeasured.
+- [ ] Reuse **`docs/architecture/PULSEDECK_PERSISTENT_SCENE_HOST.md`**: one retained Scene Host with identical `PulseDeckLayerStack`, live `ProjectMView`, GF / HUD and audio timeline; Export Lab controls become a removable in-Activity overlay just like Board, Theme Picker and ProjectM editor. Normal entry and Back must **not** release live GL or replace/recreate the underlying player scene. Keep offline export resources independent and avoid simultaneous native projectM owners.
+- [ ] Instrument Player → Export Lab → Player ×3–5 (both screen Back + Android Back), track scene/ProjectM identity, first-frame delay and UI timings; require no visual hitch/black frame/audio interruption, preserved preset/visibility/playhead and no additional GL teardown. Verify Export Lab interaction and 3s MP4 playback still work.
+- [ ] Do not mix this with full-song `BUG-EXPORT-001`, rotation `LIFE-ROT-001`, or any current v0.19.69 phone QA. **TODO-only; no app code changed in this entry.**
 ## RESUME NOW — PulseDeck v0.19.69/build158 hero gallery + player swipes (2026-10-11)
 
 - **APP SOURCE SHA:** `5ba08e4011e4c6daf3df59fe3bfbc1ffc5035bae` (PR #30 merged). Validate #1279 PASS, PR Android #698 PASS; signed MAIN Validate #1280 PASS and Android **#699 PASS**, run `38152754672`, artifact `FARIC-Music-Visualizer-v0.19.69-Debug` ID `11707247865`, expires 2026-10-14 15:51:18Z.

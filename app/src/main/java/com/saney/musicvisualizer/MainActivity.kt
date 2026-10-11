@@ -505,6 +505,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
+        PulseDeckSystemBars.apply(this)
 
         controlsAutoHideMode =
             getSharedPreferences(PREFS_NAME, MODE_PRIVATE)
@@ -877,6 +878,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         super.onWindowFocusChanged(hasFocus)
         if (hasFocus) {
             when {
+                PulseDeckSystemBars.alwaysVisible(this) -> PulseDeckSystemBars.apply(this)
                 projectMFocusOverlay != null -> showProjectMSystemBars()
                 screen == Screen.LIBRARY || screen == Screen.TRACKS ->
                     showMediaLibrarySystemBars()
@@ -2218,6 +2220,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         "Шари / Layers",
                                         "Сети / Sets",
                                         "Автоприховування",
+                                        "Системні панелі Android",
                                     ),
                                 cancelLabel = "Закрити",
                             ) { which ->
@@ -2254,6 +2257,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
                                     5 ->
                                         showControlsAutoHideDialog()
+
+                                    6 ->
+                                        showSystemBarsSettingsDialog()
                                 }
                             }
 
@@ -9982,6 +9988,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
+    private fun showSystemBarsSettingsDialog() {
+        val current = PulseDeckSystemBars.alwaysVisible(this)
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = "Системні панелі Android",
+            labels = listOf(
+                "Завжди показувати верхню та нижню панелі",
+                "На весь екран, як раніше",
+            ),
+            checkedIndex = if (current) 0 else 1,
+            cancelLabel = "Скасувати",
+        ) { which ->
+            PulseDeckSystemBars.setAlwaysVisible(this, which == 0)
+            // Do not rebuild projectM, player, HUD, or Board just to show
+            // Android's native status and navigation bars.
+            PulseDeckSystemBars.apply(this)
+            window.decorView.requestApplyInsets()
+            toast(if (which == 0) "Панелі Android завжди видимі"
+                  else "Повернено повноекранний режим")
+        }
+    }
+
     private fun showControlsAutoHideDialog() {
         val modes =
             arrayOf(
@@ -10232,15 +10260,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun enableImmersiveFullscreen() {
-        runCatching {
-            WindowCompat.setDecorFitsSystemWindows(window, false)
-
-            WindowCompat.getInsetsController(window, window.decorView).apply {
-                hide(WindowInsetsCompat.Type.systemBars())
-                systemBarsBehavior =
-                    WindowInsetsControllerCompat.BEHAVIOR_SHOW_TRANSIENT_BARS_BY_SWIPE
-            }
-        }
+        // Legacy callers (Board, Theme, Export and live player) now respect
+        // the shared default-visible preference instead of forcing immersive.
+        PulseDeckSystemBars.apply(this)
     }
 
     private fun applySafeArea(root: View, includeSystemBars: Boolean = false) {
@@ -10248,12 +10270,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             runCatching {
                 val cutout = insets.getInsets(WindowInsetsCompat.Type.displayCutout())
                 val gestures = insets.getInsets(WindowInsetsCompat.Type.systemGestures())
-                val bars = if (includeSystemBars) {
+                val bars = if (includeSystemBars || PulseDeckSystemBars.alwaysVisible(this)) {
                     insets.getInsets(WindowInsetsCompat.Type.systemBars())
                 } else {
                     androidx.core.graphics.Insets.NONE
                 }
-                val keyboard = if (includeSystemBars) {
+                val keyboard = if (includeSystemBars || PulseDeckSystemBars.alwaysVisible(this)) {
                     insets.getInsets(WindowInsetsCompat.Type.ime())
                 } else {
                     androidx.core.graphics.Insets.NONE

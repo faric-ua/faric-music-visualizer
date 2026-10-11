@@ -1,5 +1,12 @@
 # Open Findings
 
+## BUG-GF-WORDMARK-001 — Wordmark/FMV aspect distortion at 155% (2026-10-11)
+
+- **Status: OPEN / TODO.** User phone screenshot on Board · FARIC shows the metallic FMV PNG wordmark overly stretched. Wordmark transform shown: X=1%, Y=2%, size=155%, rotation=3°, opacity=100%. [Issue #36](https://github.com/faric-ua/faric-music-visualizer/issues/36).
+- **Source-level candidate:** `HeroBoardView.drawBitmapLayer()` and `CyberSharkExportRenderer.drawBitmapLayer()` each draw source PNG to a square `RectF(size × size)`, regardless of bitmap width:height; GPU layer uses a single size scalar. This is unsafe for non-square imagery. Must confirm actual wordmark asset dimensions, alpha content bounds and raw preview vs onscreen result before finalizing the cause.
+- **Expected:** The size slider scales the wordmark **uniformly**, preserving its intrinsic aspect ratio and legibility. Source PNG, SAF import, transform state, and layer compositing remain intact; preserve aspect equally in live, CPU and GPU export. Test wide/tall/square bitmap geometries and 100/155/200% on-device.
+- No code fix included in this TODO record; do not conflate it with group-child audio-reaction logic or Export Lab → Player navigation hitch.
+
 ## PERF-NAV-004 — Export Lab → Now Playing hitch; apply persistent Scene Host (2026-10-11)
 
 - **Status: OPEN / PHONE REPORT; TODO, no source fix implemented.** User reports a noticeable jerk when returning from video Export Lab to playback. [GitHub #32](https://github.com/faric-ua/faric-music-visualizer/issues/32).

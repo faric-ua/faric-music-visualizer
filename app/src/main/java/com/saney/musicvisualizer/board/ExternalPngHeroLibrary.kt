@@ -55,6 +55,19 @@ class ExternalPngHeroLibrary(private val context: Context) {
         require(type in setOf(GfArtType.CREATURE, GfArtType.FRAME, GfArtType.FX, GfArtType.WORDMARK)) {
             "Unsupported external PNG category"
         }
+        // Never let an accidentally reselected directory overwrite the source
+        // index for a different role. This matters when returning from SAF
+        // after Activity recreation and keeps existing ten Creature records.
+        val occupiedRole = listOf(
+            GfArtType.CREATURE, GfArtType.FRAME,
+            GfArtType.FX, GfArtType.WORDMARK,
+        ).firstOrNull { other ->
+            other != type && activeFolder(other) == treeUri
+        }
+        require(occupiedRole == null) {
+            "Цю папку вже призначено для ${occupiedRole?.fileStem}. " +
+                "Вибери іншу папку для ${type.fileStem}."
+        }
         val documentId = DocumentsContract.getTreeDocumentId(treeUri)
         val children = DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, documentId)
         val docs = mutableListOf<Pair<String, Uri>>()

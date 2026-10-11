@@ -16,9 +16,9 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 150
-        versionName = "0.19.61"
-        // v0.19.61: hide uninstalled prepared-hero placeholders from Theme Picker.
+        versionCode = 151
+        versionName = "0.19.62"
+        // v0.19.62: persist exact SAF import layer role and keep GF source selection isolated.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
         ndk {

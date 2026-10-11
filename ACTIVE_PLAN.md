@@ -1,5 +1,16 @@
 # Active Plan
 
+## IN REVIEW — PulseDeck v0.19.70/build159: GF audio inheritance (2026-10-11)
+
+- **Phone QA for v0.19.69:** user screenshot confirms A in slot 09 and Cyber Shark in slot 10, Scorpion B and empty built-in Panther theme removed from picker. User confirms LEFT/RIGHT swipes and 10-second emergency hold **PASS**. Gallery regular PNG `cyber panther` at slot 07 is a valid external image and must NOT be removed.
+- **New phone FAIL:** Parent `Реакція всього GF` set to nonzero (screenshot 3.3° / 2.2% / 2.1%) while child panel for external Scorpion read `Реакція шару на музику · Panther` 0/0/0 and hero still moves. Name is the old generic theme ID, not current selected external hero.
+- [x] Rename `CREATURE` Board editor label from theme-derived Panther to **`Герой`** for every PNG.
+- [x] Replace additive parent+child group animation with absolute per-layer music gains. A never-edited child displays inherited parent values; changing **any parent slider** broadcasts all 3 current parent gains to FRAME/FX/CREATURE/WORDMARK and overwrites previous child overrides. Editing a child afterwards only changes its own values and does not modify the parent or siblings. An explicit child zero disables the respective response, including legacy baked-in audio beat/scale terms, but does not erase manual transforms or separate non-music auto-spin.
+- [x] Live `HeroBoardView` and CPU/GPU MP4 use the same neutral **physical** group reaction + stored absolute child controls; no double parent motion. Per-theme preferences retained. Reset whole GF resets parent + all children to matching default; import of saved global reaction fans values out to children. No renaming/deleting existing user PNG, native projectM or calibration.
+- [x] JUnit tests cover inherited parent values, override isolation, parent rebroadcast, zero audio movement and input bounds.
+- [ ] PR CI (Validate + Android), signed main Android, device QA: Board `Усе GF` set 3.3° / 2.2% / 2.1% → Frame/FX/Hero/Wordmark values match; child Hero set 0/0/0 → Hero stops music response, others unchanged; parent Bass change → all children values immediately match all 3 parent values; restart preserves values; short export visually matches live. Avoid incorrectly claiming full-song export `BUG-EXPORT-001` fixed.
+- [ ] Separate PERF-NAV-004 / Issue #32 Export Lab → Player hitch (already docs only) remains OPEN. No other unrelated source changes.
+
 ## TODO / PHONE FINDING — PERF-NAV-004: Export Lab → Player jerk (2026-10-11)
 
 - [ ] **Reported on phone:** noticeable hitch when returning from video Export Lab to the Now Playing screen. Scope is **navigation only**; not proof that the export encoder or projectM native renderer itself failed. Track in [GitHub issue #32](https://github.com/faric-ua/faric-music-visualizer/issues/32).

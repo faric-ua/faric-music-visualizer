@@ -1,5 +1,14 @@
 # FARIC Music Visualizer — START HERE
 
+## CURRENT SIGNED MAIN — v0.19.62/build151, SAF GF folder role isolation (PHONE QA PENDING)
+
+**FIRST USER ACTION:** Termux **3 → 10 → 8**, DO NOT press 9, install signed v0.19.62/build151 over existing app **without clearing data**. PR #19 merged app/source SHA `75433e0728d8a75006deb67826851ef0fbdb2245`, main Validate #1239 PASS, Android #681 PASS, run `38097213918`, artifact `FARIC-Music-Visualizer-v0.19.62-Debug` ID `11686121452`, expires 2026-10-14T00:08:00Z.
+
+**Why:** user showed new GF frames indexed as creatures. OpenDocumentTree could recreate MainActivity, resetting pending import role to CREATURE. Fixed durable pending role and fail-closed; prevent reusing one folder for two types; after FRAME import return to FRAME selector, select an asset to display it. Existing files/presets left untouched. **Do NOT reimport original 10 PNGs unless they disappeared from the Hero catalog after a prior wrong scan**; if missing, reselect their original Documents/PulseDeck_Heroes folder to repair index only, files intact.
+
+**User one-round phone QA:** Board → GF Мікс → Рамка → `＋ Додати PNG ...` → select distinct Frames folder → confirm FRAME source selector, not Heroes → select frame, check Board/hero remains independent. Please report PASS/FAIL and screenshot if incorrect. Missing hero in live Board while its thumbnail exists is a distinct rendering/visibility bug (NOT necessarily incorrect folder routing). `BUG-EXPORT-001`/rotation/export parity remain unverified. Record: `BUILD_CHECKPOINTS.md` and `docs/checkpoints/2026-10-11-v0.19.62-gf-folder-role-isolation.md`.
+
+
 ## CURRENT MAIN SIGNED — v0.19.61 / build150, unavailable Hero tiles hidden (PHONE QA PENDING)
 
 **USER NEXT:** Termux **3 → 10 → 8** (not 9), install the current signed **v0.19.61/build150** APK over existing app **without clearing data**. Main app/source SHA **`a474c46791fc1ca6b085590a7a2d0a00a4f827e5`**, **Validate #1232 PASS / Android #679 PASS** run `38093806830`, signed artifact `FARIC-Music-Visualizer-v0.19.61-Debug` ID **`11684867412`**, expires **2026-10-13T23:09:11Z**.

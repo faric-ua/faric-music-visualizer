@@ -1682,7 +1682,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     dialog.dismiss()
                     activateExternalPngHero(hero.id)
                 },
-                LinearLayout.LayoutParams(0, dp(78), 1f),
+                LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
+                ),
             )
             list.addView(
                 row, LinearLayout.LayoutParams(
@@ -1735,6 +1737,53 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         selectExternalPngFolder.launch(
             ExternalPngHeroLibrary(this).activeFolder(type),
+        )
+    }
+
+    /**
+     * Direct, role-specific import actions shared by Board and Theme Picker.
+     * These NEVER route FRAME/FX/WORDMARK to the Creature hero catalog.
+     * The SAF callback uses the saved role and immediately opens that role's
+     * source picker, without changing the other GF layers.
+     */
+    private fun addGfPngImportControls(parent: LinearLayout) {
+        parent.addView(
+            label("Додати свої PNG-шари", 14f, COLOR_ACCENT_CYAN, true),
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(16); bottomMargin = dp(10) },
+        )
+        val row = LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.TOP
+        }
+        val choices = listOf(
+            GfArtType.FRAME to "＋ Рамки",
+            GfArtType.WORDMARK to "＋ Написи",
+            GfArtType.FX to "＋ Ефекти",
+        )
+        choices.forEachIndexed { index, (type, title) ->
+            val button = actionPill(title, accent = false) {
+                requestExternalPngFolder(type)
+            }.apply {
+                textSize = 14f
+                minimumHeight = dp(56)
+                contentDescription = "Вибрати папку PNG для шару: $title"
+            }
+            row.addView(
+                button,
+                LinearLayout.LayoutParams(
+                    0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
+                ).apply { if (index < choices.lastIndex) marginEnd = dp(8) },
+            )
+        }
+        parent.addView(
+            row,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = dp(12) },
         )
     }
 
@@ -6027,8 +6076,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ) { showGfMixPicker() },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(42),
-            ),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(10); bottomMargin = dp(10) },
         )
         panelContent.addView(
             actionPill(
@@ -6037,9 +6086,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ) { showExternalPngHeroes() },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(42),
-            ),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { bottomMargin = dp(4) },
         )
+
+        // Import entry points must be visible without entering the hero-only chooser.
+        addGfPngImportControls(panelContent)
 
         val selectorScroll =
             HorizontalScrollView(this).apply {
@@ -9279,11 +9331,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ) { showExternalPngHeroes() },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(48),
-            ).apply { topMargin = dp(10) },
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(12); bottomMargin = dp(14) },
         )
 
-        content.addView(heroFamily)
+        // Themes offers direct independent Frame/Wordmark/FX folder import too.
+        addGfPngImportControls(content)
+
+        content.addView(
+            heroFamily,
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply { topMargin = dp(4); bottomMargin = dp(12) },
+        )
         val importArchiveButton = label(
             "＋ Додати підготовлений пакет героїв",
             14f, COLOR_ACCENT_CYAN, true,
@@ -9341,8 +9402,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     )
                     tile.addView(
                         label(hero.title, 14f, Color.WHITE, true).apply {
-                            maxLines = 2
-                            ellipsize = android.text.TextUtils.TruncateAt.END
+                            // Let longer file names wrap; never cut the main title.
+                            breakStrategy = android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY
                         },
                         LinearLayout.LayoutParams(
                             ViewGroup.LayoutParams.MATCH_PARENT,
@@ -9352,8 +9413,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     tile.setOnClickListener { activateExternalPngHero(hero.id) }
                     row.addView(
                         tile,
-                        LinearLayout.LayoutParams(0, dp(205), 1f).apply {
-                            setMargins(dp(3), dp(4), dp(3), dp(4))
+                        LinearLayout.LayoutParams(
+                            0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
+                        ).apply {
+                            setMargins(dp(6), dp(6), dp(6), dp(6))
                         },
                     )
                     externalThumbs.add(hero to preview)
@@ -9361,7 +9424,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 if (pair.size == 1) {
                     row.addView(
                         View(this),
-                        LinearLayout.LayoutParams(0, dp(205), 1f),
+                        LinearLayout.LayoutParams(0, dp(1), 1f),
                     )
                 }
             }
@@ -9808,6 +9871,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun actionPill(text: String, accent: Boolean, action: () -> Unit): TextView =
         label(text, 16f, if (accent) Color.BLACK else Color.WHITE, true).apply {
             gravity = Gravity.CENTER
+            textAlignment = View.TEXT_ALIGNMENT_CENTER
+            setPadding(dp(12), dp(10), dp(12), dp(10))
+            minimumHeight = dp(48)
+            breakStrategy = android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY
             background = panelDrawable(
                 if (accent) COLOR_ACCENT_ORANGE else COLOR_PANEL_2,
                 24,

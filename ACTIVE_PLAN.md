@@ -1,5 +1,15 @@
 # Active Plan
 
+## CURRENT v0.19.64/build153 — direct PNG asset import and spacing screenshot fix
+
+- [x] Diagnose screenshot: Theme picker external Hero button hard 48dp overlaps `Герої · 12`, Board `GF Мікс`/Hero chooser buttons hard 42dp and zero gap clip text.
+- [x] Expose DIRECT `＋ Рамки` / `＋ Написи` / `＋ Ефекти` row in BOTH Board/Playback Themes, route to isolated FRAME/WORDMARK/FX SAF folder selection and exact GF source picker. No Creature index rewrite, no source-image copies or model migration.
+- [x] Main actions wrap and grow, proper gaps; external PNG tile filenames wrap and row heights grow; tall GF picker scrolls with uncapped multiline text and safe Cancel behavior.
+- [x] PR #21 Validate #1258 / Android #686 PASS, merged source `ad80cb611e1f900520ea6e789e84365a07278e93`. Signed main Validate #1259 / Android #687 PASS; artifact `11702183610` signed run `38138842357`.
+- [ ] Phone: install v0.19.64/build153 via Termux **3 → 10 → 8**, not 9, preserve data. Confirm no Theme/Board button collisions, Frame folder imported to `GF Мікс · Рамка`, selecting frame changes only frame, existing ten PNG heroes remain; optional Wordmark/FX. User reports PASS/FAIL with screenshots on failure.
+- [ ] Full general UI-RESP text/spacing audit implementation, native system-bars phone QA, full-song `BUG-EXPORT-001`, `LIFE-ROT-001`, Cyber Panther thumbnail, arbitrary GF z-order remain separate OPEN.
+
+
 ## CURRENT RELEASE — v0.19.63/build152 visible Android system bars + outdoor Chat QA format
 
 - [x] Save user preference: every future PulseDeck ChatGPT interactive QA card uses **large RED unchecked / GREEN ✓ checked circles**, progress counter and conspicuous `Надіслати результат` action. Project reference `docs/checkpoints/2026-10-11-v0.19.63-system-bars-and-test-ui.md`. Chat format not an Android in-app setting.

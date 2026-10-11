@@ -7047,7 +7047,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
             panelContent.addView(
                 label(
-                    "Значення шару накладаються поверх налаштувань усього GF. Аудіореакція шару лишається активною.",
+                    "Окремі значення шару. Зміна «Усе GF» встановить нові значення для всіх шарів. Нуль вимикає відповідну реакцію.",
                     11f,
                     COLOR_MUTED,
                     false,

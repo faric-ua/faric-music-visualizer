@@ -89,6 +89,7 @@ import com.saney.musicvisualizer.theme.PlaybackThemeStore
 import com.saney.musicvisualizer.theme.ThemeInput
 import com.saney.musicvisualizer.ui.HeroBoardView
 import com.saney.musicvisualizer.ui.HeroGalleryPolicy
+import com.saney.musicvisualizer.ui.PlayerSwipeNavigation
 import com.saney.musicvisualizer.ui.HeroThemeView
 import com.saney.musicvisualizer.ui.LocalMusicBrowser
 import com.saney.musicvisualizer.playback.LocalMusicCatalog
@@ -256,11 +257,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var emergencyRecoveryArmed = false
     private var emergencyRecoveryDownX = 0f
     private var emergencyRecoveryDownY = 0f
+    private var playerSwipeEligible = false
+    private var playerSwipeDownX = 0f
+    private var playerSwipeDownY = 0f
     private val emergencyRecoveryRunnable =
         Runnable {
             if (
                 emergencyRecoveryArmed &&
-                screen == Screen.NOW_PLAYING
+                screen == Screen.NOW_PLAYING &&
+                projectMFocusOverlay == null
             ) {
                 emergencyRecoveryArmed = false
                 window.decorView
@@ -721,81 +726,86 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
-    override fun dispatchTouchEvent(
-        event: MotionEvent,
-    ): Boolean {
-        if (screen == Screen.NOW_PLAYING) {
+    /**
+     * Emergency HUD recovery is driven by the Activity touch stream (not the
+     * optional/hidden skin buttons). Horizontal navigation only accepts a
+     * single-finger swipe beginning in the central artwork zone, away from the
+     * player seek and transport rails and Android's system Back edge.
+     */
+    override fun dispatchTouchEvent(event: MotionEvent): Boolean {
+        val active = screen == Screen.NOW_PLAYING && projectMFocusOverlay == null
+        var navigation: PlayerSwipeNavigation.Destination? = null
+        if (active) {
             when (event.actionMasked) {
                 MotionEvent.ACTION_DOWN -> {
                     emergencyRecoveryArmed = true
                     emergencyRecoveryDownX = event.rawX
                     emergencyRecoveryDownY = event.rawY
-                    emergencyRecoveryHandler
-                        .removeCallbacks(
-                            emergencyRecoveryRunnable,
-                        )
-                    emergencyRecoveryHandler
-                        .postDelayed(
-                            emergencyRecoveryRunnable,
-                            EMERGENCY_RECOVERY_HOLD_MS,
-                        )
-                }
+                    emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
+                    emergencyRecoveryHandler.postDelayed(
+                        emergencyRecoveryRunnable, EMERGENCY_RECOVERY_HOLD_MS,
+                    )
 
+                    val width = resources.displayMetrics.widthPixels.toFloat()
+                    val height = resources.displayMetrics.heightPixels.toFloat()
+                    val insideArtwork = event.rawY >= height * 0.12f &&
+                        event.rawY <= height * 0.54f
+                    // Do not compete with OS edge-back, seek, HUD transport,
+                    // or controls located at the top/bottom of the player.
+                    playerSwipeEligible = insideArtwork &&
+                        event.rawX >= dp(32) &&
+                        event.rawX <= width - dp(32)
+                    playerSwipeDownX = event.rawX
+                    playerSwipeDownY = event.rawY
+                }
                 MotionEvent.ACTION_POINTER_DOWN -> {
                     emergencyRecoveryArmed = false
-                    emergencyRecoveryHandler
-                        .removeCallbacks(
-                            emergencyRecoveryRunnable,
-                        )
+                    playerSwipeEligible = false
+                    emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
                 }
-
                 MotionEvent.ACTION_MOVE -> {
-                    val dx =
-                        event.rawX -
-                            emergencyRecoveryDownX
-                    val dy =
-                        event.rawY -
-                            emergencyRecoveryDownY
-                    val limit =
-                        dp(
-                            24,
-                        )
-                            .toFloat()
-
-                    if (
-                        dx * dx +
-                            dy * dy >
-                        limit * limit
-                    ) {
+                    val dx = event.rawX - emergencyRecoveryDownX
+                    val dy = event.rawY - emergencyRecoveryDownY
+                    val slop = dp(44).toFloat()
+                    if (dx * dx + dy * dy > slop * slop) {
                         emergencyRecoveryArmed = false
-                        emergencyRecoveryHandler
-                            .removeCallbacks(
-                                emergencyRecoveryRunnable,
-                            )
+                        emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
                     }
                 }
-
-                MotionEvent.ACTION_UP,
-                MotionEvent.ACTION_CANCEL,
-                -> {
-                    emergencyRecoveryArmed = false
-                    emergencyRecoveryHandler
-                        .removeCallbacks(
-                            emergencyRecoveryRunnable,
+                MotionEvent.ACTION_UP -> {
+                    if (playerSwipeEligible && event.pointerCount == 1) {
+                        navigation = PlayerSwipeNavigation.resolve(
+                            deltaX = event.rawX - playerSwipeDownX,
+                            deltaY = event.rawY - playerSwipeDownY,
+                            minimumDistance = dp(104).toFloat(),
+                            maximumVerticalDrift = dp(64).toFloat(),
                         )
+                    }
+                    playerSwipeEligible = false
+                    emergencyRecoveryArmed = false
+                    emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
+                }
+                MotionEvent.ACTION_CANCEL -> {
+                    playerSwipeEligible = false
+                    emergencyRecoveryArmed = false
+                    emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
                 }
             }
         } else {
+            playerSwipeEligible = false
             emergencyRecoveryArmed = false
-            emergencyRecoveryHandler
-                .removeCallbacks(
-                    emergencyRecoveryRunnable,
-                )
+            emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
         }
 
-        return super.dispatchTouchEvent(
-            event,
-        )
+        // First release the child touch sequence, then navigate. In
+        // particular, a swipe cannot be mistaken for a new seek position.
+        val handled = super.dispatchTouchEvent(event)
+        when (navigation) {
+            PlayerSwipeNavigation.Destination.PROJECTM -> openProjectMFocusOverlay()
+            PlayerSwipeNavigation.Destination.LIBRARY -> showLibrary()
+            null -> Unit
+        }
+        return navigation != null || handled
     }
 
     private fun showEmergencyRecoveryDialog() {
@@ -803,9 +813,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             context = this,
             title = "Аварійне відновлення PulseDeck",
             message =
-                "Меню можна повернути навіть якщо всі кнопки керування були приховані.",
+                "Утримання 10 секунд: тут можна налаштувати потрібні кнопки або відновити приховане меню.",
             actions =
                 listOf(
+                    PulseDeckDialogs.Action(
+                        label = "Налаштувати шари та кнопки",
+                        accent = true,
+                    ) {
+                        showPulseDeckLayersDialog()
+                    },
                     PulseDeckDialogs.Action(
                         label =
                             "Відновити доступ до меню",
@@ -933,6 +949,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     override fun onStop() {
+        emergencyRecoveryArmed = false
+        playerSwipeEligible = false
+        emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
         projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
         // Do not pause playback here. Screen lock and Home both stop the Activity,
         // but a music player must keep playing. A MediaSessionService migration is

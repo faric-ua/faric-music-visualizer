@@ -1,5 +1,12 @@
 # Open Findings
 
+## BUG-GF-ASPECT-002 — ALL imported PNG layers drawn as distorted squares (2026-10-11)
+
+- **Status: source fix candidate v0.19.71 / phone QA OPEN.** User reports oval/egg-shaped transparent FRAME artwork and stretched external wordmarks/heroes; [issue #38](https://github.com/faric-ua/faric-music-visualizer/issues/38). Related narrower wordmark issue [#36](https://github.com/faric-ua/faric-music-visualizer/issues/36).
+- Root cause traced through code: SAF PNG decoder `inScaled=false` preserves original bitmap width and height, but live Canvas, CPU MP4 Canvas and GPU Egl quad forced each bitmap into a square destination regardless of intrinsic width:height.
+- Candidate: one `BoardBitmapGeometry.fitCanvas` helper sizes the native FULL PNG canvas proportionally by longer side (no transparent-margin trim); Live, CPU and GPU use same calculation. All source imports, filenames, existing prefs and calibration remain unchanged, **reimport not needed**.
+- Verify wide/tall/square visual shapes, 100/155/200% and alpha, old PNG assets and short MP4. No device PASS or closed issue until real screenshots and exported video match the original.
+
 ## BUG-GF-WORDMARK-001 — Wordmark/FMV aspect distortion at 155% (2026-10-11)
 
 - **Status: OPEN / TODO.** User phone screenshot on Board · FARIC shows the metallic FMV PNG wordmark overly stretched. Wordmark transform shown: X=1%, Y=2%, size=155%, rotation=3°, opacity=100%. [Issue #36](https://github.com/faric-ua/faric-music-visualizer/issues/36).

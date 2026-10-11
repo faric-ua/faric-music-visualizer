@@ -22,6 +22,7 @@ import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerMotion
 import com.saney.musicvisualizer.board.BoardLayerMotionEvaluator
 import com.saney.musicvisualizer.board.BoardLayerReaction
+import com.saney.musicvisualizer.board.BoardLayerReactionTuning
 import com.saney.musicvisualizer.board.BoardLayerTransform
 import com.saney.musicvisualizer.board.BoardTransform
 import com.saney.musicvisualizer.theme.PlaybackThemeId
@@ -165,6 +166,22 @@ class HeroBoardView(
                 BoardLayerTransform.default()
             }
             .toMutableMap()
+
+    private val layerReactionTunings = mutableMapOf<BoardLayerId, BoardLayerReactionTuning>()
+
+    fun setLayerReactionTunings(values: Map<BoardLayerId, BoardLayerReactionTuning>) {
+        layerReactionTunings.clear()
+        values.forEach { (layer, tuning) -> layerReactionTunings[layer] = tuning.sanitized() }
+        postInvalidateOnAnimation()
+    }
+
+    fun setLayerReactionTuning(layer: BoardLayerId, tuning: BoardLayerReactionTuning) {
+        layerReactionTunings[layer] = tuning.sanitized()
+        postInvalidateOnAnimation()
+    }
+
+    private fun reactionFor(layer: BoardLayerId, base: BoardLayerReaction): BoardLayerReaction =
+        layerReactionTunings[layer]?.apply(base) ?: base
 
     private var gesturesEnabled = false
     private var gestureLayerId:
@@ -821,9 +838,10 @@ class HeroBoardView(
             layerTransform(BoardLayerId.FRAME)
         val frameMotion =
             BoardLayerMotionEvaluator.evaluate(
-                frameReaction,
+                reactionFor(BoardLayerId.FRAME, frameReaction),
                 audio,
                 timeSeconds,
+                stereoPan,
             ).let { motion ->
                 motion.copy(
                     rotationDegrees =
@@ -860,9 +878,10 @@ class HeroBoardView(
 
         val fxMotion =
             BoardLayerMotionEvaluator.evaluate(
-                fxReaction,
+                reactionFor(BoardLayerId.FX, fxReaction),
                 audio,
                 timeSeconds,
+                stereoPan,
             )
         if (
             isObjectVisible(
@@ -912,9 +931,10 @@ class HeroBoardView(
 
         val creatureMotion =
             BoardLayerMotionEvaluator.evaluate(
-                creatureReaction,
+                reactionFor(BoardLayerId.CREATURE, creatureReaction),
                 audio,
                 timeSeconds,
+                stereoPan,
             )
         if (
             isObjectVisible(
@@ -945,9 +965,10 @@ class HeroBoardView(
 
         val wordmarkMotion =
             BoardLayerMotionEvaluator.evaluate(
-                wordmarkReaction,
+                reactionFor(BoardLayerId.WORDMARK, wordmarkReaction),
                 audio,
                 timeSeconds,
+                stereoPan,
             )
         if (
             isObjectVisible(
@@ -1025,8 +1046,7 @@ class HeroBoardView(
         val layerCx =
             cx +
                 width *
-                layerTransform
-                    .offsetXFraction
+                (layerTransform.offsetXFraction + motion.translateXFraction)
 
         val layerCy =
             cy +
@@ -1080,13 +1100,12 @@ class HeroBoardView(
         val layerCx =
             cx +
                 width *
-                layerTransform
-                    .offsetXFraction
+                (layerTransform.offsetXFraction + motion.translateXFraction)
         val layerCy =
             cy +
                 height *
-                layerTransform
-                    .offsetYFraction
+                layerTransform.offsetYFraction +
+                baseSize * motion.translateYFraction
 
         canvas.save()
         canvas.rotate(
@@ -1673,8 +1692,7 @@ class HeroBoardView(
         canvas.drawCircle(
             cx +
                 width *
-                layerTransform
-                    .offsetXFraction,
+                (layerTransform.offsetXFraction + motion.translateXFraction),
             cy +
                 height *
                 layerTransform

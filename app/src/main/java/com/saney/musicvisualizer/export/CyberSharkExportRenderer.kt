@@ -22,6 +22,7 @@ import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.board.BoardLayerMotion
 import com.saney.musicvisualizer.board.BoardLayerMotionEvaluator
 import com.saney.musicvisualizer.board.BoardLayerReaction
+import com.saney.musicvisualizer.board.BoardLayerReactionTuning
 import com.saney.musicvisualizer.board.BoardLayerTransform
 import com.saney.musicvisualizer.board.BoardTransform
 import com.saney.musicvisualizer.theme.PlaybackThemeId
@@ -40,6 +41,7 @@ data class CyberSharkExportConfig(
     val layerTransforms: Map<BoardLayerId, BoardLayerTransform>,
     val visibility: Map<BoardLayerId, Boolean>,
     val assetOverrides: Map<BoardLayerId, GfAssetRef> = emptyMap(),
+    val layerReactionTunings: Map<BoardLayerId, BoardLayerReactionTuning> = emptyMap(),
 )
 
 data class CyberSharkGpuGlow(
@@ -464,12 +466,10 @@ class CyberSharkExportRenderer(
                     signal.beatStrength,
             )
         val motion =
-            BoardLayerMotionEvaluator
-                .evaluate(
-                    layerReaction,
-                    audio,
-                    timeSeconds,
-                )
+            BoardLayerMotionEvaluator.evaluate(
+                config.layerReactionTunings[layerId]?.apply(layerReaction) ?: layerReaction,
+                audio, timeSeconds, stereoPan,
+            )
         val layerTransform =
             (
                 config
@@ -487,8 +487,7 @@ class CyberSharkExportRenderer(
         val layerCx =
             cx +
                 w *
-                    layerTransform
-                        .offsetXFraction
+                    (layerTransform.offsetXFraction + motion.translateXFraction)
         val layerCy =
             cy +
                 h *
@@ -659,9 +658,10 @@ class CyberSharkExportRenderer(
                 ).frame,
                 BoardLayerMotionEvaluator
                     .evaluate(
-                        frameReaction,
+                        (config.layerReactionTunings[BoardLayerId.FRAME]?.apply(frameReaction) ?: frameReaction),
                         audio,
                         timeSeconds,
+                        stereoPan,
                     ).let { motion ->
                         val frameTransform =
                             layerTransform(BoardLayerId.FRAME)
@@ -698,9 +698,10 @@ class CyberSharkExportRenderer(
             val motion =
                 BoardLayerMotionEvaluator
                     .evaluate(
-                        fxReaction,
+                        (config.layerReactionTunings[BoardLayerId.FX]?.apply(fxReaction) ?: fxReaction),
                         audio,
                         timeSeconds,
+                        stereoPan,
                     )
             val fxLayerTransform =
                 layerTransform(
@@ -762,9 +763,10 @@ class CyberSharkExportRenderer(
                 ).creature,
                 BoardLayerMotionEvaluator
                     .evaluate(
-                        creatureReaction,
+                        (config.layerReactionTunings[BoardLayerId.CREATURE]?.apply(creatureReaction) ?: creatureReaction),
                         audio,
                         timeSeconds,
+                        stereoPan,
                     ),
                 cx,
                 cy,
@@ -798,9 +800,10 @@ class CyberSharkExportRenderer(
                 ).wordmark,
                 BoardLayerMotionEvaluator
                     .evaluate(
-                        wordmarkReaction,
+                        (config.layerReactionTunings[BoardLayerId.WORDMARK]?.apply(wordmarkReaction) ?: wordmarkReaction),
                         audio,
                         timeSeconds,
+                        stereoPan,
                     ),
                 cx,
                 cy,
@@ -851,10 +854,7 @@ class CyberSharkExportRenderer(
             baseSize *
                 motion.scale *
                 layerTransform.scale
-        val layerCx =
-            cx +
-                width *
-                    layerTransform.offsetXFraction
+        val layerCx = cx + width * (layerTransform.offsetXFraction + motion.translateXFraction)
         val layerCy =
             cy +
                 height *
@@ -904,14 +904,12 @@ class CyberSharkExportRenderer(
                 layerTransform.scale
         val radius =
             size * 0.43f
-        val layerCx =
-            cx +
-                width *
-                    layerTransform.offsetXFraction
+        val layerCx = cx + width * (layerTransform.offsetXFraction + motion.translateXFraction)
         val layerCy =
             cy +
                 height *
-                    layerTransform.offsetYFraction
+                    layerTransform.offsetYFraction +
+                    baseSize * motion.translateYFraction
 
         canvas.save()
         canvas.rotate(

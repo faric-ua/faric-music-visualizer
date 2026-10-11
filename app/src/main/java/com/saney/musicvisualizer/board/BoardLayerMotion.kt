@@ -24,6 +24,9 @@ data class BoardLayerReaction(
     val rotationDegPerSecond: Float = 0f,
     val beatRotationDeg: Float = 0f,
     val beatTranslateYFraction: Float = 0f,
+    val rotationSwayDegrees: Float = 0f,
+    val stereoShiftFraction: Float = 0f,
+    val bassFloatFraction: Float = 0f,
 )
 
 data class BoardLayerMotion(
@@ -31,6 +34,7 @@ data class BoardLayerMotion(
     val alpha: Float,
     val rotationDegrees: Float,
     val translateYFraction: Float,
+    val translateXFraction: Float = 0f,
 )
 
 object BoardLayerMotionEvaluator {
@@ -38,6 +42,7 @@ object BoardLayerMotionEvaluator {
         reaction: BoardLayerReaction,
         audio: BoardAudioState,
         timeSeconds: Float,
+        stereoPan: Float = 0f,
     ): BoardLayerMotion {
         val scale =
             reaction.baseScale +
@@ -55,14 +60,25 @@ object BoardLayerMotionEvaluator {
                 audio.high * reaction.highAlpha +
                 audio.beat * reaction.beatAlpha
 
+        val extraSway = reaction.rotationSwayDegrees *
+            (0.20f + audio.mid * 0.55f + audio.bass * 0.25f).coerceIn(0f, 1f) *
+            kotlin.math.sin(
+                (timeSeconds * (1.15f + audio.mid * 1.35f) + stereoPan * 0.75f).toDouble(),
+            ).toFloat()
+        val extraBassFloat = reaction.bassFloatFraction * audio.bass *
+            kotlin.math.sin(
+                (timeSeconds * (2f + audio.bass * 2.2f)).toDouble(),
+            ).toFloat()
         return BoardLayerMotion(
             scale = scale.coerceAtLeast(0f),
             alpha = alpha.coerceIn(0f, 1f),
             rotationDegrees =
                 timeSeconds * reaction.rotationDegPerSecond +
-                    audio.beat * reaction.beatRotationDeg,
+                    audio.beat * reaction.beatRotationDeg + extraSway,
             translateYFraction =
-                audio.beat * reaction.beatTranslateYFraction,
+                audio.beat * reaction.beatTranslateYFraction + extraBassFloat,
+            translateXFraction = stereoPan.coerceIn(-1f, 1f) *
+                reaction.stereoShiftFraction,
         )
     }
 }

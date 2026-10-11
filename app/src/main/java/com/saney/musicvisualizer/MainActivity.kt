@@ -45,6 +45,8 @@ import androidx.media3.common.util.UnstableApi
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardGroupReaction
 import com.saney.musicvisualizer.board.BoardGroupReactionStore
+import com.saney.musicvisualizer.board.BoardLayerReactionTuning
+import com.saney.musicvisualizer.board.BoardLayerReactionTuningStore
 import com.saney.musicvisualizer.board.GraphicFigureCatalog
 import com.saney.musicvisualizer.board.GraphicFigureAssets
 import com.saney.musicvisualizer.board.GfAssetLibrary
@@ -135,6 +137,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private lateinit var themeStore: PlaybackThemeStore
     private lateinit var boardTransformStore: BoardTransformStore
     private lateinit var boardGroupReactionStore: BoardGroupReactionStore
+    private lateinit var boardLayerReactionTuningStore: BoardLayerReactionTuningStore
     private lateinit var boardLayerTransformStore: BoardLayerTransformStore
 
     private var activeVerticalScroll: ScrollView? = null
@@ -519,6 +522,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         themeStore = PlaybackThemeStore(this)
         boardTransformStore = BoardTransformStore(this)
         boardGroupReactionStore = BoardGroupReactionStore(this)
+        boardLayerReactionTuningStore = BoardLayerReactionTuningStore(this)
         boardLayerTransformStore =
             BoardLayerTransformStore(this)
 
@@ -2164,6 +2168,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         gfThemeId,
                     ),
                 )
+                view.setLayerReactionTunings(boardLayerReactionTuningStore.loadAll(gfThemeId))
                 view.setLayerTransforms(
                     activeGfLayerTransforms(gfThemeId),
                 )
@@ -5922,6 +5927,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         boardView.setGroupTransform(transform)
         boardView.setGroupReaction(groupReaction)
+        boardView.setLayerReactionTunings(boardLayerReactionTuningStore.loadAll(gfThemeId))
         boardView.setLayerTransforms(activeGfLayerTransforms(gfThemeId))
         HeroBoardView.ObjectId.entries.forEach { objectId ->
             boardView.setObjectVisible(
@@ -6668,6 +6674,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     boardGroupReactionStore.reset(
                         gfThemeId,
                     )
+                    boardLayerReactionTuningStore.resetAll(gfThemeId)
                     boardLayerTransformStore
                         .resetAll(
                             gfThemeId,
@@ -6897,6 +6904,42 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         layerValue,
                     )
                 }
+
+
+            // Per-object motion is saved separately from global GF reaction.
+            // Existing layers keep their original built-in motion at zero.
+            var tuning = boardLayerReactionTuningStore.load(gfThemeId, layerId)
+            fun persistLayerReaction(value: BoardLayerReactionTuning) {
+                tuning = value.sanitized()
+                boardLayerReactionTuningStore.save(gfThemeId, layerId, tuning)
+                boardView.setLayerReactionTuning(layerId, tuning)
+            }
+            panelContent.addView(
+                label("Реакція шару на музику · " + layerTitle(layerId),
+                    14f, COLOR_ACCENT_CYAN, true),
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply { topMargin = dp(12); bottomMargin = dp(4) },
+            )
+            addSlider(
+                title = "Плавний поворот шару",
+                max = 60,
+                initial = (tuning.rotationSwayDegrees * 10f).toInt(),
+                valueText = { String.format(Locale.US, "%.1f°", it / 10f) },
+            ) { n -> persistLayerReaction(tuning.copy(rotationSwayDegrees = n / 10f)) }
+            addSlider(
+                title = "Stereo L/R шару",
+                max = 100,
+                initial = (tuning.stereoShiftFraction * 1000f).toInt(),
+                valueText = { String.format(Locale.US, "%.1f%%", it / 10f) },
+            ) { n -> persistLayerReaction(tuning.copy(stereoShiftFraction = n / 1000f)) }
+            addSlider(
+                title = "Bass ↑↓ шару",
+                max = 60,
+                initial = (tuning.bassFloatFraction * 1000f).toInt(),
+                valueText = { String.format(Locale.US, "%.1f%%", it / 10f) },
+            ) { n -> persistLayerReaction(tuning.copy(bassFloatFraction = n / 1000f)) }
 
             boardView.setGestureEditing(
                 enabled = true,
@@ -8062,6 +8105,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             layerTransforms =
                 activeGfLayerTransforms(gfThemeId),
             assetOverrides = gfMixController.overrides(),
+            layerReactionTunings = boardLayerReactionTuningStore.loadAll(gfThemeId),
             visibility =
                 BoardLayerId.entries
                     .associateWith { layerId ->

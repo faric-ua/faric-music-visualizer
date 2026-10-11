@@ -40,7 +40,6 @@ import androidx.core.view.ViewCompat
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import androidx.core.view.WindowInsetsControllerCompat
-import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.util.UnstableApi
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardGroupReaction
@@ -68,6 +67,7 @@ import com.saney.musicvisualizer.export.OfflinePcmCache
 import com.saney.musicvisualizer.export.OfflinePcmCacheResult
 import com.saney.musicvisualizer.export.ShortVideoExportProof
 import com.saney.musicvisualizer.playback.PlaybackController
+import com.saney.musicvisualizer.playback.PlaybackControllerHolder
 import com.saney.musicvisualizer.playback.PlaybackSnapshot
 import com.saney.musicvisualizer.playback.QueueTrack
 import com.saney.musicvisualizer.projectm.ProjectMBridge
@@ -516,7 +516,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ?.let { runCatching { ControlsAutoHideMode.valueOf(it) }.getOrNull() }
                 ?: ControlsAutoHideMode.NEVER
 
-                controller = ViewModelProvider(this)[PlaybackController::class.java]
+        controller = PlaybackControllerHolder.obtain(application)
         controller.setAnalysisPermissionGranted(hasAnalysisPermission())
 
         themeStore = PlaybackThemeStore(this)
@@ -644,6 +644,27 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         musicBrowseGroup = savedInstanceState?.getString("local_music_group")
         musicBrowseQuery = savedInstanceState?.getString("local_music_query").orEmpty()
         restoreScreen(restoredScreen)
+        // Notification media-card tap returns to the requested app screen.
+        openFromNotification(intent)
+    }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        openFromNotification(intent)
+    }
+
+    private fun openFromNotification(request: Intent?) {
+        val destination = request?.getStringExtra(EXTRA_OPEN_SCREEN) ?: return
+        request.removeExtra(EXTRA_OPEN_SCREEN)
+        when (destination) {
+            "NOW_PLAYING" -> showNowPlaying()
+            "THEME_PICKER" -> showThemePicker()
+            "BOARD_TRANSFORM" -> showBoardTransform()
+            "EXPORT_LAB" -> showExportLab()
+            "LIBRARY" -> showLibrary()
+            else -> Unit
+        }
     }
 
     override fun onSaveInstanceState(
@@ -10741,6 +10762,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         (value * resources.displayMetrics.density).toInt()
 
     companion object {
+        const val EXTRA_OPEN_SCREEN = "faric.open.screen"
         private const val PROJECTM_EXPORT_FPS =
             30
         private const val PROJECTM_EXPORT_DURATION_MS =

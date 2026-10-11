@@ -86,7 +86,10 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         ExoPlayer.Builder(
             application,
             renderersFactory,
-        ).build()
+        ).build().apply {
+            setAudioAttributes(androidx.media3.common.AudioAttributes.DEFAULT, true)
+            setHandleAudioBecomingNoisy(true)
+        }
     private var analyzer: AudioCaptureAnalyzer? = null
     private var currentSessionId = C.AUDIO_SESSION_ID_UNSET
     private var analysisPermissionGranted = false
@@ -146,12 +149,22 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         mainHandler.post(progressTicker)
     }
 
+    /** Exact ExoPlayer used by MediaSessionService and all in-app screens. */
+    fun sessionPlayer(): Player = player
+
+    private fun ensureNotificationSession() {
+        runCatching {
+            PlaybackMediaSessionService.ensureStarted(getApplication<Application>())
+        }
+    }
+
     fun load(uri: Uri, displayName: String) {
         loadQueue(listOf(QueueTrack(uri, displayName)), 0)
     }
 
     fun loadQueue(tracks: List<QueueTrack>, startIndex: Int = 0) {
         if (tracks.isEmpty()) return
+        ensureNotificationSession()
         val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
         val items =
             tracks.map { track ->
@@ -176,6 +189,7 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
     }
 
     fun previous() {
+        ensureNotificationSession()
         if (player.hasPreviousMediaItem()) {
             player.seekToPreviousMediaItem()
             player.play()
@@ -186,6 +200,7 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
     }
 
     fun next() {
+        ensureNotificationSession()
         if (player.hasNextMediaItem()) {
             player.seekToNextMediaItem()
             player.play()
@@ -212,7 +227,10 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         trackUri
 
     fun play() {
-        if (trackName != null) player.play()
+        if (trackName != null) {
+            ensureNotificationSession()
+            player.play()
+        }
     }
 
     fun pause() {
@@ -316,4 +334,17 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         player.release()
         super.onCleared()
     }
+}
+
+/**
+ * Application-scoped playback owner. The service and MainActivity always
+ * reference the same player; rotation cannot instantiate another ExoPlayer.
+ * The process cleans up this bounded singleton on termination.
+ */
+object PlaybackControllerHolder {
+    @Volatile private var active: PlaybackController? = null
+
+    @Synchronized
+    fun obtain(application: Application): PlaybackController =
+        active ?: PlaybackController(application).also { active = it }
 }

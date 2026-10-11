@@ -1,5 +1,14 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## RESUME NOW — PulseDeck v0.19.68/build157 numbered uniform PNG Hero tiles (2026-10-11)
+
+- **App/source main SHA:** `f61da2a3eedebfafcbd70835b49190962ee8de1a` (merged PR #28). PR Validate #1273 PASS, Android #694 PASS. Signed main Validate #1274 PASS, **Android #695 PASS**, run `38148621984`; signed debug artifact `FARIC-Music-Visualizer-v0.19.68-Debug`, ID `11706465894`, expiry 2026-10-14T14:51:44Z. Phone QA **OPEN**.
+- Screenshot fix: Playback Themes → Герої → Мої зовнішні PNG (10) now shows each card with separate TOP ordinal `01,02,...`, large center `FIT_CENTER` preview without clipping PNG, caption at BOTTOM without duplicated prefix. All cards share fixed height (two columns or single-col fallback for narrow displays or large font), labels auto-fit, full source name stays accessible.
+- Original ten external PNG files, persisted SAF refs, source IDs/order, GF composition/presets, geometry/calibration and active playback service untouched; tap selects same underlying ID. Thumbnail decode remains off UI thread.
+- **NEXT PHONE:** Install via Termux **3 → 10 → 8** (not 9), over existing installation, no uninstall or clearing data. Inspect top numbers, equal two-column heights, full image without crop, captions, last card, rotation/font scale; select hero and confirm Board result. Also earlier v0.19.67 MediaSession controls/GF layer reactions phone QA pending.
+- **User TODO:** potential `склеювання` / Compare work logged as GitHub issue #27, semantics unconfirmed; do not touch original PNG or flatten assets until clarified.
+- See `docs/checkpoints/2026-10-11-v0.19.68-external-hero-tiles.md`. Separate backlog remains `BUG-EXPORT-001`, `LIFE-ROT-001`, Panther preview, UI-RESP global audit, notification extra shortcuts (issue #24). No phone PASS inferred from CI.
+
 ## RESUME NOW — v0.19.67/build156 per-layer GF reactions + Android media session (2026-10-11)
 
 - **CURRENT APP/SOURCE SHA:** `f7da5e2de0f89f1ab6139cc6511acf561b29bcf2` (merged PR #25). PR #22 (v154 GUI) Validate #1265 / Android #688 PASS, main Android #689 PASS; PR #23 (v155 layer reaction) Validate #1267 / Android #690 PASS, main Android #691 PASS; PR #25 (v156 system media service) Validate #1269 / Android #692 PASS, main Validate #1270 PASS; **signed main Android #693 PASS**, run `38146024125`, artifact `FARIC-Music-Visualizer-v0.19.67-Debug` ID `11704293082` (expires 2026-10-14T14:11:58Z). All merged, physical phone QA NOT YET ACCEPTED.

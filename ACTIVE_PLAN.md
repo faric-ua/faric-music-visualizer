@@ -1,12 +1,21 @@
 # Active Plan
 
-## CURRENT IN REVIEW — v0.19.68/build157 uniform external hero tiles (2026-10-11)
+## RESUME NOW — PulseDeck v0.19.68/build157 numbered uniform PNG Hero tiles (2026-10-11)
+
+- **App/source main SHA:** `f61da2a3eedebfafcbd70835b49190962ee8de1a` (merged PR #28). PR Validate #1273 PASS, Android #694 PASS. Signed main Validate #1274 PASS, **Android #695 PASS**, run `38148621984`; signed debug artifact `FARIC-Music-Visualizer-v0.19.68-Debug`, ID `11706465894`, expiry 2026-10-14T14:51:44Z. Phone QA **OPEN**.
+- Screenshot fix: Playback Themes → Герої → Мої зовнішні PNG (10) now shows each card with separate TOP ordinal `01,02,...`, large center `FIT_CENTER` preview without clipping PNG, caption at BOTTOM without duplicated prefix. All cards share fixed height (two columns or single-col fallback for narrow displays or large font), labels auto-fit, full source name stays accessible.
+- Original ten external PNG files, persisted SAF refs, source IDs/order, GF composition/presets, geometry/calibration and active playback service untouched; tap selects same underlying ID. Thumbnail decode remains off UI thread.
+- **NEXT PHONE:** Install via Termux **3 → 10 → 8** (not 9), over existing installation, no uninstall or clearing data. Inspect top numbers, equal two-column heights, full image without crop, captions, last card, rotation/font scale; select hero and confirm Board result. Also earlier v0.19.67 MediaSession controls/GF layer reactions phone QA pending.
+- **User TODO:** potential `склеювання` / Compare work logged as GitHub issue #27, semantics unconfirmed; do not touch original PNG or flatten assets until clarified.
+- See `docs/checkpoints/2026-10-11-v0.19.68-external-hero-tiles.md`. Separate backlog remains `BUG-EXPORT-001`, `LIFE-ROT-001`, Panther preview, UI-RESP global audit, notification extra shortcuts (issue #24). No phone PASS inferred from CI.
+
+## COMPLETED CI / PHONE QA OPEN — v0.19.68/build157 uniform external hero tiles (2026-10-11)
 
 - [x] New screenshot: two-column external Heroes tiles have variable height because labels wrap; the index `01/02...` is embedded in some source filenames rather than occupying a separate top row.
 - [x] Code: exactly identical row tile height; clear number above large FIT_CENTER transparent hero image; caption in bounded bottom area. The old leading numeric prefix is removed from **display text only** (original title and source IDs persist). Source order and selection untouched.
 - [x] Narrow/high-font layout can use one column; fixed-size tile contract remains consistent; thumbnail decoding remains off main thread.
 - [x] JUnit coverage for display number, title normalization, fallback label. No modifications to image masters, saved GF data, Hero importer, playback service or `PULSEDECK_CENTER_CALIBRATION`.
-- [ ] PR Validate + Android CI, then signed main APK and phone QA: first/last tiles equal dimensions, correct number first/label bottom; whole heroes fit in preview (FIT_CENTER); 10 existing PNG items and selection still work, rotation/font scale and last odd tile.
+- [x] PR #28 Validate #1273 / Android #694 and signed main Validate #1274 / Android #695 PASS, artifact #11706465894. [ ] Phone QA: first/last tiles equal dimensions, correct number first/label bottom; whole heroes fit in preview (FIT_CENTER); 10 existing PNG items and selection still work, rotation/font scale and last odd tile.
 - [ ] TODO #27: user also requested unspecified **«склеювання» / Compare**; clarify whether side-by-side comparison, combining separate compositing layers, or flattening/export. Do not implement potentially destructive file changes until scope is clear.
 - [ ] Phone acceptance still OPEN for v0.19.67 media controls/GF reaction and prior regressions. Do not infer phone PASS from CI.
 

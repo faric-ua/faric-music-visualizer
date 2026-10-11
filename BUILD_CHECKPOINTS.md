@@ -1,5 +1,14 @@
 # FARIC Music Visualizer — Build Checkpoints
 
+## CURRENT SIGNED MAIN — v0.19.62 / build151 — PNG folder role isolation (2026-10-11)
+
+- **App/source SHA** `75433e0728d8a75006deb67826851ef0fbdb2245`, merged PR #19. MAIN **Validate #1239 PASS**, **Android #681 PASS**, signed run `38097213918`; artifact **`FARIC-Music-Visualizer-v0.19.62-Debug`** ID **`11686121452`**, archive SHA-256 `c7951e44b944d77618a5981124252df62e446b5810037c15ca140d93b4f1fb51`, expires 2026-10-14T00:08:00Z.
+- User reported: choosing Frames folder was indexed as Heroes. **Confirmed source risk:** Activity field pending role initialized CREATURE on recreate during external OpenDocumentTree; returned FRAME may be indexed as CREATURE. Fixed: persist role before launch using SharedPreferences commit, read+clear on callback, refuse missing role; prohibit tree URI reuse across types before writing; return directly to correct typed selector and explicitly selected part becomes visible.
+- **NO auto-data repair or deletion**: existing ten external PNG masters and saved GF templates stay untouched. If a previous broken scan already replaced the indexed Creature list, reselect the **original** `PulseDeck_Heroes` folder **only if** its existing 10 Hero cards are absent. Otherwise **do not reimport**. All PNGs remain outside APK.
+- Phone QA **PENDING**: Termux **3 → 10 → 8** (not 9), install APK over current without deleting data. Board → GF Mix → Frame → external Frame folder → Frame selector → choose frame → ensure selected Frame changes but Creature remains own role, original 10 Heroes remain. Check role after rotation/SAF picker. If creature remains invisible despite correct import, track separate live render/visibility issue.
+- Open independently: full MP4 `BUG-EXPORT-001`, lifecycle `LIFE-ROT-001`, 3s MP4 parity, blank Panther preview. `PULSEDECK_CENTER_CALIBRATION` unchanged. Release detail `docs/checkpoints/2026-10-11-v0.19.62-gf-folder-role-isolation.md`.
+
+
 ## CURRENT SIGNED MAIN — v0.19.61/build150 hide unavailable Hero tiles
 
 - **App/source SHA:** `a474c46791fc1ca6b085590a7a2d0a00a4f827e5` (merged PR #18). **Validate #1232 PASS, Android #679 PASS**, signed main run `38093806830`. Artifact `FARIC-Music-Visualizer-v0.19.61-Debug` ID **`11684867412`**, archive SHA-256 **`7f57b2ece8fb0fb0ad000a69083bf1b99d229c72252db6bb937484268195d2b0`**, expiry **2026-10-13T23:09:11Z**.

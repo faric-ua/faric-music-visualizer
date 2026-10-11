@@ -1,5 +1,14 @@
 # Active Plan
 
+## NEW UI/UX AUDIT — responsive settings windows, buttons and tiles (2026-10-11; documentation only)
+
+- [x] Source-audit common `PulseDeckDialogs`, Board `actionPill`, GF Mix seven-action source menu, Theme/Hero tile grid, external PNG picker and draggable projectM Settings. Found fixed 42/43/78/205dp heights, 8dp dialog-action spacing, hard `maxLines=3` and two-line ellipsized tile names, plus unconstrained action-stack dialog height.
+- [x] Record user requirement: consistent spaces **between** buttons/tiles (8dp tightly related, 12dp normal items, 16dp groups); full readable button labels, automatic natural multi-line wrap, and **proportional height growth** rather than clipped or overflowing text. Scroll long dialogs with accessible actions. Maintain responsive grids and large font/orientation.
+- [x] Save code-evidenced audit and QA specification: `docs/audits/2026-10-11-responsive-controls-and-dialogs.md` (UI-RESP-001…009). **No UI code changed and no new APK produced by this audit.**
+- [ ] Future implementation: shared responsive action/button/dialog contract first; migrate Board / GF Mix / PNG picker / Hero tiles, projectM Settings and remainder of custom settings/export/help UI, then device-matrix QA. Do not mix this global layout refactor with pending v151 PNG role regression acceptance.
+- [ ] **IMMEDIATE PHONE TEST STILL PENDING:** v0.19.62/build151, Termux **3 → 10 → 8**, not 9; Board → GF Mix → Frame → import proper Frames folder → Frame selector not Heroes → choose frame, confirm 10 existing heroes remain and creature can be selected separately. Report PASS/FAIL. Never clear app data or reimport 10 PNG if their cards remain.
+
+
 ## CURRENT RELEASE — v0.19.62/build151 (GF PNG folder import role isolation)
 
 - [x] Reproduce source-level cause: pending import role was transient Activity state with CREATURE fallback after recreation.

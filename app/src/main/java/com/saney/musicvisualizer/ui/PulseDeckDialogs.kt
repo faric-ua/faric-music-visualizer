@@ -144,9 +144,9 @@ object PulseDeckDialogs {
                 cancelLabel = cancelLabel,
                 accentFirst = false,
             ) { index ->
-                onSelected(
-                    index,
-                )
+                // showActionList also includes a Cancel/Close row after labels.
+                // That row must not be interpreted as a GF asset index.
+                if (index in labels.indices) onSelected(index)
             }
         }
 
@@ -599,18 +599,17 @@ object PulseDeckDialogs {
             )
         }
 
+        // Large GF source lists must remain scrollable instead of growing
+        // beyond the screen's bottom navigation bar. Short dialogs retain
+        // their natural WRAP_CONTENT height.
+        val actionsContainer = LinearLayout(context).apply {
+            orientation = LinearLayout.VERTICAL
+        }
         actions.forEachIndexed { index, action ->
-            panel.addView(
-                actionButton(
-                    context = context,
-                    action = action,
-                ) {
+            actionsContainer.addView(
+                actionButton(context, action) {
                     action.onClick()
-
-                    if (
-                        dismissAfterAction &&
-                            action.dismissOnClick
-                    ) {
+                    if (dismissAfterAction && action.dismissOnClick) {
                         dialog.dismiss()
                     }
                 },
@@ -618,16 +617,29 @@ object PulseDeckDialogs {
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
                 ).apply {
-                    if (
-                        index >
-                        0
-                    ) {
-                        topMargin =
-                            context.dp(
-                                8,
-                            )
-                    }
+                    if (index > 0) topMargin = context.dp(12)
                 },
+            )
+        }
+        if (actions.size > 5 && !scrollableMessage) {
+            panel.addView(
+                ScrollView(context).apply {
+                    isFillViewport = false
+                    clipToPadding = false
+                    addView(actionsContainer)
+                },
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    (context.resources.displayMetrics.heightPixels * 0.58f).toInt(),
+                ).apply { topMargin = context.dp(12) },
+            )
+        } else {
+            panel.addView(
+                actionsContainer,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply { topMargin = context.dp(12) },
             )
         }
 
@@ -729,8 +741,9 @@ object PulseDeckDialogs {
                     12,
                 ),
             )
-            maxLines =
-                3
+            // Primary action labels must wrap and grow with content, never
+            // clip or ellipsize a long imported PNG filename.
+            breakStrategy = android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY
             background =
                 roundedDrawable(
                     context = context,

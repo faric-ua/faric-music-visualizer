@@ -1,5 +1,10 @@
 # FARIC Music Visualizer — START HERE
 
+## Формат відповіді та записки інспектора (з 2026-10-16)
+
+- **Формат відповіді — [`docs/RESPONSE_ALGORITHM.md`](docs/RESPONSE_ALGORITHM.md)**, однаковий у всіх репо faric-ua (різні лише меню). Він має пріоритет над `ASSISTANT_RESPONSE_CONTRACT.md` і `docs/workflow/ASSISTANT_RESPONSE_FORMAT.md`: дія — **у кінці**, у «Від тебе зараз:» (не першим реченням); перевірок — до 3.
+- **Записки інспектора — [`docs/INSPECTOR.md`](docs/INSPECTOR.md):** чат «GitHub Storage» стежить, щоб усі репо працювали однаково, і може міняти тут файли. На старті переглянути нові записи — прочитати, обміркувати, прийняти; не згоден — сказати faric.
+
 ## RESUME NOW — PulseDeck v0.19.71/build160 original PNG canvas aspect (2026-10-11)
 
 - **APP SOURCE MAIN SHA:** `1df725f051bcd250e304e047b47ffbbb981ec47a`, PR #39 merged; PR Validate #1291 PASS, Android #702 PASS; main Validate #1292 PASS. Signed MAIN Android #703 **PASS**, run `38165490259`, artifact `FARIC-Music-Visualizer-v0.19.71-Debug` ID `11712410606` (expires 2026-10-14T18:54:08Z); phone QA OPEN.

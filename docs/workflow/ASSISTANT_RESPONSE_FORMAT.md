@@ -1,5 +1,7 @@
 # Assistant response handoff format
 
+> **Since 2026-10-16 the response format is [`docs/RESPONSE_ALGORITHM.md`](../RESPONSE_ALGORITHM.md)** — the same in every faric-ua repo. The TERMUX/TEST block below becomes part of the final «Від тебе зараз:» block; at most 3 checks. Kept below as history.
+
 This is a standing communication rule for the FARIC Music Visualizer / PulseDeck project.
 
 At the end of every meaningful implementation/build/testing handoff, always include a short, visually obvious action block for the user.

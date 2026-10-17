@@ -28,3 +28,8 @@
 ## Export
 - screen recording handoff first;
 - native MP4 export later after real-time renderer is stable.
+
+## Пачкою відео для YouTube (ідея faric 17.10 15:24, «якщо доживемо»)
+- Вибрати альбом / папку пісень (теги й обкладинки — з Audio Converter, A17) → для кожної пісні зробити відео з візуалізацією + обкладинкою → складати в папку, готову до заливання на YouTube.
+- Мета: ділитися своїми піснями (Suno, Saney & faric) на YouTube без ручного монтажу — «часу на відео нема».
+- Не починати без «так» faric; спершу — поточний Export (BUG-EXPORT-001 довгі MP4).

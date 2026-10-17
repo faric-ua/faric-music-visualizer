@@ -1,5 +1,8 @@
 # FARIC · Documentation Sync & Recovery Contract
 
+> **18.10.2026 — замінено.** `ACTIVE_PLAN.md` і `CURRENT_HANDOFF.md` більше не ведуться (лежать у `docs/history/`).
+> Стан — `STATUS.md`, задачі — `TODO.md`, журнал — `docs/PROJECT_LEDGER.md`, правила — `CLAUDE.md`. Нижче — історія.
+
 **State (2026-10-08): PARTIALLY IMPLEMENTED.** This is an enduring handoff and an actionable implementation plan, **not** a claim that all document formats already synchronize automatically.
 
 ## User requirement

@@ -92,9 +92,9 @@ project_docs() {
     echo "2 — Уся документація (docs/)"
     echo "3 — Герої та аудіоформи"
     echo "4 — Аналіз відеореференсів"
-    echo "5 — План робіт"
-    echo "6 — Відомі проблеми"
-    echo "7 — Історія збірок"
+    echo "5 — Стан проєкту"
+    echo "6 — Задачі"
+    echo "7 — Журнал проєкту"
     echo "0 — Назад"
     echo
     printf "Вибір: "
@@ -104,9 +104,9 @@ project_docs() {
       2) open_url "$GITHUB/tree/main/docs" ;;
       3) open_url "$GITHUB/blob/main/docs/architecture/VISUAL_ELEMENTS_TAXONOMY.md" ;;
       4) open_url "$GITHUB/blob/main/docs/visualizer/AUDIOFORMS_VIDEO_REFERENCE_WORKFLOW.md" ;;
-      5) open_url "$GITHUB/blob/main/ACTIVE_PLAN.md" ;;
-      6) open_url "$GITHUB/blob/main/OPEN_FINDINGS.md" ;;
-      7) open_url "$GITHUB/blob/main/BUILD_CHECKPOINTS.md" ;;
+      5) open_url "$GITHUB/blob/main/STATUS.md" ;;
+      6) open_url "$GITHUB/blob/main/TODO.md" ;;
+      7) open_url "$GITHUB/blob/main/docs/PROJECT_LEDGER.md" ;;
       0) return ;;
       *) echo "Невідомий пункт." ;;
     esac

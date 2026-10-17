@@ -1,5 +1,8 @@
 # Documentation Discipline
 
+> **18.10.2026 — замінено.** `ACTIVE_PLAN.md` і `CURRENT_HANDOFF.md` більше не ведуться (лежать у `docs/history/`).
+> Стан — `STATUS.md`, задачі — `TODO.md`, журнал — `docs/PROJECT_LEDGER.md`, правила — `CLAUDE.md`. Нижче — історія.
+
 Documentation is implementation state.
 
 Before major code:

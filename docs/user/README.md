@@ -77,4 +77,4 @@ Markdown використовує **вже наявні референси з р
 
 ## Для асистента в наступному чаті
 
-Читайте `START_HERE_ASSISTANT.md`, `CURRENT_HANDOFF.md`, `ASSISTANT_RESPONSE_CONTRACT.md` та **цей README**, перш ніж правити посібник. Стабільний вихідний документ: `docs/user/FARIC_USER_GUIDE_UK.md`. Не плутати довідник користувача із внутрішнім `scripts/termux-menu.sh`: Termux — developer/build tool, він не входить в інтерфейс Android APK.
+Читайте `CLAUDE.md`, `STATUS.md`, `docs/RESPONSE_ALGORITHM.md` (до 18.10 — `START_HERE_ASSISTANT.md`, `CURRENT_HANDOFF.md`, `ASSISTANT_RESPONSE_CONTRACT.md`, тепер у `docs/history/`) та **цей README**, перш ніж правити посібник. Стабільний вихідний документ: `docs/user/FARIC_USER_GUIDE_UK.md`. Не плутати довідник користувача із внутрішнім `scripts/termux-menu.sh`: Termux — developer/build tool, він не входить в інтерфейс Android APK.

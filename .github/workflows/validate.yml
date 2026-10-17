@@ -70,11 +70,25 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          test -f START_HERE_ASSISTANT.md
-          test -f CURRENT_HANDOFF.md
-          test -f ACTIVE_PLAN.md
-          test -f UI_STYLE_CONTRACT.md
-          test -f UI_STYLE_AUDIT.md
+          # Порядок документів з 18.10.2026: правила, стан, задачі, журнал
+          test -f CLAUDE.md
+          test -f STATUS.md
+          test -f TODO.md
+          test -f docs/PROJECT_LEDGER.md
+          test -f docs/RESPONSE_ALGORITHM.md
+          test -f docs/INSPECTOR.md
+          grep -q 'Точка зупинки' STATUS.md
+          grep -q 'Від тебе зараз' CLAUDE.md
+          test -f docs/UI_STYLE_CONTRACT.md
+          test -f docs/UI_STYLE_AUDIT.md
+          # Старі документи — лише історія, не видаляти
+          for f in START_HERE_ASSISTANT CURRENT_HANDOFF ACTIVE_PLAN BUILD_CHECKPOINTS OPEN_FINDINGS BACKLOG; do
+            test -f "docs/history/$f.md"
+            test ! -e "$f.md"
+          done
+          # Меню показує новий стан
+          grep -q 'STATUS.md' scripts/termux-menu.sh
+          ! grep -q 'ACTIVE_PLAN' scripts/termux-menu.sh tools/termux/documentation-menu.sh
           test -f docs/product/PRODUCT_VISION.md
           test -f docs/architecture/ARCHITECTURE.md
           test -f docs/assistant-kit/AUDIO_VISUAL_CONTRACT.md

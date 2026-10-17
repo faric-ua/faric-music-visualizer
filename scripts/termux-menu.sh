@@ -140,7 +140,7 @@ while true; do
   echo "1 — Відкрити shell у коді"
   echo "2 — Git status"
   echo "3 — Оновити репозиторій з GitHub"
-  echo "4 — Показати ACTIVE_PLAN"
+  echo "4 — Показати стан проєкту (STATUS)"
   echo
   echo "BUILD / SIGNING"
   echo "5 — Створити окремий development signer"
@@ -173,7 +173,7 @@ while true; do
     1) open_code ;;
     2) show_status ;;
     3) update_project ;;
-    4) clear; cat "$REPO/ACTIVE_PLAN.md"; pause_menu ;;
+    4) clear; cat "$REPO/STATUS.md"; pause_menu ;;
     5) run_tool "$REPO/tools/termux/generate-dev-signing-key.sh" ;;
     6) run_tool "$REPO/tools/termux/configure-github-signing-secrets.sh" ;;
     7) run_tool "$REPO/tools/termux/backup-dev-signing-key.sh" ;;

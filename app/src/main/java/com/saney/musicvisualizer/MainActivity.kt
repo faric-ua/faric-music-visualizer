@@ -58,6 +58,7 @@ import com.saney.musicvisualizer.board.BoardLayerTransform
 import com.saney.musicvisualizer.board.BoardLayerTransformStore
 import com.saney.musicvisualizer.board.BoardTransform
 import com.saney.musicvisualizer.board.BoardTransformStore
+import com.saney.musicvisualizer.diagnostics.CrashJournal
 import com.saney.musicvisualizer.export.CompositionExportConfig
 import com.saney.musicvisualizer.export.CyberSharkExportConfig
 import com.saney.musicvisualizer.export.ExportFrameProof
@@ -163,6 +164,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private val exportRunGate = ExportRunGate()
     private var orientationBeforeFullSongExport: Int? = null
+
+    /** Cancel flag of the running MP4 export, so onDestroy can stop it cleanly (V25). */
+    @Volatile private var activeExportCancel: AtomicBoolean? = null
 
     private var offlineAnalysis: OfflineAnalysisResult? = null
     private var offlineAnalysisUri: String? = null
@@ -652,6 +656,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         restoreScreen(restoredScreen)
         // Notification media-card tap returns to the requested app screen.
         openFromNotification(intent)
+        // V24: after a crash / killed process, say why — once, on a cold start.
+        if (savedInstanceState == null) {
+            window.decorView.postDelayed({ maybeShowCrashReport() }, 900L)
+        }
     }
 
     override fun onNewIntent(intent: Intent) {
@@ -961,7 +969,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             projectMMainView?.onPause()
             projectMMainResumed = false
         }
-        if (projectMExportLiveResumed) {
+        if (exportRunGate.isActive()) {
+            // V25: pausing the GLSurfaceView would destroy the GL context the
+            // export may be rendering projectM with. Keep it; endGuardedExport()
+            // pauses it when the render is over.
+            CrashJournal.exportNote(this, "екран сховано під час експорту (onStop)")
+        } else if (projectMExportLiveResumed) {
             projectMExportLiveView?.onPause()
             projectMExportLiveResumed = false
         }
@@ -972,11 +985,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     override fun onDestroy() {
         projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
         sceneOrchestrator.close()
-        ProjectMBridge
-            .endOfflineExport()
-        offlinePcmCache
-            ?.file
-            ?.delete()
+        if (exportRunGate.isActive()) {
+            // V25: the export worker still reads the PCM cache and drives the
+            // offline projectM. Stop it at the next frame; its own finally-block
+            // cleans up. Ending native export / deleting the PCM file here used
+            // to pull them out from under the running render.
+            activeExportCancel?.set(true)
+            CrashJournal.exportNote(this, "екран знищено під час експорту (onDestroy) — експорт зупинено")
+        } else {
+            ProjectMBridge
+                .endOfflineExport()
+            offlinePcmCache
+                ?.file
+                ?.delete()
+        }
         offlinePcmCache =
             null
         offlinePcmCacheUri =
@@ -1237,6 +1259,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showLibrary() {
+        if (blockedByActiveExport("showLibrary")) return
         localMusicBrowser = null
         val retainScene = hasRetainedMediaScene()
         screen = Screen.LIBRARY
@@ -1471,6 +1494,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         selectedGroup: String? = null,
         restoredQuery: String = "",
     ) {
+        if (blockedByActiveExport("showAllTracks")) return
         musicBrowseCategory = category
         musicBrowseGroup = selectedGroup
         musicBrowseQuery = restoredQuery
@@ -2053,6 +2077,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showNowPlaying() {
+        if (blockedByActiveExport("showNowPlaying")) return
         // Menu-only return from Board: the underlying composition and native
         // projectM are the exact same instances as before the editor opened.
         if (screen == Screen.BOARD_TRANSFORM && boardMenuOverlay != null) {
@@ -2331,6 +2356,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         "Сети / Sets",
                                         "Автоприховування",
                                         "Системні панелі Android",
+                                        "Журнал збоїв",
                                     ),
                                 cancelLabel = "Закрити",
                             ) { which ->
@@ -2370,6 +2396,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
                                     6 ->
                                         showSystemBarsSettingsDialog()
+
+                                    7 ->
+                                        showDiagnosticsReport(
+                                            title = "Журнал збоїв",
+                                            report = CrashJournal.fullReport(this),
+                                        )
                                 }
                             }
 
@@ -5861,6 +5893,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showBoardTransform() {
+        if (blockedByActiveExport("showBoardTransform")) return
         val retainedHost =
             persistentSceneRoot?.takeIf {
                 pulseDeckLayerStack != null &&
@@ -7361,6 +7394,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showExportLab() {
+        if (blockedByActiveExport("showExportLab")) return
         screen = Screen.EXPORT_LAB
         sceneOrchestrator.stop()
         clearScreenRefs()
@@ -8298,6 +8332,46 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
      * Temporary rotation safety guard while the existing export depends on
      * MainActivity-owned projectM/GL. Background recovery is a separate task.
      */
+    /**
+     * V25: while an MP4 export runs, leaving the export screen would call
+     * clearScreenRefs(), which ends the offline projectM and releases the export
+     * view mid-render. The progress dialog blocks taps, but a notification tap
+     * (openFromNotification) or any programmatic navigation could still do it.
+     */
+    private fun blockedByActiveExport(target: String): Boolean {
+        if (!exportRunGate.isActive()) return false
+        CrashJournal.exportNote(this, "перехід $target заблоковано")
+        toast("Йде експорт MP4 — дочекайся кінця або натисни «Скасувати»")
+        return true
+    }
+
+    private fun maybeShowCrashReport() {
+        if (isFinishing || isDestroyed) return
+        val report = runCatching { CrashJournal.pendingReport(this) }.getOrNull() ?: return
+        CrashJournal.markReported(this)
+        showDiagnosticsReport(title = "Минулого разу застосунок закрився", report = report)
+    }
+
+    private fun showDiagnosticsReport(
+        title: String,
+        report: String,
+    ) {
+        PulseDeckDialogs.showMessage(
+            context = this,
+            title = title,
+            message = report + "\n\nНатисни «Копіювати» і надішли текст Claude.",
+            primaryLabel = "OK",
+            secondaryLabel = "Копіювати",
+            scrollableMessage = true,
+            keepOpenOnSecondary = true,
+        ) {
+            val clipboard =
+                getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("FARIC crash journal", report))
+            toast("Текст скопійовано")
+        }
+    }
+
     private fun beginGuardedExport(fullSong: Boolean): Boolean {
         if (!exportRunGate.tryStart()) {
             toast("Експорт уже виконується")
@@ -8323,6 +8397,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun endGuardedExport() {
         if (!exportRunGate.isActive()) return
         exportRunGate.finish()
+        activeExportCancel = null
+        // onStop() kept the export GL view alive during the render (V25);
+        // pause it now if the screen is no longer visible.
+        if (!lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED) && projectMExportLiveResumed) {
+            projectMExportLiveView?.onPause()
+            projectMExportLiveResumed = false
+        }
         window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
         val previous = orientationBeforeFullSongExport
         orientationBeforeFullSongExport = null
@@ -8445,6 +8526,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             AtomicBoolean(
                 false,
             )
+        activeExportCancel = cancelled
+        // V24: leave a trail on disk, so a process death mid-export is explained next start.
+        CrashJournal.exportStarted(
+            context = this,
+            fullSong = fullSong,
+            path =
+                when {
+                    directGpuProjectMEligible -> "А (повний GPU)"
+                    projectMView != null -> "Б (projectM через копію)"
+                    else -> "В (без projectM)"
+                },
+            track = snapshot.trackName.orEmpty(),
+            durationMs = requestedDurationMs,
+        )
 
         val dialog =
             android.app.Dialog(
@@ -8624,6 +8719,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             progress: Int,
             status: String,
         ) {
+            CrashJournal.exportProgress(this, progress, status)
             val decile = progress.coerceIn(0, 100) / 10
             if (decile != lastLoggedDecile) {
                 lastLoggedDecile = decile
@@ -9120,6 +9216,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 )
             }.onSuccess { result ->
                 Log.i("FARIC-export", "Render finished; published=" + (result.uri != null))
+                CrashJournal.exportFinished(
+                    this,
+                    if (result.uri != null) {
+                        "готово · " + result.width + "×" + result.height + " · " + result.frameCount + " кадрів · " + result.totalMs + " мс"
+                    } else {
+                        "MP4 не збережено"
+                    },
+                )
                 runOnUiThread {
                     if (!isDestroyed && !isFinishing) dialog.dismiss()
 
@@ -9148,25 +9252,30 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
             }.onFailure { error ->
                 Log.e("FARIC-export", "Export failed", error)
+                val cancelledByUser = error is CancellationException
+                val errorLine = error.javaClass.simpleName + ": " + (error.message ?: "—")
+                CrashJournal.exportFinished(
+                    this,
+                    if (cancelledByUser) "скасовано" else "помилка · " + errorLine.take(200),
+                )
                 runOnUiThread {
                     if (!isDestroyed && !isFinishing) dialog.dismiss()
 
-                    if (
-                        error is
-                            CancellationException
-                    ) {
+                    if (cancelledByUser) {
                         toast(
                             "Експорт скасовано",
                         )
-                    } else {
-                        toast(
-                            "MP4 export: " +
-                                (
-                                    error.message
-                                        ?: error
-                                            .javaClass
-                                            .simpleName
-                                    ),
+                    } else if (!isDestroyed && !isFinishing) {
+                        // V24: a toast vanished in 2 s; keep the reason readable and copyable.
+                        val trace =
+                            error.stackTrace
+                                .take(12)
+                                .joinToString("\n") { "  at " + it }
+                        showDiagnosticsReport(
+                            title = "Експорт MP4 не вдався",
+                            report =
+                                errorLine + "\n" + trace +
+                                    "\n\n" + CrashJournal.fullReport(this),
                         )
                     }
                 }
@@ -9354,6 +9463,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun showThemePicker() {
+        if (blockedByActiveExport("showThemePicker")) return
         val retainedHost =
             persistentSceneRoot?.takeIf {
                 screen == Screen.NOW_PLAYING &&

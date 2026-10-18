@@ -127,6 +127,33 @@ jobs:
           assert dialog.index("        actions.forEachIndexed") > dialog.index("if (scrollableMessage) 0 else context.dp(420)"), "action footer must follow scrollable message"
           PY
 
+      - name: Export guard and crash journal contract (V24, V25)
+        shell: bash
+        run: |
+          set -euo pipefail
+          python3 - <<'PY2'
+          import re
+          from pathlib import Path
+          main = Path("app/src/main/java/com/saney/musicvisualizer/MainActivity.kt").read_text()
+          manifest = Path("app/src/main/AndroidManifest.xml").read_text()
+          # V25: no screen switch may tear down a running export.
+          for fn in ["showNowPlaying", "showLibrary", "showAllTracks", "showBoardTransform", "showThemePicker", "showExportLab"]:
+              m = re.search(r"private fun " + fn + r"\([^{]*\{\s*\n\s*(.+)", main)
+              assert m, fn + " not found"
+              assert "blockedByActiveExport(" in m.group(1), fn + " must start with blockedByActiveExport()"
+          destroy = main[main.index("override fun onDestroy()"):]
+          destroy = destroy[:destroy.index("super.onDestroy()")]
+          assert destroy.index("exportRunGate.isActive()") < destroy.index(".endOfflineExport()"), "onDestroy must not end offline export under a running render"
+          stop = main[main.index("override fun onStop()"):]
+          stop = stop[:stop.index("super.onStop()")]
+          assert "exportRunGate.isActive()" in stop, "onStop must keep the export GL view alive"
+          # V24: crash journal installed for the whole process and export trail recorded.
+          assert 'android:name=".FaricApplication"' in manifest, "FaricApplication must be registered"
+          assert "CrashJournal.exportStarted(" in main and "CrashJournal.exportFinished(" in main
+          assert "maybeShowCrashReport()" in main
+          print("Export guard + crash journal contract PASS")
+          PY2
+
       - name: PulseDeck dialog text-fit contract
         shell: bash
         run: |

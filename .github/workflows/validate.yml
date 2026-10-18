@@ -79,6 +79,9 @@ jobs:
           test -f docs/INSPECTOR.md
           grep -q 'Точка зупинки' STATUS.md
           grep -q 'Від тебе зараз' CLAUDE.md
+          # Еталон експорту MP4 (18.10.2026) — не видаляти
+          test -f docs/export/EXPORT_ETALON.md
+          grep -q 'archive/export-etalon-v0.19.71' docs/export/EXPORT_ETALON.md
           test -f docs/UI_STYLE_CONTRACT.md
           test -f docs/UI_STYLE_AUDIT.md
           # Старі документи — лише історія, не видаляти

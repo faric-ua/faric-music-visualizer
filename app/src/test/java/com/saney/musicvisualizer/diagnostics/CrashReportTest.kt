@@ -52,6 +52,37 @@ class CrashReportTest {
     }
 
     @Test
+    fun routineBackgroundKillsAreNotShownAtStart() {
+        // Owner's phone 18.10: Samsung «AL_Kill : over 1 slots» while cached, low memory in background.
+        val report =
+            CrashReport.build(
+                appVersion = "0.19.73",
+                exits =
+                    listOf(
+                        exit(ExitReasonText.REASON_OTHER).copy(importance = 400, description = "AL_Kill : over 1 slots"),
+                        exit(ExitReasonText.REASON_LOW_MEMORY).copy(importance = 400),
+                    ),
+                trail = null,
+                crashText = null,
+                formatTime = time,
+            )
+        assertNull(report)
+    }
+
+    @Test
+    fun killWhilePlayingIsStillShown() {
+        val report =
+            CrashReport.build(
+                appVersion = "0.19.73",
+                exits = listOf(exit(ExitReasonText.REASON_SIGNALED).copy(importance = 230, status = 9)),
+                trail = null,
+                crashText = null,
+                formatTime = time,
+            )
+        assertNotNull(report)
+    }
+
+    @Test
     fun nativeCrashIsReportedInPlainWords() {
         val report =
             CrashReport.build(

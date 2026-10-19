@@ -64,6 +64,21 @@ object ExitReasonText {
             else -> true
         }
 
+    /**
+     * V42 (v0.19.73): what to show in the start-up window. Real errors always;
+     * anything else only when the app was on screen / playing (importance ≤ 230).
+     * Routine background clean-ups (Samsung «AL_Kill», low memory while cached)
+     * stay in «Журнал збоїв» only — owner 18.10 got 6 such scary but harmless lines.
+     */
+    fun isWorthShowingAtStart(
+        reason: Int,
+        importance: Int,
+    ): Boolean =
+        when (reason) {
+            REASON_CRASH, REASON_CRASH_NATIVE, REASON_ANR, REASON_INITIALIZATION_FAILURE -> true
+            else -> isNotable(reason) && importance in 1..230
+        }
+
     /** RunningAppProcessInfo.IMPORTANCE_* → where the app was when it died. */
     fun describeImportance(importance: Int): String =
         when {

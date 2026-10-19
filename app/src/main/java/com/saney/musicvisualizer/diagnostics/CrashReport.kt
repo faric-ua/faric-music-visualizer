@@ -74,7 +74,7 @@ object CrashReport {
         formatTime: (Long) -> String,
     ): String? {
         val exportInterrupted = trail?.running == true
-        val notable = exits.filter { ExitReasonText.isNotable(it.reason) }
+        val notable = exits.filter { ExitReasonText.isWorthShowingAtStart(it.reason, it.importance) }
         val shownExits =
             when {
                 notable.isNotEmpty() -> notable

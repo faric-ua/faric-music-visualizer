@@ -151,6 +151,12 @@ jobs:
           assert 'android:name=".FaricApplication"' in manifest, "FaricApplication must be registered"
           assert "CrashJournal.exportStarted(" in main and "CrashJournal.exportFinished(" in main
           assert "maybeShowCrashReport()" in main
+          # v0.19.73: one render function for single export and folder batch; V43 path A without GF background.
+          assert main.count("runCompositionExportBlocking(") >= 3, "single export and batch must share runCompositionExportBlocking"
+          elig = main[main.index("private fun isDirectGpuExportEligible("):]
+          elig = elig[:elig.index("private fun runCompositionExportBlocking(")]
+          assert "BoardLayerId.BACKGROUND" not in elig.split("): Boolean =")[1], "V43: path A must not require the GF background"
+          assert "selectBatchFolder" in main and "mediaStoreHasVideo(" in main, "batch must skip videos that already exist"
           print("Export guard + crash journal contract PASS")
           PY2
 

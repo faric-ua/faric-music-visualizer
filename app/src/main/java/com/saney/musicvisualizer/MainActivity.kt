@@ -284,6 +284,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private var heroCatalogExpanded = false
 
+    // v0.19.73 folder batch: read-only access to a folder of songs.
+    private val selectBatchFolder =
+        registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
+            if (uri != null) onBatchFolderPicked(uri)
+        }
+
     // The SAF picker may recreate MainActivity while it is open.
     // A field defaulting to CREATURE used to silently misfile FRAME/FX/WORDMARK
     // imports under Heroes. Persist an explicit pending role *before* launch.
@@ -7816,6 +7822,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         content.addView(
             actionPill(
+                text = "Пакет: усі пісні з папки → MP4",
+                accent = false,
+            ) {
+                startBatchFolderPicker()
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(58),
+            ).apply {
+                topMargin = dp(10)
+            },
+        )
+
+        content.addView(
+            actionPill(
                 text = "Відкрити папку експорту",
                 accent = false,
             ) {
@@ -8501,24 +8522,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
 
         val directGpuProjectMEligible =
-            projectMView !=
-                null &&
-                compositionConfig
-                    .projectMVisible &&
-                !compositionConfig
-                    .faricReactiveVisible &&
-                !compositionConfig
-                    .overVisualizationVisible &&
-                !compositionConfig
-                    .bigEqualizerVisible &&
-                compositionConfig
-                    .graphicFiguresVisible &&
-                compositionConfig
-                    .cyberSharkConfig
-                    .visibility[
-                        BoardLayerId.BACKGROUND
-                    ] !=
-                    false
+            isDirectGpuExportEligible(
+                compositionConfig = compositionConfig,
+                projectMView = projectMView,
+            )
 
         if (!beginGuardedExport(fullSong)) return
 
@@ -8747,15 +8754,142 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     "faric-preview-export"
                 },
         ) {
-            var pcmReader:
-                com.saney.musicvisualizer.export
-                    .OfflinePcmReader? =
-                null
-
-            var offlineProjectM =
-                false
-
             runCatching {
+                runCompositionExportBlocking(
+                    fullSong = fullSong,
+                    sourceUri = sourceUri,
+                    analysis = analysis,
+                    exportStartMs = exportStartMs,
+                    requestedDurationMs = requestedDurationMs,
+                    ratio = ratio,
+                    compositionConfig = compositionConfig,
+                    projectMView = projectMView,
+                    directGpuProjectMEligible = directGpuProjectMEligible,
+                    title = snapshot.trackName.orEmpty(),
+                    artist = snapshot.trackArtist.orEmpty(),
+                    cancelled = cancelled,
+                    updateProgress = { progress, status -> updateProgress(progress, status) },
+                )
+            }.onSuccess { result ->
+                Log.i("FARIC-export", "Render finished; published=" + (result.uri != null))
+                CrashJournal.exportFinished(
+                    this,
+                    if (result.uri != null) {
+                        "готово · " + result.width + "×" + result.height + " · " + result.frameCount + " кадрів · " + result.totalMs + " мс"
+                    } else {
+                        "MP4 не збережено"
+                    },
+                )
+                runOnUiThread {
+                    if (!isDestroyed && !isFinishing) dialog.dismiss()
+
+                    if (
+                        result.uri !=
+                        null
+                    ) {
+                        // v0.19.73: the full song also shows the timing report (was a 2 s toast),
+                        // so the whole-song speed can be measured against EXPORT_ETALON.md.
+                        showExportTimingResult(
+                            result,
+                        )
+                    } else {
+                        toast(
+                            "Не вдалося зберегти MP4",
+                        )
+                    }
+                }
+            }.onFailure { error ->
+                Log.e("FARIC-export", "Export failed", error)
+                val cancelledByUser = error is CancellationException
+                val errorLine = error.javaClass.simpleName + ": " + (error.message ?: "—")
+                CrashJournal.exportFinished(
+                    this,
+                    if (cancelledByUser) "скасовано" else "помилка · " + errorLine.take(200),
+                )
+                runOnUiThread {
+                    if (!isDestroyed && !isFinishing) dialog.dismiss()
+
+                    if (cancelledByUser) {
+                        toast(
+                            "Експорт скасовано",
+                        )
+                    } else if (!isDestroyed && !isFinishing) {
+                        // V24: a toast vanished in 2 s; keep the reason readable and copyable.
+                        val trace =
+                            error.stackTrace
+                                .take(12)
+                                .joinToString("\n") { "  at " + it }
+                        showDiagnosticsReport(
+                            title = "Експорт MP4 не вдався",
+                            report =
+                                errorLine + "\n" + trace +
+                                    "\n\n" + CrashJournal.fullReport(this),
+                        )
+                    }
+                }
+            }
+
+            // Keep orientation locked until native GL and PCM cleanup is done.
+            runOnUiThread { endGuardedExport() }
+        }
+    }
+
+    /**
+     * Path A (projectM straight into the encoder on the GPU) is possible when the
+     * composition has projectM + GF and none of the CPU-only visualizer layers.
+     *
+     * V43 (v0.19.73): the GF *background / glow* is no longer required. Until now
+     * a hidden GF background silently switched the whole export to the slower
+     * path B (owner's 3 s test 19.10: 7074 ms, glReadPixels 4.8 s). The renderers
+     * already skip a hidden background (CyberSharkExportRenderer checks
+     * BoardLayerId.BACKGROUND), and the GPU glow is optional since v0.19.23.
+     */
+    private fun isDirectGpuExportEligible(
+        compositionConfig: CompositionExportConfig,
+        projectMView: ProjectMView?,
+    ): Boolean =
+        projectMView != null &&
+            compositionConfig.projectMVisible &&
+            !compositionConfig.faricReactiveVisible &&
+            !compositionConfig.overVisualizationVisible &&
+            !compositionConfig.bigEqualizerVisible &&
+            compositionConfig.graphicFiguresVisible
+
+    /**
+     * Renders ONE song to MP4 on the calling (worker) thread and returns the result.
+     * Shared by the single export (exportCompositionVideo) and the folder batch
+     * (v0.19.73). The body is the former inline worker of exportCompositionVideo,
+     * unchanged (see docs/export/EXPORT_ETALON.md): PCM cache → projectM offline
+     * setup (path A / B) → ShortVideoExportProof.export → cleanup.
+     */
+    private fun runCompositionExportBlocking(
+        fullSong: Boolean,
+        sourceUri: Uri,
+        analysis: OfflineAnalysisResult,
+        exportStartMs: Long,
+        requestedDurationMs: Long,
+        ratio: ExportAspectRatio,
+        compositionConfig: CompositionExportConfig,
+        projectMView: ProjectMView?,
+        directGpuProjectMEligible: Boolean,
+        title: String,
+        artist: String,
+        cancelled: AtomicBoolean,
+        updateProgress: (Int, String) -> Unit,
+        exactDisplayName: String? = null,
+        relativePath: String = com.saney.musicvisualizer.export.Mp4AvMuxer.DEFAULT_RELATIVE_PATH,
+    ): ShortVideoExportProof.Result {
+        val currentUriKey =
+            sourceUri.toString()
+        var pcmReader:
+            com.saney.musicvisualizer.export
+                .OfflinePcmReader? =
+            null
+
+        var offlineProjectM =
+            false
+
+        return try {
                 val needsProjectMPcm =
                     projectMView !=
                         null
@@ -9055,9 +9189,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     analysis =
                         analysis,
                     title =
-                        snapshot.trackName
-                            .orEmpty(),
-                    artist = snapshot.trackArtist.orEmpty(),
+                        title,
+                    artist = artist,
                     startMs =
                         exportStartMs,
                     compositionConfig =
@@ -9192,6 +9325,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         } else {
                             "FARIC-preview"
                         },
+                    exactDisplayName =
+                        exactDisplayName,
+                    relativePath =
+                        relativePath,
                     shouldCancel = {
                         cancelled.get()
                     },
@@ -9214,73 +9351,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         )
                     },
                 )
-            }.onSuccess { result ->
-                Log.i("FARIC-export", "Render finished; published=" + (result.uri != null))
-                CrashJournal.exportFinished(
-                    this,
-                    if (result.uri != null) {
-                        "готово · " + result.width + "×" + result.height + " · " + result.frameCount + " кадрів · " + result.totalMs + " мс"
-                    } else {
-                        "MP4 не збережено"
-                    },
-                )
-                runOnUiThread {
-                    if (!isDestroyed && !isFinishing) dialog.dismiss()
-
-                    if (
-                        result.uri !=
-                        null
-                    ) {
-                        if (fullSong) {
-                            toast(
-                                "Готово · уся пісня · " +
-                                    result.width +
-                                    "×" +
-                                    result.height +
-                                    " · Movies/FARIC",
-                            )
-                        } else {
-                            showExportTimingResult(
-                                result,
-                            )
-                        }
-                    } else {
-                        toast(
-                            "Не вдалося зберегти MP4",
-                        )
-                    }
-                }
-            }.onFailure { error ->
-                Log.e("FARIC-export", "Export failed", error)
-                val cancelledByUser = error is CancellationException
-                val errorLine = error.javaClass.simpleName + ": " + (error.message ?: "—")
-                CrashJournal.exportFinished(
-                    this,
-                    if (cancelledByUser) "скасовано" else "помилка · " + errorLine.take(200),
-                )
-                runOnUiThread {
-                    if (!isDestroyed && !isFinishing) dialog.dismiss()
-
-                    if (cancelledByUser) {
-                        toast(
-                            "Експорт скасовано",
-                        )
-                    } else if (!isDestroyed && !isFinishing) {
-                        // V24: a toast vanished in 2 s; keep the reason readable and copyable.
-                        val trace =
-                            error.stackTrace
-                                .take(12)
-                                .joinToString("\n") { "  at " + it }
-                        showDiagnosticsReport(
-                            title = "Експорт MP4 не вдався",
-                            report =
-                                errorLine + "\n" + trace +
-                                    "\n\n" + CrashJournal.fullReport(this),
-                        )
-                    }
-                }
-            }
-
+        } finally {
             runCatching {
                 pcmReader
                     ?.close()
@@ -9295,8 +9366,335 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         ?.resetOfflineRendererBlocking()
                 }
             }
-            // Keep orientation locked until native GL and PCM cleanup is done.
-            runOnUiThread { endGuardedExport() }
+        }
+    }
+
+    // ---- Folder batch export (TODO.md V22, v0.19.73) ----------------------------
+    // faric 19.10 04:16: «щоб я міг указати папку, і він прогнав із папки всі пісні».
+    // MVP: runs on the Export Lab screen with the screen on (same engine as
+    // «Експортувати всю пісню MP4»). Background service is V2 (next stage).
+
+    private data class BatchSong(
+        val uri: Uri,
+        val name: String,
+        val durationMs: Long,
+    )
+
+    private fun startBatchFolderPicker() {
+        if (exportRunGate.isActive()) {
+            toast("Йде експорт MP4 — дочекайся кінця")
+            return
+        }
+        if (screen != Screen.EXPORT_LAB) {
+            toast("Відкрий Export Lab")
+            return
+        }
+        selectBatchFolder.launch(null)
+    }
+
+    private fun onBatchFolderPicked(treeUri: Uri) {
+        runCatching {
+            contentResolver.takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
+        }
+        toast("Шукаю пісні в папці…")
+        thread(name = "faric-batch-scan") {
+            val scan = runCatching { scanBatchFolder(treeUri) }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                scan
+                    .onSuccess { (folderName, songs) -> confirmBatch(folderName, songs) }
+                    .onFailure { error ->
+                        PulseDeckDialogs.showMessage(
+                            this,
+                            "Папку не прочитано",
+                            (error.javaClass.simpleName + ": " + (error.message ?: "—")).take(300),
+                        )
+                    }
+            }
+        }
+    }
+
+    private fun scanBatchFolder(treeUri: Uri): Pair<String, List<BatchSong>> {
+        val treeDocId = android.provider.DocumentsContract.getTreeDocumentId(treeUri)
+        val folderDoc = android.provider.DocumentsContract.buildDocumentUriUsingTree(treeUri, treeDocId)
+        val folderName =
+            runCatching {
+                contentResolver.query(
+                    folderDoc,
+                    arrayOf(android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME),
+                    null,
+                    null,
+                    null,
+                )?.use { c -> if (c.moveToFirst()) c.getString(0) else null }
+            }.getOrNull()
+                ?: treeDocId.substringAfterLast(':').substringAfterLast('/').ifBlank { "Batch" }
+        val children = android.provider.DocumentsContract.buildChildDocumentsUriUsingTree(treeUri, treeDocId)
+        val found = mutableListOf<Pair<Uri, String>>()
+        contentResolver.query(
+            children,
+            arrayOf(
+                android.provider.DocumentsContract.Document.COLUMN_DOCUMENT_ID,
+                android.provider.DocumentsContract.Document.COLUMN_DISPLAY_NAME,
+                android.provider.DocumentsContract.Document.COLUMN_MIME_TYPE,
+            ),
+            null,
+            null,
+            null,
+        )?.use { c ->
+            while (c.moveToNext()) {
+                val docId = c.getString(0) ?: continue
+                val name = c.getString(1) ?: continue
+                val mime = c.getString(2)
+                if (mime == android.provider.DocumentsContract.Document.MIME_TYPE_DIR) continue
+                if (!com.saney.musicvisualizer.export.BatchPlan.isAudio(name, mime)) continue
+                found += android.provider.DocumentsContract.buildDocumentUriUsingTree(treeUri, docId) to name
+            }
+        }
+        val songs =
+            com.saney.musicvisualizer.export.BatchPlan.ordered(found) { it.second }.map { (uri, name) ->
+                val duration =
+                    runCatching {
+                        val retriever = android.media.MediaMetadataRetriever()
+                        try {
+                            retriever.setDataSource(this, uri)
+                            retriever.extractMetadata(android.media.MediaMetadataRetriever.METADATA_KEY_DURATION)?.toLongOrNull() ?: 0L
+                        } finally {
+                            retriever.release()
+                        }
+                    }.getOrDefault(0L)
+                BatchSong(uri = uri, name = name, durationMs = duration)
+            }
+        return folderName to songs
+    }
+
+    private fun confirmBatch(
+        folderName: String,
+        songs: List<BatchSong>,
+    ) {
+        if (songs.isEmpty()) {
+            PulseDeckDialogs.showMessage(
+                this,
+                "У папці нема пісень",
+                "У «$folderName» не знайдено аудіофайлів (mp3, m4a, flac, wav, ogg…). Підпапки поки не переглядаються.",
+            )
+            return
+        }
+        val plan = com.saney.musicvisualizer.export.BatchPlan
+        val totalMs = songs.sumOf { it.durationMs }
+        val message =
+            buildString {
+                append("Папка: ").append(folderName).append('\n')
+                append("Пісень: ").append(songs.size).append(" · разом ").append(plan.formatMinutes(totalMs)).append('\n')
+                append("Орієнтовно: ~").append(plan.estimateMinutes(totalMs)).append(" хв (телефон рахує приблизно вдвічі довше за музику)\n")
+                append("Відео: ").append(plan.relativePath(folderName)).append(" · назва = назва пісні\n")
+                append("Шари й формат — як зараз на екрані (").append(exportAspectRatio.width).append('×').append(exportAspectRatio.height).append(")\n")
+                append("Готові відео пропускаються — можна продовжити пізніше.\n")
+                append("Не вимикай екран і не виходь із застосунку; краще на зарядці.\n\n")
+                songs.take(12).forEachIndexed { i, s ->
+                    append(i + 1).append(". ").append(s.name)
+                    if (s.durationMs > 0) append(" · ").append(plan.formatMinutes(s.durationMs))
+                    append('\n')
+                }
+                if (songs.size > 12) append("… і ще ").append(songs.size - 12)
+            }.trimEnd()
+        PulseDeckDialogs.showConfirm(
+            context = this,
+            title = "Пакет: ${songs.size} пісень → MP4",
+            message = message,
+            positiveLabel = "Почати",
+            negativeLabel = "Скасувати",
+        ) {
+            runBatchExport(folderName, songs)
+        }
+    }
+
+    private fun mediaStoreHasVideo(
+        relativePath: String,
+        displayName: String,
+    ): Boolean {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+        return runCatching {
+            contentResolver.query(
+                android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
+                arrayOf(android.provider.MediaStore.Video.Media._ID),
+                android.provider.MediaStore.Video.Media.RELATIVE_PATH + "=? AND " +
+                    android.provider.MediaStore.Video.Media.DISPLAY_NAME + "=?",
+                arrayOf(relativePath, displayName),
+                null,
+            )?.use { it.count > 0 } ?: false
+        }.getOrDefault(false)
+    }
+
+    private fun runBatchExport(
+        folderName: String,
+        songs: List<BatchSong>,
+    ) {
+        if (screen != Screen.EXPORT_LAB) {
+            toast("Відкрий Export Lab")
+            return
+        }
+        val plan = com.saney.musicvisualizer.export.BatchPlan
+        val compositionConfig = currentCompositionExportConfig()
+        val ratio = exportAspectRatio
+        val projectMView = projectMExportLiveView?.takeIf { compositionConfig.projectMVisible }
+        val directGpuEligible = isDirectGpuExportEligible(compositionConfig = compositionConfig, projectMView = projectMView)
+        val relativePath = plan.relativePath(folderName)
+
+        if (!beginGuardedExport(fullSong = true)) return
+        val cancelled = AtomicBoolean(false)
+        activeExportCancel = cancelled
+
+        val dialog =
+            android.app.Dialog(this).apply {
+                requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
+                setCancelable(false)
+                setCanceledOnTouchOutside(false)
+            }
+        val panel =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(18), dp(16), dp(18), dp(16))
+                background = panelDrawable(Color.argb(250, 22, 25, 29), 24, Color.argb(90, 255, 255, 255), 1)
+            }
+        panel.addView(label("Пакет · ${songs.size} пісень → MP4", 20f, Color.WHITE, true))
+        val songLabel = label("Підготовка…", 15f, Color.WHITE, true)
+        panel.addView(songLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(8) })
+        val stageLabel = label("", 13f, COLOR_MUTED, false)
+        panel.addView(stageLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(4) })
+        val songBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = 100 }
+        panel.addView(songBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(10)).apply { topMargin = dp(12) })
+        val overallLabel = label("Усього: 0 з ${songs.size}", 13f, COLOR_MUTED, false)
+        panel.addView(overallLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(12) })
+        val overallBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = songs.size * 100 }
+        panel.addView(overallBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(14)).apply { topMargin = dp(6) })
+        panel.addView(
+            actionPill(text = "Зупинити пакет", accent = false) {
+                PulseDeckDialogs.showConfirm(
+                    context = this,
+                    title = "Зупинити пакет?",
+                    message = "Поточна пісня не збережеться. Готові відео лишаться; наступного разу вони пропустяться.",
+                    positiveLabel = "Так, зупинити",
+                    negativeLabel = "Продовжити",
+                    destructive = true,
+                ) {
+                    cancelled.set(true)
+                    stageLabel.text = "Зупиняю…"
+                }
+            },
+            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(54)).apply { topMargin = dp(16) },
+        )
+        dialog.setContentView(panel)
+        dialog.show()
+        dialog.window?.apply {
+            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+            setLayout((resources.displayMetrics.widthPixels * 0.88f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
+            setGravity(Gravity.CENTER)
+            addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        }
+
+        thread(name = "faric-batch-export") {
+            val results = mutableListOf<com.saney.musicvisualizer.export.BatchPlan.SongResult>()
+            for ((index, song) in songs.withIndex()) {
+                if (cancelled.get()) break
+                val fileName = plan.videoFileName(song.name)
+                val title = plan.songTitle(song.name)
+                val position = "Пісня ${index + 1} з ${songs.size}"
+                fun ui(
+                    songProgress: Int,
+                    stage: String,
+                ) {
+                    val p = songProgress.coerceIn(0, 100)
+                    runOnUiThread {
+                        if (isFinishing) return@runOnUiThread
+                        songLabel.text = "$position · $title"
+                        stageLabel.text = stage
+                        songBar.progress = p
+                        overallBar.progress = index * 100 + p
+                        overallLabel.text = "Усього: ${results.size} з ${songs.size} · зроблено ${results.count { it.outcome == com.saney.musicvisualizer.export.BatchPlan.Outcome.DONE }}"
+                    }
+                }
+                if (mediaStoreHasVideo(relativePath, fileName)) {
+                    results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.SKIPPED_EXISTS, "відео вже є")
+                    ui(100, "Уже є — пропускаю")
+                    continue
+                }
+                val startedAt = System.currentTimeMillis()
+                CrashJournal.exportStarted(
+                    context = this,
+                    fullSong = true,
+                    path =
+                        when {
+                            directGpuEligible -> "А (повний GPU)"
+                            projectMView != null -> "Б (projectM через копію)"
+                            else -> "В (без projectM)"
+                        } + " · пакет ${index + 1}/${songs.size}",
+                    track = title,
+                    durationMs = song.durationMs,
+                )
+                val outcome =
+                    runCatching {
+                        ui(0, "Аналізую звук…")
+                        val analysis =
+                            OfflineAudioAnalyzer.analyze(context = this, uri = song.uri) { p ->
+                                ui(p / 20, "Аналізую звук · $p%")
+                            }
+                        if (cancelled.get()) throw CancellationException("Batch cancelled")
+                        runCompositionExportBlocking(
+                            fullSong = true,
+                            sourceUri = song.uri,
+                            analysis = analysis,
+                            exportStartMs = 0L,
+                            requestedDurationMs = analysis.durationMs.coerceAtLeast(500L),
+                            ratio = ratio,
+                            compositionConfig = compositionConfig,
+                            projectMView = projectMView,
+                            directGpuProjectMEligible = directGpuEligible,
+                            title = title,
+                            artist = "",
+                            cancelled = cancelled,
+                            updateProgress = { progress, status -> ui(5 + progress * 95 / 100, status) },
+                            exactDisplayName = fileName,
+                            relativePath = relativePath,
+                        )
+                    }
+                val elapsed = System.currentTimeMillis() - startedAt
+                outcome
+                    .onSuccess { result ->
+                        CrashJournal.exportFinished(this, "готово · пакет · " + result.frameCount + " кадрів · " + result.totalMs + " мс")
+                        results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.DONE, elapsedMs = elapsed)
+                    }.onFailure { error ->
+                        Log.e("FARIC-export", "Batch song failed: $title", error)
+                        if (error is CancellationException || cancelled.get()) {
+                            CrashJournal.exportFinished(this, "скасовано (пакет)")
+                            results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.CANCELLED, "зупинено")
+                        } else {
+                            val line = (error.javaClass.simpleName + ": " + (error.message ?: "—")).take(200)
+                            CrashJournal.exportFinished(this, "помилка (пакет) · $line")
+                            results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.FAILED, line, elapsed)
+                        }
+                    }
+                if (cancelled.get()) break
+            }
+            val summary = plan.summary(folder = folderName, results = results, total = songs.size)
+            runOnUiThread {
+                if (!isDestroyed && !isFinishing) {
+                    dialog.dismiss()
+                    PulseDeckDialogs.showMessage(
+                        context = this,
+                        title = if (cancelled.get()) "Пакет зупинено" else "Пакет готовий",
+                        message = summary,
+                        primaryLabel = "OK",
+                        secondaryLabel = "Копіювати",
+                        scrollableMessage = true,
+                        keepOpenOnSecondary = true,
+                    ) {
+                        val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("FARIC batch", summary))
+                        toast("Текст скопійовано")
+                    }
+                }
+                endGuardedExport()
+            }
         }
     }
 

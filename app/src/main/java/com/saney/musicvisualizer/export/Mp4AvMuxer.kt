@@ -22,6 +22,8 @@ import java.util.concurrent.CancellationException
  * *end* of a potentially hours-long export.
  */
 object Mp4AvMuxer {
+    const val DEFAULT_RELATIVE_PATH = "Movies/FARIC"
+
     fun mux(
         videoFile: File,
         audioFile: File,
@@ -42,6 +44,7 @@ object Mp4AvMuxer {
         audioFile: File,
         displayName: String,
         shouldCancel: () -> Boolean = { false },
+        relativePath: String = DEFAULT_RELATIVE_PATH,
     ): Uri {
         require(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             "MediaStore pending video requires Android Q+"
@@ -51,11 +54,11 @@ object Mp4AvMuxer {
         val values = ContentValues().apply {
             put(MediaStore.Video.Media.DISPLAY_NAME, displayName)
             put(MediaStore.Video.Media.MIME_TYPE, "video/mp4")
-            put(MediaStore.Video.Media.RELATIVE_PATH, "Movies/FARIC")
+            put(MediaStore.Video.Media.RELATIVE_PATH, relativePath)
             put(MediaStore.Video.Media.IS_PENDING, 1)
         }
         val uri = resolver.insert(MediaStore.Video.Media.EXTERNAL_CONTENT_URI, values)
-            ?: error("Cannot create pending MP4 in Movies/FARIC")
+            ?: error("Cannot create pending MP4 in $relativePath")
         try {
             val fd = resolver.openFileDescriptor(uri, "rw")
                 ?: error("Cannot open pending MP4 for muxing")

@@ -540,6 +540,14 @@ object PulseDeckDialogs {
             scrollableMessage = scrollableMessage,
         )
 
+    /**
+     * THE canonical PulseDeck window (v0.19.75). Every message / confirm / choice /
+     * text-input window goes through here: title → scrollable message → optional body
+     * → action buttons. BoundedDialogPanel keeps it within 82 % of the screen, the
+     * message scrolls, the buttons are always reachable, Back closes it.
+     * `scrollableMessage` is kept for old call sites; scrolling is now always on.
+     * New informational windows must use this, not a hand-made Dialog (CI checks).
+     */
     fun show(
         context: Context,
         title: String,
@@ -567,8 +575,10 @@ object PulseDeckDialogs {
                 )
             }
 
+        // Canonical window (v0.19.75): never taller than 82 % of the screen; the
+        // message scrolls, title and buttons always stay visible. See BoundedDialogPanel.
         val panel =
-            LinearLayout(
+            BoundedDialogPanel(
                 context,
             ).apply {
                 orientation =
@@ -639,62 +649,39 @@ object PulseDeckDialogs {
                     bold = false,
                 )
 
-            if (
-                scrollableMessage ||
-                message.length >
-                    900
-            ) {
-                panel.addView(
-                    ScrollView(
-                        context,
-                    ).apply {
-                        isFillViewport =
-                            false
-                        addView(
-                            messageView,
-                            ViewGroup.LayoutParams(
-                                ViewGroup.LayoutParams.MATCH_PARENT,
-                                ViewGroup.LayoutParams.WRAP_CONTENT,
-                            ),
+            // Always inside a scroll view; BoundedDialogPanel shrinks it only when the
+            // whole window would not fit. Short messages keep their natural height.
+            val messageScroll =
+                ScrollView(
+                    context,
+                ).apply {
+                    isFillViewport =
+                        false
+                    addView(
+                        messageView,
+                        ViewGroup.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ),
+                    )
+                }
+            panel.addView(
+                messageScroll,
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    topMargin =
+                        context.dp(
+                            8,
                         )
-                    },
-                    LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        // Give a tall report only the remaining space;
-                        // its action buttons stay pinned below the scroll.
-                        if (scrollableMessage) 0 else context.dp(420),
-                    ).apply {
-                        if (scrollableMessage) {
-                            weight = 1f
-                        }
-                        topMargin =
-                            context.dp(
-                                10,
-                            )
-                        bottomMargin =
-                            context.dp(
-                                12,
-                            )
-                    },
-                )
-            } else {
-                panel.addView(
-                    messageView,
-                    LinearLayout.LayoutParams(
-                        ViewGroup.LayoutParams.MATCH_PARENT,
-                        ViewGroup.LayoutParams.WRAP_CONTENT,
-                    ).apply {
-                        topMargin =
-                            context.dp(
-                                8,
-                            )
-                        bottomMargin =
-                            context.dp(
-                                12,
-                            )
-                    },
-                )
-            }
+                    bottomMargin =
+                        context.dp(
+                            12,
+                        )
+                },
+            )
+            panel.flexible = messageScroll
         }
 
         body?.let { bodyView ->
@@ -741,7 +728,7 @@ object PulseDeckDialogs {
                 },
             )
         }
-        if (actions.size > 5 && !scrollableMessage) {
+        if (actions.size > 5) {
             panel.addView(
                 ScrollView(context).apply {
                     isFillViewport = false
@@ -763,19 +750,9 @@ object PulseDeckDialogs {
             )
         }
 
-        if (scrollableMessage) {
-            dialog.setContentView(
-                panel,
-                ViewGroup.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                ),
-            )
-        } else {
-            dialog.setContentView(
-                panel,
-            )
-        }
+        dialog.setContentView(
+            panel,
+        )
         dialog.show()
 
         dialog.window
@@ -794,14 +771,8 @@ object PulseDeckDialogs {
                             PANEL_WIDTH_FRACTION
                         )
                         .toInt(),
-                    if (scrollableMessage) {
-                        // Respect the visible screen: report body scrolls
-                        // while Copy / OK remain reachable at all times.
-                        (context.resources.displayMetrics.heightPixels * 0.82f)
-                            .toInt()
-                    } else {
-                        ViewGroup.LayoutParams.WRAP_CONTENT
-                    },
+                    // Height is capped by BoundedDialogPanel (82 % of the screen).
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
                 )
                 setGravity(
                     Gravity.CENTER,

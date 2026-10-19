@@ -79,3 +79,19 @@ The emergency recovery dialog follows this contract and must stay in the same Pu
 - A dialog is not style-complete until every visible label fits without clipping, overlap or baseline drift and all action tiles are visually centered.
 - When one option wraps to multiple lines, sibling tiles keep the same visual language but may grow independently to fit their content.
 
+## Канонічне вікно (з v0.19.75, faric 19.10 21:18)
+
+> «Візьми шаблон інформаційного вікна і на нього наклади все» — щоб не лагодити кожне нове вікно окремо (кнопки, прокрутка, поворот, вихід).
+
+Будь-яке інформаційне вікно — повідомлення, підтвердження, вибір зі списку, введення тексту, звіт — **лише через `PulseDeckDialogs.show` / `showMessage` / `showConfirm` / `showActionList` / `showSingleChoice` / `showTextInput` / `showImageChoice`**. Вони всі збираються одним шаблоном:
+
+1. **Заголовок** — зверху, завжди видно.
+2. **Середина** — текст (і за потреби список чи поле) **завжди в прокрутці**; скільки б тексту не було.
+3. **Кнопки** — знизу, **завжди видно**, не виштовхуються текстом; текст кнопки переноситься, кнопка росте (мін. 48 dp).
+4. **Висота вікна** — не більше **82 % поточного екрана** (`BoundedDialogPanel`, перераховується при кожному вимірі — і після повороту).
+5. **«Назад»** закриває вікно (крім вікон прогресу експорту — там «Скасувати» з підтвердженням).
+6. Ширина — 88 % екрана, кольори й кути — PulseDeck.
+
+Власний `android.app.Dialog` — лише для чотирьох особливих панелей (плаваюча панель шарів, вибір папки експорту, прогрес експорту, прогрес пакета). Нове вікно поза шаблоном CI не пропустить («Canonical PulseDeck window contract»).
+
+Відомо й ще не зроблено: після повороту екрана відкрите вікно закривається разом з екраном (Android перестворює екран) — `TODO.md` V49.

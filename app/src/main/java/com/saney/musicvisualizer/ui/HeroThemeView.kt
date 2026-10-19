@@ -1079,16 +1079,6 @@ class HeroThemeView(context: Context) : View(context) {
             fill,
         )
 
-        val title =
-            trackTitle
-                .replace('_', ' ')
-                .take(22)
-
-        textPaint.color = Color.WHITE
-        textPaint.alpha = 235
-        textPaint.textSize =
-            labelRadius * 0.22f
-
         canvas.save()
         canvas.rotate(
             vinylRotation,
@@ -1096,26 +1086,19 @@ class HeroThemeView(context: Context) : View(context) {
             cy,
         )
 
-        canvas.drawText(
-            title,
-            cx,
-            cy - labelRadius * 0.15f,
-            textPaint,
-        )
-
-        textPaint.textSize =
-            labelRadius * 0.14f
-        textPaint.alpha = 190
-
-        canvas.drawText(
-            if (artistName.isBlank()) {
-                "FARIC VINYL"
-            } else {
-                artistName.take(24)
-            },
-            cx,
-            cy + labelRadius * 0.22f,
-            textPaint,
+        // V72: name split into lines that fit the label; «VINYL» instead of «FARIC VINYL».
+        com.saney.musicvisualizer.theme.VinylLabelPainter.draw(
+            canvas = canvas,
+            paint = textPaint,
+            cx = cx,
+            cy = cy,
+            labelRadius = labelRadius,
+            rawTitle = trackTitle,
+            artist = artistName,
+            titleColor = Color.WHITE,
+            titleAlpha = 235,
+            bottomColor = Color.WHITE,
+            bottomAlpha = 190,
         )
 
         canvas.restore()

@@ -26,6 +26,13 @@ object PulseDeckDialogs {
         val accent: Boolean = false,
         val destructive: Boolean = false,
         val dismissOnClick: Boolean = true,
+        /**
+         * V61 (faric 19.10 23:13): a tile with an icon — the icon lives in its own area
+         * on the left (centred), the title and [subtitle] are centred in their own area
+         * and wrap to two lines; the tile grows with the text.
+         */
+        val icon: String? = null,
+        val subtitle: String? = null,
         val onClick: () -> Unit,
     )
 
@@ -556,6 +563,8 @@ object PulseDeckDialogs {
         actions: List<Action>,
         dismissAfterAction: Boolean = true,
         scrollableMessage: Boolean = false,
+        /** false = Back and outside taps do nothing (progress of a running export). */
+        cancelable: Boolean = true,
     ): Dialog {
         lateinit var dialog:
             Dialog
@@ -568,13 +577,12 @@ object PulseDeckDialogs {
                     Window.FEATURE_NO_TITLE,
                 )
                 setCancelable(
-                    true,
+                    cancelable,
                 )
                 setCanceledOnTouchOutside(
                     false,
                 )
             }
-
         // Canonical window (v0.19.75): never taller than 82 % of the screen; the
         // message scrolls, title and buttons always stay visible. See BoundedDialogPanel.
         val panel =
@@ -710,16 +718,23 @@ object PulseDeckDialogs {
             orientation = LinearLayout.VERTICAL
         }
         actions.forEachIndexed { index, action ->
+            val onActionClick: () -> Unit = {
+                action.onClick()
+                if (
+                    dismissAfterAction &&
+                        action.dismissOnClick
+                ) {
+                    dialog.dismiss()
+                }
+            }
+            val actionView: View =
+                if (action.icon != null || action.subtitle != null) {
+                    iconTile(context, action, onActionClick)
+                } else {
+                    actionButton(context, action, onActionClick)
+                }
             actionsContainer.addView(
-                actionButton(context, action) {
-                    action.onClick()
-                    if (
-                        dismissAfterAction &&
-                            action.dismissOnClick
-                    ) {
-                        dialog.dismiss()
-                    }
-                },
+                actionView,
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.WRAP_CONTENT,
@@ -780,6 +795,78 @@ object PulseDeckDialogs {
             }
 
         return dialog
+    }
+
+    /** V61: icon area · centred two-line text · the same width as the icon area on the right. */
+    private fun iconTile(
+        context: Context,
+        action: Action,
+        onClick: () -> Unit,
+    ): View {
+        val textColor =
+            when {
+                action.accent -> Color.BLACK
+                action.destructive -> COLOR_DANGER
+                else -> COLOR_TEXT
+            }
+        val iconArea = context.dp(44)
+        return LinearLayout(context).apply {
+            orientation = LinearLayout.HORIZONTAL
+            gravity = Gravity.CENTER_VERTICAL
+            minimumHeight = context.dp(56)
+            setPadding(context.dp(12), context.dp(10), context.dp(12), context.dp(10))
+            background =
+                roundedDrawable(
+                    context = context,
+                    fill = if (action.accent) COLOR_ORANGE else COLOR_PANEL_2,
+                    radiusDp = 22,
+                    stroke =
+                        when {
+                            action.accent -> COLOR_ORANGE
+                            action.destructive -> Color.argb(170, 225, 92, 92)
+                            else -> Color.argb(115, 255, 255, 255)
+                        },
+                    strokeDp = 1,
+                )
+            addView(
+                label(context, action.icon.orEmpty(), 22f, textColor, true).apply {
+                    gravity = Gravity.CENTER
+                    textAlignment = View.TEXT_ALIGNMENT_CENTER
+                },
+                LinearLayout.LayoutParams(iconArea, ViewGroup.LayoutParams.MATCH_PARENT),
+            )
+            addView(
+                LinearLayout(context).apply {
+                    orientation = LinearLayout.VERTICAL
+                    gravity = Gravity.CENTER
+                    addView(
+                        label(context, action.label, 15f, textColor, true).apply {
+                            gravity = Gravity.CENTER
+                            textAlignment = View.TEXT_ALIGNMENT_CENTER
+                            maxLines = 2
+                            breakStrategy = android.text.Layout.BREAK_STRATEGY_HIGH_QUALITY
+                        },
+                        LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+                    )
+                    action.subtitle?.let { sub ->
+                        addView(
+                            label(context, sub, 12f, if (action.accent) Color.argb(200, 0, 0, 0) else COLOR_MUTED, false).apply {
+                                gravity = Gravity.CENTER
+                                textAlignment = View.TEXT_ALIGNMENT_CENTER
+                                maxLines = 2
+                            },
+                            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                                topMargin = context.dp(3)
+                            },
+                        )
+                    }
+                },
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+            )
+            // Same width as the icon area, so the text is centred on the whole tile.
+            addView(View(context), LinearLayout.LayoutParams(iconArea, 1))
+            setOnClickListener { onClick() }
+        }
     }
 
     private fun actionButton(

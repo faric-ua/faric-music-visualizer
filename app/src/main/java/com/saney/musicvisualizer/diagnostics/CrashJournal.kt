@@ -168,30 +168,36 @@ object CrashJournal {
     }
 
     /** Full journal for «PulseDeck tools → Журнал збоїв». */
+    /**
+     * Newest first (faric 19.10 23:20: «відкриваю — і зразу перша строчка, що сталось
+     * останнє, а не листати кілометри стрічки»): Android closes → code error →
+     * last export → the old report that was already shown, at the very bottom.
+     */
     fun fullReport(context: Context): String =
         buildString {
             append("FARIC Music Visualizer v").append(appVersion).append(" · журнал збоїв\n")
-            val last = lastReportFile(context)
-            if (last.isFile) {
-                append("\n=== Останній показаний звіт ===\n").append(last.readText().trim()).append('\n')
-            }
-            readTrail(context)?.let { trail ->
-                append("\n=== Останній експорт ===\n")
-                append(CrashReport.trailText(trail.copy(outcome = trail.outcome ?: if (trail.running) "ще йде або обірвався" else "—"), ::dateTime))
-                append('\n')
-            }
+            append("(найсвіжіше — вгорі)\n")
             val exits = readExits(context)
             append("\n=== Як закривався застосунок (Android, останні ").append(exits.size).append(") ===\n")
             if (exits.isEmpty()) {
                 append(if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) "записів нема\n" else "Android до 11 цього не зберігає\n")
             }
-            exits.forEach { exit ->
+            exits.sortedByDescending { it.timestampMs }.forEach { exit ->
                 append(dateTime(exit.timestampMs)).append(" — ").append(ExitReasonText.describe(exit.reason))
                 append(" · ").append(ExitReasonText.describeImportance(exit.importance)).append('\n')
             }
             val shown = File(crashFile(context).parentFile, "shown-crash.txt")
             val crash = crashFile(context).takeIf { it.isFile } ?: shown.takeIf { it.isFile }
             crash?.let { append("\n=== Остання помилка в коді ===\n").append(it.readText().trim()).append('\n') }
+            readTrail(context)?.let { trail ->
+                append("\n=== Останній експорт ===\n")
+                append(CrashReport.trailText(trail.copy(outcome = trail.outcome ?: if (trail.running) "ще йде або обірвався" else "—"), ::dateTime))
+                append('\n')
+            }
+            val last = lastReportFile(context)
+            if (last.isFile) {
+                append("\n=== Раніше показаний звіт (старе) ===\n").append(last.readText().trim()).append('\n')
+            }
         }.trimEnd()
 
     // ---- Internals --------------------------------------------------------

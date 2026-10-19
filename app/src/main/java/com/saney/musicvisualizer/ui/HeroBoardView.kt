@@ -49,7 +49,15 @@ class HeroBoardView(
     figureThemeId:
         PlaybackThemeId =
         PlaybackThemeId.CYBER_SHARK,
+    /**
+     * V3 (faric 19.10 23:15): when faric's own GF mix is active, do NOT decode and
+     * draw the built-in theme (Cyber Shark) while his PNGs load — draw nothing for
+     * this layer until [applyPreloadedFigureTheme] arrives.
+     */
+    deferArtwork: Boolean = false,
 ) : View(context) {
+
+    private var artworkPending = deferArtwork
 
     private var figureThemeId:
         PlaybackThemeId =
@@ -84,11 +92,15 @@ class HeroBoardView(
     private val fxPath = Path()
 
     private var figureAssets =
-        GraphicFigureCatalog
-            .loadAssets(
-                context,
-                this.figureThemeId,
-            )
+        if (deferArtwork) {
+            GraphicFigureAssets(frame = null, fx = null, creature = null, wordmark = null)
+        } else {
+            GraphicFigureCatalog
+                .loadAssets(
+                    context,
+                    this.figureThemeId,
+                )
+        }
 
     private var frameBitmap =
         figureAssets.frame
@@ -144,6 +156,7 @@ class HeroBoardView(
             figureAssets.wordmark
         renderErrorLogged =
             false
+        artworkPending = false
         invalidate()
     }
 
@@ -635,6 +648,8 @@ class HeroBoardView(
 
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
+        // faric's own PNGs are still loading: show nothing here, never a foreign hero.
+        if (artworkPending) return
 
         val now =
             SystemClock.elapsedRealtime()

@@ -9657,9 +9657,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     endMs = to,
                                 )
                             } else {
-                                OfflineAudioAnalyzer.analyze(context = this, uri = song.uri) { p ->
-                                    ui(p / 20, "Аналізую звук · $p%")
-                                }
+                                OfflineAudioAnalyzer.analyze(
+                                    context = this,
+                                    uri = song.uri,
+                                    onProgress = { p -> ui(p / 20, "Аналізую звук · $p%") },
+                                )
                             }
                         if (cancelled.get()) throw CancellationException("Batch cancelled")
                         val (clipStartMs, clipLengthMs) =

@@ -183,6 +183,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     // One live render stack per player screen; projectM authoring is a menu
     // above that stack, never a second Activity/native bridge.
     private var persistentSceneRoot: FrameLayout? = null
+
+    // V3 (faric 19.10 23:31): Export Lab is an overlay above the running scene, like the
+    // library — opening / closing it rebuilds nothing; projectM keeps playing.
+    private var exportLabOverlay: FrameLayout? = null
     private var boardMenuOverlay: FrameLayout? = null
     private var themeMenuOverlay: FrameLayout? = null
     private var mediaMenuOverlay: FrameLayout? = null
@@ -1146,6 +1150,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 screen == Screen.NOW_PLAYING ||
                     screen == Screen.BOARD_TRANSFORM ||
                     (screen == Screen.THEME_PICKER && themeMenuOverlay != null) ||
+                    (screen == Screen.EXPORT_LAB && exportLabOverlay != null) ||
                     ((screen == Screen.LIBRARY || screen == Screen.TRACKS) &&
                         mediaMenuOverlay != null)
                 ) &&
@@ -1213,6 +1218,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 screen == Screen.NOW_PLAYING ||
                     screen == Screen.BOARD_TRANSFORM ||
                     (screen == Screen.THEME_PICKER && themeMenuOverlay != null) ||
+                    (screen == Screen.EXPORT_LAB && exportLabOverlay != null) ||
                     ((screen == Screen.LIBRARY || screen == Screen.TRACKS) &&
                         mediaMenuOverlay != null)
                 ) &&
@@ -2149,6 +2155,24 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             updateSceneOrchestratorState()
             enableImmersiveFullscreen()
             Log.i("FARIC-nav", "Themes browser closed; native GL retained")
+            return
+        }
+        if (screen == Screen.EXPORT_LAB &&
+            exportLabOverlay != null &&
+            persistentSceneRoot != null &&
+            projectMExportLiveView == null
+        ) {
+            // V3: leave Export Lab — remove only the overlay; scene, HUD and projectM
+            // were never stopped.
+            (exportLabOverlay?.parent as? ViewGroup)?.removeView(exportLabOverlay)
+            exportLabOverlay = null
+            screen = Screen.NOW_PLAYING
+            activeVerticalScroll = null
+            updateProjectMRenderState()
+            updateSceneOrchestratorState()
+            enableImmersiveFullscreen()
+            onPlaybackSnapshot(latestSnapshot)
+            Log.i("FARIC-nav", "Export Lab overlay closed; scene and projectM retained")
             return
         }
         if ((screen == Screen.LIBRARY || screen == Screen.TRACKS) &&
@@ -7274,6 +7298,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun openExportLabWithProjectMCapture() {
+        // V3: with the scene kept under Export Lab there is nothing to freeze —
+        // open at once; a projectM frame is captured only when a PNG is saved.
+        if (hasRetainedExportScene()) {
+            showExportLab()
+            return
+        }
         val projectMVisible =
             layerVisible(
                 PulseDeckLayerStack.Layer.VISUALIZER,
@@ -7397,17 +7427,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         projectMExportLiveView =
             view
-
+        // V3: always at the bottom of the root, so in the Export Lab overlay it sits
+        // under the buttons (index 0 / 1; the classic screen's root is still empty here).
         root.addView(
             view,
+            0,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
             ),
         )
-
         root.addView(
             View(this).apply {
+                tag = EXPORT_PREVIEW_DIM_TAG
                 setBackgroundColor(
                     Color.argb(
                         218,
@@ -7417,6 +7449,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ),
                 )
             },
+            1,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -7424,19 +7457,34 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
+    /** V3: Export Lab can sit on top of the running PulseDeck scene. */
+    private fun hasRetainedExportScene(): Boolean =
+        persistentSceneRoot != null &&
+            pulseDeckLayerStack != null &&
+            (screen == Screen.NOW_PLAYING ||
+                (screen == Screen.EXPORT_LAB && exportLabOverlay != null))
+
     private fun showExportLab() {
         if (blockedByActiveExport("showExportLab")) return
+        val retainScene = hasRetainedExportScene()
         screen = Screen.EXPORT_LAB
-        sceneOrchestrator.stop()
-        clearScreenRefs()
-
-        val root = FrameLayout(this).apply {
-            setBackgroundColor(COLOR_BG)
+        if (!retainScene) {
+            sceneOrchestrator.stop()
+            clearScreenRefs()
         }
-
-        attachExportProjectMPreview(
-            root,
-        )
+        val root = FrameLayout(this).apply {
+            // Over the live scene: dark, but the visualisation still shows through.
+            setBackgroundColor(if (retainScene) Color.argb(228, 5, 8, 12) else COLOR_BG)
+            isClickable = true
+        }
+        if (!retainScene) {
+            attachExportProjectMPreview(
+                root,
+            )
+        }
+        // projectM for the MP4 is made only when an export starts (withExportProjectM).
+        val projectMOnDemand =
+            retainScene && projectMMainView != null
         applySafeArea(root)
 
         val scroll = ScrollView(this).apply {
@@ -7457,11 +7505,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         header.addView(
             iconButton("‹") {
-                if (latestSnapshot.trackName != null) {
-                    showNowPlaying()
-                } else {
-                    showLibrary()
-                }
+                // V70: always back to the centre.
+                showNowPlaying()
             },
         )
         header.addView(
@@ -7499,7 +7544,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     add(
                         when {
                             projectMExportLiveView !=
-                                null ->
+                                null || projectMOnDemand ->
                                 "L0 projectM offline"
 
                             compositionConfig
@@ -7600,7 +7645,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         ) {
             val hasLiveCapture =
                 projectMExportLiveView !=
-                    null
+                    null || projectMOnDemand
             val hasSnapshot =
                 compositionConfig
                     .projectMFrame !=
@@ -7693,7 +7738,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 accent = exportReady,
             ) {
                 if (exportReady) {
-                    exportProofFrame()
+                    captureLiveProjectMThen { exportProofFrame() }
                 } else {
                     toast("Ця сцена ще не має export renderer")
                 }
@@ -7807,17 +7852,107 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         scroll.addView(content)
         root.addView(scroll)
-        setContentView(root)
-
-        projectMExportLiveView
-            ?.onResume()
-        projectMExportLiveResumed =
-            projectMExportLiveView !=
-            null
+        val host = persistentSceneRoot
+        if (retainScene && host != null) {
+            exportLabOverlay?.let { old -> (old.parent as? ViewGroup)?.removeView(old) }
+            host.addView(
+                root,
+                FrameLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                ),
+            )
+            exportLabOverlay = root
+            updateSceneOrchestratorState()
+            updateProjectMRenderState()
+            Log.i("FARIC-nav", "Export Lab overlay over retained scene; projectM=" + System.identityHashCode(projectMMainView))
+        } else {
+            setContentView(root)
+            projectMExportLiveView
+                ?.onResume()
+            projectMExportLiveResumed =
+                projectMExportLiveView !=
+                null
+        }
 
         restorePendingScrollPositions()
         enableImmersiveFullscreen()
     }
+
+    /**
+     * V3: the offline projectM for an MP4 exists only while an export runs. projectM is a
+     * single native instance, so the live one is released first, the export one is put
+     * under the Export Lab overlay, and [finishExportProjectM] gives the live one back.
+     */
+    private fun withExportProjectM(onReady: () -> Unit) {
+        val overlay = exportLabOverlay
+        if (overlay == null || projectMExportLiveView != null || !projectMSurfaceVisible()) {
+            onReady()
+            return
+        }
+        val live = projectMMainView
+        val attach: () -> Unit = {
+            if (!isFinishing && !isDestroyed && exportLabOverlay === overlay) {
+                if (live != null && projectMMainView === live) {
+                    if (projectMMainResumed) {
+                        live.onPause()
+                        projectMMainResumed = false
+                    }
+                    pulseDeckLayerStack?.setContent(PulseDeckLayerStack.Layer.VISUALIZER, null)
+                    projectMMainView = null
+                }
+                attachExportProjectMPreview(overlay)
+                projectMExportLiveView?.onResume()
+                projectMExportLiveResumed = projectMExportLiveView != null
+                Log.i("FARIC-export", "Export projectM attached for this export only")
+            }
+            onReady()
+        }
+        if (live != null) live.releaseProjectMThen { runOnUiThread(attach) } else attach()
+    }
+
+    /** V3: after the MP4 — export projectM away, the live visualiser back in its slot. */
+    private fun finishExportProjectM() {
+        val exportView = projectMExportLiveView ?: return
+        if (exportLabOverlay == null) return // classic full-screen Export Lab keeps its view
+        ProjectMBridge.endOfflineExport()
+        exportView.releaseProjectMThen {
+            runOnUiThread {
+                if (projectMExportLiveResumed) {
+                    exportView.onPause()
+                    projectMExportLiveResumed = false
+                }
+                (exportView.parent as? ViewGroup)?.let { parent ->
+                    parent.findViewWithTag<View>(EXPORT_PREVIEW_DIM_TAG)?.let(parent::removeView)
+                    parent.removeView(exportView)
+                }
+                if (projectMExportLiveView === exportView) projectMExportLiveView = null
+                val stack = pulseDeckLayerStack
+                if (!isFinishing && !isDestroyed && stack != null && projectMMainView == null) {
+                    val restored = createLayer0ProjectMView()
+                    projectMMainView = restored
+                    stack.setContent(PulseDeckLayerStack.Layer.VISUALIZER, restored)
+                    applyVisualizerRenderSlots()
+                    updateProjectMRenderState()
+                    Log.i("FARIC-export", "Live projectM restored after export (only the visualizer slot)")
+                }
+            }
+        }
+    }
+
+    /** V3: PNG needs a projectM frame — take it from the live view only when asked. */
+    private fun captureLiveProjectMThen(next: () -> Unit) {
+        val live = projectMMainView
+        if (exportLabOverlay == null || live == null || !projectMSurfaceVisible()) {
+            next()
+            return
+        }
+        live.captureFrame { bitmap ->
+            if (bitmap != null) projectMExportSnapshot = bitmap
+            next()
+        }
+    }
+
 
     private fun showExportFolderChooser() {
         val dialog =
@@ -8408,6 +8543,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             projectMExportLiveResumed = false
         }
         window.clearFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
+        // V3: the live visualiser goes back into its slot (Export Lab overlay only).
+        finishExportProjectM()
         val previous = orientationBeforeFullSongExport
         orientationBeforeFullSongExport = null
         if (previous != null && !isFinishing && !isDestroyed) {
@@ -8417,6 +8554,25 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun exportCompositionVideo(
+        fullSong: Boolean,
+    ) {
+        if (exportRunGate.isActive()) {
+            toast("Експорт уже виконується")
+            return
+        }
+        if (controller.currentTrackUri() == null) {
+            longToast("Спочатку обери пісню")
+            return
+        }
+        if (latestSnapshot.durationMs <= 0L) {
+            longToast("Пісня ще відкривається — спробуй за секунду")
+            return
+        }
+        // V3: the export projectM is made now (and given back after), not on opening Export Lab.
+        withExportProjectM { startCompositionVideoExport(fullSong) }
+    }
+
+    private fun startCompositionVideoExport(
         fullSong: Boolean,
     ) {
         val sourceUri =
@@ -8470,8 +8626,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 projectMView = projectMView,
             )
 
-        if (!beginGuardedExport(fullSong)) return
-
+        if (!beginGuardedExport(fullSong)) {
+            finishExportProjectM()
+            return
+        }
         val cancelled =
             AtomicBoolean(
                 false,
@@ -9468,7 +9626,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 positiveLabel = "Почати тест",
                 negativeLabel = "Скасувати",
             ) {
-                runBatchExport(folderName, songs, testMode = true)
+                withExportProjectM { runBatchExport(folderName, songs, testMode = true) }
             }
             return
         }
@@ -9495,7 +9653,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             positiveLabel = "Почати",
             negativeLabel = "Скасувати",
         ) {
-            runBatchExport(folderName, songs)
+            withExportProjectM { runBatchExport(folderName, songs) }
         }
     }
 
@@ -9540,7 +9698,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 plan.relativePath(folderName)
             }
 
-        if (!beginGuardedExport(fullSong = true)) return
+        if (!beginGuardedExport(fullSong = true)) {
+            finishExportProjectM()
+            return
+        }
         val cancelled = AtomicBoolean(false)
         activeExportCancel = cancelled
 
@@ -10975,6 +11136,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         themeMenuLiveHeroSwitch = false
         heroAssetLoadGeneration++
         persistentSceneRoot = null
+        exportLabOverlay = null
         ProjectMBridge
             .endOfflineExport()
         projectMExportLiveView
@@ -11472,6 +11634,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     companion object {
         const val EXTRA_OPEN_SCREEN = "faric.open.screen"
+        private const val EXPORT_PREVIEW_DIM_TAG = "export_projectm_dim"
         private const val BATCH_REQUEST_PREFS = "faric_batch_request_v1"
         private const val KEY_BATCH_TEST_MODE = "test_mode"
         private const val PROJECTM_EXPORT_FPS =

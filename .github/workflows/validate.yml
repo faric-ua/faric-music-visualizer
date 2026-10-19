@@ -129,7 +129,7 @@ jobs:
           assert "val dismissOnClick: Boolean = true" in dialog
           assert "dismissAfterAction &&" in dialog and "action.dismissOnClick" in dialog, "dismissal must be per-action"
           # No new hand-made informational windows: only these known custom panels may use android.app.Dialog.
-          allowed = {"showPulseDeckLayersDialog", "showExportFolderChooser", "exportCompositionVideo", "runBatchExport"}
+          allowed = {"showPulseDeckLayersDialog", "showExportFolderChooser", "startCompositionVideoExport", "runBatchExport"}
           found = set()
           for m in re.finditer(r"android\.app\.Dialog\(", main):
               head = main[:m.start()]

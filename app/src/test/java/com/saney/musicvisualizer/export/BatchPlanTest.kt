@@ -35,6 +35,21 @@ class BatchPlanTest {
     }
 
     @Test
+    fun testClipIsTakenFromTheMiddle() {
+        assertEquals(118_500L to 3_000L, BatchPlan.testWindow(240_000L))
+        assertEquals(0L to 2_000L, BatchPlan.testWindow(2_000L))
+        assertEquals(0L to 500L, BatchPlan.testWindow(0L))
+        val (start, length) = BatchPlan.testWindow(3_100L)
+        assertTrue(start + length <= 3_100L)
+    }
+
+    @Test
+    fun testRunsGoToTheirOwnFolder() {
+        assertEquals("Movies/FARIC/Album/Тест 3с 19.10 21-05/", BatchPlan.testRelativePath("Album", "19.10 21-05"))
+        assertEquals("Movies/FARIC/Album/Тест 3с 19.10 21 05/", BatchPlan.testRelativePath("Album", "19.10 21:05"))
+    }
+
+    @Test
     fun songsAreOrderedByNameIgnoringCase() {
         val ordered = BatchPlan.ordered(listOf("b.mp3", "A.mp3", "02.mp3", "01.mp3")) { it }
         assertEquals(listOf("01.mp3", "02.mp3", "A.mp3", "b.mp3"), ordered)

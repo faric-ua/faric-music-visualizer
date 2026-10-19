@@ -16,8 +16,8 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 162
-        versionName = "0.19.73"
+        versionCode = 163
+        versionName = "0.19.74"
         // v0.19.64: role-specific PNG imports visible on Board/Themes; responsive labels and gaps.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 

@@ -34,6 +34,32 @@ object BatchPlan {
     /** Folder name → Movies/FARIC/<folder>/ (MediaStore relative path, trailing slash). */
     fun relativePath(folderName: String): String = "Movies/FARIC/" + clean(folderName, fallback = "Batch") + "/"
 
+    /**
+     * Batch test (v0.19.74, faric 19.10 20:52: «експорт усіх пісень тільки по 3 секунди»).
+     * Each run goes to its own folder, so runs before / after a change can be compared:
+     * Movies/FARIC/<folder>/Тест 3с 19.10 21-05/
+     */
+    fun testRelativePath(
+        folderName: String,
+        stamp: String,
+    ): String = relativePath(folderName) + clean("Тест 3с $stamp", fallback = "Тест 3с") + "/"
+
+    const val TEST_CLIP_MS = 3_000L
+
+    /**
+     * Which 3 seconds of a song the test takes: the middle of the song (music is
+     * usually playing there, unlike the quiet intro). Returns start and length in ms.
+     */
+    fun testWindow(
+        songDurationMs: Long,
+        clipMs: Long = TEST_CLIP_MS,
+    ): Pair<Long, Long> {
+        val duration = songDurationMs.coerceAtLeast(0L)
+        if (duration <= clipMs) return 0L to duration.coerceAtLeast(500L)
+        val start = (duration / 2 - clipMs / 2).coerceIn(0L, duration - clipMs)
+        return start to clipMs
+    }
+
     fun songTitle(songDisplayName: String): String = songDisplayName.substringBeforeLast('.').ifBlank { songDisplayName }.trim()
 
     /** Natural-ish order: by name, ignoring case, so «01 …», «02 …» stay in album order. */

@@ -157,6 +157,9 @@ jobs:
           elig = elig[:elig.index("private fun runCompositionExportBlocking(")]
           assert "BoardLayerId.BACKGROUND" not in elig.split("): Boolean =")[1], "V43: path A must not require the GF background"
           assert "selectBatchFolder" in main and "mediaStoreHasVideo(" in main, "batch must skip videos that already exist"
+          # v0.19.74: batch test — 3 s from each song, each run in its own folder, never skipped.
+          assert "startBatchFolderPicker(testMode = true)" in main and "plan.testWindow(" in main and "plan.testRelativePath(" in main
+          assert "!testMode && mediaStoreHasVideo(" in main, "test runs must not be skipped as already done"
           print("Export guard + crash journal contract PASS")
           PY2
 

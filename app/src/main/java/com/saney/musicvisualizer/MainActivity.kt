@@ -287,7 +287,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     // v0.19.73 folder batch: read-only access to a folder of songs.
     private val selectBatchFolder =
         registerForActivityResult(ActivityResultContracts.OpenDocumentTree()) { uri ->
-            if (uri != null) onBatchFolderPicked(uri)
+            // Mode is persisted before launch: the SAF picker may recreate MainActivity.
+            val prefs = getSharedPreferences(BATCH_REQUEST_PREFS, MODE_PRIVATE)
+            val testMode = prefs.getBoolean(KEY_BATCH_TEST_MODE, false)
+            prefs.edit().remove(KEY_BATCH_TEST_MODE).apply()
+            if (uri != null) onBatchFolderPicked(uri, testMode)
         }
 
     // The SAF picker may recreate MainActivity while it is open.
@@ -7837,6 +7841,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         content.addView(
             actionPill(
+                text = "Пакет-тест: по 3 с з кожної пісні",
+                accent = false,
+            ) {
+                startBatchFolderPicker(testMode = true)
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                dp(58),
+            ).apply {
+                topMargin = dp(10)
+            },
+        )
+
+        content.addView(
+            actionPill(
                 text = "Відкрити папку експорту",
                 accent = false,
             ) {
@@ -9380,7 +9399,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val durationMs: Long,
     )
 
-    private fun startBatchFolderPicker() {
+    private fun startBatchFolderPicker(testMode: Boolean = false) {
         if (exportRunGate.isActive()) {
             toast("Йде експорт MP4 — дочекайся кінця")
             return
@@ -9389,10 +9408,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             toast("Відкрий Export Lab")
             return
         }
+        getSharedPreferences(BATCH_REQUEST_PREFS, MODE_PRIVATE).edit().putBoolean(KEY_BATCH_TEST_MODE, testMode).commit()
         selectBatchFolder.launch(null)
     }
 
-    private fun onBatchFolderPicked(treeUri: Uri) {
+    private fun onBatchFolderPicked(
+        treeUri: Uri,
+        testMode: Boolean,
+    ) {
         runCatching {
             contentResolver.takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
@@ -9402,7 +9425,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 scan
-                    .onSuccess { (folderName, songs) -> confirmBatch(folderName, songs) }
+                    .onSuccess { (folderName, songs) -> confirmBatch(folderName, songs, testMode) }
                     .onFailure { error ->
                         PulseDeckDialogs.showMessage(
                             this,
@@ -9470,6 +9493,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun confirmBatch(
         folderName: String,
         songs: List<BatchSong>,
+        testMode: Boolean = false,
     ) {
         if (songs.isEmpty()) {
             PulseDeckDialogs.showMessage(
@@ -9481,6 +9505,30 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         val plan = com.saney.musicvisualizer.export.BatchPlan
         val totalMs = songs.sumOf { it.durationMs }
+        if (testMode) {
+            val message =
+                buildString {
+                    append("Папка: ").append(folderName).append('\n')
+                    append("Пісень: ").append(songs.size).append(" · з кожної — 3 с із середини пісні\n")
+                    append("Орієнтовно: по пів хвилини на пісню (аналіз звуку + 3 с відео)\n")
+                    append("Відео: ").append(plan.relativePath(folderName)).append("Тест 3с <дата час>/ — кожен запуск в окрему папку\n")
+                    append("Шари й формат — як зараз на екрані (").append(exportAspectRatio.width).append('×').append(exportAspectRatio.height).append(")\n")
+                    append("У підсумку — час кожної пісні, можна порівняти з наступним запуском.\n")
+                    append("Не вимикай екран і не виходь із застосунку.\n\n")
+                    songs.take(12).forEachIndexed { i, s -> append(i + 1).append(". ").append(s.name).append('\n') }
+                    if (songs.size > 12) append("… і ще ").append(songs.size - 12)
+                }.trimEnd()
+            PulseDeckDialogs.showConfirm(
+                context = this,
+                title = "Пакет-тест: ${songs.size} × 3 с",
+                message = message,
+                positiveLabel = "Почати тест",
+                negativeLabel = "Скасувати",
+            ) {
+                runBatchExport(folderName, songs, testMode = true)
+            }
+            return
+        }
         val message =
             buildString {
                 append("Папка: ").append(folderName).append('\n')
@@ -9528,6 +9576,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun runBatchExport(
         folderName: String,
         songs: List<BatchSong>,
+        testMode: Boolean = false,
     ) {
         if (screen != Screen.EXPORT_LAB) {
             toast("Відкрий Export Lab")
@@ -9538,7 +9587,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val ratio = exportAspectRatio
         val projectMView = projectMExportLiveView?.takeIf { compositionConfig.projectMVisible }
         val directGpuEligible = isDirectGpuExportEligible(compositionConfig = compositionConfig, projectMView = projectMView)
-        val relativePath = plan.relativePath(folderName)
+        val relativePath =
+            if (testMode) {
+                plan.testRelativePath(
+                    folderName,
+                    java.text.SimpleDateFormat("dd.MM HH-mm", java.util.Locale.ROOT).format(java.util.Date()),
+                )
+            } else {
+                plan.relativePath(folderName)
+            }
 
         if (!beginGuardedExport(fullSong = true)) return
         val cancelled = AtomicBoolean(false)
@@ -9556,7 +9613,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 setPadding(dp(18), dp(16), dp(18), dp(16))
                 background = panelDrawable(Color.argb(250, 22, 25, 29), 24, Color.argb(90, 255, 255, 255), 1)
             }
-        panel.addView(label("Пакет · ${songs.size} пісень → MP4", 20f, Color.WHITE, true))
+        panel.addView(label(if (testMode) "Пакет-тест · ${songs.size} × 3 с" else "Пакет · ${songs.size} пісень → MP4", 20f, Color.WHITE, true))
         val songLabel = label("Підготовка…", 15f, Color.WHITE, true)
         panel.addView(songLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(8) })
         val stageLabel = label("", 13f, COLOR_MUTED, false)
@@ -9613,7 +9670,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         overallLabel.text = "Усього: ${results.size} з ${songs.size} · зроблено ${results.count { it.outcome == com.saney.musicvisualizer.export.BatchPlan.Outcome.DONE }}"
                     }
                 }
-                if (mediaStoreHasVideo(relativePath, fileName)) {
+                if (!testMode && mediaStoreHasVideo(relativePath, fileName)) {
                     results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.SKIPPED_EXISTS, "відео вже є")
                     ui(100, "Уже є — пропускаю")
                     continue
@@ -9627,7 +9684,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             directGpuEligible -> "А (повний GPU)"
                             projectMView != null -> "Б (projectM через копію)"
                             else -> "В (без projectM)"
-                        } + " · пакет ${index + 1}/${songs.size}",
+                        } + (if (testMode) " · пакет-тест " else " · пакет ") + "${index + 1}/${songs.size}",
                     track = title,
                     durationMs = song.durationMs,
                 )
@@ -9639,12 +9696,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 ui(p / 20, "Аналізую звук · $p%")
                             }
                         if (cancelled.get()) throw CancellationException("Batch cancelled")
+                        val (clipStartMs, clipLengthMs) =
+                            if (testMode) {
+                                plan.testWindow(analysis.durationMs)
+                            } else {
+                                0L to analysis.durationMs.coerceAtLeast(500L)
+                            }
                         runCompositionExportBlocking(
-                            fullSong = true,
+                            fullSong = !testMode,
                             sourceUri = song.uri,
                             analysis = analysis,
-                            exportStartMs = 0L,
-                            requestedDurationMs = analysis.durationMs.coerceAtLeast(500L),
+                            exportStartMs = clipStartMs,
+                            requestedDurationMs = clipLengthMs,
                             ratio = ratio,
                             compositionConfig = compositionConfig,
                             projectMView = projectMView,
@@ -9661,7 +9724,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 outcome
                     .onSuccess { result ->
                         CrashJournal.exportFinished(this, "готово · пакет · " + result.frameCount + " кадрів · " + result.totalMs + " мс")
-                        results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.DONE, elapsedMs = elapsed)
+                        // Render time of the clip itself (same number as the 3 s test window) — to compare runs.
+                        results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.DONE, "відео " + result.totalMs + " мс", elapsed)
                     }.onFailure { error ->
                         Log.e("FARIC-export", "Batch song failed: $title", error)
                         if (error is CancellationException || cancelled.get()) {
@@ -9675,13 +9739,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     }
                 if (cancelled.get()) break
             }
-            val summary = plan.summary(folder = folderName, results = results, total = songs.size)
+            val summary =
+                plan.summary(folder = folderName, results = results, total = songs.size)
+                    .replace("Відео: " + plan.relativePath(folderName), "Відео: " + relativePath)
+                    .let { if (testMode) "Пакет-тест · по 3 с з середини кожної пісні\n" + it else it }
             runOnUiThread {
                 if (!isDestroyed && !isFinishing) {
                     dialog.dismiss()
                     PulseDeckDialogs.showMessage(
                         context = this,
-                        title = if (cancelled.get()) "Пакет зупинено" else "Пакет готовий",
+                        title =
+                            when {
+                                cancelled.get() -> if (testMode) "Пакет-тест зупинено" else "Пакет зупинено"
+                                testMode -> "Пакет-тест готовий"
+                                else -> "Пакет готовий"
+                            },
                         message = summary,
                         primaryLabel = "OK",
                         secondaryLabel = "Копіювати",
@@ -11417,6 +11489,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     companion object {
         const val EXTRA_OPEN_SCREEN = "faric.open.screen"
+        private const val BATCH_REQUEST_PREFS = "faric_batch_request_v1"
+        private const val KEY_BATCH_TEST_MODE = "test_mode"
         private const val PROJECTM_EXPORT_FPS =
             30
         private const val PROJECTM_EXPORT_DURATION_MS =

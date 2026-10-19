@@ -99,11 +99,25 @@ jobs:
           keytool -list -keystore "$KEYSTORE_PATH" -storepass "$VISUALIZER_DEV_STORE_PASSWORD" -alias "$VISUALIZER_DEV_KEY_ALIAS" >/dev/null
           echo "VISUALIZER_DEV_KEYSTORE_PATH=$KEYSTORE_PATH" >> "$GITHUB_ENV"
 
+      # Claude cannot read Actions logs through its proxy: on failure, the compiler / test
+      # errors are repeated as annotations (gh api …/check-runs/<id>/annotations).
       - name: Unit tests
-        run: gradle :app:testDebugUnitTest --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! gradle :app:testDebugUnitTest --stacktrace 2>&1 | tee unit-tests.log; then
+            grep -E '^e: |FAILED|AssertionError|expected:|Exception:' unit-tests.log | head -40 | while IFS= read -r line; do echo "::error::${line}"; done
+            exit 1
+          fi
 
       - name: Build debug APK
-        run: gradle :app:assembleDebug --stacktrace
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! gradle :app:assembleDebug --stacktrace 2>&1 | tee assemble.log; then
+            grep -E '^e: |FAILED|error:' assemble.log | head -40 | while IFS= read -r line; do echo "::error::${line}"; done
+            exit 1
+          fi
 
       - name: Prepare and verify APK
         shell: bash

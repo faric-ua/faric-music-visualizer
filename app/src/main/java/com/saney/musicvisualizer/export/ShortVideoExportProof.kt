@@ -103,6 +103,9 @@ object ShortVideoExportProof {
             DEFAULT_FPS,
         displayNamePrefix: String =
             "FARIC-proof",
+        // Batch export (v0.19.73): exact file name and Movies/FARIC/<folder>.
+        exactDisplayName: String? = null,
+        relativePath: String = Mp4AvMuxer.DEFAULT_RELATIVE_PATH,
         shouldCancel: () -> Boolean = {
             false
         },
@@ -1343,7 +1346,7 @@ object ShortVideoExportProof {
             onProgress(92)
 
             val finalizingStartedNs = System.nanoTime()
-            val displayName = "$displayNamePrefix-${System.currentTimeMillis()}.mp4"
+            val displayName = exactDisplayName ?: "$displayNamePrefix-${System.currentTimeMillis()}.mp4"
             Log.i("FARIC-export", "Final MP4 mux started: videoBytes=" +
                 videoTemp.length() + " audioBytes=" + audioTemp.length() +
                 " directMediaStore=" + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q))
@@ -1359,6 +1362,7 @@ object ShortVideoExportProof {
                     audioFile = audioTemp,
                     displayName = displayName,
                     shouldCancel = shouldCancel,
+                    relativePath = relativePath,
                 )
                 muxMs = (System.nanoTime() - finalizingStartedNs) / 1_000_000L
                 publishMs = 0L // Direct FD mux also commits the MediaStore row.

@@ -14,6 +14,7 @@ import android.graphics.PorterDuffXfermode
 import android.graphics.Rect
 import android.graphics.RectF
 import android.graphics.Typeface
+import android.os.SystemClock
 import android.os.Handler
 import android.os.Looper
 import androidx.core.graphics.PathParser
@@ -466,6 +467,14 @@ class PulseDeckMainSkinView(
                 ch.uppercaseChar()
             }
 
+    /**
+     * Clock for the scrolling («стрічка») title lines. Live screen: null → real time.
+     * MP4 export sets the frame time so every export of the same clip looks the same.
+     */
+    var marqueeClockMs: Long? = null
+
+    private var marqueeRunning = false
+
     fun setPlaybackContent(
         title: String,
         artist: String,
@@ -755,6 +764,7 @@ class PulseDeckMainSkinView(
         canvas: Canvas,
     ) {
         super.onDraw(canvas)
+        marqueeRunning = false
 
         val w =
             width.toFloat()
@@ -859,6 +869,7 @@ class PulseDeckMainSkinView(
             playing ||
             amplitude > 0.01f ||
             beat > 0.01f ||
+            marqueeRunning ||
             controlsAnimator?.isRunning == true
         ) {
             postInvalidateOnAnimation()
@@ -1733,20 +1744,32 @@ class PulseDeckMainSkinView(
                 trackOffset.second
 
         if (isObjectVisible("track_info")) {
-            drawCenteredText(
+            // V64 (faric 19.10 23:17): the track lines live between ♡ and ⋮ with a
+            // 20 dp gap on each side; a line that does not fit scrolls like a ribbon.
+            marqueeRunning = false
+            val gap = 20f * resources.displayMetrics.density
+            val shiftX = trackX - w * 0.5f
+            val favoriteRight = resolvedRects["favorite"]?.right ?: (w * 0.141f)
+            val moreLeft = resolvedRects["track_more"]?.left ?: (w * 0.859f)
+            val lineLeft = favoriteRight + gap + shiftX
+            val lineRight = (moreLeft - gap + shiftX).coerceAtLeast(lineLeft + w * 0.2f)
+
+            drawTrackLine(
                 canvas = canvas,
                 text = title,
-                x = trackX,
+                left = lineLeft,
+                right = lineRight,
                 y = h * 0.485f + trackDy,
                 size = w * 0.052f,
                 color = Color.WHITE,
                 bold = true,
             )
 
-            drawCenteredText(
+            drawTrackLine(
                 canvas = canvas,
                 text = artist,
-                x = trackX,
+                left = lineLeft,
+                right = lineRight,
                 y = h * 0.515f + trackDy,
                 size = w * 0.037f,
                 color =
@@ -1758,10 +1781,11 @@ class PulseDeckMainSkinView(
                 bold = false,
             )
 
-            drawCenteredText(
+            drawTrackLine(
                 canvas = canvas,
                 text = status,
-                x = trackX,
+                left = lineLeft,
+                right = lineRight,
                 y = h * 0.538f + trackDy,
                 size = w * 0.026f,
                 color =
@@ -1815,6 +1839,47 @@ class PulseDeckMainSkinView(
         }
 
         textPaint.alpha = 255
+    }
+
+    /** One track line: centred when it fits, otherwise a ribbon scrolling inside [left, right]. */
+    private fun drawTrackLine(
+        canvas: Canvas,
+        text: String,
+        left: Float,
+        right: Float,
+        y: Float,
+        size: Float,
+        color: Int,
+        bold: Boolean,
+    ) {
+        textPaint.textSize = size
+        textPaint.typeface =
+            Typeface.create(
+                Typeface.DEFAULT,
+                if (bold) Typeface.BOLD else Typeface.NORMAL,
+            )
+        val textWidth = textPaint.measureText(text)
+        val offset =
+            TrackMarquee.offsetPx(
+                textWidthPx = textWidth,
+                availablePx = right - left,
+                density = resources.displayMetrics.density,
+                clockMs = marqueeClockMs ?: SystemClock.uptimeMillis(),
+            )
+        if (offset == null) {
+            drawCenteredText(canvas, text, (left + right) / 2f, y, size, color, bold)
+            return
+        }
+        marqueeRunning = true
+        val cycle = textWidth + TrackMarquee.gapPx(resources.displayMetrics.density)
+        textPaint.color = color
+        canvas.save()
+        canvas.clipRect(left, y - size * 1.25f, right, y + size * 0.45f)
+        textPaint.textAlign = Paint.Align.LEFT
+        canvas.drawText(text, left - offset, y, textPaint)
+        canvas.drawText(text, left - offset + cycle, y, textPaint)
+        textPaint.textAlign = Paint.Align.CENTER
+        canvas.restore()
     }
 
     private fun drawCenteredText(

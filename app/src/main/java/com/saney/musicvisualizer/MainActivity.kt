@@ -225,6 +225,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var heroBoardView: HeroBoardView? = null
     private val gfMixController by lazy { GfMixController(this) }
     private var gfMixLoadGeneration = 0
+
+    // V3 (faric 19.10 23:15): the last decoded GF artwork, kept while the app lives.
+    // When a screen comes back (Export Lab → player, Board), the hero is applied at once
+    // instead of showing Cyber Shark for ~0.8 s while faric's PNGs are decoded again.
+    private var gfArtworkCache: Pair<String, GraphicFigureAssets>? = null
     private var heroThemeView: HeroThemeView? = null
     private var pulseDeckMainSkinView: PulseDeckMainSkinView? = null
     private var miniPulseView: PulseMiniView? = null
@@ -1656,6 +1661,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val mix = gfMixController.active()
         if (mix == null && !forceOriginal) return
         val request = ++gfMixLoadGeneration
+        val cacheKey =
+            theme.name + "|" + (mix?.instances?.joinToString(",") { it.asset.assetId } ?: "original")
+        // Explicit changes (forceOriginal) always re-read the PNGs; only re-created screens
+        // reuse what is already decoded.
+        val cached = gfArtworkCache?.takeIf { !forceOriginal && it.first == cacheKey }?.second
+        if (cached != null) {
+            applyGfMixArtwork(target, theme, cached)
+            return
+        }
         thread(name = "faric-gf-mix-load") {
             val images = if (mix == null) {
                 GraphicFigureCatalog.loadAssets(this, theme)
@@ -1674,22 +1688,31 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     target !== heroBoardView ||
                     theme != currentGraphicFigureThemeId()
                 ) return@runOnUiThread
-                target.applyPreloadedFigureTheme(theme, images)
-                target.setLayerTransforms(activeGfLayerTransforms(theme))
-                HeroBoardView.ObjectId.entries.forEach { id ->
-                    val layer = BoardLayerId.valueOf(id.name)
-                    target.setObjectVisible(
-                        id,
-                        gfMixController.visible(
-                            layer,
-                            layerObjectVisible(
-                                PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
-                                id.name.lowercase(),
-                            ),
-                        ),
-                    )
-                }
+                gfArtworkCache = cacheKey to images
+                applyGfMixArtwork(target, theme, images)
             }
+        }
+    }
+
+    private fun applyGfMixArtwork(
+        target: HeroBoardView,
+        theme: PlaybackThemeId,
+        images: GraphicFigureAssets,
+    ) {
+        target.applyPreloadedFigureTheme(theme, images)
+        target.setLayerTransforms(activeGfLayerTransforms(theme))
+        HeroBoardView.ObjectId.entries.forEach { id ->
+            val layer = BoardLayerId.valueOf(id.name)
+            target.setObjectVisible(
+                id,
+                gfMixController.visible(
+                    layer,
+                    layerObjectVisible(
+                        PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
+                        id.name.lowercase(),
+                    ),
+                ),
+            )
         }
     }
 
@@ -2236,6 +2259,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             HeroBoardView(
                 this,
                 gfThemeId,
+                deferArtwork = gfMixController.active() != null,
             ).also { view ->
                 view.setGroupTransform(
                     boardTransformStore.load(
@@ -6013,7 +6037,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             if (retainedHost != null) {
                 requireNotNull(heroBoardView)
             } else {
-                HeroBoardView(this, gfThemeId)
+                HeroBoardView(this, gfThemeId, deferArtwork = gfMixController.active() != null)
             }
         boardView.setGroupTransform(transform)
         boardView.setGroupReaction(BoardGroupReaction.neutral())

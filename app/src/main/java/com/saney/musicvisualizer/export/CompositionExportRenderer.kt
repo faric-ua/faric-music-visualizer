@@ -614,6 +614,8 @@ class CompositionExportRenderer(
                         safeDuration,
                     )
 
+                // Scrolling title follows the video timeline, not the wall clock.
+                view.marqueeClockMs = safePosition
                 view.setPlaybackContent(
                     title =
                         title.ifBlank {
@@ -731,6 +733,8 @@ class CompositionExportRenderer(
                         safeDuration,
                     )
 
+                // Scrolling title follows the video timeline, not the wall clock.
+                view.marqueeClockMs = safePosition
                 view.setPlaybackContent(
                     title =
                         title.ifBlank {
@@ -874,6 +878,8 @@ class CompositionExportRenderer(
                         safeDuration,
                     )
 
+                // Scrolling title follows the video timeline, not the wall clock.
+                view.marqueeClockMs = safePosition
                 view.setPlaybackContent(
                     title =
                         title.ifBlank {
@@ -1126,6 +1132,8 @@ class CompositionExportRenderer(
                         safeDuration,
                     )
 
+                // Scrolling title follows the video timeline, not the wall clock.
+                view.marqueeClockMs = safePosition
                 view.setPlaybackContent(
                     title =
                         title.ifBlank {

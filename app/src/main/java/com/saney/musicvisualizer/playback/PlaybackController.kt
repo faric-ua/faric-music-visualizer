@@ -101,9 +101,18 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
     private var analysisActive = false
     var listener: Listener? = null
 
+    // V65: last queue / song / position survive Android closing the app in the background.
+    private val lastSession = LastSessionStore(application)
+    private var restoringLastSession = false
+    private var ticksSinceSave = 0
+
     private val progressTicker = object : Runnable {
         override fun run() {
             emitCurrentState()
+            if (player.isPlaying && ++ticksSinceSave >= 20) {
+                ticksSinceSave = 0
+                saveLastPosition()
+            }
             mainHandler.postDelayed(this, 250L)
         }
     }
@@ -116,6 +125,8 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
             }
 
             override fun onIsPlayingChanged(isPlaying: Boolean) {
+                if (isPlaying) restoringLastSession = false
+                saveLastPosition()
                 status = if (isPlaying) {
                     "Відтворення"
                 } else if (trackName == null) {
@@ -128,6 +139,7 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
 
             override fun onMediaItemTransition(mediaItem: MediaItem?, reason: Int) {
                 syncTrackFromPlayer()
+                if (!restoringLastSession) saveLastPosition()
                 emitCurrentState()
             }
 
@@ -142,11 +154,61 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
             }
 
             override fun onPlayerError(error: PlaybackException) {
+                if (restoringLastSession) {
+                    // The saved song is gone (file moved / no access): start clean, no error.
+                    restoringLastSession = false
+                    lastSession.clear()
+                    player.clearMediaItems()
+                    syncTrackFromPlayer()
+                    status = "Оберіть локальний аудіофайл"
+                    emitCurrentState()
+                    return
+                }
                 status = "Помилка відтворення: ${error.errorCodeName}"
                 emitCurrentState()
             }
         })
         mainHandler.post(progressTicker)
+        restoreLastSession()
+    }
+
+    private fun mediaItemOf(track: QueueTrack): MediaItem =
+        MediaItem.Builder()
+            .setUri(track.uri)
+            .setMediaId(track.uri.toString())
+            .setTag(track.displayName)
+            .setMediaMetadata(
+                MediaMetadata.Builder()
+                    .setTitle(track.displayName)
+                    .setArtist(track.artist)
+                    .setAlbumTitle(track.album)
+                    .build(),
+            )
+            .build()
+
+    /** Once per process (this controller is an app-wide singleton): paused, same song, same place. */
+    private fun restoreLastSession() {
+        val saved = lastSession.loadTracks()
+        if (saved.isEmpty() || player.mediaItemCount > 0) return
+        val tracks =
+            saved.mapNotNull { track ->
+                runCatching { QueueTrack(Uri.parse(track.uri), track.name, track.artist, track.album) }.getOrNull()
+            }
+        if (tracks.isEmpty()) return
+        restoringLastSession = true
+        val index = LastSessionCodec.safeIndex(lastSession.index(), tracks.size)
+        player.setMediaItems(tracks.map(::mediaItemOf), index, lastSession.position())
+        player.playWhenReady = false
+        player.prepare()
+        syncTrackFromPlayer()
+        status = "Пауза"
+        emitCurrentState()
+    }
+
+    private fun saveLastPosition() {
+        if (player.mediaItemCount == 0) return
+        val duration = player.duration.takeIf { it != C.TIME_UNSET && it > 0L } ?: 0L
+        lastSession.savePosition(player.currentMediaItemIndex, player.currentPosition, duration)
     }
 
     /** Exact ExoPlayer used by MediaSessionService and all in-app screens. */
@@ -166,21 +228,12 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         if (tracks.isEmpty()) return
         ensureNotificationSession()
         val safeIndex = startIndex.coerceIn(0, tracks.lastIndex)
-        val items =
-            tracks.map { track ->
-                MediaItem.Builder()
-                    .setUri(track.uri)
-                    .setMediaId(track.uri.toString())
-                    .setTag(track.displayName)
-                    .setMediaMetadata(
-                        MediaMetadata.Builder()
-                            .setTitle(track.displayName)
-                            .setArtist(track.artist)
-                            .setAlbumTitle(track.album)
-                            .build(),
-                    )
-                    .build()
-            }
+        val items = tracks.map(::mediaItemOf)
+        restoringLastSession = false
+        lastSession.saveQueue(
+            tracks.map { LastSessionCodec.Track(it.uri.toString(), it.displayName, it.artist, it.album) },
+            safeIndex,
+        )
         status = "Завантаження…"
         player.setMediaItems(items, safeIndex, 0L)
         player.prepare()
@@ -255,6 +308,7 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         val duration = player.duration
         if (duration != C.TIME_UNSET && duration > 0L) {
             player.seekTo(positionMs.coerceIn(0L, duration))
+            saveLastPosition()
             emitCurrentState()
         }
     }

@@ -134,8 +134,9 @@ object CrashReport {
         append(" (").append(formatTime(trail.updatedAtMs)).append(")\n")
         trail.outcome?.let { append("результат: ").append(it).append('\n') }
         if (trail.notes.isNotEmpty()) {
-            append("події:\n")
-            trail.notes.forEach { append("  · ").append(it).append('\n') }
+            // Newest first (faric 19.10 23:20: «саме свіже — вгорі»).
+            append("події (свіжі — вгорі):\n")
+            trail.notes.asReversed().forEach { append("  · ").append(it).append('\n') }
         }
     }
 

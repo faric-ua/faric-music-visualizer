@@ -58,10 +58,26 @@ object VinylLabel {
             ?.let { if (it.length > 24) it.take(23).trimEnd() + "…" else it }
             ?: FALLBACK_BOTTOM
 
+    /**
+     * Words, but a long word is also split after its hyphens («ed-sheeran-alok-shivers-remix»
+     * → «ed-» «sheeran-» …), so a name without spaces breaks at a dash and never leaves one
+     * lonely letter on a line (faric 20.10 02:09: a stray «x» next to the hole).
+     */
+    private fun pieces(text: String, maxChars: Int): List<Pair<String, Boolean>> =
+        text.split(' ').filter { it.isNotEmpty() }.flatMap { word ->
+            if (word.length <= maxChars || !word.contains('-')) {
+                listOf(word to true)
+            } else {
+                val parts = Regex("[^-]+-?|-").findAll(word).map { it.value }.toList()
+                parts.mapIndexed { index, part -> part to (index == parts.lastIndex) }
+            }
+        }
+
     private fun wrap(text: String, maxChars: Int): List<String> {
         val lines = mutableListOf<String>()
         var current = ""
-        for (word in text.split(' ').filter { it.isNotEmpty() }) {
+        var joinWithSpace = true
+        for ((word, endsWord) in pieces(text, maxChars)) {
             var piece = word
             while (piece.length > maxChars) {
                 if (current.isNotEmpty()) {
@@ -71,15 +87,17 @@ object VinylLabel {
                 lines += piece.take(maxChars)
                 piece = piece.drop(maxChars)
             }
+            val glue = if (joinWithSpace) " " else ""
             current =
                 when {
                     current.isEmpty() -> piece
-                    current.length + 1 + piece.length <= maxChars -> "$current $piece"
+                    current.length + glue.length + piece.length <= maxChars -> current + glue + piece
                     else -> {
                         lines += current
                         piece
                     }
                 }
+            joinWithSpace = endsWord
         }
         if (current.isNotEmpty()) lines += current
         return lines

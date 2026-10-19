@@ -17,7 +17,10 @@ data class OfflinePcmCacheResult(
     val file: File,
     val sampleRate: Int,
     val sampleCount: Long,
+    /** Song time where the cached PCM ends (whole song: its duration). */
     val durationMs: Long,
+    /** V60: song time of the first cached sample (0 = whole song from the start). */
+    val startMs: Long = 0L,
 ) {
     fun openReader():
         OfflinePcmReader =
@@ -60,7 +63,7 @@ class OfflinePcmReader(
 
         val startSample =
             (
-                safeStartMs *
+                (safeStartMs - result.startMs).coerceAtLeast(0L) *
                     result.sampleRate /
                     1000L
                 )
@@ -71,7 +74,7 @@ class OfflinePcmReader(
 
         val endSample =
             (
-                safeEndMs *
+                (safeEndMs - result.startMs).coerceAtLeast(0L) *
                     result.sampleRate /
                     1000L
                 )
@@ -170,6 +173,8 @@ object OfflinePcmCache {
             false
         },
         onProgress: (Int) -> Unit = {},
+        startMs: Long = 0L,
+        endMs: Long = Long.MAX_VALUE,
     ): OfflinePcmCacheResult {
         val target =
             File(
@@ -214,6 +219,11 @@ object OfflinePcmCache {
             extractor.selectTrack(
                 trackIndex,
             )
+            val range = DecodeRange.of(startMs, endMs)
+            if (range.startUs > 0L) {
+                extractor.seekTo(range.startUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+            }
+            var firstOutputUs = -1L
 
             val inputFormat =
                 extractor.getTrackFormat(
@@ -327,7 +337,7 @@ object OfflinePcmCache {
                                             0,
                                         )
 
-                                if (size < 0) {
+                                if (size < 0 || range.isPastEnd(extractor.sampleTime)) {
                                     decoder
                                         .queueInputBuffer(
                                             inputIndex,
@@ -362,9 +372,7 @@ object OfflinePcmCache {
                                     ) {
                                         val progress =
                                             (
-                                                ptsUs *
-                                                    100L /
-                                                    sourceDurationUs
+                                                range.progressPercent(ptsUs, sourceDurationUs).toLong()
                                                 )
                                                 .toInt()
                                                 .coerceIn(
@@ -457,6 +465,7 @@ object OfflinePcmCache {
                                         info.size >
                                         0
                                     ) {
+                                        if (firstOutputUs < 0L) firstOutputUs = info.presentationTimeUs
                                         outputBuffer
                                             .position(
                                                 info.offset,
@@ -520,8 +529,12 @@ object OfflinePcmCache {
                 decoder.release()
             }
 
+            val cacheStartMs =
+                if (range.isWindow) firstOutputUs.coerceAtLeast(0L) / 1000L else 0L
             val durationMs =
                 when {
+                    range.isWindow && sampleRate > 0 ->
+                        cacheStartMs + sampleCount * 1000L / sampleRate
                     sourceDurationUs >
                         0L ->
                         sourceDurationUs /
@@ -545,6 +558,7 @@ object OfflinePcmCache {
                     sampleCount,
                 durationMs =
                     durationMs,
+                startMs = cacheStartMs,
             )
         } finally {
             extractor.release()
@@ -695,9 +709,13 @@ object OfflinePcmCache {
                 frames.toLong()
             }
 
+            // V56: 24-bit / 32-bit / 8-bit WAV → 16-bit first.
             else ->
-                error(
-                    "Unsupported PCM encoding: $pcmEncoding",
+                writeMono16(
+                    pcm = ByteBuffer.wrap(PcmConvert.toPcm16(pcm, pcmEncoding)).order(ByteOrder.LITTLE_ENDIAN),
+                    pcmEncoding = AudioFormat.ENCODING_PCM_16BIT,
+                    channelCount = channelCount,
+                    output = output,
                 )
         }
     }

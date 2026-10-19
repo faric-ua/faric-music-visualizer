@@ -17,10 +17,16 @@ data class OfflineAnalysisResult(
     val durationMs: Long,
     val frameIntervalMs: Long,
     val signals: List<SceneSignal>,
+    /**
+     * V60: song time of signals[0]. 0 for a whole-song analysis; the clip start for a
+     * «3 s test» analysis (only that piece is analysed). [durationMs] stays the whole song.
+     */
+    val startMs: Long = 0L,
 ) {
     fun signalAt(
-        timeMs: Long,
+        songTimeMs: Long,
     ): SceneSignal {
+        val timeMs = songTimeMs - startMs
         if (signals.isEmpty()) {
             return SceneSignal(
                 amplitude = 0f,
@@ -62,10 +68,16 @@ object OfflineAudioAnalyzer {
         val high: Float,
     )
 
+    /**
+     * [startMs] / [endMs] (V60, faric 19.10 23:12: «якщо 3 секунди — аналізуй 3 секунди»):
+     * analyse only that piece of the song. Defaults = the whole song, as before.
+     */
     fun analyze(
         context: Context,
         uri: Uri,
         onProgress: (Int) -> Unit = {},
+        startMs: Long = 0L,
+        endMs: Long = Long.MAX_VALUE,
     ): OfflineAnalysisResult {
         val extractor = MediaExtractor()
 
@@ -92,6 +104,11 @@ object OfflineAudioAnalyzer {
                     )
 
             extractor.selectTrack(trackIndex)
+            val range = DecodeRange.of(startMs, endMs)
+            if (range.startUs > 0L) {
+                extractor.seekTo(range.startUs, MediaExtractor.SEEK_TO_PREVIOUS_SYNC)
+            }
+            var firstOutputUs = -1L
 
             val inputFormat =
                 extractor.getTrackFormat(
@@ -189,7 +206,7 @@ object OfflineAudioAnalyzer {
                                     0,
                                 )
 
-                            if (size < 0) {
+                            if (size < 0 || range.isPastEnd(extractor.sampleTime)) {
                                 decoder.queueInputBuffer(
                                     inputIndex,
                                     0,
@@ -218,9 +235,7 @@ object OfflineAudioAnalyzer {
                                 ) {
                                     val progress =
                                         (
-                                            ptsUs *
-                                                100L /
-                                                sourceDurationUs
+                                            range.progressPercent(ptsUs, sourceDurationUs).toLong()
                                             )
                                             .toInt()
                                             .coerceIn(
@@ -306,6 +321,7 @@ object OfflineAudioAnalyzer {
                                     outputBuffer != null &&
                                     info.size > 0
                                 ) {
+                                    if (firstOutputUs < 0L) firstOutputUs = info.presentationTimeUs
                                     outputBuffer.position(
                                         info.offset,
                                     )
@@ -340,10 +356,17 @@ object OfflineAudioAnalyzer {
                                                         channelCount,
                                                 )
 
+                                        // V56: 24-bit / 32-bit / 8-bit WAV → 16-bit first.
                                         else ->
-                                            error(
-                                                "Unsupported PCM encoding: $pcmEncoding",
-                                            )
+                                            accumulator
+                                                .pushShortPcm(
+                                                    pcm =
+                                                        java.nio.ByteBuffer
+                                                            .wrap(PcmConvert.toPcm16(pcm, pcmEncoding))
+                                                            .order(ByteOrder.LITTLE_ENDIAN),
+                                                    channelCount =
+                                                        channelCount,
+                                                )
                                     }
                                 }
 
@@ -370,6 +393,8 @@ object OfflineAudioAnalyzer {
                         sampleRate,
                     sourceDurationUs =
                         sourceDurationUs,
+                ).copy(
+                    startMs = if (range.isWindow) (firstOutputUs.coerceAtLeast(range.startUs)) / 1000L else 0L,
                 )
             } finally {
                 runCatching {

@@ -173,6 +173,12 @@ jobs:
           # v0.19.74: batch test — 3 s from each song, each run in its own folder, never skipped.
           assert "startBatchFolderPicker(testMode = true)" in main and "plan.testWindow(" in main and "plan.testRelativePath(" in main
           assert "!testMode && mediaStoreHasVideo(" in main, "test runs must not be skipped as already done"
+          # v0.19.78: V56 — the AAC encoder is drained while waiting for input, and never waits forever.
+          aac = Path("app/src/main/java/com/saney/musicvisualizer/export/AudioClipTranscoder.kt").read_text(encoding="utf-8")
+          assert "onStall()" in aac and "STALL_LIMIT_MS" in aac and "fun drainEncoderOutput()" in aac, "V56: AAC encoder must be drained while waiting for input"
+          # V60 — a 3 s clip analyses / decodes only its piece; analysis starts by itself.
+          assert "DecodeRange.forClip(" in main and "analysisForExport(" in main, "V60: export must analyse only what the video needs"
+          assert "Спочатку виконай offline analysis" not in main, "V59: export buttons keep their own names"
           print("Export guard + crash journal contract PASS")
           PY2
 

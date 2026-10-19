@@ -7572,7 +7572,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         content.addView(
             label(
-                "Composition export рендерить активні шари в їхньому Z-порядку: projectM → FARIC Reactive → Over → Big EQ → GF → GIF → Effects → HUD. PNG і MP4 використовують один deterministic renderer.",
+                "Відео складається з усіх увімкнених шарів — так само, як на екрані: візуалізація projectM, реакції, еквалайзер, герой, ефекти, кнопки (HUD). Кадр PNG і MP4 малюються однаково.",
                 13f,
                 COLOR_MUTED,
                 false,
@@ -7610,13 +7610,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 label(
                     when {
                         hasLiveCapture ->
-                            "✓ projectM offline clock готовий. MP4 може рендерити кадри з власного timeline без очікування реального часу та без залежності від головного плеєра."
+                            "✓ Візуалізація projectM готова до запису у відео (швидше, ніж грає пісня, плеєр не заважає)."
 
                         hasSnapshot ->
-                            "✓ projectM GL snapshot є. PNG включить його точно; MP4 використає snapshot як fallback, якщо live capture недоступний."
+                            "✓ Є знімок projectM — він піде в PNG; у відео — якщо живий запис недоступний."
 
                         else ->
-                            "⚠ projectM увімкнений, але GL capture недоступний. Повернись у Now Playing і відкрий Export ще раз."
+                            "⚠ projectM увімкнено, але запис недоступний. Повернись на центр і відкрий Export Lab ще раз."
                     },
                     12f,
                     if (
@@ -7638,78 +7638,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         }
 
-        val currentTrackUri =
-            controller
-                .currentTrackUri()
-                ?.toString()
-
-        val analysisReady =
-            offlineAnalysis != null &&
-                offlineAnalysisUri ==
-                currentTrackUri
-
-        val analysisText =
-            when {
-                offlineAnalysisRunning ->
-                    "Offline analysis · обробка…"
-
-                analysisReady ->
-                    "✓ Offline analysis · ${offlineAnalysis?.signals?.size ?: 0} кадрів сигналу"
-
-                currentTrackUri == null ->
-                    "Offline analysis · спочатку обери трек"
-
-                else ->
-                    "Offline analysis · ще не виконано"
-            }
-
-        content.addView(
-            label(
-                analysisText,
-                13f,
-                if (analysisReady) {
-                    COLOR_ACCENT_CYAN
-                } else {
-                    COLOR_MUTED
-                },
-                analysisReady,
-            ),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply {
-                bottomMargin = dp(8)
-            },
-        )
-
-        content.addView(
-            actionPill(
-                text =
-                    when {
-                        offlineAnalysisRunning ->
-                            "Аналізую трек…"
-
-                        analysisReady ->
-                            "Повторити offline analysis"
-
-                        else ->
-                            "Проаналізувати трек офлайн"
-                    },
-                accent =
-                    currentTrackUri != null &&
-                        !offlineAnalysisRunning,
-            ) {
-                if (!offlineAnalysisRunning) {
-                    runOfflineAnalysis()
-                }
-            },
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(54),
-            ).apply {
-                bottomMargin = dp(20)
-            },
-        )
+        // V59 / V60 (faric 19.10 23:10–23:12): no separate «Проаналізувати трек офлайн»
+        // step — the export buttons analyse the sound themselves, only as much as needed.
+        val hasTrack =
+            controller.currentTrackUri() != null
 
         content.addView(
             label("Формат", 18f, Color.WHITE, true),
@@ -7725,7 +7657,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         formats.forEach { (ratio, title) ->
             content.addView(
-                actionPill(
+                exportPill(
                     text =
                         if (ratio == exportAspectRatio) {
                             "✓  $title"
@@ -7740,7 +7672,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 },
                 LinearLayout.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
-                    dp(52),
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
                 ).apply {
                     topMargin = dp(8)
                 },
@@ -7751,7 +7683,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             true
 
         content.addView(
-            actionPill(
+            exportPill(
                 text =
                     if (exportReady) {
                         "Зберегти кадр композиції PNG"
@@ -7768,85 +7700,53 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(58),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply {
                 topMargin = dp(22)
             },
         )
 
+        // V59: buttons always keep their own name; unavailable → grey + a hint on tap.
         content.addView(
-            actionPill(
-                text =
-                    when {
-                        !exportReady ->
-                            "MP4 proof недоступний для цієї теми"
-
-                        !analysisReady ->
-                            "Спочатку виконай offline analysis"
-
-                        else ->
-                            "Тест · експортувати 3 с MP4"
-                    },
-                accent =
-                    exportReady &&
-                        analysisReady &&
-                        !offlineAnalysisRunning,
+            exportPill(
+                text = "Тест 3 с → MP4",
+                accent = exportReady && hasTrack,
             ) {
-                if (
-                    exportReady &&
-                    analysisReady &&
-                    !offlineAnalysisRunning
-                ) {
-                    exportProofVideo()
-                } else if (!analysisReady) {
-                    toast(
-                        "Спочатку проаналізуй трек офлайн",
-                    )
+                when {
+                    !exportReady -> toast("Ця тема ще не вміє експорт MP4")
+                    !hasTrack -> longToast("Спочатку обери пісню")
+                    else -> exportProofVideo()
                 }
+            }.apply {
+                if (!(exportReady && hasTrack)) alpha = 0.5f
             },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(58),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply {
                 topMargin = dp(10)
             },
         )
 
         content.addView(
-            actionPill(
-                text =
-                    when {
-                        !analysisReady ->
-                            "Спочатку виконай offline analysis"
-
-                        else ->
-                            "Експортувати всю пісню MP4"
-                    },
-                accent =
-                    analysisReady &&
-                        !offlineAnalysisRunning,
+            exportPill(
+                text = "Уся пісня → MP4",
+                accent = false,
             ) {
-                if (
-                    analysisReady &&
-                    !offlineAnalysisRunning
-                ) {
-                    exportFullSongVideo()
-                } else {
-                    toast(
-                        "Спочатку проаналізуй трек офлайн",
-                    )
-                }
+                if (!hasTrack) longToast("Спочатку обери пісню") else exportFullSongVideo()
+            }.apply {
+                if (!hasTrack) alpha = 0.5f
             },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(58),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply {
                 topMargin = dp(10)
             },
         )
 
         content.addView(
-            actionPill(
+            exportPill(
                 text = "Пакет: усі пісні з папки → MP4",
                 accent = false,
             ) {
@@ -7854,14 +7754,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(58),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply {
                 topMargin = dp(10)
             },
         )
 
         content.addView(
-            actionPill(
+            exportPill(
                 text = "Пакет-тест: по 3 с з кожної пісні",
                 accent = false,
             ) {
@@ -7869,14 +7769,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(58),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply {
                 topMargin = dp(10)
             },
         )
 
         content.addView(
-            actionPill(
+            exportPill(
                 text = "Відкрити папку експорту",
                 accent = false,
             ) {
@@ -7884,7 +7784,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(54),
+                ViewGroup.LayoutParams.WRAP_CONTENT,
             ).apply {
                 topMargin = dp(10)
             },
@@ -7892,7 +7792,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         content.addView(
             label(
-                "Тестовий MP4 рендерить 3 секунди. «Експортувати всю пісню» проходить offline timeline від 0:00 до кінця, незалежно від позиції та стану головного плеєра.",
+                "«Тест 3 с» — 3 секунди з того місця, де зараз пісня. «Уся пісня» — від 0:00 до кінця. Звук аналізується сам, рівно стільки, скільки треба для відео.",
                 12f,
                 COLOR_MUTED,
                 false,
@@ -8334,10 +8234,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun ensureOfflinePcmCache(
         sourceUri: Uri,
         cancelled: AtomicBoolean,
+        range: Pair<Long, Long>? = null,
         onProgress: (Int) -> Unit,
     ): OfflinePcmCacheResult {
         val key =
-            sourceUri.toString()
+            pcmCacheKey(sourceUri, range)
 
         offlinePcmCache
             ?.takeIf {
@@ -8367,6 +8268,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 },
                 onProgress =
                     onProgress,
+                startMs = range?.first ?: 0L,
+                endMs = range?.second ?: Long.MAX_VALUE,
             )
 
         offlinePcmCache =
@@ -8375,6 +8278,45 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             key
 
         return result
+    }
+
+    /** V60: a «3 s» cache covers only its piece, so it must never be reused for the whole song. */
+    private fun pcmCacheKey(
+        sourceUri: Uri,
+        range: Pair<Long, Long>?,
+    ): String =
+        sourceUri.toString() + (range?.let { "#" + it.first + "-" + it.second } ?: "")
+
+    /**
+     * V60 (faric 19.10 23:12): analysis runs by itself when an export starts, and only for
+     * what the video needs — a 3 s clip analyses its piece, the whole song the whole song
+     * (that one is kept and reused for the next whole-song export of the same track).
+     */
+    private fun analysisForExport(
+        sourceUri: Uri,
+        fullSong: Boolean,
+        clipStartMs: Long,
+        clipLengthMs: Long,
+        onProgress: (Int) -> Unit,
+    ): OfflineAnalysisResult {
+        val key = sourceUri.toString()
+        if (fullSong) {
+            offlineAnalysis
+                ?.takeIf { offlineAnalysisUri == key && it.startMs == 0L && it.signals.isNotEmpty() }
+                ?.let { return it }
+            val whole = OfflineAudioAnalyzer.analyze(context = this, uri = sourceUri, onProgress = onProgress)
+            offlineAnalysis = whole
+            offlineAnalysisUri = key
+            return whole
+        }
+        val (from, to) = com.saney.musicvisualizer.export.DecodeRange.forClip(clipStartMs, clipLengthMs)
+        return OfflineAudioAnalyzer.analyze(
+            context = this,
+            uri = sourceUri,
+            onProgress = onProgress,
+            startMs = from,
+            endMs = to,
+        )
     }
 
     private fun exportProofVideo() {
@@ -8477,83 +8419,44 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun exportCompositionVideo(
         fullSong: Boolean,
     ) {
-        val analysis =
-            offlineAnalysis
-                ?: run {
-                    toast(
-                        "Спочатку виконай offline analysis",
-                    )
-                    return
-                }
-
         val sourceUri =
             controller
                 .currentTrackUri()
                 ?: run {
-                    toast(
-                        "Поточний трек відсутній",
-                    )
+                    longToast("Спочатку обери пісню")
                     return
                 }
-
-        val currentUriKey =
-            sourceUri.toString()
-
-        if (
-            offlineAnalysisUri !=
-            currentUriKey
-        ) {
-            toast(
-                "Offline analysis не відповідає поточному треку",
-            )
-            return
-        }
-
         val snapshot =
             latestSnapshot
+        // V60: the song length comes from the player; analysis runs inside the export.
+        val songDurationMs =
+            snapshot.durationMs
+        if (songDurationMs <= 0L) {
+            longToast("Пісня ще відкривається — спробуй за секунду")
+            return
+        }
         val ratio =
             exportAspectRatio
         val compositionConfig =
             currentCompositionExportConfig()
-
         val exportStartMs =
             if (fullSong) {
                 0L
             } else {
                 snapshot.positionMs
                     .coerceAtMost(
-                        (
-                            analysis.durationMs -
-                                500L
-                            )
-                            .coerceAtLeast(
-                                0L,
-                            ),
+                        (songDurationMs - 500L).coerceAtLeast(0L),
                     )
             }
-
         val requestedDurationMs =
             if (fullSong) {
-                analysis.durationMs
-                    .coerceAtLeast(
-                        500L,
-                    )
+                songDurationMs.coerceAtLeast(500L)
             } else {
                 minOf(
                     PROJECTM_EXPORT_DURATION_MS,
-                    (
-                        analysis.durationMs -
-                            exportStartMs
-                        )
-                        .coerceAtLeast(
-                            0L,
-                        ),
-                )
-                    .coerceAtLeast(
-                        500L,
-                    )
+                    (songDurationMs - exportStartMs).coerceAtLeast(0L),
+                ).coerceAtLeast(500L)
             }
-
         val projectMView =
             projectMExportLiveView
                 ?.takeIf {
@@ -8795,6 +8698,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 },
         ) {
             runCatching {
+                updateProgress(0, "Аналізую звук…")
+                val analysis =
+                    analysisForExport(
+                        sourceUri = sourceUri,
+                        fullSong = fullSong,
+                        clipStartMs = exportStartMs,
+                        clipLengthMs = requestedDurationMs,
+                    ) { p -> updateProgress(0, "Аналізую звук · $p%") }
+                if (cancelled.get()) throw java.util.concurrent.CancellationException("Export cancelled")
                 runCompositionExportBlocking(
                     fullSong = fullSong,
                     sourceUri = sourceUri,
@@ -8934,12 +8846,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     projectMView !=
                         null
 
+                // V60: a 3 s clip decodes only its piece (+ lead-in) for projectM.
+                val pcmRange =
+                    if (fullSong) {
+                        null
+                    } else {
+                        com.saney.musicvisualizer.export.DecodeRange.forClip(exportStartMs, requestedDurationMs)
+                    }
+                val pcmKey =
+                    pcmCacheKey(sourceUri, pcmRange)
                 val pcmPrepWeight =
                     if (
                         needsProjectMPcm &&
                         (
                             offlinePcmCacheUri !=
-                                currentUriKey ||
+                                pcmKey ||
                                 offlinePcmCache
                                     ?.file
                                     ?.isFile !=
@@ -8963,6 +8884,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 sourceUri,
                             cancelled =
                                 cancelled,
+                            range = pcmRange,
                         ) { progress ->
                             updateProgress(
                                 progress *
@@ -9682,6 +9604,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     stage: String,
                 ) {
                     val p = songProgress.coerceIn(0, 100)
+                    // V67: the crash journal follows the batch too (was stuck at «0 % — підготовка»).
+                    CrashJournal.exportProgress(this, p, stage)
                     runOnUiThread {
                         if (isFinishing) return@runOnUiThread
                         songLabel.text = "$position · $title"
@@ -9699,7 +9623,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 val startedAt = System.currentTimeMillis()
                 CrashJournal.exportStarted(
                     context = this,
-                    fullSong = true,
+                    fullSong = !testMode,
                     path =
                         when {
                             directGpuEligible -> "А (повний GPU)"
@@ -9707,21 +9631,42 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             else -> "В (без projectM)"
                         } + (if (testMode) " · пакет-тест " else " · пакет ") + "${index + 1}/${songs.size}",
                     track = title,
-                    durationMs = song.durationMs,
+                    durationMs =
+                        if (testMode) {
+                            com.saney.musicvisualizer.export.BatchPlan.TEST_CLIP_MS.coerceAtMost(song.durationMs.coerceAtLeast(500L))
+                        } else {
+                            song.durationMs
+                        },
                 )
                 val outcome =
                     runCatching {
                         ui(0, "Аналізую звук…")
+                        // V60: the test analyses only its 3 s piece (+ lead-in), not the whole song.
+                        val knownDurationMs = song.durationMs
+                        val testClip =
+                            if (testMode && knownDurationMs > 0L) plan.testWindow(knownDurationMs) else null
                         val analysis =
-                            OfflineAudioAnalyzer.analyze(context = this, uri = song.uri) { p ->
-                                ui(p / 20, "Аналізую звук · $p%")
+                            if (testClip != null) {
+                                val (from, to) =
+                                    com.saney.musicvisualizer.export.DecodeRange.forClip(testClip.first, testClip.second)
+                                OfflineAudioAnalyzer.analyze(
+                                    context = this,
+                                    uri = song.uri,
+                                    onProgress = { p -> ui(p / 20, "Аналізую звук · $p%") },
+                                    startMs = from,
+                                    endMs = to,
+                                )
+                            } else {
+                                OfflineAudioAnalyzer.analyze(context = this, uri = song.uri) { p ->
+                                    ui(p / 20, "Аналізую звук · $p%")
+                                }
                             }
                         if (cancelled.get()) throw CancellationException("Batch cancelled")
                         val (clipStartMs, clipLengthMs) =
-                            if (testMode) {
-                                plan.testWindow(analysis.durationMs)
-                            } else {
-                                0L to analysis.durationMs.coerceAtLeast(500L)
+                            when {
+                                testClip != null -> testClip
+                                testMode -> plan.testWindow(analysis.durationMs)
+                                else -> 0L to analysis.durationMs.coerceAtLeast(500L)
                             }
                         runCompositionExportBlocking(
                             fullSong = !testMode,
@@ -9767,7 +9712,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             runOnUiThread {
                 if (!isDestroyed && !isFinishing) {
                     dialog.dismiss()
-                    PulseDeckDialogs.showMessage(
+                    // V63 (faric 19.10 23:14: «у папці жодного файла»): the run folder opens in one tap.
+                    PulseDeckDialogs.show(
                         context = this,
                         title =
                             when {
@@ -9776,15 +9722,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 else -> "Пакет готовий"
                             },
                         message = summary,
-                        primaryLabel = "OK",
-                        secondaryLabel = "Копіювати",
+                        actions =
+                            listOf(
+                                PulseDeckDialogs.Action(label = "Відкрити папку з відео", accent = true, dismissOnClick = false) {
+                                    openExportFolder(relativePath.trimEnd('/'))
+                                },
+                                PulseDeckDialogs.Action(label = "Копіювати", dismissOnClick = false) {
+                                    val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("PulseDeck пакет", summary))
+                                    toast("Текст скопійовано")
+                                },
+                                PulseDeckDialogs.Action(label = "OK") {},
+                            ),
                         scrollableMessage = true,
-                        keepOpenOnSecondary = true,
-                    ) {
-                        val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                        clipboard.setPrimaryClip(android.content.ClipData.newPlainText("FARIC batch", summary))
-                        toast("Текст скопійовано")
-                    }
+                    )
                 }
                 endGuardedExport()
             }
@@ -10692,6 +10643,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             setOnClickListener { action() }
         }
 
+    /** Export Lab button (V57): text wraps and the button grows, never clipped; ≥ 54 dp. */
+    private fun exportPill(text: String, accent: Boolean, action: () -> Unit): TextView =
+        actionPill(text, accent, action).apply { minimumHeight = dp(54) }
+
     private fun actionPill(text: String, accent: Boolean, action: () -> Unit): TextView =
         label(text, 16f, if (accent) Color.BLACK else Color.WHITE, true).apply {
             gravity = Gravity.CENTER
@@ -11503,6 +11458,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun toast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
+    }
+
+    /** Hint that stays ~3.5 s (V59: «натиснув сіру кнопку — підказка на 3–4 с»). */
+    private fun longToast(message: String) {
+        Toast.makeText(this, message, Toast.LENGTH_LONG).show()
     }
 
     private fun dp(value: Int): Int =

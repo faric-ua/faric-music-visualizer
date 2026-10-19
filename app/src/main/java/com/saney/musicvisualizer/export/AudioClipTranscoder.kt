@@ -18,6 +18,7 @@ object AudioClipTranscoder {
     private const val AAC_MIME = "audio/mp4a-latm"
     private const val AUDIO_BITRATE = 160_000
     private const val TIMEOUT_US = 10_000L
+    private const val STALL_LIMIT_MS = 20_000L
 
     data class Result(
         val sampleRate: Int,
@@ -171,6 +172,92 @@ object AudioClipTranscoder {
 
             decoder.start()
             encoder.start()
+
+            // V56 (faric 19.10 23:04, WAV hung at «Кодую аудіо · 80%»): drain the AAC encoder
+            // also while waiting for its input. A WAV decoder hands over big PCM buffers that
+            // need several encoder inputs; if nobody empties the encoder output meanwhile, the
+            // encoder never frees an input buffer and the export waits forever.
+            fun drainEncoderOutput() {
+                while (true) {
+                    when (
+                        val outputIndex =
+                            encoder.dequeueOutputBuffer(
+                                encoderInfo,
+                                0L,
+                            )
+                    ) {
+                        MediaCodec.INFO_TRY_AGAIN_LATER -> {
+                            return
+                        }
+
+                        MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
+                            check(!muxerStarted) {
+                                "AAC output format changed twice"
+                            }
+
+                            muxerTrack =
+                                muxer.addTrack(
+                                    encoder.outputFormat,
+                                )
+
+                            muxer.start()
+                            muxerStarted = true
+                        }
+
+                        else -> {
+                            if (outputIndex >= 0) {
+                                val outputBuffer =
+                                    encoder.getOutputBuffer(
+                                        outputIndex,
+                                    )
+                                        ?: error(
+                                            "AAC encoder output buffer unavailable",
+                                        )
+
+                                if (
+                                    encoderInfo.flags and
+                                        MediaCodec.BUFFER_FLAG_CODEC_CONFIG !=
+                                        0
+                                ) {
+                                    encoderInfo.size = 0
+                                }
+
+                                if (
+                                    encoderInfo.size > 0
+                                ) {
+                                    check(muxerStarted) {
+                                        "AAC muxer not started"
+                                    }
+
+                                    outputBuffer.position(
+                                        encoderInfo.offset,
+                                    )
+                                    outputBuffer.limit(
+                                        encoderInfo.offset +
+                                            encoderInfo.size,
+                                    )
+
+                                    muxer.writeSampleData(
+                                        muxerTrack,
+                                        outputBuffer,
+                                        encoderInfo,
+                                    )
+                                }
+
+                                encoderOutputDone =
+                                    encoderInfo.flags and
+                                        MediaCodec.BUFFER_FLAG_END_OF_STREAM !=
+                                        0
+
+                                encoder.releaseOutputBuffer(
+                                    outputIndex,
+                                    false,
+                                )
+                            }
+                        }
+                    }
+                }
+            }
 
             while (!encoderOutputDone) {
                 if (shouldCancel()) throw CancellationException("Export cancelled during AAC")
@@ -334,6 +421,7 @@ object AudioClipTranscoder {
 
                                         queuePcm(
                                             shouldCancel = shouldCancel,
+                                            onStall = ::drainEncoderOutput,
                                             encoder =
                                                 encoder,
                                             pcm16 =
@@ -377,91 +465,14 @@ object AudioClipTranscoder {
                 ) {
                     queueEncoderEos(
                         shouldCancel = shouldCancel,
+                        onStall = ::drainEncoderOutput,
                         encoder = encoder,
                         ptsUs = durationUs,
                     )
                     encoderInputDone = true
                 }
 
-                while (true) {
-                    when (
-                        val outputIndex =
-                            encoder.dequeueOutputBuffer(
-                                encoderInfo,
-                                0L,
-                            )
-                    ) {
-                        MediaCodec.INFO_TRY_AGAIN_LATER -> {
-                            break
-                        }
-
-                        MediaCodec.INFO_OUTPUT_FORMAT_CHANGED -> {
-                            check(!muxerStarted) {
-                                "AAC output format changed twice"
-                            }
-
-                            muxerTrack =
-                                muxer.addTrack(
-                                    encoder.outputFormat,
-                                )
-
-                            muxer.start()
-                            muxerStarted = true
-                        }
-
-                        else -> {
-                            if (outputIndex >= 0) {
-                                val outputBuffer =
-                                    encoder.getOutputBuffer(
-                                        outputIndex,
-                                    )
-                                        ?: error(
-                                            "AAC encoder output buffer unavailable",
-                                        )
-
-                                if (
-                                    encoderInfo.flags and
-                                        MediaCodec.BUFFER_FLAG_CODEC_CONFIG !=
-                                        0
-                                ) {
-                                    encoderInfo.size = 0
-                                }
-
-                                if (
-                                    encoderInfo.size > 0
-                                ) {
-                                    check(muxerStarted) {
-                                        "AAC muxer not started"
-                                    }
-
-                                    outputBuffer.position(
-                                        encoderInfo.offset,
-                                    )
-                                    outputBuffer.limit(
-                                        encoderInfo.offset +
-                                            encoderInfo.size,
-                                    )
-
-                                    muxer.writeSampleData(
-                                        muxerTrack,
-                                        outputBuffer,
-                                        encoderInfo,
-                                    )
-                                }
-
-                                encoderOutputDone =
-                                    encoderInfo.flags and
-                                        MediaCodec.BUFFER_FLAG_END_OF_STREAM !=
-                                        0
-
-                                encoder.releaseOutputBuffer(
-                                    outputIndex,
-                                    false,
-                                )
-                            }
-                        }
-                    }
-                }
+                drainEncoderOutput()
             }
         } finally {
             extractor.release()
@@ -494,6 +505,7 @@ object AudioClipTranscoder {
 
     private fun queuePcm(
         shouldCancel: () -> Boolean,
+        onStall: () -> Unit,
         encoder: MediaCodec,
         pcm16: ByteArray,
         ptsUs: Long,
@@ -504,7 +516,7 @@ object AudioClipTranscoder {
 
         while (offset < pcm16.size) {
             val inputIndex =
-                waitForEncoderInput(encoder, shouldCancel)
+                waitForEncoderInput(encoder, shouldCancel, onStall)
 
             val inputBuffer =
                 encoder.getInputBuffer(
@@ -557,11 +569,12 @@ object AudioClipTranscoder {
 
     private fun queueEncoderEos(
         shouldCancel: () -> Boolean,
+        onStall: () -> Unit,
         encoder: MediaCodec,
         ptsUs: Long,
     ) {
         val inputIndex =
-            waitForEncoderInput(encoder, shouldCancel)
+            waitForEncoderInput(encoder, shouldCancel, onStall)
 
         encoder.queueInputBuffer(
             inputIndex,
@@ -575,7 +588,9 @@ object AudioClipTranscoder {
     private fun waitForEncoderInput(
         encoder: MediaCodec,
         shouldCancel: () -> Boolean,
+        onStall: () -> Unit,
     ): Int {
+        val startedMs = System.currentTimeMillis()
         while (true) {
             if (shouldCancel()) throw CancellationException("Export cancelled during AAC")
             val index =
@@ -585,6 +600,12 @@ object AudioClipTranscoder {
 
             if (index >= 0) {
                 return index
+            }
+            // No free input: empty the encoder output so it can take more PCM.
+            onStall()
+            // Safety net: never wait forever — the batch moves on to the next song.
+            check(System.currentTimeMillis() - startedMs < STALL_LIMIT_MS) {
+                "Кодування звуку зависло: кодувальник AAC не бере дані " + STALL_LIMIT_MS / 1000 + " с"
             }
         }
     }
@@ -652,10 +673,9 @@ object AudioClipTranscoder {
                 bytes
             }
 
+            // V56: 24-bit / 32-bit / 8-bit WAV.
             else ->
-                error(
-                    "Unsupported decoded PCM encoding: $pcmEncoding",
-                )
+                PcmConvert.toPcm16(outputBuffer, pcmEncoding)
         }
     }
 }

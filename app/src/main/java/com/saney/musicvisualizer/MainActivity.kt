@@ -637,16 +637,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 Screen.TRACKS -> {
                     if (localMusicBrowser?.navigateBack() != true) showLibrary()
                 }
+                // V70 (faric 19.10 23:26): «назад» from Board / Export Lab / themes always
+                // returns to the centre (the player works without a song too), never to
+                // the library on the left.
                 Screen.THEME_PICKER,
                 Screen.BOARD_TRANSFORM,
                 Screen.EXPORT_LAB,
-                -> {
-                    if (latestSnapshot.trackName != null) {
-                        showNowPlaying()
-                    } else {
-                        showLibrary()
-                    }
-                }
+                -> showNowPlaying()
                 Screen.LIBRARY -> {
                     if (mediaMenuOverlay != null) showNowPlaying() else finish()
                 }

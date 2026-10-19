@@ -847,36 +847,21 @@ object HeroThemeRenderer {
             cy,
         )
 
-        fill.textAlign = Paint.Align.CENTER
-        fill.isFakeBoldText = true
-        fill.color = Color.WHITE
-        fill.textSize =
-            labelRadius * 0.22f
-        canvas.drawText(
-            input.title
-                .substringBeforeLast(
-                    '.',
-                    input.title,
-                )
-                .take(22),
-            cx,
-            cy - labelRadius * 0.14f,
-            fill,
+        // V72: same label text as the live screen (VinylLabelPainter).
+        VinylLabelPainter.draw(
+            canvas = canvas,
+            paint = fill,
+            cx = cx,
+            cy = cy,
+            labelRadius = labelRadius,
+            rawTitle = input.title,
+            artist = input.artist,
+            titleColor = Color.WHITE,
+            titleAlpha = 255,
+            bottomColor = Color.rgb(255, 225, 185),
+            bottomAlpha = 255,
         )
-
         fill.isFakeBoldText = false
-        fill.textSize =
-            labelRadius * 0.14f
-        fill.color =
-            Color.rgb(255, 225, 185)
-        canvas.drawText(
-            input.artist
-                .ifBlank { "FARIC VINYL" }
-                .take(24),
-            cx,
-            cy + labelRadius * 0.22f,
-            fill,
-        )
 
         canvas.restore()
 

@@ -33,6 +33,16 @@ class VinylLabelTest {
     }
 
     @Test
+    fun nameWithoutSpacesBreaksAtDashesNotMidWord() {
+        assertEquals(
+            listOf("ed-sheeran-", "alok-shivers-", "remix"),
+            VinylLabel.titleLines("ed-sheeran-alok-shivers-remix(ukrtune.com).mp3"),
+        )
+        // ordinary words still join with spaces
+        assertEquals(listOf("Lil Jon", "- Whispers"), VinylLabel.titleLines("Lil Jon - Whispers"))
+    }
+
+    @Test
     fun bottomLineIsArtistOrVinylNeverFaric() {
         assertEquals("VINYL", VinylLabel.bottomLine(null))
         assertEquals("VINYL", VinylLabel.bottomLine("  "))

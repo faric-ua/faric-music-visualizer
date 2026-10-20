@@ -8852,6 +8852,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     artist = snapshot.trackArtist.orEmpty(),
                     cancelled = cancelled,
                     updateProgress = { progress, status -> updateProgress(progress, status) },
+                    presetSchedule = buildExportPresetSchedule(compositionConfig),
                 )
             }.onSuccess { result ->
                 Log.i("FARIC-export", "Render finished; published=" + (result.uri != null))
@@ -8961,7 +8962,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         updateProgress: (Int, String) -> Unit,
         exactDisplayName: String? = null,
         relativePath: String = com.saney.musicvisualizer.export.Mp4AvMuxer.DEFAULT_RELATIVE_PATH,
+        presetSchedule: com.saney.musicvisualizer.export.ExportPresetSchedule? = null,
     ): ShortVideoExportProof.Result {
+        // V94: this song starts with its visualization; the direct-GPU setup below reads it from the state.
+        presetSchedule?.let { schedule ->
+            schedule.beginSong()
+            ProjectMStateStore(this).lastPresetPath = schedule.presetAt(0L)
+        }
         val currentUriKey =
             sourceUri.toString()
         var pcmReader:
@@ -9408,6 +9415,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         } else {
                             null
                         },
+                    // V94: AUTO in the video, the same as on the screen.
+                    presetForVideoTime =
+                        presetSchedule?.let { schedule -> { videoMs: Long -> schedule.presetAt(videoMs) } },
+                    loadPresetOnView =
+                        projectMView?.let { view -> { path: String -> view.loadPreset(java.io.File(path), smoothTransition = false) } },
                     requestedDurationMs =
                         requestedDurationMs,
                     fps =
@@ -9445,6 +9457,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     },
                 )
         } finally {
+            // V94: save at once where the visualizations stopped — the next song / the app goes on from there.
+            presetSchedule?.let { schedule ->
+                ProjectMStateStore(this).lastPresetPath = schedule.lastUsed
+            }
             runCatching {
                 pcmReader
                     ?.close()
@@ -9460,6 +9476,36 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
             }
         }
+    }
+
+    /**
+     * V94: AUTO from the right page also drives the video (and a batch carries the number on).
+     * null when AUTO is off or projectM is not in the video. Call on the export worker thread.
+     */
+    private fun buildExportPresetSchedule(
+        compositionConfig: CompositionExportConfig,
+    ): com.saney.musicvisualizer.export.ExportPresetSchedule? {
+        if (!compositionConfig.projectMVisible) return null
+        val state = ProjectMStateStore(this)
+        if (!state.autoEnabled && !state.autoPerTrack) return null
+        val pool =
+            projectMFocusPresets.takeIf { it.isNotEmpty() }
+                ?: runCatching {
+                    val ratings = ProjectMPresetRatingsStore(this)
+                    when (state.backgroundMode) {
+                        com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP ->
+                            ProjectMLibraryManager.fastPresetFiles(this)
+                        com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL ->
+                            ProjectMLibraryManager.allPresetFiles(this)
+                    }.filter { it.isFile && ratings.ratingFor(it) != ProjectMPresetRating.HIDDEN }
+                }.getOrDefault(emptyList())
+        return com.saney.musicvisualizer.export.ExportPresetSchedule.createOrNull(
+            pool = pool.map { it.absolutePath },
+            current = state.lastPresetPath,
+            autoEnabled = state.autoEnabled,
+            autoSeconds = state.autoSwitchSeconds,
+            perSong = state.autoPerTrack,
+        )
     }
 
     // ---- Folder batch export (TODO.md V22, v0.19.73) ----------------------------
@@ -9740,6 +9786,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         thread(name = "faric-batch-export") {
             val results = mutableListOf<com.saney.musicvisualizer.export.BatchPlan.SongResult>()
+            // V94: one schedule for the whole batch — song 2 goes on after the last visualization of song 1.
+            val presetSchedule = buildExportPresetSchedule(compositionConfig)
             for ((index, song) in songs.withIndex()) {
                 if (cancelled.get()) break
                 val fileName = plan.videoFileName(song.name)
@@ -9832,6 +9880,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             updateProgress = { progress, status -> ui(5 + progress * 95 / 100, status) },
                             exactDisplayName = fileName,
                             relativePath = relativePath,
+                            presetSchedule = presetSchedule,
                         )
                     }
                 val elapsed = System.currentTimeMillis() - startedAt

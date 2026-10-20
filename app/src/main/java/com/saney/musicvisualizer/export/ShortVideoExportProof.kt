@@ -97,6 +97,12 @@ object ShortVideoExportProof {
             (() -> Boolean)? = null,
         projectMOfflineTimingProvider:
             (() -> ProjectMOfflineTiming?)? = null,
+        /** V94: visualization for a time of THIS video (ms from its start); null = keep the one loaded. */
+        presetForVideoTime:
+            ((Long) -> String?)? = null,
+        /** V94, path B (projectM on its own view): load a visualization there. */
+        loadPresetOnView:
+            ((String) -> Unit)? = null,
         requestedDurationMs: Long =
             DEFAULT_DURATION_MS,
         fps: Int =
@@ -534,6 +540,8 @@ object ShortVideoExportProof {
                 }
             }
 
+            // V94: AUTO in the video — which visualization is loaded in the offline projectM now.
+            var loadedPresetPath: String? = directGpuProjectMConfig?.presetPath
             for (
                 frameIndex in
                 0 until frameCount
@@ -545,6 +553,19 @@ object ShortVideoExportProof {
                         "Export cancelled",
                     )
                 }
+
+                presetForVideoTime
+                    ?.invoke(frameIndex * 1000L / safeFps)
+                    ?.let { wanted ->
+                        if (wanted != loadedPresetPath) {
+                            loadedPresetPath = wanted
+                            if (projectMGpuDirect) {
+                                encoderSurface?.loadOfflinePreset(wanted)
+                            } else {
+                                loadPresetOnView?.invoke(wanted)
+                            }
+                        }
+                    }
 
                 val frameTimeMs =
                     startMs +

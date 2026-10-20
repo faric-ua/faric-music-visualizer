@@ -112,6 +112,8 @@ object ShortVideoExportProof {
         // Batch export (v0.19.73): exact file name and Movies/PulseDeck/<folder> (Movies/FARIC before v0.19.87).
         exactDisplayName: String? = null,
         relativePath: String = Mp4AvMuxer.DEFAULT_RELATIVE_PATH,
+        /** V93: song tags for the MP4 (title, artist, album, year, genre, cover). */
+        tags: Mp4Tagger.Tags? = null,
         shouldCancel: () -> Boolean = {
             false
         },
@@ -1384,6 +1386,7 @@ object ShortVideoExportProof {
                     displayName = displayName,
                     shouldCancel = shouldCancel,
                     relativePath = relativePath,
+                    tags = tags,
                 )
                 muxMs = (System.nanoTime() - finalizingStartedNs) / 1_000_000L
                 publishMs = 0L // Direct FD mux also commits the MediaStore row.
@@ -1393,6 +1396,7 @@ object ShortVideoExportProof {
                     audioFile = audioTemp,
                     outputFile = muxedTemp,
                     shouldCancel = shouldCancel,
+                    tags = tags,
                 )
                 muxMs = (System.nanoTime() - finalizingStartedNs) / 1_000_000L
                 if (shouldCancel()) throw CancellationException("Export cancelled")

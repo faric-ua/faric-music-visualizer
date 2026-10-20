@@ -60,6 +60,9 @@ object BatchPlan {
         return start to clipMs
     }
 
+    /** V93: Movies/PulseDeck/<album from the song's tags>/ — videos sorted by album. */
+    fun albumRelativePath(album: String): String = ExportFolders.VIDEO + "/" + clean(album, fallback = "Album") + "/"
+
     fun songTitle(songDisplayName: String): String = songDisplayName.substringBeforeLast('.').ifBlank { songDisplayName }.trim()
 
     /** Natural-ish order: by name, ignoring case, so «01 …», «02 …» stay in album order. */

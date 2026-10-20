@@ -183,7 +183,7 @@ object OfflineAudioAnalyzer {
                         MediaFormat.KEY_PCM_ENCODING,
                         AudioFormat.ENCODING_PCM_16BIT,
                     )
-                val encodingGuard = PcmEncodingGuard()
+                val encodingGuard = PcmEncodingGuard(enabled = mime == "audio/raw")
 
                 val rawFrames =
                     ArrayList<RawFrame>()

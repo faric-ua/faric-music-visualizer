@@ -8988,7 +8988,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     com.saney.musicvisualizer.export.SongTags.read(
                         context = this,
                         uri = sourceUri,
-                        fallbackTitle = snapshot.trackName,
+                        fallbackTitle =
+                            snapshot.trackName?.replace(Regex("\\.(mp3|wav|flac|m4a|aac|ogg|opus)$", RegexOption.IGNORE_CASE), ""),
                         fallbackArtist = snapshot.trackArtist,
                     )
                 runCompositionExportBlocking(
@@ -9001,8 +9002,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     compositionConfig = compositionConfig,
                     projectMView = projectMView,
                     directGpuProjectMEligible = directGpuProjectMEligible,
-                    title = snapshot.trackName.orEmpty(),
-                    artist = snapshot.trackArtist.orEmpty(),
+                    // V101: title / artist from the song's tags when the player has none («IGNITION POINT.mp3»,
+                    // «Невідомий виконавець» in the video while the tags know the artist).
+                    title = songTags.title ?: snapshot.trackName.orEmpty(),
+                    artist = snapshot.trackArtist?.takeIf { it.isNotBlank() } ?: songTags.artist.orEmpty(),
                     cancelled = cancelled,
                     updateProgress = { progress, status -> updateProgress(progress, status) },
                     presetSchedule = buildExportPresetSchedule(compositionConfig),

@@ -885,6 +885,7 @@ class PulseDeckMainSkinView(
             amplitude > 0.01f ||
             beat > 0.01f ||
             marqueeRunning ||
+            favoriteActive ||
             controlsAnimator?.isRunning == true
         ) {
             postInvalidateOnAnimation()
@@ -1841,7 +1842,11 @@ class PulseDeckMainSkinView(
     private fun drawFavoriteHeart(canvas: Canvas) {
         if (!favoriteActive || !isObjectVisible("favorite")) return
         val rect = resolvedRects["favorite"] ?: return
-        val size = minOf(rect.width(), rect.height()) * 0.42f
+        // «Живеньке» (faric 20.10 05:36): breathes softly and gives a small kick on the bass.
+        val clock = marqueeClockMs ?: SystemClock.uptimeMillis()
+        val breath = 0.5f + 0.5f * kotlin.math.sin(clock / 1_100.0 * 2.0 * Math.PI).toFloat()
+        val pulse = 1f + 0.06f * breath + 0.08f * bass.coerceIn(0f, 1f)
+        val size = minOf(rect.width(), rect.height()) * 0.42f * pulse
         favoritePaint.textSize = size
         favoritePaint.alpha = (controlsAlpha * 255f).toInt().coerceIn(0, 255)
         val baseline = rect.centerY() - (favoritePaint.descent() + favoritePaint.ascent()) / 2f

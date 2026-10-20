@@ -35,11 +35,21 @@ class TrackMarqueeTest {
         val hold = TrackMarquee.PAUSE_MS + titleScroll + 500L
         assertEquals(400f, TrackMarquee.offsets(widths, 600f, d, hold)[0]!!, 0.5f)
         // back home, then the artist line starts moving
-        val titleSpan = TrackMarquee.PAUSE_MS + titleScroll + TrackMarquee.END_HOLD_MS + TrackMarquee.RETURN_MS
+        val titleSpan = TrackMarquee.PAUSE_MS + titleScroll + TrackMarquee.END_HOLD_MS + titleScroll
         val artistMoving = titleSpan + TrackMarquee.PAUSE_MS + 1_000L
         val o = TrackMarquee.offsets(widths, 600f, d, artistMoving)
         assertEquals(0f, o[0]!!, 0.01f)
         assertTrue(o[1]!! > 50f)
+    }
+
+    @Test
+    fun goesBackAtTheSameSpeed() {
+        val widths = listOf(1000f, 100f, 100f)
+        val speed = TrackMarquee.SPEED_DP_PER_S * d / 1000f
+        val scroll = (400f / speed).toLong()
+        val backStart = TrackMarquee.PAUSE_MS + scroll + TrackMarquee.END_HOLD_MS
+        val a = TrackMarquee.offsets(widths, 600f, d, backStart + 1_000L)[0]!!
+        assertEquals(400f - speed * 1_000f, a, 1f)
     }
 
     @Test

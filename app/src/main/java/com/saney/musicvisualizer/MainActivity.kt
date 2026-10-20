@@ -1075,6 +1075,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onPlaybackSnapshot(snapshot: PlaybackSnapshot) {
         latestSnapshot = snapshot
+        refreshCoverArt()
         // V96 (faric 20.10 23:48, M30s: «реакція на звук вимкнена без дозволу»): the permission used to be
         // asked only via «Обрати музику»; a song from the library played with no reactions, silently.
         if (snapshot.isPlaying && !analysisPermissionPrompted && !hasAnalysisPermission()) {
@@ -2423,6 +2424,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         // rather than calling showNowPlaying() for each selection.
         val standaloneHero = HeroThemeView(this).also { view ->
             view.setTheme(selectedThemeId)
+            view.coverArt = currentCoverArt
             view.updateSignal(latestSignal)
             view.setPlaying(latestSnapshot.isPlaying)
             view.setMetadata(latestSnapshot.trackName, null)
@@ -8406,6 +8408,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         // same theme view and nothing below it (projectM, reactive, big EQ).
         val standaloneTheme =
             selectedThemeId.takeIf { isStandaloneHeroTheme(it) }
+        val coverArt = currentCoverArt.takeIf { standaloneTheme == PlaybackThemeId.COVER_ART }
         val belowHeroVisible = standaloneTheme == null
         val projectMVisible =
             belowHeroVisible &&
@@ -8419,6 +8422,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 currentScene,
             standaloneTheme =
                 standaloneTheme,
+            coverArt =
+                coverArt,
             faricReactiveVisible =
                 belowHeroVisible &&
                 visualizerVisible &&
@@ -9953,7 +9958,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             exportStartMs = clipStartMs,
                             requestedDurationMs = clipLengthMs,
                             ratio = ratio,
-                            compositionConfig = compositionConfig,
+                            // V91: «Обкладинка» — every song of the batch with its own cover.
+                            compositionConfig =
+                                if (compositionConfig.standaloneTheme == PlaybackThemeId.COVER_ART) {
+                                    compositionConfig.copy(
+                                        coverArt = com.saney.musicvisualizer.ui.CoverArtLoader.load(this, song.uri),
+                                    )
+                                } else {
+                                    compositionConfig
+                                },
                             projectMView = projectMView,
                             directGpuProjectMEligible = directGpuEligible,
                             title = title,
@@ -10129,6 +10142,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             PlaybackThemeId.WAVE_IDOL,
             PlaybackThemeId.VINYL,
             PlaybackThemeId.CASSETTE,
+            PlaybackThemeId.COVER_ART,
         )
 
     /**
@@ -10789,6 +10803,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             PlaybackThemeId.WAVE_IDOL,
             PlaybackThemeId.VINYL,
             PlaybackThemeId.CASSETTE,
+            PlaybackThemeId.COVER_ART,
             -> true
 
             else -> false
@@ -11007,6 +11022,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         } else {
             pendingOpenAfterPermission = true
             requestAudioAnalysisPermission.launch(Manifest.permission.RECORD_AUDIO)
+        }
+    }
+
+    // V91: cover of the current song (for the «Обкладинка» theme and its MP4).
+    private var currentCoverArt: Bitmap? = null
+    private var coverArtUri: String? = null
+
+    private fun refreshCoverArt() {
+        val uri = controller.currentTrackUri()?.toString()
+        if (uri == coverArtUri) return
+        coverArtUri = uri
+        currentCoverArt = null
+        heroThemeView?.coverArt = null
+        if (uri == null) return
+        thread(name = "cover-art") {
+            val bitmap = com.saney.musicvisualizer.ui.CoverArtLoader.load(this, Uri.parse(uri))
+            runOnUiThread {
+                if (coverArtUri == uri && !isDestroyed) {
+                    currentCoverArt = bitmap
+                    heroThemeView?.coverArt = bitmap
+                }
+            }
         }
     }
 

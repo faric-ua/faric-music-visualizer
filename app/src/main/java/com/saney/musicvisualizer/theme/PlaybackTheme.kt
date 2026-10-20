@@ -17,6 +17,8 @@ enum class PlaybackThemeId {
     PORTRAIT_HALO,
     VINYL,
     CASSETTE,
+    /** V91: the song's cover in a square at the top, instead of a hero. */
+    COVER_ART,
     GLASS_CORE,
     NEON_EMBLEM,
     ENERGY_CORE,
@@ -319,6 +321,17 @@ object PlaybackThemeRegistry {
                     ThemeCapability.TRACK_METADATA,
                 ),
                 previewOrder = 65,
+            ),
+            PlaybackThemeSpec(
+                id = PlaybackThemeId.COVER_ART,
+                title = "Обкладинка",
+                subtitle = "Обкладинка пісні у квадраті вгорі, світиться в такт",
+                family = ThemeFamily.RETRO,
+                capabilities = setOf(
+                    ThemeCapability.COVER_ART,
+                    ThemeCapability.TRACK_METADATA,
+                ),
+                previewOrder = 69,
             ),
             PlaybackThemeSpec(
                 id = PlaybackThemeId.VINYL,

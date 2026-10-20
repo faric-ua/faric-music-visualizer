@@ -208,6 +208,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var projectMFocusBackgroundControl: TextView? = null
     private var projectMFocusCenterControl: TextView? = null
     private var projectMFocusEdgeControl: TextView? = null
+    private var projectMFocusLightControl: TextView? = null
     private val projectMFocusHandler = Handler(Looper.getMainLooper())
     // V90 (faric 20.10 19:32: «AUTO 5 / 10 с — а на головному екрані не міняється»): AUTO used to
     // run only while the right page was open. Now it runs whenever the live projectM is shown.
@@ -466,6 +467,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             if (pendingOpenAfterPermission) {
                 pendingOpenAfterPermission = false
                 openAudio.launch(arrayOf("audio/*"))
+            } else if (!granted && !shouldShowRequestPermissionRationale(Manifest.permission.RECORD_AUDIO)) {
+                // V96: Android no longer shows the request — only the settings screen can give it.
+                showAnalysisPermissionSettingsWindow()
             }
         }
 
@@ -998,6 +1002,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onStart() {
         super.onStart()
+        // V96: a permission given in Android settings works as soon as the app is back.
+        controller.setAnalysisPermissionGranted(hasAnalysisPermission())
         if (projectMFocusOverlay != null) scheduleProjectMFocusAuto()
         controller.listener = this
         controller.emitCurrentState()
@@ -1069,6 +1075,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onPlaybackSnapshot(snapshot: PlaybackSnapshot) {
         latestSnapshot = snapshot
+        // V96 (faric 20.10 23:48, M30s: «реакція на звук вимкнена без дозволу»): the permission used to be
+        // asked only via «Обрати музику»; a song from the library played with no reactions, silently.
+        if (snapshot.isPlaying && !analysisPermissionPrompted && !hasAnalysisPermission()) {
+            analysisPermissionPrompted = true
+            showAnalysisPermissionWindow()
+        }
         // Record actual playing items, including queue Next/Previous, not just taps.
         if (snapshot.isPlaying && snapshot.trackName != null) {
             val uri = controller.currentTrackUri()?.toString()
@@ -1658,9 +1670,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     textureDirectory =
                         ProjectMLibraryManager
                             .textureDir(this),
+                    // V98: «Легкий режим» for weak phones (live screen only).
                     profile =
-                        ProjectMPerformanceProfile
-                            .BALANCED_BACKGROUND,
+                        if (projectMState.lightMode) {
+                            ProjectMPerformanceProfile.ECO
+                        } else {
+                            ProjectMPerformanceProfile.BALANCED_BACKGROUND
+                        },
                     foregroundSample =
                         projectMState
                             .foregroundSample,
@@ -4773,6 +4789,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             requireNotNull(projectMFocusCenterControl),
             requireNotNull(projectMFocusEdgeControl),
         )
+        projectMFocusLightControl = legacyControl("") {
+            // V98: light projectM for weak phones; the live view is rebuilt with the other profile.
+            val state = ProjectMStateStore(this)
+            state.lightMode = !state.lightMode
+            updateProjectMFocusStatus()
+            rebuildLiveProjectMView()
+            toast(if (state.lightMode) "Легкий режим: менше навантаження" else "Звичайна якість")
+        }
         projectMFocusAutoControl = legacyControl("") {
             // V44 (faric 19.10 15:57: «AUTO не вимикається»): AUTO OFF → 5 с → 10 с → 15 с → …
             // V90 (faric 20.10 19:32): … → AUTO ПІСНЯ (нова візуалізація на кожну нову пісню) → AUTO OFF.
@@ -4801,6 +4825,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             2, 4,
             requireNotNull(projectMFocusAutoControl),
             legacyControl("⚙ FG") { showProjectMSettingsPanel() },
+            requireNotNull(projectMFocusLightControl),
             // V83: Export Lab is reachable from here even when the bottom menu is hidden.
             legacyControl("⇧ EXPORT") {
                 closeProjectMFocusOverlay()
@@ -4876,6 +4901,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             (if (state.foregroundCenterVisible) "● " else "○ ") + "CENTER"
         projectMFocusEdgeControl?.text =
             (if (state.foregroundEdgeFxVisible) "● " else "○ ") + "EDGE FX"
+        projectMFocusLightControl?.text =
+            (if (state.lightMode) "● " else "○ ") + "ЛЕГКО"
     }
 
     private fun rateProjectMFocusPreset(rating: ProjectMPresetRating) {
@@ -4966,6 +4993,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusBackgroundControl = null
         projectMFocusCenterControl = null
         projectMFocusEdgeControl = null
+        projectMFocusLightControl = null
         val saved = projectMFocusSavedVisibility
         projectMFocusSavedVisibility = null
         // V90: the preset list stays — AUTO keeps using it on the main screen.
@@ -8120,6 +8148,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         if (live != null) live.releaseProjectMThen { runOnUiThread(attach) } else attach()
     }
 
+    /** V98: the live projectM again with the current profile (light / normal), same preset. */
+    private fun rebuildLiveProjectMView() {
+        val old = projectMMainView ?: return
+        val stack = pulseDeckLayerStack ?: return
+        old.releaseProjectMThen {
+            runOnUiThread {
+                if (isFinishing || isDestroyed || projectMMainView !== old) return@runOnUiThread
+                if (projectMMainResumed) {
+                    old.onPause()
+                    projectMMainResumed = false
+                }
+                stack.setContent(PulseDeckLayerStack.Layer.VISUALIZER, null)
+                projectMMainView = null
+                val fresh = createLayer0ProjectMView()
+                projectMMainView = fresh
+                stack.setContent(PulseDeckLayerStack.Layer.VISUALIZER, fresh)
+                applyVisualizerRenderSlots()
+                updateProjectMRenderState()
+            }
+        }
+    }
+
     /** V3: after the MP4 — export projectM away, the live visualiser back in its slot. */
     private fun finishExportProjectM() {
         val exportView = projectMExportLiveView ?: return
@@ -10923,6 +10973,53 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
+    /** V96: once per app start — explain and ask for the «Мікрофон» permission. */
+    private var analysisPermissionPrompted = false
+
+    private fun showAnalysisPermissionWindow() {
+        if (isFinishing || isDestroyed) return
+        PulseDeckDialogs.show(
+            context = this,
+            title = "Реакція на звук",
+            message =
+                "Щоб візуалізація, герої й еквалайзер реагували на музику, Android має дозволити PulseDeck " +
+                    "«чути» звук, який грає. Для цього потрібен дозвіл «Мікрофон».\n\n" +
+                    "PulseDeck нічого не записує і нікуди не надсилає.",
+            actions =
+                listOf(
+                    PulseDeckDialogs.Action(label = "Дозволити", accent = true) {
+                        requestAudioAnalysisPermission.launch(Manifest.permission.RECORD_AUDIO)
+                    },
+                    PulseDeckDialogs.Action(label = "Не зараз") {},
+                ),
+        )
+    }
+
+    private fun showAnalysisPermissionSettingsWindow() {
+        if (isFinishing || isDestroyed) return
+        PulseDeckDialogs.show(
+            context = this,
+            title = "Дозвіл у налаштуваннях",
+            message =
+                "Android більше не показує запит. Відкрий налаштування PulseDeck → Дозволи → Мікрофон → " +
+                    "«Дозволяти лише під час використання» і повернись сюди.",
+            actions =
+                listOf(
+                    PulseDeckDialogs.Action(label = "Відкрити налаштування", accent = true) {
+                        runCatching {
+                            startActivity(
+                                Intent(
+                                    android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS,
+                                    Uri.fromParts("package", packageName, null),
+                                ),
+                            )
+                        }
+                    },
+                    PulseDeckDialogs.Action(label = "Не зараз") {},
+                ),
+        )
+    }
+
     private fun hasAnalysisPermission(): Boolean =
         checkSelfPermission(Manifest.permission.RECORD_AUDIO) == PackageManager.PERMISSION_GRANTED
 
@@ -11147,6 +11244,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusBackgroundControl = null
         projectMFocusCenterControl = null
         projectMFocusEdgeControl = null
+        projectMFocusLightControl = null
         projectMFocusSavedVisibility = null
         // V90: the preset list stays — AUTO keeps using it on the main screen.
         boardMenuOverlay = null

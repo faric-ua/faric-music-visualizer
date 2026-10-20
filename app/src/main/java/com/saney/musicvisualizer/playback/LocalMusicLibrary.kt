@@ -51,6 +51,8 @@ object LocalMusicLibrary {
             MediaStore.Audio.Media.YEAR,
             MediaStore.Audio.Media.DATE_ADDED,
             MediaStore.Audio.Media.TRACK,
+            // V97: the file name keeps emoji the tag title lost («????»).
+            MediaStore.Audio.Media.DISPLAY_NAME,
         )
         val pathColumn = if (Build.VERSION.SDK_INT >= 29) {
             MediaStore.Audio.Media.RELATIVE_PATH
@@ -79,6 +81,7 @@ object LocalMusicLibrary {
                 val year = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.YEAR)
                 val added = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.DATE_ADDED)
                 val trackNo = cursor.getColumnIndexOrThrow(MediaStore.Audio.Media.TRACK)
+                val fileName = cursor.getColumnIndex(MediaStore.Audio.Media.DISPLAY_NAME)
                 val path = cursor.getColumnIndexOrThrow(pathColumn)
                 val genre = if (genreFromColumn) cursor.getColumnIndex(MediaStore.Audio.Media.GENRE) else -1
                 while (cursor.moveToNext()) {
@@ -92,7 +95,10 @@ object LocalMusicLibrary {
                     tracks += LocalMusicTrack(
                         id = trackId,
                         uri = ContentUris.withAppendedId(MediaStore.Audio.Media.EXTERNAL_CONTENT_URI, trackId),
-                        title = cursor.getString(title).orEmpty().ifBlank { "Без назви" },
+                        title = TrackTitles.pick(
+                            tagTitle = cursor.getString(title),
+                            fileName = if (fileName >= 0) cursor.getString(fileName) else null,
+                        ),
                         artist = cursor.getString(artist).orEmpty()
                             .takeUnless { it.isBlank() || it == "<unknown>" } ?: "Невідомий виконавець",
                         album = cursor.getString(album).orEmpty()

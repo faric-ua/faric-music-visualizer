@@ -473,6 +473,21 @@ class PulseDeckMainSkinView(
      */
     var marqueeClockMs: Long? = null
 
+    /**
+     * V78 (faric 19.10 23:40: «червоне сердечко класне — на головній теж»): the song is in
+     * favourites → a red heart sits in the ♡ button, the same ❤ as in the track list.
+     */
+    var favoriteActive: Boolean = false
+        set(value) {
+            if (field == value) return
+            field = value
+            postInvalidateOnAnimation()
+        }
+
+    private val favoritePaint =
+        Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            textAlign = Paint.Align.CENTER
+        }
     private var marqueeRunning = false
 
     fun setPlaybackContent(
@@ -1743,6 +1758,8 @@ class PulseDeckMainSkinView(
             h *
                 trackOffset.second
 
+        drawFavoriteHeart(canvas)
+
         if (isObjectVisible("track_info")) {
             // V64 (faric 19.10 23:17): the track lines live between ♡ and ⋮ with a
             // 20 dp gap on each side; a line that does not fit scrolls like a ribbon.
@@ -1754,48 +1771,28 @@ class PulseDeckMainSkinView(
             val lineLeft = favoriteRight + gap + shiftX
             val lineRight = (moreLeft - gap + shiftX).coerceAtLeast(lineLeft + w * 0.2f)
 
-            drawTrackLine(
-                canvas = canvas,
-                text = title,
-                left = lineLeft,
-                right = lineRight,
-                y = h * 0.485f + trackDy,
-                size = w * 0.052f,
-                color = Color.WHITE,
-                bold = true,
-            )
-
-            drawTrackLine(
-                canvas = canvas,
-                text = artist,
-                left = lineLeft,
-                right = lineRight,
-                y = h * 0.515f + trackDy,
-                size = w * 0.037f,
-                color =
-                    Color.rgb(
-                        190,
-                        202,
-                        212,
-                    ),
-                bold = false,
-            )
-
-            drawTrackLine(
-                canvas = canvas,
-                text = status,
-                left = lineLeft,
-                right = lineRight,
-                y = h * 0.538f + trackDy,
-                size = w * 0.026f,
-                color =
-                    Color.rgb(
-                        164,
-                        182,
-                        194,
-                    ),
-                bold = false,
-            )
+            // V69: the three lines take turns — only one moves at a time (TrackMarquee).
+            val lines =
+                listOf(
+                    TrackLine(title, h * 0.485f + trackDy, w * 0.052f, Color.WHITE, true),
+                    TrackLine(artist, h * 0.515f + trackDy, w * 0.037f, Color.rgb(190, 202, 212), false),
+                    TrackLine(status, h * 0.538f + trackDy, w * 0.026f, Color.rgb(164, 182, 194), false),
+                )
+            val widths =
+                lines.map { line ->
+                    applyTrackFont(line)
+                    textPaint.measureText(line.text)
+                }
+            val offsets =
+                TrackMarquee.offsets(
+                    textWidthsPx = widths,
+                    availablePx = lineRight - lineLeft,
+                    density = resources.displayMetrics.density,
+                    clockMs = marqueeClockMs ?: SystemClock.uptimeMillis(),
+                )
+            lines.forEachIndexed { index, line ->
+                drawTrackLine(canvas, line, lineLeft, lineRight, offsets[index])
+            }
 
             resolvedRects["track_info"] =
                 RectF(
@@ -1841,43 +1838,52 @@ class PulseDeckMainSkinView(
         textPaint.alpha = 255
     }
 
-    /** One track line: centred when it fits, otherwise a ribbon scrolling inside [left, right]. */
-    private fun drawTrackLine(
-        canvas: Canvas,
-        text: String,
-        left: Float,
-        right: Float,
-        y: Float,
-        size: Float,
-        color: Int,
-        bold: Boolean,
-    ) {
-        textPaint.textSize = size
+    private fun drawFavoriteHeart(canvas: Canvas) {
+        if (!favoriteActive || !isObjectVisible("favorite")) return
+        val rect = resolvedRects["favorite"] ?: return
+        val size = minOf(rect.width(), rect.height()) * 0.42f
+        favoritePaint.textSize = size
+        favoritePaint.alpha = (controlsAlpha * 255f).toInt().coerceIn(0, 255)
+        val baseline = rect.centerY() - (favoritePaint.descent() + favoritePaint.ascent()) / 2f
+        canvas.drawText("\u2764\uFE0F", rect.centerX(), baseline, favoritePaint)
+    }
+
+    private data class TrackLine(
+        val text: String,
+        val y: Float,
+        val size: Float,
+        val color: Int,
+        val bold: Boolean,
+    )
+
+    private fun applyTrackFont(line: TrackLine) {
+        textPaint.textSize = line.size
         textPaint.typeface =
             Typeface.create(
                 Typeface.DEFAULT,
-                if (bold) Typeface.BOLD else Typeface.NORMAL,
+                if (line.bold) Typeface.BOLD else Typeface.NORMAL,
             )
-        val textWidth = textPaint.measureText(text)
-        val offset =
-            TrackMarquee.offsetPx(
-                textWidthPx = textWidth,
-                availablePx = right - left,
-                density = resources.displayMetrics.density,
-                clockMs = marqueeClockMs ?: SystemClock.uptimeMillis(),
-            )
+    }
+
+    /** One track line: centred when it fits; otherwise drawn from [left] shifted by [offset], clipped. */
+    private fun drawTrackLine(
+        canvas: Canvas,
+        line: TrackLine,
+        left: Float,
+        right: Float,
+        offset: Float?,
+    ) {
         if (offset == null) {
-            drawCenteredText(canvas, text, (left + right) / 2f, y, size, color, bold)
+            drawCenteredText(canvas, line.text, (left + right) / 2f, line.y, line.size, line.color, line.bold)
             return
         }
         marqueeRunning = true
-        val cycle = textWidth + TrackMarquee.gapPx(resources.displayMetrics.density)
-        textPaint.color = color
+        applyTrackFont(line)
+        textPaint.color = line.color
         canvas.save()
-        canvas.clipRect(left, y - size * 1.25f, right, y + size * 0.45f)
+        canvas.clipRect(left, line.y - line.size * 1.25f, right, line.y + line.size * 0.45f)
         textPaint.textAlign = Paint.Align.LEFT
-        canvas.drawText(text, left - offset, y, textPaint)
-        canvas.drawText(text, left - offset + cycle, y, textPaint)
+        canvas.drawText(line.text, left - offset, line.y, textPaint)
         textPaint.textAlign = Paint.Align.CENTER
         canvas.restore()
     }

@@ -1100,6 +1100,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         heroBoardView?.setPlaying(snapshot.isPlaying)
         heroThemeView?.setPlaying(snapshot.isPlaying)
         pulseDeckMainSkinView?.setPlaying(snapshot.isPlaying)
+        pulseDeckMainSkinView?.let { skin ->
+            // V78: red heart when this song is in favourites (also changed from the library).
+            skin.favoriteActive =
+                controller.currentTrackUri()?.let { LocalMusicUserState(this).isFavorite(it.toString()) } == true
+        }
         pulseDeckMainSkinView?.setPlaybackContent(
             title =
                 snapshot.trackName
@@ -2479,10 +2484,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 }
                             }
 
-                        "favorite" ->
-                            toast(
-                                "Обране — наступний етап",
-                            )
+                        // V78: ♡ really adds / removes the song from favourites.
+                        "favorite" -> {
+                            val uri = controller.currentTrackUri()
+                            if (uri == null) {
+                                toast("Спочатку обери пісню")
+                            } else {
+                                val added = LocalMusicUserState(this).toggleFavorite(uri.toString())
+                                pulseDeckMainSkinView?.favoriteActive = added
+                                toast(if (added) "❤ Додано в улюблені" else "Прибрано з улюблених")
+                            }
+                        }
 
                         "track_more" ->
                             toast(
@@ -4628,15 +4640,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         val modes = controlRow(
             6, 4,
+            // V44: ТОП / ВСІ only choose the list; they no longer switch AUTO on by themselves.
             legacyControl("ТОП") {
-                ProjectMStateStore(this).autoEnabled = true
                 loadProjectMFocusPresets(
                     com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP,
                 )
                 scheduleProjectMFocusAuto()
             },
             legacyControl("ВСІ") {
-                ProjectMStateStore(this).autoEnabled = true
                 loadProjectMFocusPresets(
                     com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL,
                 )
@@ -4681,13 +4692,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             requireNotNull(projectMFocusEdgeControl),
         )
         projectMFocusAutoControl = legacyControl("") {
+            // V44 (faric 19.10 15:57: «AUTO не вимикається»): AUTO OFF → 5 с → 10 с → 15 с → AUTO OFF.
             val state = ProjectMStateStore(this)
-            if (!state.autoEnabled) {
-                state.autoEnabled = true
-            } else {
-                val options = intArrayOf(5, 10, 15)
-                val current = options.indexOf(state.autoSwitchSeconds)
-                state.autoSwitchSeconds = options[(current + 1) % options.size]
+            val options = intArrayOf(5, 10, 15)
+            val current = options.indexOf(state.autoSwitchSeconds)
+            when {
+                !state.autoEnabled -> {
+                    state.autoEnabled = true
+                    state.autoSwitchSeconds = options.first()
+                }
+                current == options.lastIndex || current < 0 -> state.autoEnabled = false
+                else -> state.autoSwitchSeconds = options[current + 1]
             }
             scheduleProjectMFocusAuto()
             updateProjectMFocusStatus()
@@ -7476,6 +7491,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
+    private fun exportPrefs() =
+        getSharedPreferences("faric_export_options_v1", android.content.Context.MODE_PRIVATE)
+
+    /** V38: «Кнопки у відео» — the PulseDeck HUD drawn into the MP4 or not. */
+    private fun hudInVideoEnabled(): Boolean =
+        exportPrefs().getBoolean(KEY_EXPORT_HUD_IN_VIDEO, true)
+
     /** V3: Export Lab can sit on top of the running PulseDeck scene. */
     private fun hasRetainedExportScene(): Boolean =
         persistentSceneRoot != null &&
@@ -7742,6 +7764,23 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 },
             )
         }
+
+        // V38: buttons (HUD) in the video — yes / no, remembered.
+        content.addView(
+            exportPill(
+                text = if (hudInVideoEnabled()) "Кнопки у відео: так" else "Кнопки у відео: ні",
+                accent = false,
+            ) {
+                exportPrefs().edit().putBoolean(KEY_EXPORT_HUD_IN_VIDEO, !hudInVideoEnabled()).apply()
+                showExportLab()
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+            },
+        )
 
         val exportReady =
             true
@@ -8202,8 +8241,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 layerVisible(
                     PulseDeckLayerStack.Layer.EFFECTS,
                 ),
+            // V38 (faric 19.10 16:07: «без кнопок — так і пишеться»): Export Lab switch.
             pulseDeckVisible =
-                true,
+                hudInVideoEnabled(),
+            pulseDeckFavorite =
+                controller.currentTrackUri()?.let { LocalMusicUserState(this).isFavorite(it.toString()) } == true,
             pulseDeckObjectVisibility =
                 PULSEDECK_EXPORT_OBJECT_IDS
                     .associateWith { objectId ->
@@ -11459,6 +11501,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     companion object {
         const val EXTRA_OPEN_SCREEN = "faric.open.screen"
+        private const val KEY_EXPORT_HUD_IN_VIDEO = "hud_in_video"
         private const val KEY_RESTORE_WINDOW_KIND = "restore_window_kind"
         private const val KEY_RESTORE_WINDOW_TITLE = "restore_window_title"
         private const val KEY_RESTORE_WINDOW_MESSAGE = "restore_window_message"

@@ -846,6 +846,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         when (navigation) {
             PlayerSwipeNavigation.Destination.PROJECTM -> openProjectMFocusOverlay()
             PlayerSwipeNavigation.Destination.LIBRARY -> showLibrary()
+            // V83: swipe down from the centre — Export Lab, even with every HUD layer hidden.
+            PlayerSwipeNavigation.Destination.EXPORT -> openExportLabWithProjectMCapture()
             null -> Unit
         }
         return navigation != null || handled
@@ -1337,7 +1339,23 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         header.addView(label("  PulseDeck", 22f, COLOR_MUTED, false))
         header.addView(Space(this), LinearLayout.LayoutParams(0, 1, 1f))
         header.addView(iconButton("⌕") { showAllTracks(focusSearch = true) })
-        header.addView(iconButton("⋮") { toast("Меню PulseDeck — наступна хвиля") })
+        header.addView(
+            iconButton("⋮") {
+                // V83: Export Lab from the library menu too.
+                PulseDeckDialogs.show(
+                    context = this,
+                    title = "Меню PulseDeck",
+                    actions =
+                        listOf(
+                            PulseDeckDialogs.Action(label = "Export Lab", subtitle = "Відео MP4 і кадри PNG", icon = "⇧", accent = true) {
+                                showNowPlaying()
+                                window.decorView.post { openExportLabWithProjectMCapture() }
+                            },
+                            PulseDeckDialogs.Action(label = "Закрити") {},
+                        ),
+                )
+            },
+        )
 
         content.addView(header)
 
@@ -4609,7 +4627,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(8), dp(4), dp(8), 0)
         }
-        top.addView(back, LinearLayout.LayoutParams(dp(58), dp(58)))
+        // faric 20.10 05:36: the same size as the centre's top-left «‹» (≈ 10 % of the width).
+        val backSize = (resources.displayMetrics.widthPixels * 0.10f).toInt().coerceAtLeast(dp(40))
+        top.addView(back, LinearLayout.LayoutParams(backSize, backSize))
         top.addView(
             status,
             LinearLayout.LayoutParams(
@@ -4711,6 +4731,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             2, 4,
             requireNotNull(projectMFocusAutoControl),
             legacyControl("⚙ FG") { showProjectMSettingsPanel() },
+            // V83: Export Lab is reachable from here even when the bottom menu is hidden.
+            legacyControl("⇧ EXPORT") {
+                closeProjectMFocusOverlay()
+                openExportLabWithProjectMCapture()
+            },
         )
         val ratings = controlRow(
             2, 10,

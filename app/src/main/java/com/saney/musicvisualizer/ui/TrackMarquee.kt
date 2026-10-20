@@ -5,13 +5,13 @@ package com.saney.musicvisualizer.ui
  * «назва потихеньку йде; дійшла до кінця — виконавець починає йти, а назва вертається;
  * плавно, красивенько»). Only ONE line moves at a time:
  *   wait [PAUSE_MS] → slide left until its end is visible → hold [END_HOLD_MS] →
- *   glide back in [RETURN_MS] → the next line that does not fit … → round again.
+ *   slide back at the SAME speed (faric 20.10 05:36: «назад з такою самою швидкістю, не так
+ *   швидко») → the next line that does not fit … → round again.
  * Lines that fit stay centred. Pure math, tested on JVM; MP4 export passes the video time.
  */
 object TrackMarquee {
     const val PAUSE_MS = 1_500L
     const val END_HOLD_MS = 1_000L
-    const val RETURN_MS = 700L
     const val SPEED_DP_PER_S = 36f
 
     /**
@@ -33,22 +33,18 @@ object TrackMarquee {
                 val scrollMs = (extra!! / speedPxPerMs).toLong().coerceAtLeast(1L)
                 Triple(index, extra, scrollMs)
             }
-        val cycle = phases.sumOf { (_, _, scrollMs) -> PAUSE_MS + scrollMs + END_HOLD_MS + RETURN_MS }
+        val cycle = phases.sumOf { (_, _, scrollMs) -> PAUSE_MS + scrollMs + END_HOLD_MS + scrollMs }
         var t = Math.floorMod(clockMs, cycle)
         val result = overflow.map { if (it == null) null else 0f }.toMutableList()
         for ((index, extra, scrollMs) in phases) {
-            val span = PAUSE_MS + scrollMs + END_HOLD_MS + RETURN_MS
+            val span = PAUSE_MS + scrollMs + END_HOLD_MS + scrollMs
             if (t < span) {
                 result[index] =
                     when {
                         t < PAUSE_MS -> 0f
                         t < PAUSE_MS + scrollMs -> (t - PAUSE_MS) * speedPxPerMs
                         t < PAUSE_MS + scrollMs + END_HOLD_MS -> extra
-                        else -> {
-                            val k = (t - PAUSE_MS - scrollMs - END_HOLD_MS).toFloat() / RETURN_MS
-                            val eased = k * k * (3f - 2f * k) // smooth start and stop
-                            extra * (1f - eased)
-                        }
+                        else -> extra - (t - PAUSE_MS - scrollMs - END_HOLD_MS) * speedPxPerMs
                     }.coerceIn(0f, extra)
                 break
             }

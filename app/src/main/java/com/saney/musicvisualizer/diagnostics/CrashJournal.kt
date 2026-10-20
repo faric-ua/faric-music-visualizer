@@ -175,7 +175,7 @@ object CrashJournal {
      */
     fun fullReport(context: Context): String =
         buildString {
-            append("FARIC Music Visualizer v").append(appVersion).append(" · журнал збоїв\n")
+            append("PulseDeck v").append(appVersion).append(" · журнал збоїв\n")
             append("(найсвіжіше — вгорі)\n")
             val exits = readExits(context)
             append("\n=== Як закривався застосунок (Android, останні ").append(exits.size).append(") ===\n")

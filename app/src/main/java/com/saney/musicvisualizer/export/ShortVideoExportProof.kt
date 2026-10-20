@@ -102,7 +102,7 @@ object ShortVideoExportProof {
         fps: Int =
             DEFAULT_FPS,
         displayNamePrefix: String =
-            "FARIC-proof",
+            "PulseDeck-proof",
         // Batch export (v0.19.73): exact file name and Movies/PulseDeck/<folder> (Movies/FARIC before v0.19.87).
         exactDisplayName: String? = null,
         relativePath: String = Mp4AvMuxer.DEFAULT_RELATIVE_PATH,

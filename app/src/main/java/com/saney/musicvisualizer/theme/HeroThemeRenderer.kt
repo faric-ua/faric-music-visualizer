@@ -1019,7 +1019,7 @@ object HeroThemeRenderer {
             minSide * 0.020f
         canvas.drawText(
             input.artist
-                .ifBlank { "FARIC MIX" }
+                .ifBlank { "PulseDeck" }
                 .take(30),
             cx,
             labelTop + minSide * 0.075f,
@@ -1210,7 +1210,7 @@ object HeroThemeRenderer {
         fill.textSize = minSide * 0.026f
         fill.color = Color.rgb(171, 189, 202)
         canvas.drawText(
-            input.artist.ifBlank { "FARIC" },
+            input.artist.ifBlank { "PulseDeck" },
             w * 0.5f,
             h * 0.675f,
             fill,

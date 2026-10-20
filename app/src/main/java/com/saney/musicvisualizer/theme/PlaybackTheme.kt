@@ -72,7 +72,7 @@ object PlaybackThemeRegistry {
             PlaybackThemeSpec(
                 id = PlaybackThemeId.CYBER_SHARK,
                 title = "Cyber Shark",
-                subtitle = "Layered Board · frame / FX / creature / FARIC",
+                subtitle = "Шари · рамка / ефект / герой / напис",
                 family = ThemeFamily.HERO,
                 capabilities = setOf(
                     ThemeCapability.CUSTOM_LOGO,
@@ -365,7 +365,7 @@ object PlaybackThemeRegistry {
             PlaybackThemeSpec(
                 id = PlaybackThemeId.VISUALIZER,
                 title = "Visualizer",
-                subtitle = "FARIC + projectM layered visualizer",
+                subtitle = "projectM із шарами PulseDeck",
                 family = ThemeFamily.REACTIVE,
                 capabilities = setOf(
                     ThemeCapability.PROJECTM_BACKGROUND,

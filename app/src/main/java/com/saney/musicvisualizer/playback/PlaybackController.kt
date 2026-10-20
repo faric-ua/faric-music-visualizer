@@ -5,6 +5,7 @@ import android.content.Context
 import android.net.Uri
 import android.os.Handler
 import android.os.Looper
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.media3.common.C
 import androidx.media3.common.audio.AudioProcessor
@@ -280,10 +281,93 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         trackUri
 
     fun play() {
-        if (trackName != null) {
-            ensureNotificationSession()
-            player.play()
+        if (trackName == null) return
+        ensureNotificationSession()
+        // faric 20.10 18:17: after a long time in another app ▶ did nothing.
+        when (PlayRecovery.beforePlay(phase())) {
+            PlayRecovery.Before.PREPARE -> {
+                Log.w(PLAY_LOG, "play: player idle (error=${player.playerError?.errorCodeName}) -> prepare")
+                player.prepare()
+            }
+            PlayRecovery.Before.RESTART -> player.seekToDefaultPosition(player.currentMediaItemIndex)
+            PlayRecovery.Before.NONE -> Unit
         }
+        player.play()
+        playWaits = 0
+        playReloads = 0
+        schedulePlayCheck()
+    }
+
+    private var playWaits = 0
+    private var playReloads = 0
+    private val playCheck = Runnable { checkPlayStarted() }
+
+    private fun phase(): PlayRecovery.Phase =
+        when (player.playbackState) {
+            Player.STATE_BUFFERING -> PlayRecovery.Phase.BUFFERING
+            Player.STATE_READY -> PlayRecovery.Phase.READY
+            Player.STATE_ENDED -> PlayRecovery.Phase.ENDED
+            else -> PlayRecovery.Phase.IDLE
+        }
+
+    private fun schedulePlayCheck() {
+        mainHandler.removeCallbacks(playCheck)
+        mainHandler.postDelayed(playCheck, PlayRecovery.WAIT_MS)
+    }
+
+    private fun checkPlayStarted() {
+        if (player.mediaItemCount == 0) return
+        val decision =
+            PlayRecovery.afterWait(
+                isPlaying = player.isPlaying,
+                wantsToPlay = player.playWhenReady,
+                phase = phase(),
+                suppressed = player.playbackSuppressionReason != Player.PLAYBACK_SUPPRESSION_REASON_NONE,
+                waits = playWaits,
+                reloads = playReloads,
+            )
+        if (decision != PlayRecovery.After.DONE) {
+            Log.w(
+                PLAY_LOG,
+                "play did not start: $decision state=${player.playbackState} " +
+                    "suppression=${player.playbackSuppressionReason} error=${player.playerError?.errorCodeName}",
+            )
+        }
+        when (decision) {
+            PlayRecovery.After.DONE -> Unit
+            PlayRecovery.After.WAIT -> {
+                playWaits++
+                schedulePlayCheck()
+            }
+            PlayRecovery.After.RELOAD -> {
+                playReloads++
+                playWaits = 0
+                reloadQueueInPlace()
+                schedulePlayCheck()
+            }
+            PlayRecovery.After.AUDIO_BUSY -> {
+                status = "Звук зайнятий іншою програмою — натисни ▶ ще раз"
+                emitCurrentState()
+            }
+            PlayRecovery.After.GIVE_UP -> {
+                player.pause()
+                status = "Не вдалося відтворити — відкрий пісню з медіатеки ще раз"
+                emitCurrentState()
+            }
+        }
+    }
+
+    /** Same queue, same song, same second — fresh decoder and file access. */
+    private fun reloadQueueInPlace() {
+        val count = player.mediaItemCount
+        if (count == 0) return
+        val items = (0 until count).map { player.getMediaItemAt(it) }
+        val index = player.currentMediaItemIndex.coerceIn(0, count - 1)
+        val position = player.currentPosition.coerceAtLeast(0L)
+        player.stop()
+        player.setMediaItems(items, index, position)
+        player.prepare()
+        player.play()
     }
 
     fun pause() {
@@ -389,6 +473,8 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         super.onCleared()
     }
 }
+
+private const val PLAY_LOG = "PulseDeck-play"
 
 /**
  * Application-scoped playback owner. The service and MainActivity always

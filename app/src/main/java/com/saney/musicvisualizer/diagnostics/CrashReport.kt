@@ -84,7 +84,7 @@ object CrashReport {
         if (crashText.isNullOrBlank() && !exportInterrupted && shownExits.isEmpty()) return null
 
         return buildString {
-            append("FARIC Music Visualizer v").append(appVersion).append('\n')
+            append("PulseDeck v").append(appVersion).append('\n')
             if (trail != null && trail.running) {
                 append("\n■ ЕКСПОРТ ОБІРВАВСЯ\n")
                 appendTrail(trail, formatTime)

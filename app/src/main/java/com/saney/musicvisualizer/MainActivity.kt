@@ -9581,8 +9581,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun mediaStoreHasVideo(
         relativePath: String,
         displayName: String,
+        alsoLegacyFolder: Boolean = false,
     ): Boolean {
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.Q) return false
+        // V76: videos made before v0.19.87 stay in Movies/FARIC/<folder>/ — count them too.
+        if (alsoLegacyFolder) {
+            val legacy = com.saney.musicvisualizer.export.ExportFolders.legacyVideoPath(relativePath)
+            if (legacy != null && mediaStoreHasVideo(legacy, displayName)) return true
+        }
         return runCatching {
             contentResolver.query(
                 android.provider.MediaStore.Video.Media.EXTERNAL_CONTENT_URI,
@@ -9689,14 +9695,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         overallLabel.text = "Усього: ${results.size} з ${songs.size} · зроблено ${results.count { it.outcome == com.saney.musicvisualizer.export.BatchPlan.Outcome.DONE }}"
                     }
                 }
-                if (
-                    !testMode &&
-                    (
-                        mediaStoreHasVideo(relativePath, fileName) ||
-                            com.saney.musicvisualizer.export.ExportFolders.legacyVideoPath(relativePath)
-                                ?.let { mediaStoreHasVideo(it, fileName) } == true
-                    )
-                ) {
+                if (!testMode && mediaStoreHasVideo(relativePath, fileName, alsoLegacyFolder = true)) {
                     results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.SKIPPED_EXISTS, "відео вже є")
                     ui(100, "Уже є — пропускаю")
                     continue

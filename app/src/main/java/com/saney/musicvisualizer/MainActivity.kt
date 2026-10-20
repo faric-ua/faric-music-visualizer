@@ -3149,7 +3149,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ),
                     LayerMenuObject(
                         "faric_reactive",
-                        "FARIC Reactive",
+                        "Реакція на звук",
                     ),
                     LayerMenuObject(
                         "fg_center",
@@ -5452,7 +5452,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             "Visualizer"
 
                         PulseDeckLayerStack.Layer.FARIC_REACTIVE ->
-                            "Visualizer / FARIC Reactive (internal)"
+                            "Visualizer / реакція на звук (внутрішній)"
 
                         PulseDeckLayerStack.Layer.OVER_VISUALIZATION ->
                             "Надвізуалізація · 447504"
@@ -6208,7 +6208,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 // The selected Creature can be a scorpion, griffin or
                 // any external PNG regardless of the backing GF theme ID.
                 BoardLayerId.CREATURE -> "Герой"
-                BoardLayerId.WORDMARK -> "FARIC"
+                BoardLayerId.WORDMARK -> "Напис"
             }
 
         val header =
@@ -7649,7 +7649,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     compositionConfig
                         .faricReactiveVisible
                 ) {
-                    add("L1 FARIC")
+                    add("L1 реакція")
                 }
                 if (
                     compositionConfig
@@ -8498,7 +8498,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         ) {
             val clipboard =
                 getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("FARIC crash journal", report))
+            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("PulseDeck crash journal", report))
             toast("Текст скопійовано")
         }
     }
@@ -9348,9 +9348,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         PROJECTM_EXPORT_FPS,
                     displayNamePrefix =
                         if (fullSong) {
-                            "FARIC-Full"
+                            "PulseDeck-Full"
                         } else {
-                            "FARIC-preview"
+                            "PulseDeck-preview"
                         },
                     exactDisplayName =
                         exactDisplayName,
@@ -9892,7 +9892,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         context = this,
                         bitmap = bitmap,
                         displayName =
-                            "FARIC-Composition-${System.currentTimeMillis()}.png",
+                            "PulseDeck-Composition-${System.currentTimeMillis()}.png",
                     )
 
                 bitmap.recycle()
@@ -10086,7 +10086,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
         heroFamily.addView(toggleLabel)
         heroFamily.addView(label(
-            "Кібергерої FARIC / FMV / FVMP · натисни для вибору",
+            "Кібергерої · натисни для вибору",
             12f, COLOR_MUTED, false,
         ))
         heroFamily.setOnClickListener {
@@ -10400,7 +10400,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     label(
                         when {
                             spec.id == PlaybackThemeId.VISUALIZER ->
-                                "FARIC / projectM layered visualizer"
+                                "projectM із шарами PulseDeck"
 
                             isLayeredBoardTheme(spec.id) ->
                                 when {

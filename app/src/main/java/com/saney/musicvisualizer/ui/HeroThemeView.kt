@@ -48,7 +48,7 @@ class HeroThemeView(context: Context) : View(context) {
     private var playing = false
     private var lastFrameMs = SystemClock.elapsedRealtime()
     private var vinylRotation = 0f
-    private var trackTitle = "FARIC"
+    private var trackTitle = "PulseDeck"
     private var artistName = ""
 
     fun setTheme(theme: PlaybackThemeId) {
@@ -86,7 +86,7 @@ class HeroThemeView(context: Context) : View(context) {
             title
                 ?.substringBeforeLast('.')
                 ?.takeIf { it.isNotBlank() }
-                ?: "FARIC"
+                ?: "PulseDeck"
 
         artistName =
             artist
@@ -866,7 +866,7 @@ class HeroThemeView(context: Context) : View(context) {
 
         canvas.drawText(
             if (artistName.isBlank()) {
-                "FARIC MIX"
+                "PulseDeck"
             } else {
                 artistName.take(30)
             },

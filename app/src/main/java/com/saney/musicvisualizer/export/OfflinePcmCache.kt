@@ -238,8 +238,14 @@ object OfflinePcmCache {
                         "Audio MIME відсутній",
                     )
 
+            // V89: a WAV is read by PulseDeck itself (true rate and sample format from its header).
+            val wav = openWavPcmOrNull(context, uri)
+            wav?.skipToUs(range.startUs)
+
             val sourceDurationUs =
-                if (
+                if (wav != null && wav.durationUs > 0L) {
+                    wav.durationUs
+                } else if (
                     inputFormat.containsKey(
                         MediaFormat.KEY_DURATION,
                     )
@@ -258,14 +264,14 @@ object OfflinePcmCache {
                     )
 
             var sampleRate =
-                inputFormat
+                wav?.sampleRate ?: inputFormat
                     .getIntegerOrDefault(
                         MediaFormat.KEY_SAMPLE_RATE,
                         44_100,
                     )
 
             var channelCount =
-                inputFormat
+                wav?.channels ?: inputFormat
                     .getIntegerOrDefault(
                         MediaFormat.KEY_CHANNEL_COUNT,
                         2,
@@ -313,6 +319,31 @@ object OfflinePcmCache {
                             throw CancellationException(
                                 "PCM preparation cancelled",
                             )
+                        }
+
+                        if (wav != null) {
+                            val chunkPtsUs = wav.positionUs
+                            val pcm = if (range.isPastEnd(chunkPtsUs)) null else wav.readPcm16(4096)
+                            if (pcm == null) {
+                                outputDone = true
+                            } else {
+                                if (firstOutputUs < 0L) firstOutputUs = chunkPtsUs
+                                sampleCount +=
+                                    writeMono16(
+                                        pcm = java.nio.ByteBuffer.wrap(pcm).order(ByteOrder.LITTLE_ENDIAN),
+                                        pcmEncoding = AudioFormat.ENCODING_PCM_16BIT,
+                                        channelCount = channelCount,
+                                        output = output,
+                                    )
+                                if (sourceDurationUs > 0L) {
+                                    val progress = range.progressPercent(chunkPtsUs, sourceDurationUs).coerceIn(0, 99)
+                                    if (progress != lastProgress) {
+                                        lastProgress = progress
+                                        onProgress(progress)
+                                    }
+                                }
+                            }
+                            continue
                         }
 
                         if (!inputDone) {
@@ -541,6 +572,7 @@ object OfflinePcmCache {
                     decoder.stop()
                 }
                 decoder.release()
+                runCatching { wav?.close() }
             }
 
             val cacheStartMs =

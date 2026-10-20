@@ -123,8 +123,14 @@ object OfflineAudioAnalyzer {
                         "Audio MIME відсутній",
                     )
 
+            // V89: a WAV is read by PulseDeck itself (true rate and sample format from its header).
+            val wav = openWavPcmOrNull(context, uri)
+            wav?.skipToUs(range.startUs)
+
             val sourceDurationUs =
-                if (
+                if (wav != null && wav.durationUs > 0L) {
+                    wav.durationUs
+                } else if (
                     inputFormat.containsKey(
                         MediaFormat.KEY_DURATION,
                     )
@@ -157,14 +163,14 @@ object OfflineAudioAnalyzer {
                 var outputDone = false
 
                 var sampleRate =
-                    inputFormat
+                    wav?.sampleRate ?: inputFormat
                         .getIntegerOrDefault(
                             MediaFormat.KEY_SAMPLE_RATE,
                             44_100,
                         )
 
                 var channelCount =
-                    inputFormat
+                    wav?.channels ?: inputFormat
                         .getIntegerOrDefault(
                             MediaFormat.KEY_CHANNEL_COUNT,
                             2,
@@ -191,6 +197,27 @@ object OfflineAudioAnalyzer {
                 var lastProgress = -1
 
                 while (!outputDone) {
+                    if (wav != null) {
+                        val chunkPtsUs = wav.positionUs
+                        val pcm = if (range.isPastEnd(chunkPtsUs)) null else wav.readPcm16(4096)
+                        if (pcm == null) {
+                            outputDone = true
+                        } else {
+                            if (firstOutputUs < 0L) firstOutputUs = chunkPtsUs
+                            accumulator.pushShortPcm(
+                                pcm = java.nio.ByteBuffer.wrap(pcm).order(ByteOrder.LITTLE_ENDIAN),
+                                channelCount = channelCount,
+                            )
+                            if (sourceDurationUs > 0L) {
+                                val progress = range.progressPercent(chunkPtsUs, sourceDurationUs).coerceIn(0, 99)
+                                if (progress != lastProgress) {
+                                    lastProgress = progress
+                                    onProgress(progress)
+                                }
+                            }
+                        }
+                        continue
+                    }
                     if (!inputDone) {
                         val inputIndex =
                             decoder.dequeueInputBuffer(
@@ -417,6 +444,7 @@ object OfflineAudioAnalyzer {
                     decoder.stop()
                 }
                 decoder.release()
+                runCatching { wav?.close() }
             }
         } finally {
             extractor.release()

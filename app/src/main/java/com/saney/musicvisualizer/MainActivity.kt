@@ -7545,6 +7545,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun exportPrefs() =
         getSharedPreferences("faric_export_options_v1", android.content.Context.MODE_PRIVATE)
 
+    /** V46: the phone screen's height / width in portrait, as the HUD is really laid out. */
+    private fun exportScreenAspect(): Float {
+        val skin = pulseDeckMainSkinView
+        if (skin != null && skin.width > 0 && skin.height > 0) {
+            return maxOf(skin.width, skin.height).toFloat() / minOf(skin.width, skin.height)
+        }
+        val m = resources.displayMetrics
+        return maxOf(m.widthPixels, m.heightPixels).toFloat() / minOf(m.widthPixels, m.heightPixels).coerceAtLeast(1)
+    }
+
     /** V38: «Кнопки у відео» — the PulseDeck HUD drawn into the MP4 or not. */
     private fun hudInVideoEnabled(): Boolean =
         exportPrefs().getBoolean(KEY_EXPORT_HUD_IN_VIDEO, true)
@@ -7815,6 +7825,24 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 },
             )
         }
+
+        // V46: 9:16 fills the frame (a little is cut) unless «вміщається все»; 16:9 always fits.
+        val fitWhole = exportPrefs().getBoolean(KEY_EXPORT_FIT_WHOLE_SCREEN, false)
+        content.addView(
+            exportPill(
+                text = if (fitWhole) "Екран у відео: вміщається весь" else "Екран у відео: на весь кадр",
+                accent = false,
+            ) {
+                exportPrefs().edit().putBoolean(KEY_EXPORT_FIT_WHOLE_SCREEN, !fitWhole).apply()
+                showExportLab()
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+            },
+        )
 
         // V38: buttons (HUD) in the video — yes / no, remembered.
         content.addView(
@@ -8297,6 +8325,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 hudInVideoEnabled(),
             pulseDeckFavorite =
                 controller.currentTrackUri()?.let { LocalMusicUserState(this).isFavorite(it.toString()) } == true,
+            // V46: hero + HUD laid out like this phone screen, then scaled into the frame.
+            screenAspect = exportScreenAspect(),
+            fitWholeScreen = exportPrefs().getBoolean(KEY_EXPORT_FIT_WHOLE_SCREEN, false),
             pulseDeckObjectVisibility =
                 PULSEDECK_EXPORT_OBJECT_IDS
                     .associateWith { objectId ->
@@ -11553,6 +11584,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     companion object {
         const val EXTRA_OPEN_SCREEN = "faric.open.screen"
         private const val KEY_EXPORT_HUD_IN_VIDEO = "hud_in_video"
+        private const val KEY_EXPORT_FIT_WHOLE_SCREEN = "fit_whole_screen"
         private const val KEY_RESTORE_WINDOW_KIND = "restore_window_kind"
         private const val KEY_RESTORE_WINDOW_TITLE = "restore_window_title"
         private const val KEY_RESTORE_WINDOW_MESSAGE = "restore_window_message"

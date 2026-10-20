@@ -7689,6 +7689,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ) {
                     add("L3 GF")
                 }
+                compositionConfig.standaloneTheme?.let { theme ->
+                    add("L3 тема " + (PlaybackThemeRegistry.all.firstOrNull { it.id == theme }?.title ?: theme.name))
+                }
                 if (
                     compositionConfig
                         .effectsVisible
@@ -8299,8 +8302,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             layerVisible(
                 PulseDeckLayerStack.Layer.VISUALIZER,
             )
+        // V88 (faric 20.10 19:09: на екрані вініл, а у відео — герой FMV): a standalone
+        // theme replaces the GF Board on screen and is opaque, so the video draws the
+        // same theme view and nothing below it (projectM, reactive, big EQ).
+        val standaloneTheme =
+            selectedThemeId.takeIf { isStandaloneHeroTheme(it) }
+        val belowHeroVisible = standaloneTheme == null
         val projectMVisible =
-            projectMSurfaceVisible() &&
+            belowHeroVisible &&
+                projectMSurfaceVisible() &&
                 ProjectMStateStore(this)
                     .lastPresetFileOrNull() !=
                 null
@@ -8308,7 +8318,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         return CompositionExportConfig(
             scene =
                 currentScene,
+            standaloneTheme =
+                standaloneTheme,
             faricReactiveVisible =
+                belowHeroVisible &&
                 visualizerVisible &&
                     layerObjectVisible(
                         PulseDeckLayerStack.Layer.VISUALIZER,
@@ -8323,14 +8336,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     null
                 },
             overVisualizationVisible =
+                belowHeroVisible &&
                 layerVisible(
                     PulseDeckLayerStack.Layer.OVER_VISUALIZATION,
                 ),
             bigEqualizerVisible =
+                belowHeroVisible &&
                 layerVisible(
                     PulseDeckLayerStack.Layer.BIG_EQUALIZER,
                 ),
+            // The GF Board is hidden on screen while a standalone theme is shown.
             graphicFiguresVisible =
+                belowHeroVisible &&
                 layerVisible(
                     PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
                 ),

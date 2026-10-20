@@ -51,6 +51,12 @@ class HeroThemeView(context: Context) : View(context) {
     private var trackTitle = "PulseDeck"
     private var artistName = ""
 
+    /**
+     * V88: MP4 export draws this same view; it sets the song time here so
+     * rotation and pulses follow the video, not the wall clock.
+     */
+    var exportClockMs: Long? = null
+
     fun setTheme(theme: PlaybackThemeId) {
         themeId = theme
         postInvalidateOnAnimation()
@@ -114,7 +120,7 @@ class HeroThemeView(context: Context) : View(context) {
     override fun onDraw(canvas: Canvas) {
         super.onDraw(canvas)
 
-        val now = SystemClock.elapsedRealtime()
+        val now = exportClockMs ?: SystemClock.elapsedRealtime()
         val dt =
             ((now - lastFrameMs).coerceIn(1L, 50L) / 1000f)
 

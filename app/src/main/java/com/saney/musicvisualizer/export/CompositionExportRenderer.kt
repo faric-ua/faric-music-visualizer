@@ -12,6 +12,8 @@ import android.view.View
 import com.saney.musicvisualizer.analysis.SceneSignal
 import com.saney.musicvisualizer.board.BoardLayerId
 import com.saney.musicvisualizer.scene.SceneSpec
+import com.saney.musicvisualizer.theme.PlaybackThemeId
+import com.saney.musicvisualizer.ui.HeroThemeView
 import com.saney.musicvisualizer.ui.PulseDeckMainSkinView
 import kotlin.math.max
 import kotlin.math.roundToLong
@@ -42,6 +44,12 @@ data class CompositionExportConfig(
     val screenAspect: Float = 16f / 9f,
     /** V46: «вміщається все» — never cut the screen, even in 9:16. */
     val fitWholeScreen: Boolean = false,
+    /**
+     * V88: a standalone theme (Vinyl, Cassette, Neon Emblem …) is on screen instead of the
+     * GF Board. Export draws the SAME HeroThemeView as the live screen, in the GF slot:
+     * it is opaque, so projectM and the layers below are not drawn at all.
+     */
+    val standaloneTheme: PlaybackThemeId? = null,
 )
 
 data class CompositionStageTiming(
@@ -107,6 +115,47 @@ class CompositionExportRenderer(
                     ),
                 )
         }
+
+    private val standaloneHeroView: HeroThemeView? =
+        config.standaloneTheme?.let { theme ->
+            HeroThemeView(context).also { it.setTheme(theme) }
+        }
+    private var standaloneHeroWidth = 0
+    private var standaloneHeroHeight = 0
+
+    /** V88: the live standalone theme view, drawn on the virtual phone screen like the HUD. */
+    private fun drawStandaloneHero(
+        canvas: Canvas,
+        width: Int,
+        height: Int,
+        timeMs: Long,
+        signal: SceneSignal,
+        title: String,
+        artist: String,
+        playing: Boolean,
+    ) {
+        val view = standaloneHeroView ?: return
+        val startedNs = System.nanoTime()
+        // Fit mode (16:9 …): the theme background covers only the screen area — keep the rest black.
+        canvas.drawColor(Color.BLACK)
+        onScreen(canvas, width, height) { vw, vh ->
+            if (standaloneHeroWidth != vw || standaloneHeroHeight != vh) {
+                view.measure(
+                    View.MeasureSpec.makeMeasureSpec(vw, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(vh, View.MeasureSpec.EXACTLY),
+                )
+                view.layout(0, 0, vw, vh)
+                standaloneHeroWidth = vw
+                standaloneHeroHeight = vh
+            }
+            view.exportClockMs = timeMs
+            view.setPlaying(playing)
+            view.setMetadata(title = title, artist = artist)
+            view.updateSignal(signal)
+            view.draw(canvas)
+        }
+        cyberSharkNs += System.nanoTime() - startedNs
+    }
 
     private val pulseDeckView =
         if (config.pulseDeckVisible) {
@@ -631,6 +680,8 @@ class CompositionExportRenderer(
                     startedNs
         }
 
+        drawStandaloneHero(canvas, width, height, timeMs, signal, title, artist, playing)
+
         if (
             config
                 .effectsVisible
@@ -693,12 +744,13 @@ class CompositionExportRenderer(
                         title.ifBlank {
                             "PulseDeck"
                         },
-                    artist = artist,
+                    // Same lines as the live HUD (MainActivity.updateNowPlaying).
+                    artist = artist.ifBlank { "Невідомий виконавець" },
                     status =
                         if (playing) {
-                            "Playing"
+                            "Відтворення · reactive ON · PulseDeck HUD"
                         } else {
-                            "Paused"
+                            "Пауза · reactive ON · PulseDeck HUD"
                         },
                     elapsed =
                         formatTime(
@@ -752,6 +804,8 @@ class CompositionExportRenderer(
         durationMs: Long,
         playing: Boolean = true,
     ) {
+        drawStandaloneHero(canvas, width, height, timeMs, signal, title, artist, playing)
+
         if (
             config
                 .effectsVisible
@@ -814,12 +868,13 @@ class CompositionExportRenderer(
                         title.ifBlank {
                             "PulseDeck"
                         },
-                    artist = artist,
+                    // Same lines as the live HUD (MainActivity.updateNowPlaying).
+                    artist = artist.ifBlank { "Невідомий виконавець" },
                     status =
                         if (playing) {
-                            "Playing"
+                            "Відтворення · reactive ON · PulseDeck HUD"
                         } else {
-                            "Paused"
+                            "Пауза · reactive ON · PulseDeck HUD"
                         },
                     elapsed =
                         formatTime(
@@ -901,6 +956,8 @@ class CompositionExportRenderer(
                     startedNs
         }
 
+        drawStandaloneHero(canvas, width, height, timeMs, signal, title, artist, playing)
+
         if (
             config
                 .effectsVisible
@@ -963,12 +1020,13 @@ class CompositionExportRenderer(
                         title.ifBlank {
                             "PulseDeck"
                         },
-                    artist = artist,
+                    // Same lines as the live HUD (MainActivity.updateNowPlaying).
+                    artist = artist.ifBlank { "Невідомий виконавець" },
                     status =
                         if (playing) {
-                            "Playing"
+                            "Відтворення · reactive ON · PulseDeck HUD"
                         } else {
-                            "Paused"
+                            "Пауза · reactive ON · PulseDeck HUD"
                         },
                     elapsed =
                         formatTime(
@@ -1158,6 +1216,8 @@ class CompositionExportRenderer(
         // Layer 4 is currently an empty GIF/animation slot.
 
         // Layer 5
+        drawStandaloneHero(canvas, width, height, timeMs, signal, title, artist, playing)
+
         if (
             config
                 .effectsVisible
@@ -1221,12 +1281,13 @@ class CompositionExportRenderer(
                         title.ifBlank {
                             "PulseDeck"
                         },
-                    artist = artist,
+                    // Same lines as the live HUD (MainActivity.updateNowPlaying).
+                    artist = artist.ifBlank { "Невідомий виконавець" },
                     status =
                         if (playing) {
-                            "Playing"
+                            "Відтворення · reactive ON · PulseDeck HUD"
                         } else {
-                            "Paused"
+                            "Пауза · reactive ON · PulseDeck HUD"
                         },
                     elapsed =
                         formatTime(

@@ -117,22 +117,25 @@ class ProjectMView(
                     1_000_000L,
         )
 
+    /** V92: the preset this view shows now (after NEXT / AUTO), used when the surface is recreated. */
+    @Volatile
+    private var currentPresetPath: String = initialPreset.absolutePath
+
+    val currentPresetFile: File
+        get() = File(currentPresetPath)
+
     init {
         setEGLContextClientVersion(2)
         setRenderer(
             Renderer(
-                presetPath = initialPreset.absolutePath,
+                presetPath = { currentPresetPath },
                 texturePath = textureDirectory.absolutePath,
                 profile = profile,
-                foregroundSample = foregroundSample,
-                backgroundVisible =
-                    backgroundVisible,
-                foregroundCenterVisible =
-                    foregroundCenterVisible,
-                foregroundEdgeFxVisible =
-                    foregroundEdgeFxVisible,
-                foregroundTuning =
-                    foregroundTuning,
+                foregroundSample = { foregroundSample },
+                backgroundVisible = { backgroundVisible },
+                foregroundCenterVisible = { foregroundCenterVisible },
+                foregroundEdgeFxVisible = { foregroundEdgeFxVisible },
+                foregroundTuning = { foregroundTuning },
                 manualFrameMode = manualFrameMode,
                 shouldSkipNativeRendering = { releaseRequested },
                 onSurfaceSize = { width, height ->
@@ -221,6 +224,7 @@ class ProjectMView(
         onLoaded: ((Long) -> Unit)? = null,
     ) {
         if (!file.isFile) return
+        currentPresetPath = file.absolutePath
 
         queueEvent {
             val loadMs =
@@ -488,7 +492,7 @@ class ProjectMView(
                 width = width,
                 height = height,
                 presetPath =
-                    initialPreset.absolutePath,
+                    currentPresetPath,
                 texturePath =
                     textureDirectory.absolutePath,
                 profile =
@@ -1070,15 +1074,19 @@ class ProjectMView(
             false
     }
 
+    // V92: values are read when the GL surface is (re)created — the CURRENT preset and
+    // foreground settings, not the ones the view was built with. Before, a recreated surface
+    // (pause / resume, the shared native projectM taken by export or another screen) went back
+    // to the first preset while the app (and the MP4 export) already used a newer one.
     private class Renderer(
-        private val presetPath: String,
+        private val presetPath: () -> String,
         private val texturePath: String,
         private val profile: ProjectMPerformanceProfile,
-        private val foregroundSample: FaricForegroundSample,
-        private val backgroundVisible: Boolean,
-        private val foregroundCenterVisible: Boolean,
-        private val foregroundEdgeFxVisible: Boolean,
-        private val foregroundTuning: ProjectMForegroundTuning,
+        private val foregroundSample: () -> FaricForegroundSample,
+        private val backgroundVisible: () -> Boolean,
+        private val foregroundCenterVisible: () -> Boolean,
+        private val foregroundEdgeFxVisible: () -> Boolean,
+        private val foregroundTuning: () -> ProjectMForegroundTuning,
         private val manualFrameMode: Boolean,
         private val shouldSkipNativeRendering: () -> Boolean,
         private val onSurfaceSize: (Int, Int) -> Unit,
@@ -1105,7 +1113,7 @@ class ProjectMView(
                 ProjectMBridge.create(
                     width = width,
                     height = height,
-                    presetPath = presetPath,
+                    presetPath = presetPath(),
                     texturePath = texturePath,
                     profile = profile,
                 )
@@ -1117,18 +1125,18 @@ class ProjectMView(
                 )
                 // FARIC owns AUTO/MANUAL timing. projectM internal switching stays locked.
                 ProjectMBridge.enableAutoPresetSwitching(false)
-                ProjectMBridge.setForegroundSample(foregroundSample)
+                ProjectMBridge.setForegroundSample(foregroundSample())
                 ProjectMBridge.setBackgroundVisible(
-                    backgroundVisible,
+                    backgroundVisible(),
                 )
                 ProjectMBridge.setForegroundVisibility(
                     centerVisible =
-                        foregroundCenterVisible,
+                        foregroundCenterVisible(),
                     edgeFxVisible =
-                        foregroundEdgeFxVisible,
+                        foregroundEdgeFxVisible(),
                 )
                 ProjectMBridge.setForegroundTuning(
-                    foregroundTuning,
+                    foregroundTuning(),
                 )
                 created = true
             } else {

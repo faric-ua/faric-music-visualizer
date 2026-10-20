@@ -65,5 +65,9 @@ class Mp4TaggerTest {
     fun albumFolder() {
         assertEquals("Movies/PulseDeck/FARIC Vol. 3/", BatchPlan.albumRelativePath("FARIC Vol. 3"))
         assertEquals("Movies/PulseDeck/AC DC/", BatchPlan.albumRelativePath("AC/DC"))
+        assertEquals(
+            "Movies/PulseDeck/White Side/Тест 10с 21.10 01-25/White Side/",
+            BatchPlan.albumSubfolder("Movies/PulseDeck/White Side/Тест 10с 21.10 01-25/", "White Side"),
+        )
     }
 }

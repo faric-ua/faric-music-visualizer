@@ -4627,9 +4627,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             gravity = Gravity.CENTER_VERTICAL
             setPadding(dp(8), dp(4), dp(8), 0)
         }
-        // faric 20.10 05:36: the same size as the centre's top-left «‹» (≈ 10 % of the width).
+        // V84 (faric 20.10 05:36 / 06:03): the same size as the centre's «‹» (≈ 10 % of the
+        // width) AND in the same place — centred on where the centre screen draws its «back».
         val backSize = (resources.displayMetrics.widthPixels * 0.10f).toInt().coerceAtLeast(dp(40))
-        top.addView(back, LinearLayout.LayoutParams(backSize, backSize))
+        val skin = pulseDeckMainSkinView
+        val centreBack = skin?.objectRect("back")
+        if (skin != null && centreBack != null) {
+            overlay.clipToPadding = false
+            overlay.addView(back, FrameLayout.LayoutParams(backSize, backSize))
+            back.visibility = View.INVISIBLE
+            overlay.post {
+                val overlayAt = IntArray(2).also(overlay::getLocationInWindow)
+                val skinAt = IntArray(2).also(skin::getLocationInWindow)
+                back.x = skinAt[0] - overlayAt[0] + centreBack.centerX() - backSize / 2f
+                back.y = skinAt[1] - overlayAt[1] + centreBack.centerY() - backSize / 2f
+                back.visibility = View.VISIBLE
+                back.bringToFront()
+            }
+            // The status text starts right of the button.
+            top.setPadding(centreBack.right.toInt() + dp(6), dp(4), dp(8), 0)
+        } else {
+            top.addView(back, LinearLayout.LayoutParams(backSize, backSize))
+        }
         top.addView(
             status,
             LinearLayout.LayoutParams(

@@ -21,6 +21,7 @@ import androidx.core.graphics.PathParser
 import android.view.GestureDetector
 import android.view.MotionEvent
 import android.view.View
+import com.saney.musicvisualizer.R
 import com.saney.musicvisualizer.analysis.SceneSignal
 import org.json.JSONObject
 import kotlin.math.max
@@ -171,7 +172,10 @@ class PulseDeckMainSkinView(
     private var spectrum = FloatArray(0)
 
     private var title =
-        "FARIC PulseDeck"
+        "PulseDeck"
+
+    // V86: app logo next to the header title (same picture as the launcher icon).
+    private val headerLogo by lazy { context.getDrawable(R.drawable.ic_pulsedeck_logo) }
     private var artist =
         "Оберіть музику"
     private var status =
@@ -1733,12 +1737,32 @@ class PulseDeckMainSkinView(
                 (0.069f + headerOffset.second)
 
         if (isObjectVisible("header_title")) {
+            // V86 / V76: logo + "PulseDeck", the pair centred where the title was.
+            val headerSize = w * 0.052f
+            textPaint.textSize = headerSize
+            textPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
+            val headerText = "PulseDeck"
+            val textWidth = textPaint.measureText(headerText)
+            val logoSize = headerSize * 1.45f
+            val logoGap = headerSize * 0.35f
+            val groupLeft = headerX - (logoSize + logoGap + textWidth) / 2f
+            val logoTop = headerY - headerSize * 0.36f - logoSize / 2f
+            headerLogo?.let { logo ->
+                logo.setBounds(
+                    groupLeft.toInt(),
+                    logoTop.toInt(),
+                    (groupLeft + logoSize).toInt(),
+                    (logoTop + logoSize).toInt(),
+                )
+                logo.alpha = alpha
+                logo.draw(canvas)
+            }
             drawCenteredText(
                 canvas = canvas,
-                text = "FARIC PulseDeck",
-                x = headerX,
+                text = headerText,
+                x = groupLeft + logoSize + logoGap + textWidth / 2f,
                 y = headerY,
-                size = w * 0.052f,
+                size = headerSize,
                 color = Color.WHITE,
                 bold = true,
             )

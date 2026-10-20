@@ -103,7 +103,7 @@ object ShortVideoExportProof {
             DEFAULT_FPS,
         displayNamePrefix: String =
             "FARIC-proof",
-        // Batch export (v0.19.73): exact file name and Movies/FARIC/<folder>.
+        // Batch export (v0.19.73): exact file name and Movies/PulseDeck/<folder> (Movies/FARIC before v0.19.87).
         exactDisplayName: String? = null,
         relativePath: String = Mp4AvMuxer.DEFAULT_RELATIVE_PATH,
         shouldCancel: () -> Boolean = {
@@ -1350,7 +1350,7 @@ object ShortVideoExportProof {
             Log.i("FARIC-export", "Final MP4 mux started: videoBytes=" +
                 videoTemp.length() + " audioBytes=" + audioTemp.length() +
                 " directMediaStore=" + (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q))
-            // On Android 10+ mux directly to pending Movies/FARIC. A second
+            // On Android 10+ mux directly to pending Movies/PulseDeck. A second
             // complete MP4 in cache used to exhaust device storage at the end.
             val uri: Uri?
             val muxMs: Long
@@ -1384,7 +1384,7 @@ object ShortVideoExportProof {
                 )
                 publishMs = (System.nanoTime() - publishingStartedNs) / 1_000_000L
             }
-            check(uri != null) { "MP4 was not published to Movies/FARIC" }
+            check(uri != null) { "MP4 was not published to ${ExportFolders.VIDEO}" }
             Log.i("FARIC-export", "Final MP4 published: uri=$uri elapsedMs=" +
                 ((System.nanoTime() - finalizingStartedNs) / 1_000_000L))
             onProgress(100)
@@ -1549,7 +1549,7 @@ object ShortVideoExportProof {
                     )
                     put(
                         MediaStore.Video.Media.RELATIVE_PATH,
-                        "Movies/FARIC",
+                        ExportFolders.VIDEO,
                     )
                     put(
                         MediaStore.Video.Media.IS_PENDING,
@@ -1606,7 +1606,7 @@ object ShortVideoExportProof {
                     context.getExternalFilesDir(
                         Environment.DIRECTORY_MOVIES,
                     ),
-                    "FARIC",
+                    ExportFolders.NAME,
                 )
             directory.mkdirs()
 

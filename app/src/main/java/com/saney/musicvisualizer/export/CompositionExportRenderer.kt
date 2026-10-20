@@ -691,7 +691,7 @@ class CompositionExportRenderer(
                 view.setPlaybackContent(
                     title =
                         title.ifBlank {
-                            "FARIC"
+                            "PulseDeck"
                         },
                     artist = artist,
                     status =
@@ -812,7 +812,7 @@ class CompositionExportRenderer(
                 view.setPlaybackContent(
                     title =
                         title.ifBlank {
-                            "FARIC"
+                            "PulseDeck"
                         },
                     artist = artist,
                     status =
@@ -961,7 +961,7 @@ class CompositionExportRenderer(
                 view.setPlaybackContent(
                     title =
                         title.ifBlank {
-                            "FARIC"
+                            "PulseDeck"
                         },
                     artist = artist,
                     status =
@@ -1219,7 +1219,7 @@ class CompositionExportRenderer(
                 view.setPlaybackContent(
                     title =
                         title.ifBlank {
-                            "FARIC"
+                            "PulseDeck"
                         },
                     artist = artist,
                     status =

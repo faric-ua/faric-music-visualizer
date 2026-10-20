@@ -1071,7 +1071,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         dockProgress?.progress = ratio
 
-        nowTitle?.text = snapshot.trackName ?: "FARIC PulseDeck"
+        nowTitle?.text = snapshot.trackName ?: "PulseDeck"
         nowArtist?.text = if (snapshot.trackName == null) "Оберіть музику" else
             snapshot.trackArtist ?: "Невідомий виконавець"
         nowStatus?.text = buildString {
@@ -1110,7 +1110,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         pulseDeckMainSkinView?.setPlaybackContent(
             title =
                 snapshot.trackName
-                    ?: "FARIC PulseDeck",
+                    ?: "PulseDeck",
             artist =
                 if (snapshot.trackName == null) {
                     "Оберіть музику"
@@ -1335,8 +1335,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
         }
-        header.addView(label("FARIC", 28f, Color.WHITE, true))
-        header.addView(label("  PulseDeck", 22f, COLOR_MUTED, false))
+        // V86: own logo + name; V76: no "FARIC" in the app title.
+        header.addView(
+            android.widget.ImageView(this).apply {
+                setImageResource(R.drawable.ic_pulsedeck_logo)
+                contentDescription = "PulseDeck"
+            },
+            LinearLayout.LayoutParams(dp(40), dp(40)).apply { rightMargin = dp(10) },
+        )
+        header.addView(label("PulseDeck", 26f, Color.WHITE, true))
         header.addView(Space(this), LinearLayout.LayoutParams(0, 1, 1f))
         header.addView(iconButton("⌕") { showAllTracks(focusSearch = true) })
         header.addView(
@@ -1432,7 +1439,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             Triple("✦", "Жанри", "Стилі музики"),
             Triple("20", "Роки", "Музика за роками"),
             Triple("♡", "Улюблені", "Твої позначки ♥"),
-            Triple("↺", "Нещодавні", "Прослухані у FARIC"),
+            Triple("↺", "Нещодавні", "Прослухані в PulseDeck"),
             Triple("▤", "Мої добірки", "Власні плейлисти"),
         )
 
@@ -8113,11 +8120,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             message = "Куди перейти?",
             actions =
                 listOf(
-                    PulseDeckDialogs.Action(label = "Кадри PNG", subtitle = "Pictures/FARIC", icon = "▣") {
-                        openExportFolder("Pictures/FARIC")
+                    PulseDeckDialogs.Action(label = "Кадри PNG", subtitle = com.saney.musicvisualizer.export.ExportFolders.PICTURES, icon = "▣") {
+                        openExportFolder(com.saney.musicvisualizer.export.ExportFolders.PICTURES)
                     },
-                    PulseDeckDialogs.Action(label = "Відео зі звуком", subtitle = "Movies/FARIC", icon = "▶") {
-                        openExportFolder("Movies/FARIC")
+                    PulseDeckDialogs.Action(label = "Відео зі звуком", subtitle = com.saney.musicvisualizer.export.ExportFolders.VIDEO, icon = "▶") {
+                        openExportFolder(com.saney.musicvisualizer.export.ExportFolders.VIDEO)
                     },
                     PulseDeckDialogs.Action(label = "Скасувати") {},
                 ),
@@ -9682,7 +9689,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         overallLabel.text = "Усього: ${results.size} з ${songs.size} · зроблено ${results.count { it.outcome == com.saney.musicvisualizer.export.BatchPlan.Outcome.DONE }}"
                     }
                 }
-                if (!testMode && mediaStoreHasVideo(relativePath, fileName)) {
+                if (
+                    !testMode &&
+                    (
+                        mediaStoreHasVideo(relativePath, fileName) ||
+                            com.saney.musicvisualizer.export.ExportFolders.legacyVideoPath(relativePath)
+                                ?.let { mediaStoreHasVideo(it, fileName) } == true
+                    )
+                ) {
                     results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.SKIPPED_EXISTS, "відео вже є")
                     ui(100, "Уже є — пропускаю")
                     continue
@@ -9887,7 +9901,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }.onSuccess { uri ->
                 runOnUiThread {
                     if (uri != null) {
-                        toast("Готово · Pictures/FARIC")
+                        toast("Готово · " + com.saney.musicvisualizer.export.ExportFolders.PICTURES)
                     } else {
                         toast("Не вдалося зберегти кадр")
                     }
@@ -11480,7 +11494,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         append(" ms")
                     }
 
-                append("\n\nMovies/FARIC")
+                append("\n\n" + com.saney.musicvisualizer.export.ExportFolders.VIDEO)
             }
 
         showCopyableReport("Експорт завершено", message)

@@ -36,6 +36,8 @@ data class CompositionExportConfig(
     val pulseDeckVisible: Boolean,
     val pulseDeckObjectVisibility:
         Map<String, Boolean>,
+    /** V78: the song is in favourites — the ♡ button shows a red heart (same as on screen). */
+    val pulseDeckFavorite: Boolean = false,
 )
 
 data class CompositionStageTiming(
@@ -122,6 +124,7 @@ class CompositionExportRenderer(
                     visible = true,
                     animate = false,
                 )
+                view.favoriteActive = config.pulseDeckFavorite
                 view.setChromeVisibility(
                     transportVisible = true,
                     quickActionsVisible = true,

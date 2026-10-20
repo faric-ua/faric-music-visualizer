@@ -7568,6 +7568,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun showExportLab() {
         if (blockedByActiveExport("showExportLab")) return
+        // V85 (faric 20.10 15:53: «натискаю кнопку — екран прокручується наверх»): a re-draw of
+        // Export Lab (format, switches) keeps the place the user scrolled to.
+        if (screen == Screen.EXPORT_LAB) {
+            activeVerticalScroll?.scrollY?.let { pendingRestoreScrollY = it }
+        }
         val retainScene = hasRetainedExportScene()
         screen = Screen.EXPORT_LAB
         if (!retainScene) {
@@ -7832,9 +7837,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             exportPill(
                 text = if (fitWhole) "Екран у відео: вміщається весь" else "Екран у відео: на весь кадр",
                 accent = false,
-            ) {
-                exportPrefs().edit().putBoolean(KEY_EXPORT_FIT_WHOLE_SCREEN, !fitWhole).apply()
-                showExportLab()
+            ) {}.apply {
+                // V85: the switch changes only itself — the screen is not re-drawn.
+                setOnClickListener {
+                    val now = !exportPrefs().getBoolean(KEY_EXPORT_FIT_WHOLE_SCREEN, false)
+                    exportPrefs().edit().putBoolean(KEY_EXPORT_FIT_WHOLE_SCREEN, now).apply()
+                    text = if (now) "Екран у відео: вміщається весь" else "Екран у відео: на весь кадр"
+                }
             },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
@@ -7849,9 +7858,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             exportPill(
                 text = if (hudInVideoEnabled()) "Кнопки у відео: так" else "Кнопки у відео: ні",
                 accent = false,
-            ) {
-                exportPrefs().edit().putBoolean(KEY_EXPORT_HUD_IN_VIDEO, !hudInVideoEnabled()).apply()
-                showExportLab()
+            ) {}.apply {
+                // V85: the switch changes only itself — the screen is not re-drawn.
+                setOnClickListener {
+                    val now = !hudInVideoEnabled()
+                    exportPrefs().edit().putBoolean(KEY_EXPORT_HUD_IN_VIDEO, now).apply()
+                    text = if (now) "Кнопки у відео: так" else "Кнопки у відео: ні"
+                }
             },
             LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,

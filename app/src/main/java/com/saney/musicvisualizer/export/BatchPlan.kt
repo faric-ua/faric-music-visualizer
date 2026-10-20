@@ -42,9 +42,13 @@ object BatchPlan {
     fun testRelativePath(
         folderName: String,
         stamp: String,
-    ): String = relativePath(folderName) + clean("Тест 3с $stamp", fallback = "Тест 3с") + "/"
+        seconds: Int = 3,
+    ): String = relativePath(folderName) + clean("Тест ${seconds}с $stamp", fallback = "Тест ${seconds}с") + "/"
 
     const val TEST_CLIP_MS = 3_000L
+
+    /** V100 (faric 21.10 01:06: «додай тести по 10 секунд кожного файла»). */
+    const val TEST_CLIP_LONG_MS = 10_000L
 
     /**
      * Which 3 seconds of a song the test takes: the middle of the song (music is

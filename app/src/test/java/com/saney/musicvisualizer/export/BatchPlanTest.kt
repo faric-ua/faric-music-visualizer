@@ -47,6 +47,8 @@ class BatchPlanTest {
     fun testRunsGoToTheirOwnFolder() {
         assertEquals("Movies/PulseDeck/Album/Тест 3с 19.10 21-05/", BatchPlan.testRelativePath("Album", "19.10 21-05"))
         assertEquals("Movies/PulseDeck/Album/Тест 3с 19.10 21 05/", BatchPlan.testRelativePath("Album", "19.10 21:05"))
+        assertEquals("Movies/PulseDeck/Album/Тест 10с 21.10 01-10/", BatchPlan.testRelativePath("Album", "21.10 01-10", seconds = 10))
+        assertEquals(10_000L, BatchPlan.testWindow(200_000L, BatchPlan.TEST_CLIP_LONG_MS).second)
     }
 
     @Test

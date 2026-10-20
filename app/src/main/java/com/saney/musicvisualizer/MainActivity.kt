@@ -670,6 +670,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         musicBrowseGroup = savedInstanceState?.getString("local_music_group")
         musicBrowseQuery = savedInstanceState?.getString("local_music_query").orEmpty()
         restoreScreen(restoredScreen)
+        // V49: the window that was open before the rotation comes back.
+        savedInstanceState?.getString(KEY_RESTORE_WINDOW_KIND)?.let { kind ->
+            val window =
+                RestorableWindow(
+                    kind = kind,
+                    title = savedInstanceState.getString(KEY_RESTORE_WINDOW_TITLE).orEmpty(),
+                    message = savedInstanceState.getString(KEY_RESTORE_WINDOW_MESSAGE).orEmpty(),
+                    extra = savedInstanceState.getString(KEY_RESTORE_WINDOW_EXTRA).orEmpty(),
+                )
+            this.window.decorView.postDelayed({
+                if (!isFinishing && !isDestroyed) reopenWindow(window)
+            }, 350L)
+        }
         // Notification media-card tap returns to the requested app screen.
         openFromNotification(intent)
         // V24: after a crash / killed process, say why — once, on a cold start.
@@ -701,6 +714,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         outState: Bundle,
     ) {
         outState.putString(KEY_SCREEN, screen.name)
+        restorableWindow?.let { w ->
+            outState.putString(KEY_RESTORE_WINDOW_KIND, w.kind)
+            outState.putString(KEY_RESTORE_WINDOW_TITLE, w.title)
+            outState.putString(KEY_RESTORE_WINDOW_MESSAGE, w.message)
+            outState.putString(KEY_RESTORE_WINDOW_EXTRA, w.extra)
+        }
         outState.putString("local_music_category", musicBrowseCategory.name)
         outState.putString("local_music_group", musicBrowseGroup)
         outState.putString("local_music_query", musicBrowseQuery)
@@ -6270,18 +6289,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ) +
                     listOf(
                         BoardLayerId.BACKGROUND to
-                            "BG/Glow",
+                            "Фон",
                         BoardLayerId.FRAME to
-                            "Frame",
+                            "Рамка",
                         BoardLayerId.CREATURE to
                             GraphicFigureCatalog
                                 .creatureLabel(
                                     gfThemeId,
                                 ),
                         BoardLayerId.WORDMARK to
-                            "FARIC",
+                            "Напис",
                         BoardLayerId.FX to
-                            "FX",
+                            "Ефект",
                     )
                         .filter { (layerId, _) ->
                             GraphicFigureCatalog
@@ -6313,16 +6332,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
                     showBoardTransform()
                 }.apply {
+                    // V71 (faric 19.10 23:26: «Fra… · Shar…»): the chip is as wide as its
+                    // name — never cut; the row scrolls sideways when there are many.
                     setSingleLine(true)
-                    ellipsize = android.text.TextUtils.TruncateAt.END
+                    ellipsize = null
                     includeFontPadding = false
-                    // "BG/Glow" must never wrap into a second line.
-                    if (layerId == BoardLayerId.BACKGROUND) {
-                        textSize = 14f
-                    }
+                    minimumWidth = dp(72)
+                    setPadding(dp(16), dp(8), dp(16), dp(8))
                 },
                 LinearLayout.LayoutParams(
-                    dp(if (layerId == BoardLayerId.BACKGROUND) 112 else 84),
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
                     dp(42),
                 ).apply {
                     marginEnd = dp(6)
@@ -7955,193 +7974,23 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
 
     private fun showExportFolderChooser() {
-        val dialog =
-            android.app.Dialog(
-                this,
-            ).apply {
-                requestWindowFeature(
-                    android.view.Window
-                        .FEATURE_NO_TITLE,
-                )
-                setCanceledOnTouchOutside(
-                    true,
-                )
-            }
-
-        val panel =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-                setPadding(
-                    dp(18),
-                    dp(16),
-                    dp(18),
-                    dp(14),
-                )
-                background =
-                    panelDrawable(
-                        Color.argb(
-                            248,
-                            24,
-                            27,
-                            31,
-                        ),
-                        26,
-                        Color.argb(
-                            95,
-                            255,
-                            255,
-                            255,
-                        ),
-                        1,
-                    )
-            }
-
-        val titleRow =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.HORIZONTAL
-                gravity =
-                    Gravity.CENTER_VERTICAL
-            }
-
-        titleRow.addView(
-            label(
-                "Папка експорту",
-                21f,
-                Color.WHITE,
-                true,
-            ),
-            LinearLayout.LayoutParams(
-                0,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-                1f,
-            ),
+        // V61 / V62 (faric 19.10 23:13): canonical window; icon tiles — the icon in its own
+        // area, the text centred and wrapping, the tile grows.
+        PulseDeckDialogs.show(
+            context = this,
+            title = "Папка експорту",
+            message = "Куди перейти?",
+            actions =
+                listOf(
+                    PulseDeckDialogs.Action(label = "Кадри PNG", subtitle = "Pictures/FARIC", icon = "▣") {
+                        openExportFolder("Pictures/FARIC")
+                    },
+                    PulseDeckDialogs.Action(label = "Відео зі звуком", subtitle = "Movies/FARIC", icon = "▶") {
+                        openExportFolder("Movies/FARIC")
+                    },
+                    PulseDeckDialogs.Action(label = "Скасувати") {},
+                ),
         )
-
-        titleRow.addView(
-            TextView(this).apply {
-                text = "✕"
-                textSize = 22f
-                gravity = Gravity.CENTER
-                contentDescription =
-                    "Закрити"
-                setTextColor(
-                    Color.WHITE,
-                )
-                setOnClickListener {
-                    dialog.dismiss()
-                }
-            },
-            LinearLayout.LayoutParams(
-                dp(44),
-                dp(44),
-            ),
-        )
-
-        panel.addView(
-            titleRow,
-        )
-
-        panel.addView(
-            label(
-                "Куди перейти?",
-                12f,
-                COLOR_MUTED,
-                false,
-            ),
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply {
-                bottomMargin = dp(12)
-            },
-        )
-
-        panel.addView(
-            actionPill(
-                text =
-                    "▣  Кадри PNG\nPictures/FARIC",
-                accent = false,
-            ) {
-                dialog.dismiss()
-                openExportFolder(
-                    "Pictures/FARIC",
-                )
-            },
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(66),
-            ).apply {
-                bottomMargin = dp(8)
-            },
-        )
-
-        panel.addView(
-            actionPill(
-                text =
-                    "▶  Відео зі звуком\nMovies/FARIC",
-                accent = false,
-            ) {
-                dialog.dismiss()
-                openExportFolder(
-                    "Movies/FARIC",
-                )
-            },
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(66),
-            ),
-        )
-
-        panel.addView(
-            actionPill(
-                text = "Скасувати",
-                accent = false,
-            ) {
-                dialog.dismiss()
-            },
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(44),
-            ).apply {
-                topMargin = dp(10)
-            },
-        )
-
-        dialog.setContentView(
-            panel,
-        )
-        dialog.show()
-
-        dialog.window
-            ?.apply {
-                setBackgroundDrawable(
-                    android.graphics.drawable
-                        .ColorDrawable(
-                            Color.TRANSPARENT,
-                        ),
-                )
-                clearFlags(
-                    android.view.WindowManager
-                        .LayoutParams
-                        .FLAG_DIM_BEHIND,
-                )
-                setLayout(
-                    (
-                        resources
-                            .displayMetrics
-                            .widthPixels *
-                            0.86f
-                        )
-                        .toInt(),
-                    ViewGroup.LayoutParams
-                        .WRAP_CONTENT,
-                )
-                setGravity(
-                    Gravity.CENTER,
-                )
-            }
     }
 
     private fun openExportFolder(
@@ -8649,61 +8498,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             durationMs = requestedDurationMs,
         )
 
-        val dialog =
-            android.app.Dialog(
-                this,
-            ).apply {
-                requestWindowFeature(
-                    android.view.Window
-                        .FEATURE_NO_TITLE,
-                )
-                // Back and outside taps must not cancel the encoder.
-                setCancelable(false)
-                setCanceledOnTouchOutside(false)
-            }
-
-        val panel =
-            LinearLayout(this).apply {
-                orientation =
-                    LinearLayout.VERTICAL
-                setPadding(
-                    dp(18),
-                    dp(16),
-                    dp(18),
-                    dp(16),
-                )
-                background =
-                    panelDrawable(
-                        Color.argb(
-                            250,
-                            22,
-                            25,
-                            29,
-                        ),
-                        24,
-                        Color.argb(
-                            90,
-                            255,
-                            255,
-                            255,
-                        ),
-                        1,
-                    )
-            }
-
-        panel.addView(
-            label(
-                if (fullSong) {
-                    "Експорт усієї пісні"
-                } else {
-                    "Тестовий MP4 · 3 с"
-                },
-                20f,
-                Color.WHITE,
-                true,
-            ),
-        )
-
+        // V62: canonical window (title · body · buttons always visible); Back does not
+        // close it — the export is stopped only with «Скасувати».
         val progressStatus =
             label(
                 "Підготовка…",
@@ -8711,18 +8507,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 COLOR_MUTED,
                 false,
             )
-
-        panel.addView(
-            progressStatus,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply {
-                topMargin =
-                    dp(8)
-            },
-        )
-
         val progressBar =
             ProgressBar(
                 this,
@@ -8735,87 +8519,66 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 progress =
                     0
             }
-
-        panel.addView(
-            progressBar,
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(12),
-            ).apply {
-                topMargin =
-                    dp(14)
-            },
-        )
-
-        panel.addView(
-            actionPill(
-                text =
-                    "Скасувати",
-                accent =
-                    false,
-            ) {
-                PulseDeckDialogs.showConfirm(
-                    context = this,
-                    title = "Скасувати експорт?",
-                    message = "Поточний рендер буде зупинено. Готовий MP4 не буде створено.",
-                    positiveLabel = "Так, скасувати",
-                    negativeLabel = "Продовжити",
-                    destructive = true,
-                ) {
-                    cancelled.set(true)
-                    progressStatus.text = "Скасування…"
-                    Log.i("FARIC-export", "Explicit cancellation requested")
-                }
-            },
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                dp(46),
-            ).apply {
-                topMargin =
-                    dp(14)
-            },
-        )
-
-        if (fullSong) {
-            panel.addView(
-                label(
-                    "Під час експорту поворот екрана тимчасово заблоковано.",
-                    12f,
-                    COLOR_MUTED,
-                    false,
-                ),
-            )
-        }
-
-        dialog.setContentView(
-            panel,
-        )
-        dialog.show()
-
-        dialog.window
-            ?.apply {
-                setBackgroundDrawable(
-                    android.graphics.drawable
-                        .ColorDrawable(
-                            Color.TRANSPARENT,
+        val progressBody =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                addView(
+                    progressStatus,
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ),
+                )
+                addView(
+                    progressBar,
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        dp(12),
+                    ).apply {
+                        topMargin = dp(14)
+                    },
+                )
+                if (fullSong) {
+                    addView(
+                        label(
+                            "Під час експорту поворот екрана тимчасово заблоковано.",
+                            12f,
+                            COLOR_MUTED,
+                            false,
                         ),
-                )
-                setLayout(
-                    (
-                        resources
-                            .displayMetrics
-                            .widthPixels *
-                            0.88f
-                        )
-                        .toInt(),
-                    ViewGroup.LayoutParams
-                        .WRAP_CONTENT,
-                )
-                setGravity(
-                    Gravity.CENTER,
-                )
+                        LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ).apply {
+                            topMargin = dp(12)
+                        },
+                    )
+                }
             }
-
+        val dialog =
+            PulseDeckDialogs.show(
+                context = this,
+                title = if (fullSong) "Експорт усієї пісні" else "Тестовий MP4 · 3 с",
+                body = progressBody,
+                cancelable = false,
+                actions =
+                    listOf(
+                        PulseDeckDialogs.Action(label = "Скасувати", dismissOnClick = false) {
+                            PulseDeckDialogs.showConfirm(
+                                context = this,
+                                title = "Скасувати експорт?",
+                                message = "Поточний рендер буде зупинено. Готовий MP4 не буде створено.",
+                                positiveLabel = "Так, скасувати",
+                                negativeLabel = "Продовжити",
+                                destructive = true,
+                            ) {
+                                cancelled.set(true)
+                                progressStatus.text = "Скасування…"
+                                Log.i("FARIC-export", "Explicit cancellation requested")
+                            }
+                        },
+                    ),
+            )
         window.addFlags(
             android.view.WindowManager
                 .LayoutParams
@@ -9517,6 +9280,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         treeUri: Uri,
         testMode: Boolean,
     ) {
+        lastBatchTreeUri = treeUri
         runCatching {
             contentResolver.takePersistableUriPermission(treeUri, Intent.FLAG_GRANT_READ_URI_PERMISSION)
         }
@@ -9619,15 +9383,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     songs.take(12).forEachIndexed { i, s -> append(i + 1).append(". ").append(s.name).append('\n') }
                     if (songs.size > 12) append("… і ще ").append(songs.size - 12)
                 }.trimEnd()
-            PulseDeckDialogs.showConfirm(
-                context = this,
-                title = "Пакет-тест: ${songs.size} × 3 с",
-                message = message,
-                positiveLabel = "Почати тест",
-                negativeLabel = "Скасувати",
-            ) {
-                withExportProjectM { runBatchExport(folderName, songs, testMode = true) }
-            }
+            val confirm =
+                PulseDeckDialogs.showConfirm(
+                    context = this,
+                    title = "Пакет-тест: ${songs.size} × 3 с",
+                    message = message,
+                    positiveLabel = "Почати тест",
+                    negativeLabel = "Скасувати",
+                ) {
+                    withExportProjectM { runBatchExport(folderName, songs, testMode = true) }
+                }
+            rememberBatchConfirm(confirm, testMode = true)
             return
         }
         val message =
@@ -9646,15 +9412,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
                 if (songs.size > 12) append("… і ще ").append(songs.size - 12)
             }.trimEnd()
-        PulseDeckDialogs.showConfirm(
-            context = this,
-            title = "Пакет: ${songs.size} пісень → MP4",
-            message = message,
-            positiveLabel = "Почати",
-            negativeLabel = "Скасувати",
-        ) {
-            withExportProjectM { runBatchExport(folderName, songs) }
-        }
+        val confirm =
+            PulseDeckDialogs.showConfirm(
+                context = this,
+                title = "Пакет: ${songs.size} пісень → MP4",
+                message = message,
+                positiveLabel = "Почати",
+                negativeLabel = "Скасувати",
+            ) {
+                withExportProjectM { runBatchExport(folderName, songs) }
+            }
+        rememberBatchConfirm(confirm, testMode = false)
+    }
+
+    /** V49: after a rotation the same folder is read again and the confirm comes back. */
+    private fun rememberBatchConfirm(
+        dialog: android.app.Dialog,
+        testMode: Boolean,
+    ) {
+        val uri = lastBatchTreeUri ?: return
+        rememberWindow(dialog, RestorableWindow(WINDOW_BATCH_CONFIRM, "", "", uri.toString() + "|" + testMode))
     }
 
     private fun mediaStoreHasVideo(
@@ -9705,53 +9482,45 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val cancelled = AtomicBoolean(false)
         activeExportCancel = cancelled
 
-        val dialog =
-            android.app.Dialog(this).apply {
-                requestWindowFeature(android.view.Window.FEATURE_NO_TITLE)
-                setCancelable(false)
-                setCanceledOnTouchOutside(false)
-            }
-        val panel =
+        // V62: canonical window; Back does not close it — «Зупинити пакет» does.
+        val songLabel = label("Підготовка…", 15f, Color.WHITE, true)
+        val stageLabel = label("", 13f, COLOR_MUTED, false)
+        val songBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = 100 }
+        val overallLabel = label("Усього: 0 з ${songs.size}", 13f, COLOR_MUTED, false)
+        val overallBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = songs.size * 100 }
+        val batchBody =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
-                setPadding(dp(18), dp(16), dp(18), dp(16))
-                background = panelDrawable(Color.argb(250, 22, 25, 29), 24, Color.argb(90, 255, 255, 255), 1)
+                addView(songLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+                addView(stageLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(4) })
+                addView(songBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(10)).apply { topMargin = dp(12) })
+                addView(overallLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(12) })
+                addView(overallBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(14)).apply { topMargin = dp(6) })
             }
-        panel.addView(label(if (testMode) "Пакет-тест · ${songs.size} × 3 с" else "Пакет · ${songs.size} пісень → MP4", 20f, Color.WHITE, true))
-        val songLabel = label("Підготовка…", 15f, Color.WHITE, true)
-        panel.addView(songLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(8) })
-        val stageLabel = label("", 13f, COLOR_MUTED, false)
-        panel.addView(stageLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(4) })
-        val songBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = 100 }
-        panel.addView(songBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(10)).apply { topMargin = dp(12) })
-        val overallLabel = label("Усього: 0 з ${songs.size}", 13f, COLOR_MUTED, false)
-        panel.addView(overallLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(12) })
-        val overallBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = songs.size * 100 }
-        panel.addView(overallBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(14)).apply { topMargin = dp(6) })
-        panel.addView(
-            actionPill(text = "Зупинити пакет", accent = false) {
-                PulseDeckDialogs.showConfirm(
-                    context = this,
-                    title = "Зупинити пакет?",
-                    message = "Поточна пісня не збережеться. Готові відео лишаться; наступного разу вони пропустяться.",
-                    positiveLabel = "Так, зупинити",
-                    negativeLabel = "Продовжити",
-                    destructive = true,
-                ) {
-                    cancelled.set(true)
-                    stageLabel.text = "Зупиняю…"
-                }
-            },
-            LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(54)).apply { topMargin = dp(16) },
-        )
-        dialog.setContentView(panel)
-        dialog.show()
-        dialog.window?.apply {
-            setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
-            setLayout((resources.displayMetrics.widthPixels * 0.88f).toInt(), ViewGroup.LayoutParams.WRAP_CONTENT)
-            setGravity(Gravity.CENTER)
-            addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
-        }
+        val dialog =
+            PulseDeckDialogs.show(
+                context = this,
+                title = if (testMode) "Пакет-тест · ${songs.size} × 3 с" else "Пакет · ${songs.size} пісень → MP4",
+                body = batchBody,
+                cancelable = false,
+                actions =
+                    listOf(
+                        PulseDeckDialogs.Action(label = "Зупинити пакет", dismissOnClick = false) {
+                            PulseDeckDialogs.showConfirm(
+                                context = this,
+                                title = "Зупинити пакет?",
+                                message = "Поточна пісня не збережеться. Готові відео лишаться; наступного разу вони пропустяться.",
+                                positiveLabel = "Так, зупинити",
+                                negativeLabel = "Продовжити",
+                                destructive = true,
+                            ) {
+                                cancelled.set(true)
+                                stageLabel.text = "Зупиняю…"
+                            }
+                        },
+                    ),
+            )
+        dialog.window?.addFlags(android.view.WindowManager.LayoutParams.FLAG_KEEP_SCREEN_ON)
 
         thread(name = "faric-batch-export") {
             val results = mutableListOf<com.saney.musicvisualizer.export.BatchPlan.SongResult>()
@@ -9875,29 +9644,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             runOnUiThread {
                 if (!isDestroyed && !isFinishing) {
                     dialog.dismiss()
-                    // V63 (faric 19.10 23:14: «у папці жодного файла»): the run folder opens in one tap.
-                    PulseDeckDialogs.show(
-                        context = this,
+                    showBatchSummaryWindow(
                         title =
                             when {
                                 cancelled.get() -> if (testMode) "Пакет-тест зупинено" else "Пакет зупинено"
                                 testMode -> "Пакет-тест готовий"
                                 else -> "Пакет готовий"
                             },
-                        message = summary,
-                        actions =
-                            listOf(
-                                PulseDeckDialogs.Action(label = "Відкрити папку з відео", accent = true, dismissOnClick = false) {
-                                    openExportFolder(relativePath.trimEnd('/'))
-                                },
-                                PulseDeckDialogs.Action(label = "Копіювати", dismissOnClick = false) {
-                                    val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
-                                    clipboard.setPrimaryClip(android.content.ClipData.newPlainText("PulseDeck пакет", summary))
-                                    toast("Текст скопійовано")
-                                },
-                                PulseDeckDialogs.Action(label = "OK") {},
-                            ),
-                        scrollableMessage = true,
+                        summary = summary,
+                        relativePath = relativePath,
                     )
                 }
                 endGuardedExport()
@@ -11591,35 +11346,105 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 append("\n\nMovies/FARIC")
             }
 
-        PulseDeckDialogs.showMessage(
-            context = this,
-            title = "Експорт завершено",
-            message = message,
-            primaryLabel = "OK",
-            secondaryLabel = "Копіювати текст",
-            scrollableMessage = true,
-            keepOpenOnSecondary = true,
-        ) {
-            val clipboard =
-                getSystemService(
-                    android.content.Context.CLIPBOARD_SERVICE,
-                ) as
-                    android.content.ClipboardManager
+        showCopyableReport("Експорт завершено", message)
+    }
 
-            clipboard.setPrimaryClip(
-                android.content.ClipData
-                    .newPlainText(
-                        "FARIC export timing",
-                        message,
-                    ),
-            )
+    /** Export report with «Копіювати текст»; it comes back after a rotation (V49). */
+    private fun showCopyableReport(
+        title: String,
+        message: String,
+    ) {
+        val reportDialog =
+            PulseDeckDialogs.showMessage(
+                context = this,
+                title = title,
+                message = message,
+                primaryLabel = "OK",
+                secondaryLabel = "Копіювати текст",
+                scrollableMessage = true,
+                keepOpenOnSecondary = true,
+            ) {
+                val clipboard =
+                    getSystemService(
+                        android.content.Context.CLIPBOARD_SERVICE,
+                    ) as
+                        android.content.ClipboardManager
+                clipboard.setPrimaryClip(
+                    android.content.ClipData
+                        .newPlainText(
+                            "PulseDeck export timing",
+                            message,
+                        ),
+                )
+                toast(
+                    "Текст скопійовано",
+                )
+            }
+        rememberWindow(reportDialog, RestorableWindow(WINDOW_EXPORT_REPORT, title, message, ""))
+    }
 
-            toast(
-                "Текст скопійовано",
-            )
+    // ---- V49: important windows come back after Android re-creates the screen ----------
+    // (faric: «відкрите вікно закривається при повороті»). Saved in onSaveInstanceState,
+    // re-opened in onCreate; a window the user closed is forgotten.
+    private data class RestorableWindow(
+        val kind: String,
+        val title: String,
+        val message: String,
+        val extra: String,
+    )
+
+    private var restorableWindow: RestorableWindow? = null
+    private var lastBatchTreeUri: Uri? = null
+
+    private fun rememberWindow(
+        dialog: android.app.Dialog,
+        window: RestorableWindow,
+    ) {
+        restorableWindow = window
+        dialog.setOnDismissListener {
+            if (restorableWindow === window) restorableWindow = null
         }
     }
 
+    private fun reopenWindow(window: RestorableWindow) {
+        when (window.kind) {
+            WINDOW_EXPORT_REPORT -> showCopyableReport(window.title, window.message)
+            WINDOW_BATCH_SUMMARY -> showBatchSummaryWindow(window.title, window.message, window.extra)
+            WINDOW_BATCH_CONFIRM -> {
+                val uri = window.extra.substringBeforeLast('|')
+                val testMode = window.extra.substringAfterLast('|') == "true"
+                if (uri.isNotBlank()) onBatchFolderPicked(Uri.parse(uri), testMode)
+            }
+        }
+    }
+
+    private fun showBatchSummaryWindow(
+        title: String,
+        summary: String,
+        relativePath: String,
+    ) {
+        // V63 (faric 19.10 23:14: «у папці жодного файла»): the run folder opens in one tap.
+        val summaryDialog =
+            PulseDeckDialogs.show(
+                context = this,
+                title = title,
+                message = summary,
+                actions =
+                    listOf(
+                        PulseDeckDialogs.Action(label = "Відкрити папку з відео", accent = true, dismissOnClick = false) {
+                            openExportFolder(relativePath.trimEnd('/'))
+                        },
+                        PulseDeckDialogs.Action(label = "Копіювати", dismissOnClick = false) {
+                            val clipboard = getSystemService(android.content.Context.CLIPBOARD_SERVICE) as android.content.ClipboardManager
+                            clipboard.setPrimaryClip(android.content.ClipData.newPlainText("PulseDeck пакет", summary))
+                            toast("Текст скопійовано")
+                        },
+                        PulseDeckDialogs.Action(label = "OK") {},
+                    ),
+                scrollableMessage = true,
+            )
+        rememberWindow(summaryDialog, RestorableWindow(WINDOW_BATCH_SUMMARY, title, summary, relativePath))
+    }
     private fun toast(message: String) {
         Toast.makeText(this, message, Toast.LENGTH_SHORT).show()
     }
@@ -11634,6 +11459,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     companion object {
         const val EXTRA_OPEN_SCREEN = "faric.open.screen"
+        private const val KEY_RESTORE_WINDOW_KIND = "restore_window_kind"
+        private const val KEY_RESTORE_WINDOW_TITLE = "restore_window_title"
+        private const val KEY_RESTORE_WINDOW_MESSAGE = "restore_window_message"
+        private const val KEY_RESTORE_WINDOW_EXTRA = "restore_window_extra"
+        private const val WINDOW_EXPORT_REPORT = "export_report"
+        private const val WINDOW_BATCH_SUMMARY = "batch_summary"
+        private const val WINDOW_BATCH_CONFIRM = "batch_confirm"
         private const val EXPORT_PREVIEW_DIM_TAG = "export_projectm_dim"
         private const val BATCH_REQUEST_PREFS = "faric_batch_request_v1"
         private const val KEY_BATCH_TEST_MODE = "test_mode"

@@ -128,15 +128,23 @@ jobs:
           assert "keepOpenOnSecondary = true" in main, "copy export stats must not dismiss result dialog"
           assert "val dismissOnClick: Boolean = true" in dialog
           assert "dismissAfterAction &&" in dialog and "action.dismissOnClick" in dialog, "dismissal must be per-action"
-          # No new hand-made informational windows: only these known custom panels may use android.app.Dialog.
-          allowed = {"showPulseDeckLayersDialog", "showExportFolderChooser", "startCompositionVideoExport", "runBatchExport"}
-          found = set()
-          for m in re.finditer(r"android\.app\.Dialog\(", main):
-              head = main[:m.start()]
-              fn = re.findall(r"private fun (\w+)\(", head)[-1]
-              found.add(fn)
-          extra = found - allowed
-          assert not extra, "new hand-made Dialog in MainActivity, use PulseDeckDialogs.show: " + ", ".join(sorted(extra))
+          # V62 (v0.19.80): every window is PulseDeckDialogs. The only exceptions are two
+          # draggable TOOL PANELS (not message windows): Layers and the projectM settings panel.
+          allowed = {
+              "MainActivity.kt": {"showPulseDeckLayersDialog"},
+              "ProjectMSettingsPanel.kt": {"show"},
+          }
+          for src in Path("app/src/main/java").rglob("*.kt"):
+              if src.name == "PulseDeckDialogs.kt":
+                  continue
+              text = src.read_text(encoding="utf-8")
+              for m in re.finditer(r"(?<![\w.])(?:android\.app\.)?Dialog\(\s*(?:this|context|\n)", text):
+                  fns = re.findall(r"fun (\w+)\(", text[:m.start()])
+                  fn = fns[-1] if fns else "?"
+                  assert fn in allowed.get(src.name, set()), f"hand-made Dialog in {src.name}:{fn} — use PulseDeckDialogs.show"
+          # V61: icon tiles — the icon in its own area, the text centred and wrapping.
+          assert "val icon: String? = null" in dialog and "private fun iconTile(" in dialog, "V61 icon tile must exist"
+          assert "cancelable: Boolean = true" in dialog, "progress windows need a non-cancelable canonical window"
           print("Canonical window contract PASS")
           PY
 

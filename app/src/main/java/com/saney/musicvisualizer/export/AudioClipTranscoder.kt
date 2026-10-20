@@ -71,15 +71,20 @@ object AudioClipTranscoder {
                     error("Audio MIME відсутній")
                 }
 
+        // V89: a WAV is read by PulseDeck itself — its header says the true rate and sample format.
+        val wav = openWavPcmOrNull(context, sourceUri)
+
         val sampleRate =
-            sourceFormat.getInteger(
-                MediaFormat.KEY_SAMPLE_RATE,
-            )
+            wav?.sampleRate
+                ?: sourceFormat.getInteger(
+                    MediaFormat.KEY_SAMPLE_RATE,
+                )
 
         val channelCount =
-            sourceFormat.getInteger(
-                MediaFormat.KEY_CHANNEL_COUNT,
-            )
+            wav?.channels
+                ?: sourceFormat.getInteger(
+                    MediaFormat.KEY_CHANNEL_COUNT,
+                )
 
         val startUs =
             startMs
@@ -110,10 +115,15 @@ object AudioClipTranscoder {
                 AAC_MIME,
             )
 
+        // V89: AAC encoders on phones take at most 48 kHz; a 96 kHz WAV used to be encoded as if it
+        // were 44.1 kHz (2,18× longer, an octave lower). Encode at a safe rate, resample before.
+        var encoderRate =
+            PcmResampler.aacRateFor(sampleRate)
+
         val encoderFormat =
             MediaFormat.createAudioFormat(
                 AAC_MIME,
-                sampleRate,
+                encoderRate,
                 channelCount,
             ).apply {
                 setInteger(
@@ -177,6 +187,12 @@ object AudioClipTranscoder {
                 null,
                 MediaCodec.CONFIGURE_FLAG_ENCODE,
             )
+            // Trust the rate the encoder really took (some quietly fall back to another one).
+            runCatching { encoder.inputFormat.getInteger(MediaFormat.KEY_SAMPLE_RATE) }
+                .getOrNull()
+                ?.takeIf { it > 0 }
+                ?.let { encoderRate = it }
+            val resampler = PcmResampler(sampleRate, encoderRate, channelCount)
 
             decoder.start()
             encoder.start()
@@ -267,8 +283,36 @@ object AudioClipTranscoder {
                 }
             }
 
+            wav?.skipToUs(startUs)
             while (!encoderOutputDone) {
                 if (shouldCancel()) throw CancellationException("Export cancelled during AAC")
+                if (wav != null) {
+                    // V89: PCM straight from the WAV file, cut exactly at the end of the clip.
+                    if (!decoderOutputDone) {
+                        val chunkPtsUs = wav.positionUs
+                        val pcm = if (chunkPtsUs < endUs) wav.readPcm16(4096) else null
+                        if (pcm == null) {
+                            decoderOutputDone = true
+                        } else {
+                            val frameBytes = 2 * channelCount
+                            val allowedFrames = ((endUs - chunkPtsUs) * sampleRate / 1_000_000L).toInt()
+                            val clip =
+                                if (pcm.size / frameBytes > allowedFrames) pcm.copyOf(allowedFrames * frameBytes) else pcm
+                            if (clip.isNotEmpty()) {
+                                queuePcm(
+                                    shouldCancel = shouldCancel,
+                                    onStall = ::drainEncoderOutput,
+                                    encoder = encoder,
+                                    pcm16 = resampler.process(clip),
+                                    ptsUs = chunkPtsUs - startUs,
+                                    sampleRate = encoderRate,
+                                    channelCount = channelCount,
+                                )
+                            }
+                            if (wav.positionUs >= endUs) decoderOutputDone = true
+                        }
+                    }
+                } else {
                 if (!decoderInputDone) {
                     val inputIndex =
                         decoder.dequeueInputBuffer(
@@ -443,12 +487,12 @@ object AudioClipTranscoder {
                                             encoder =
                                                 encoder,
                                             pcm16 =
-                                                pcm16,
+                                                resampler.process(pcm16),
                                             ptsUs =
                                                 sourcePtsUs -
                                                     startUs,
                                             sampleRate =
-                                                sampleRate,
+                                                encoderRate,
                                             channelCount =
                                                 channelCount,
                                         )
@@ -477,6 +521,8 @@ object AudioClipTranscoder {
                     }
                 }
 
+                } // end of Android decoder path
+
                 if (
                     decoderOutputDone &&
                     !encoderInputDone
@@ -494,6 +540,7 @@ object AudioClipTranscoder {
             }
         } finally {
             extractor.release()
+            runCatching { wav?.close() }
 
             runCatching {
                 decoder.stop()
@@ -515,7 +562,7 @@ object AudioClipTranscoder {
         }
 
         return Result(
-            sampleRate = sampleRate,
+            sampleRate = encoderRate,
             channelCount = channelCount,
             durationMs = durationMs,
         )

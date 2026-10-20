@@ -24,16 +24,16 @@ object UserHeroPack {
     )
 
     val heroes: List<Hero> = listOf(
-        Hero(PlaybackThemeId.HERO_SABER_TIGER, "Saber Tiger", "Крижаний тигр · FARIC", "file_0000000059388210b188ddfa87ec13b0.png"),
+        Hero(PlaybackThemeId.HERO_SABER_TIGER, "Saber Tiger", "Крижаний тигр", "file_0000000059388210b188ddfa87ec13b0.png"),
         Hero(PlaybackThemeId.HERO_THUNDER_WOLF, "Thunder Wolf", "Електричний вовк · FMV", "file_00000000acbc8210bab7cfe485fb770e.png"),
-        Hero(PlaybackThemeId.HERO_ARCANE_SPECTER, "Arcane Specter", "Блакитний містичний вартовий · FARIC", "file_00000000c36c81f4b3f55d260ac33c38.png"),
-        Hero(PlaybackThemeId.HERO_INFERNO_PHOENIX, "Inferno Phoenix", "Вогняний фенікс · FARIC", "file_000000004d088210869b6db73ddbb873.png"),
+        Hero(PlaybackThemeId.HERO_ARCANE_SPECTER, "Arcane Specter", "Блакитний містичний вартовий", "file_00000000c36c81f4b3f55d260ac33c38.png"),
+        Hero(PlaybackThemeId.HERO_INFERNO_PHOENIX, "Inferno Phoenix", "Вогняний фенікс", "file_000000004d088210869b6db73ddbb873.png"),
         Hero(PlaybackThemeId.HERO_PLASMA_COBRA, "Plasma Cobra", "Фіолетова кобра · FVMP", "file_0000000065548210b363e525ba124732.png"),
-        Hero(PlaybackThemeId.HERO_INFERNO_WARLOCK, "Inferno Warlock", "Вогняний чаклун · FARIC", "file_0000000091e481f487508f382a705d3e.png"),
+        Hero(PlaybackThemeId.HERO_INFERNO_WARLOCK, "Inferno Warlock", "Вогняний чаклун", "file_0000000091e481f487508f382a705d3e.png"),
         Hero(PlaybackThemeId.HERO_NEON_GRIFFIN, "Neon Griffin", "Синьо-золотий грифон · FMV", "file_00000000d67c81f49f7a0c7da3555a3e.png"),
-        Hero(PlaybackThemeId.HERO_MECHA_PANTHER, "Mecha Panther", "Броньована пантера · FARIC", "file_0000000034f082108ffe5b7ce8438b11.png"),
-        Hero(PlaybackThemeId.HERO_VOID_DRAGON, "Void Dragon", "Фіолетовий дракон · FARIC", "file_00000000e734824681b61d80ec790410.png"),
-        Hero(PlaybackThemeId.HERO_TITAN_SCORPION, "Titan Scorpion", "Кіберскорпіон · FARIC", "file_00000000970c81f49b75c4098058b512.png"),
+        Hero(PlaybackThemeId.HERO_MECHA_PANTHER, "Mecha Panther", "Броньована пантера", "file_0000000034f082108ffe5b7ce8438b11.png"),
+        Hero(PlaybackThemeId.HERO_VOID_DRAGON, "Void Dragon", "Фіолетовий дракон", "file_00000000e734824681b61d80ec790410.png"),
+        Hero(PlaybackThemeId.HERO_TITAN_SCORPION, "Titan Scorpion", "Кіберскорпіон", "file_00000000970c81f49b75c4098058b512.png"),
     )
 
     private val layers = listOf("frame", "fx", "creature", "wordmark", "full", "preview")
@@ -155,7 +155,7 @@ object UserHeroPack {
             for (hero in heroes) {
                 val folder = File(staging, slug(hero.id))
                 check(layers.all { File(folder, "$it.webp").exists() }) {
-                    "Неповний пакет: ${hero.title}. Потрібен FARIC-Heroes-Prepared ZIP."
+                    "Неповний пакет: ${hero.title}. Потрібен повний ZIP-пакет героїв."
                 }
                 for (layer in listOf("frame", "fx", "creature", "wordmark", "full", "creature-half")) {
                     if (layer in optionalLayers && !File(folder, "$layer.webp").isFile) continue

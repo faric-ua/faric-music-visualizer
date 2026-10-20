@@ -99,7 +99,7 @@ object PlaybackThemeRegistry {
             PlaybackThemeSpec(
                 id = PlaybackThemeId.HERO_SABER_TIGER,
                 title = "Saber Tiger",
-                subtitle = "Крижаний тигр · FARIC",
+                subtitle = "Крижаний тигр",
                 family = ThemeFamily.HERO,
                 capabilities = setOf(
                     ThemeCapability.BACKGROUND_IMAGE,
@@ -123,7 +123,7 @@ object PlaybackThemeRegistry {
             PlaybackThemeSpec(
                 id = PlaybackThemeId.HERO_ARCANE_SPECTER,
                 title = "Arcane Specter",
-                subtitle = "Містичний вартовий · FARIC",
+                subtitle = "Містичний вартовий",
                 family = ThemeFamily.HERO,
                 capabilities = setOf(
                     ThemeCapability.BACKGROUND_IMAGE,
@@ -135,7 +135,7 @@ object PlaybackThemeRegistry {
             PlaybackThemeSpec(
                 id = PlaybackThemeId.HERO_INFERNO_PHOENIX,
                 title = "Inferno Phoenix",
-                subtitle = "Вогняний фенікс · FARIC",
+                subtitle = "Вогняний фенікс",
                 family = ThemeFamily.HERO,
                 capabilities = setOf(
                     ThemeCapability.BACKGROUND_IMAGE,
@@ -159,7 +159,7 @@ object PlaybackThemeRegistry {
             PlaybackThemeSpec(
                 id = PlaybackThemeId.HERO_INFERNO_WARLOCK,
                 title = "Inferno Warlock",
-                subtitle = "Вогняний чаклун · FARIC",
+                subtitle = "Вогняний чаклун",
                 family = ThemeFamily.HERO,
                 capabilities = setOf(
                     ThemeCapability.BACKGROUND_IMAGE,
@@ -183,7 +183,7 @@ object PlaybackThemeRegistry {
             PlaybackThemeSpec(
                 id = PlaybackThemeId.HERO_MECHA_PANTHER,
                 title = "Mecha Panther",
-                subtitle = "Броньована пантера · FARIC",
+                subtitle = "Броньована пантера",
                 family = ThemeFamily.HERO,
                 capabilities = setOf(
                     ThemeCapability.BACKGROUND_IMAGE,
@@ -195,7 +195,7 @@ object PlaybackThemeRegistry {
             PlaybackThemeSpec(
                 id = PlaybackThemeId.HERO_VOID_DRAGON,
                 title = "Void Dragon",
-                subtitle = "Космічний дракон · FARIC",
+                subtitle = "Космічний дракон",
                 family = ThemeFamily.HERO,
                 capabilities = setOf(
                     ThemeCapability.BACKGROUND_IMAGE,
@@ -207,7 +207,7 @@ object PlaybackThemeRegistry {
             PlaybackThemeSpec(
                 id = PlaybackThemeId.HERO_TITAN_SCORPION,
                 title = "Titan Scorpion",
-                subtitle = "Кіберскорпіон · FARIC",
+                subtitle = "Кіберскорпіон",
                 family = ThemeFamily.HERO,
                 capabilities = setOf(
                     ThemeCapability.BACKGROUND_IMAGE,

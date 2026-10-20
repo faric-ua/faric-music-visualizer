@@ -477,6 +477,9 @@ class PulseDeckMainSkinView(
      * V78 (faric 19.10 23:40: «червоне сердечко класне — на головній теж»): the song is in
      * favourites → a red heart sits in the ♡ button, the same ❤ as in the track list.
      */
+    /** Where an object (e.g. «back») was last drawn, in this view's coordinates. */
+    fun objectRect(id: String): RectF? = resolvedRects[id]?.let { RectF(it) }
+
     var favoriteActive: Boolean = false
         set(value) {
             if (field == value) return

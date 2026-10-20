@@ -4633,14 +4633,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val skin = pulseDeckMainSkinView
         val centreBack = skin?.objectRect("back")
         if (skin != null && centreBack != null) {
+            // 20.10 06:25 (video): the same picture as the centre draws, in exactly the
+            // rectangle it uses (10.5 % of the width, no padding) — was 10 % minus padding.
             overlay.clipToPadding = false
-            overlay.addView(back, FrameLayout.LayoutParams(backSize, backSize))
+            back.setPadding(0, 0, 0, 0)
+            back.scaleType = ImageView.ScaleType.FIT_XY
+            overlay.addView(
+                back,
+                FrameLayout.LayoutParams(centreBack.width().toInt(), centreBack.height().toInt()),
+            )
             back.visibility = View.INVISIBLE
             overlay.post {
                 val overlayAt = IntArray(2).also(overlay::getLocationInWindow)
                 val skinAt = IntArray(2).also(skin::getLocationInWindow)
-                back.x = skinAt[0] - overlayAt[0] + centreBack.centerX() - backSize / 2f
-                back.y = skinAt[1] - overlayAt[1] + centreBack.centerY() - backSize / 2f
+                back.x = skinAt[0] - overlayAt[0] + centreBack.left
+                back.y = skinAt[1] - overlayAt[1] + centreBack.top
                 back.visibility = View.VISIBLE
                 back.bringToFront()
             }

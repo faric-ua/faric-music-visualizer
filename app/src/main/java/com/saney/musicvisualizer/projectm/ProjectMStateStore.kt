@@ -36,6 +36,16 @@ class ProjectMStateStore(context: Context) {
             prefs.edit().putBoolean(KEY_AUTO_PER_TRACK, value).apply()
         }
 
+    /**
+     * V98 (faric 20.10 23:48: старий M30s «туго гальмує»): live projectM on the light profile
+     * (ECO: 62 % picture, 48×32 mesh, 30 frames/s). MP4 export is not affected.
+     */
+    var lightMode: Boolean
+        get() = prefs.getBoolean(KEY_LIGHT_MODE, false)
+        set(value) {
+            prefs.edit().putBoolean(KEY_LIGHT_MODE, value).apply()
+        }
+
     var autoSwitchSeconds: Int
         get() =
             prefs.getInt(
@@ -267,6 +277,7 @@ class ProjectMStateStore(context: Context) {
         private const val KEY_BACKGROUND_MODE = "background_mode"
         private const val KEY_AUTO_ENABLED = "auto_enabled"
         private const val KEY_AUTO_PER_TRACK = "auto_per_track"
+        private const val KEY_LIGHT_MODE = "light_mode"
         private const val KEY_AUTO_SWITCH_SECONDS =
             "auto_switch_seconds"
         private const val KEY_LAST_PRESET_PATH = "last_preset_path"

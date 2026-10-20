@@ -1,10 +1,12 @@
 package com.saney.musicvisualizer.ui
 
 import android.content.Context
+import android.graphics.Bitmap
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.Paint
 import android.graphics.Path
+import android.graphics.RectF
 import android.graphics.RadialGradient
 import android.graphics.Shader
 import android.os.SystemClock
@@ -56,6 +58,17 @@ class HeroThemeView(context: Context) : View(context) {
      * rotation and pulses follow the video, not the wall clock.
      */
     var exportClockMs: Long? = null
+
+    /** V91: the song's cover for the «Обкладинка» theme (null → a placeholder note). */
+    var coverArt: Bitmap? = null
+        set(value) {
+            field = value
+            postInvalidateOnAnimation()
+        }
+    private val coverRect = RectF()
+    private val coverSrc = android.graphics.Rect()
+    private val coverPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val coverClip = Path()
 
     fun setTheme(theme: PlaybackThemeId) {
         themeId = theme
@@ -198,6 +211,9 @@ class HeroThemeView(context: Context) : View(context) {
 
             PlaybackThemeId.VINYL ->
                 drawVinyl(canvas, cx, cy, minSide)
+
+            PlaybackThemeId.COVER_ART ->
+                drawCoverArt(canvas, w, h)
 
             PlaybackThemeId.CASSETTE ->
                 drawCassette(canvas, cx, cy, minSide)
@@ -961,6 +977,49 @@ class HeroThemeView(context: Context) : View(context) {
             radius * 0.18f,
             fill,
         )
+    }
+
+    /**
+     * V91 (faric 20.10 19:32: «замість героя — прев'юшка пісні у квадратику зверху, майже на всю
+     * ширину, 1:1»): square cover between the top buttons and the song title, glowing with the bass.
+     */
+    private fun drawCoverArt(
+        canvas: Canvas,
+        w: Float,
+        h: Float,
+    ) {
+        val side = min(w * 0.86f, h * 0.40f) * (1f + beat * 0.015f)
+        val cx = w * 0.5f
+        val cy = h * 0.095f + min(w * 0.86f, h * 0.40f) * 0.5f
+        coverRect.set(cx - side / 2f, cy - side / 2f, cx + side / 2f, cy + side / 2f)
+        val corner = side * 0.06f
+
+        drawGlow(canvas, cx, cy, side * (0.78f + bass * 0.10f), Color.rgb(0, 190, 255), 0.18f + bass * 0.22f + beat * 0.2f)
+
+        val cover = coverArt
+        canvas.save()
+        coverClip.reset()
+        coverClip.addRoundRect(coverRect, corner, corner, Path.Direction.CW)
+        canvas.clipPath(coverClip)
+        if (cover != null && !cover.isRecycled) {
+            // Centre-crop to a square.
+            val s = min(cover.width, cover.height)
+            coverSrc.set((cover.width - s) / 2, (cover.height - s) / 2, (cover.width + s) / 2, (cover.height + s) / 2)
+            canvas.drawBitmap(cover, coverSrc, coverRect, coverPaint)
+        } else {
+            fill.shader = null
+            fill.color = Color.rgb(14, 22, 30)
+            canvas.drawRect(coverRect, fill)
+            textPaint.color = Color.argb(200, 120, 200, 255)
+            textPaint.textSize = side * 0.42f
+            canvas.drawText("♪", cx, cy + side * 0.15f, textPaint)
+        }
+        canvas.restore()
+
+        stroke.shader = null
+        stroke.strokeWidth = side * 0.012f
+        stroke.color = withAlpha(Color.rgb(255, 150, 60), 0.55f + bass * 0.4f)
+        canvas.drawRoundRect(coverRect, corner, corner, stroke)
     }
 
     private fun drawVinyl(

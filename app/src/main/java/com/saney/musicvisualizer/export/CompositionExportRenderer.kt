@@ -50,6 +50,8 @@ data class CompositionExportConfig(
      * it is opaque, so projectM and the layers below are not drawn at all.
      */
     val standaloneTheme: PlaybackThemeId? = null,
+    /** V91: the song's cover for the «Обкладинка» theme. */
+    val coverArt: Bitmap? = null,
 )
 
 data class CompositionStageTiming(
@@ -118,7 +120,10 @@ class CompositionExportRenderer(
 
     private val standaloneHeroView: HeroThemeView? =
         config.standaloneTheme?.let { theme ->
-            HeroThemeView(context).also { it.setTheme(theme) }
+            HeroThemeView(context).also {
+                it.setTheme(theme)
+                it.coverArt = config.coverArt
+            }
         }
     private var standaloneHeroWidth = 0
     private var standaloneHeroHeight = 0

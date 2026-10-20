@@ -9909,10 +9909,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         fallbackTitle = title,
                         fallbackArtist = null,
                     )
+                // V101 (faric 21.10 01:40: «в тегах були альбоми — чому не створює»): the test run sorts by
+                // album too, inside its own «Тест 10с …» folder.
                 val songPath =
                     songTags.album
-                        ?.takeIf { !testMode }
-                        ?.let { plan.albumRelativePath(it) }
+                        ?.let { album ->
+                            if (testMode) plan.albumSubfolder(relativePath, album) else plan.albumRelativePath(album)
+                        }
                         ?: relativePath
                 if (songPath != relativePath) albumFolders += songPath
                 if (!testMode && mediaStoreHasVideo(songPath, fileName, alsoLegacyFolder = true)) {
@@ -9988,8 +9991,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 },
                             projectMView = projectMView,
                             directGpuProjectMEligible = directGpuEligible,
-                            title = title,
-                            artist = "",
+                            // V101: title and artist from the song's tags (was: file name, no artist → «Невідомий виконавець»).
+                            title = songTags.title ?: title,
+                            artist = songTags.artist.orEmpty(),
                             cancelled = cancelled,
                             updateProgress = { progress, status -> ui(5 + progress * 95 / 100, status) },
                             exactDisplayName = fileName,
@@ -11960,6 +11964,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 "menu",
                 "header_title",
                 "track_info",
+                "track_status",
                 "progress_time",
                 "progress_thumb",
             )

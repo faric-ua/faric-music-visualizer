@@ -64,6 +64,9 @@ object BatchPlan {
         return start to clipMs
     }
 
+    /** V101: a test run keeps its own folder, the album goes one level inside it. */
+    fun albumSubfolder(base: String, album: String): String = base + clean(album, fallback = "Album") + "/"
+
     /** V93: Movies/PulseDeck/<album from the song's tags>/ — videos sorted by album. */
     fun albumRelativePath(album: String): String = ExportFolders.VIDEO + "/" + clean(album, fallback = "Album") + "/"
 

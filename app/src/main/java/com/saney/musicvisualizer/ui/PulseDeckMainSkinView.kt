@@ -422,6 +422,15 @@ class PulseDeckMainSkinView(
                     groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
                 ),
             )
+            // V101 (faric 21.10 01:40): the «Відтворення · reactive ON · PulseDeck HUD» line can be hidden.
+            add(
+                ObjectInfo(
+                    id = "track_status",
+                    label = "Status line",
+                    groupCode = PulseDeckSubsystem.TRACK_UI.code,
+                    groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
+                ),
+            )
             add(
                 ObjectInfo(
                     id = "progress_time",
@@ -1801,10 +1810,11 @@ class PulseDeckMainSkinView(
 
             // V69: the three lines take turns — only one moves at a time (TrackMarquee).
             val lines =
-                listOf(
+                listOfNotNull(
                     TrackLine(title, h * 0.485f + trackDy, w * 0.052f, Color.WHITE, true),
                     TrackLine(artist, h * 0.515f + trackDy, w * 0.037f, Color.rgb(190, 202, 212), false),
-                    TrackLine(status, h * 0.538f + trackDy, w * 0.026f, Color.rgb(164, 182, 194), false),
+                    TrackLine(status, h * 0.538f + trackDy, w * 0.026f, Color.rgb(164, 182, 194), false)
+                        .takeIf { isObjectVisible("track_status") },
                 )
             val widths =
                 lines.map { line ->

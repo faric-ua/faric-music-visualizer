@@ -8888,6 +8888,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         clipLengthMs = requestedDurationMs,
                     ) { p -> updateProgress(0, "Аналізую звук · $p%") }
                 if (cancelled.get()) throw java.util.concurrent.CancellationException("Export cancelled")
+                // V93: the song's tags into the MP4; a whole song goes into its album's folder.
+                val songTags =
+                    com.saney.musicvisualizer.export.SongTags.read(
+                        context = this,
+                        uri = sourceUri,
+                        fallbackTitle = snapshot.trackName,
+                        fallbackArtist = snapshot.trackArtist,
+                    )
                 runCompositionExportBlocking(
                     fullSong = fullSong,
                     sourceUri = sourceUri,
@@ -8903,6 +8911,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     cancelled = cancelled,
                     updateProgress = { progress, status -> updateProgress(progress, status) },
                     presetSchedule = buildExportPresetSchedule(compositionConfig),
+                    tags = songTags,
+                    relativePath =
+                        songTags.album
+                            ?.takeIf { fullSong }
+                            ?.let { com.saney.musicvisualizer.export.BatchPlan.albumRelativePath(it) }
+                            ?: com.saney.musicvisualizer.export.Mp4AvMuxer.DEFAULT_RELATIVE_PATH,
                 )
             }.onSuccess { result ->
                 Log.i("FARIC-export", "Render finished; published=" + (result.uri != null))
@@ -9013,6 +9027,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         exactDisplayName: String? = null,
         relativePath: String = com.saney.musicvisualizer.export.Mp4AvMuxer.DEFAULT_RELATIVE_PATH,
         presetSchedule: com.saney.musicvisualizer.export.ExportPresetSchedule? = null,
+        tags: com.saney.musicvisualizer.export.Mp4Tagger.Tags? = null,
     ): ShortVideoExportProof.Result {
         // V94: this song starts with its visualization; the direct-GPU setup below reads it from the state.
         presetSchedule?.let { schedule ->
@@ -9484,6 +9499,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         exactDisplayName,
                     relativePath =
                         relativePath,
+                    tags = tags,
                     shouldCancel = {
                         cancelled.get()
                     },
@@ -9838,6 +9854,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val results = mutableListOf<com.saney.musicvisualizer.export.BatchPlan.SongResult>()
             // V94: one schedule for the whole batch — song 2 goes on after the last visualization of song 1.
             val presetSchedule = buildExportPresetSchedule(compositionConfig)
+            val albumFolders = linkedSetOf<String>()
             for ((index, song) in songs.withIndex()) {
                 if (cancelled.get()) break
                 val fileName = plan.videoFileName(song.name)
@@ -9859,7 +9876,22 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         overallLabel.text = "Усього: ${results.size} з ${songs.size} · зроблено ${results.count { it.outcome == com.saney.musicvisualizer.export.BatchPlan.Outcome.DONE }}"
                     }
                 }
-                if (!testMode && mediaStoreHasVideo(relativePath, fileName, alsoLegacyFolder = true)) {
+                // V93 (faric 20.10 19:34: «щоб відео шукав по альбомах»): tags of the song; a whole-song
+                // video goes to Movies/PulseDeck/<album>/ when the song has an album tag.
+                val songTags =
+                    com.saney.musicvisualizer.export.SongTags.read(
+                        context = this,
+                        uri = song.uri,
+                        fallbackTitle = title,
+                        fallbackArtist = null,
+                    )
+                val songPath =
+                    songTags.album
+                        ?.takeIf { !testMode }
+                        ?.let { plan.albumRelativePath(it) }
+                        ?: relativePath
+                if (songPath != relativePath) albumFolders += songPath
+                if (!testMode && mediaStoreHasVideo(songPath, fileName, alsoLegacyFolder = true)) {
                     results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.SKIPPED_EXISTS, "відео вже є")
                     ui(100, "Уже є — пропускаю")
                     continue
@@ -9929,8 +9961,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             cancelled = cancelled,
                             updateProgress = { progress, status -> ui(5 + progress * 95 / 100, status) },
                             exactDisplayName = fileName,
-                            relativePath = relativePath,
+                            relativePath = songPath,
                             presetSchedule = presetSchedule,
+                            tags = songTags,
                         )
                     }
                 val elapsed = System.currentTimeMillis() - startedAt
@@ -9956,6 +9989,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 plan.summary(folder = folderName, results = results, total = songs.size)
                     .replace("Відео: " + plan.relativePath(folderName), "Відео: " + relativePath)
                     .let { if (testMode) "Пакет-тест · по 3 с з середини кожної пісні\n" + it else it }
+                    .let {
+                        if (albumFolders.isEmpty()) it
+                        else it + "\nЗа альбомами з тегів пісень:\n" + albumFolders.joinToString("\n")
+                    }
             runOnUiThread {
                 if (!isDestroyed && !isFinishing) {
                     dialog.dismiss()

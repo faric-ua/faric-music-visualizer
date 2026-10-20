@@ -29,12 +29,18 @@ object Mp4AvMuxer {
         audioFile: File,
         outputFile: File,
         shouldCancel: () -> Boolean = { false },
+        tags: Mp4Tagger.Tags? = null,
     ) {
         val muxer = MediaMuxer(
             outputFile.absolutePath,
             MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
         )
         muxTracks(videoFile, audioFile, muxer, shouldCancel)
+        if (tags != null && !tags.isEmpty) {
+            runCatching {
+                java.io.RandomAccessFile(outputFile, "rw").use { Mp4Tagger.apply(it.channel, it.channel, tags) }
+            }.onFailure { android.util.Log.w("FARIC-export", "MP4 tags not written", it) }
+        }
     }
 
     /** Caller must run this off the main thread. Android 10+ only. */
@@ -45,6 +51,7 @@ object Mp4AvMuxer {
         displayName: String,
         shouldCancel: () -> Boolean = { false },
         relativePath: String = DEFAULT_RELATIVE_PATH,
+        tags: Mp4Tagger.Tags? = null,
     ): Uri {
         require(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             "MediaStore pending video requires Android Q+"
@@ -68,6 +75,17 @@ object Mp4AvMuxer {
                     MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
                 )
                 muxTracks(videoFile, audioFile, muxer, shouldCancel)
+                // V93: song tags (title, artist, album, cover) into the finished MP4. Streams over the
+                // MediaStore descriptor are not closed here — the ParcelFileDescriptor owns it.
+                if (tags != null && !tags.isEmpty) {
+                    runCatching {
+                        Mp4Tagger.apply(
+                            java.io.FileInputStream(it.fileDescriptor).channel,
+                            java.io.FileOutputStream(it.fileDescriptor).channel,
+                            tags,
+                        )
+                    }.onFailure { error -> android.util.Log.w("FARIC-export", "MP4 tags not written", error) }
+                }
             }
             if (shouldCancel()) throw CancellationException("Export cancelled")
             val published = ContentValues().apply {

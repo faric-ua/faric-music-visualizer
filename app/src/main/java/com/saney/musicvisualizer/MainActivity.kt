@@ -4639,11 +4639,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 gravity = Gravity.CENTER
                 textAlignment = View.TEXT_ALIGNMENT_CENTER
                 includeFontPadding = false
-                setPadding(dp(10), dp(10), dp(10), dp(10))
+                setPadding(dp(6), dp(8), dp(6), dp(8))
                 setBackgroundColor(Color.argb(150, 15, 22, 31))
                 setOnClickListener { onClick() }
+                // V102: text may take two lines («AUTO / 10 с»); the button grows, never cuts it.
+                minHeight = dp(48)
                 layoutParams = LinearLayout.LayoutParams(
-                    0, dp(48), 1f,
+                    0, ViewGroup.LayoutParams.MATCH_PARENT, 1f,
                 ).apply {
                     marginStart = dp(4)
                     marginEnd = dp(4)
@@ -4792,33 +4794,67 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             requireNotNull(projectMFocusEdgeControl),
         )
         projectMFocusLightControl = legacyControl("") {
-            // V98: light projectM for weak phones; the live view is rebuilt with the other profile.
+            // V98 / V102: light projectM for weak phones (screen only, not the MP4) — chosen from a list.
             val state = ProjectMStateStore(this)
-            state.lightMode = !state.lightMode
-            updateProjectMFocusStatus()
-            rebuildLiveProjectMView()
-            toast(if (state.lightMode) "Легкий режим: менше навантаження" else "Звичайна якість")
+            PulseDeckDialogs.showSingleChoice(
+                context = this,
+                title = "Візуалізація на екрані",
+                labels =
+                    listOf(
+                        "Звичайна якість",
+                        "Легкий режим — для слабкого телефона (менше гальмує; на відео не впливає)",
+                    ),
+                checkedIndex = if (state.lightMode) 1 else 0,
+            ) { index ->
+                val light = index == 1
+                if (light != state.lightMode) {
+                    state.lightMode = light
+                    updateProjectMFocusStatus()
+                    rebuildLiveProjectMView()
+                }
+            }
         }
         projectMFocusAutoControl = legacyControl("") {
-            // V44 (faric 19.10 15:57: «AUTO не вимикається»): AUTO OFF → 5 с → 10 с → 15 с → …
-            // V90 (faric 20.10 19:32): … → AUTO ПІСНЯ (нова візуалізація на кожну нову пісню) → AUTO OFF.
+            // V44 / V90 / V102 (faric 21.10 02:20: «AUTO OFF не влазить — зроби списком»): all AUTO
+            // choices in one list window instead of cycling through them on the button.
             val state = ProjectMStateStore(this)
-            val options = intArrayOf(5, 10, 15)
-            val current = options.indexOf(state.autoSwitchSeconds)
-            when {
-                state.autoPerTrack -> {
-                    state.autoPerTrack = false
-                    state.autoEnabled = false
+            val seconds = intArrayOf(5, 10, 15)
+            val checked =
+                when {
+                    state.autoPerTrack -> 4
+                    !state.autoEnabled -> 0
+                    else -> seconds.indexOf(state.autoSwitchSeconds).let { if (it < 0) 2 else it + 1 }
                 }
-                !state.autoEnabled -> {
-                    state.autoEnabled = true
-                    state.autoSwitchSeconds = options.first()
+            PulseDeckDialogs.showSingleChoice(
+                context = this,
+                title = "Автозміна візуалізації (AUTO)",
+                labels =
+                    listOf(
+                        "Вимкнено — одна візуалізація",
+                        "Кожні 5 секунд",
+                        "Кожні 10 секунд",
+                        "Кожні 15 секунд",
+                        "Нова пісня — нова візуалізація",
+                    ),
+                checkedIndex = checked,
+            ) { index ->
+                when (index) {
+                    0 -> {
+                        state.autoEnabled = false
+                        state.autoPerTrack = false
+                    }
+                    4 -> {
+                        state.autoEnabled = false
+                        state.autoPerTrack = true
+                    }
+                    else -> {
+                        state.autoEnabled = true
+                        state.autoPerTrack = false
+                        state.autoSwitchSeconds = seconds[index - 1]
+                    }
                 }
-                current == options.lastIndex || current < 0 -> {
-                    state.autoEnabled = false
-                    state.autoPerTrack = true
-                }
-                else -> state.autoSwitchSeconds = options[current + 1]
+                scheduleProjectMFocusAuto()
+                updateProjectMFocusStatus()
             }
             scheduleProjectMFocusAuto()
             updateProjectMFocusStatus()
@@ -4893,9 +4929,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 "EDGE ${onOff(state.foregroundEdgeFxVisible)}"
         projectMFocusAutoControl?.text =
             when {
-                state.autoPerTrack -> "AUTO ПІСНЯ"
-                state.autoEnabled -> "AUTO ${state.autoSwitchSeconds}s"
-                else -> "AUTO OFF"
+                state.autoPerTrack -> "AUTO\nпісня"
+                state.autoEnabled -> "AUTO\n${state.autoSwitchSeconds} с"
+                else -> "AUTO\nвимк."
             }
         projectMFocusBackgroundControl?.text =
             (if (state.backgroundVisible) "● " else "○ ") + "BG"
@@ -4904,7 +4940,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusEdgeControl?.text =
             (if (state.foregroundEdgeFxVisible) "● " else "○ ") + "EDGE FX"
         projectMFocusLightControl?.text =
-            (if (state.lightMode) "● " else "○ ") + "ЛЕГКО"
+            if (state.lightMode) "ЕКРАН\nлегкий" else "ЕКРАН\nзвичайний"
     }
 
     private fun rateProjectMFocusPreset(rating: ProjectMPresetRating) {
@@ -7558,9 +7594,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 initialPreset = preset,
                 textureDirectory =
                     textureDirectory,
+                // V103: the video's projectM quality (Export Lab), not the screen's.
                 profile =
-                    ProjectMPerformanceProfile
-                        .BALANCED_BACKGROUND,
+                    exportProjectMProfile(),
                 foregroundSample =
                     state.foregroundSample,
                 backgroundVisible =
@@ -7619,6 +7655,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ),
         )
     }
+
+    /** V103: projectM quality in the MP4 — normal (78 %, as before) or high (100 %, sharper, slower). */
+    private fun exportProjectMProfile(): ProjectMPerformanceProfile =
+        if (exportPrefs().getBoolean(KEY_EXPORT_PROJECTM_HIGH, false)) {
+            ProjectMPerformanceProfile.QUALITY
+        } else {
+            ProjectMPerformanceProfile.BALANCED_BACKGROUND
+        }
+
+    private fun exportQualityLabel(): String =
+        if (exportPrefs().getBoolean(KEY_EXPORT_PROJECTM_HIGH, false)) {
+            "Візуалізація у відео: висока якість (100 %)"
+        } else {
+            "Візуалізація у відео: звичайна (78 %)"
+        }
 
     private fun exportPrefs() =
         getSharedPreferences("faric_export_options_v1", android.content.Context.MODE_PRIVATE)
@@ -7932,6 +7983,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     val now = !exportPrefs().getBoolean(KEY_EXPORT_FIT_WHOLE_SCREEN, false)
                     exportPrefs().edit().putBoolean(KEY_EXPORT_FIT_WHOLE_SCREEN, now).apply()
                     text = if (now) "Екран у відео: вміщається весь" else "Екран у відео: на весь кадр"
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+            },
+        )
+
+        // V103 (faric 21.10 02:20: «відчуття, що експортує полегшену версію»): projectM in the video
+        // at 78 % of the frame (as always) or at full size — sharper, slower.
+        content.addView(
+            exportPill(
+                text = exportQualityLabel(),
+                accent = false,
+            ) {}.apply {
+                // V85: the switch changes only itself — the screen is not re-drawn.
+                setOnClickListener {
+                    val now = !exportPrefs().getBoolean(KEY_EXPORT_PROJECTM_HIGH, false)
+                    exportPrefs().edit().putBoolean(KEY_EXPORT_PROJECTM_HIGH, now).apply()
+                    text = exportQualityLabel()
                 }
             },
             LinearLayout.LayoutParams(
@@ -9023,7 +9096,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             !compositionConfig.faricReactiveVisible &&
             !compositionConfig.overVisualizationVisible &&
             !compositionConfig.bigEqualizerVisible &&
-            compositionConfig.graphicFiguresVisible
+            // V105: path A also without the Board hero — the GPU sprites are simply absent then.
+            // A standalone theme (Vinyl …) covers projectM — no projectM, no path A anyway.
+            compositionConfig.standaloneTheme == null
 
     /**
      * Renders ONE song to MP4 on the calling (worker) thread and returns the result.
@@ -9202,9 +9277,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         pcmReader !=
                             null
                     ) {
+                        // V103: the video's projectM quality (Export Lab).
                         val profile =
-                            ProjectMPerformanceProfile
-                                .BALANCED_BACKGROUND
+                            exportProjectMProfile()
                         val state =
                             ProjectMStateStore(
                                 this,
@@ -11932,6 +12007,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val BATCH_REQUEST_PREFS = "faric_batch_request_v1"
         private const val KEY_BATCH_TEST_MODE = "test_mode"
         private const val KEY_EXPORT_TEST_CLIP_MS = "test_clip_ms"
+        private const val KEY_EXPORT_PROJECTM_HIGH = "projectm_high_quality"
         private const val PROJECTM_EXPORT_FPS =
             30
 

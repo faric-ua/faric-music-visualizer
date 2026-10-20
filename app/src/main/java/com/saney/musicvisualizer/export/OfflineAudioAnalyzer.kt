@@ -170,8 +170,14 @@ object OfflineAudioAnalyzer {
                             2,
                         )
 
+                // V89: a WAV (audio/raw) track says its own sample format; keep it unless
+                // the decoder reports another one, and let the guard check the real size.
                 var pcmEncoding =
-                    AudioFormat.ENCODING_PCM_16BIT
+                    inputFormat.getIntegerOrDefault(
+                        MediaFormat.KEY_PCM_ENCODING,
+                        AudioFormat.ENCODING_PCM_16BIT,
+                    )
+                val encodingGuard = PcmEncodingGuard()
 
                 val rawFrames =
                     ArrayList<RawFrame>()
@@ -293,7 +299,7 @@ object OfflineAudioAnalyzer {
                                 outputFormat
                                     .getIntegerOrDefault(
                                         MediaFormat.KEY_PCM_ENCODING,
-                                        AudioFormat.ENCODING_PCM_16BIT,
+                                        pcmEncoding,
                                     )
 
                             accumulator =
@@ -336,6 +342,16 @@ object OfflineAudioAnalyzer {
                                             .order(
                                                 ByteOrder.LITTLE_ENDIAN,
                                             )
+
+                                    pcmEncoding =
+                                        encodingGuard.resolve(
+                                            ptsUs = info.presentationTimeUs,
+                                            bytes = info.size,
+                                            sample = pcm,
+                                            reported = pcmEncoding,
+                                            sampleRate = sampleRate,
+                                            channels = channelCount,
+                                        )
 
                                     when (pcmEncoding) {
                                         AudioFormat.ENCODING_PCM_FLOAT ->

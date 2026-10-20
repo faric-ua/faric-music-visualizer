@@ -30,8 +30,8 @@ class BatchPlanTest {
 
     @Test
     fun outputFolderIsInsideMoviesFaric() {
-        assertEquals("Movies/FARIC/Suno album 1/", BatchPlan.relativePath("Suno album 1"))
-        assertEquals("Movies/FARIC/Batch/", BatchPlan.relativePath("  "))
+        assertEquals("Movies/PulseDeck/Suno album 1/", BatchPlan.relativePath("Suno album 1"))
+        assertEquals("Movies/PulseDeck/Batch/", BatchPlan.relativePath("  "))
     }
 
     @Test
@@ -45,8 +45,8 @@ class BatchPlanTest {
 
     @Test
     fun testRunsGoToTheirOwnFolder() {
-        assertEquals("Movies/FARIC/Album/Тест 3с 19.10 21-05/", BatchPlan.testRelativePath("Album", "19.10 21-05"))
-        assertEquals("Movies/FARIC/Album/Тест 3с 19.10 21 05/", BatchPlan.testRelativePath("Album", "19.10 21:05"))
+        assertEquals("Movies/PulseDeck/Album/Тест 3с 19.10 21-05/", BatchPlan.testRelativePath("Album", "19.10 21-05"))
+        assertEquals("Movies/PulseDeck/Album/Тест 3с 19.10 21 05/", BatchPlan.testRelativePath("Album", "19.10 21:05"))
     }
 
     @Test
@@ -79,6 +79,6 @@ class BatchPlanTest {
         assertTrue(text.contains("помилки: 1"))
         assertTrue(text.contains("не дійшли: 1"))
         assertTrue(text.contains("✔ a · 1:01"))
-        assertTrue(text.contains("Movies/FARIC/Album/"))
+        assertTrue(text.contains("Movies/PulseDeck/Album/"))
     }
 }

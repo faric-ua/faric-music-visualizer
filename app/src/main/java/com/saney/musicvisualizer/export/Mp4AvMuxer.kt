@@ -22,7 +22,7 @@ import java.util.concurrent.CancellationException
  * *end* of a potentially hours-long export.
  */
 object Mp4AvMuxer {
-    const val DEFAULT_RELATIVE_PATH = "Movies/FARIC"
+    const val DEFAULT_RELATIVE_PATH = ExportFolders.VIDEO
 
     fun mux(
         videoFile: File,

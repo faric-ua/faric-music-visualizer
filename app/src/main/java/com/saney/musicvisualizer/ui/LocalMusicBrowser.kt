@@ -487,7 +487,7 @@ class LocalMusicBrowser(
                 } else if (category == LocalMusicCategory.FAVORITES) {
                     "♥ Улюблені · натисни ♡ біля треку, щоб додати або прибрати"
                 } else if (category == LocalMusicCategory.RECENT) {
-                    "Нещодавно відтворені в FARIC"
+                    "Нещодавно відтворені в PulseDeck"
                 } else "${visibleTracks.size} із ${source.size} треків"
             }
             sortButton.text = "Сортувати: ${sort.label}"
@@ -495,7 +495,7 @@ class LocalMusicBrowser(
             emptyHint.visibility = if (adapter.count == 0 && canReadMusic) View.VISIBLE else View.GONE
             emptyHint.text = when (category) {
                 LocalMusicCategory.FAVORITES -> "Поки немає улюблених. Відкрий «Усі треки» та натисни ♡."
-                LocalMusicCategory.RECENT -> "Тут з'являться треки, які ти відтвориш у FARIC."
+                LocalMusicCategory.RECENT -> "Тут з'являться треки, які ти відтвориш у PulseDeck."
                 LocalMusicCategory.PLAYLISTS -> if (openedGroup == null) "Створи першу добірку кнопкою «＋ Добірка»" else "Добірка порожня — натисни «＋ Треки»"
                 else -> if (query.isNotBlank()) "За запитом нічого не знайдено" else "Музики в цій категорії немає"
             }

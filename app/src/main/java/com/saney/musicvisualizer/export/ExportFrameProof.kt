@@ -113,7 +113,7 @@ object ExportFrameProof {
                     )
                     put(
                         MediaStore.Images.Media.RELATIVE_PATH,
-                        "Pictures/FARIC",
+                        ExportFolders.PICTURES,
                     )
                     put(
                         MediaStore.Images.Media.IS_PENDING,
@@ -169,7 +169,7 @@ object ExportFrameProof {
             val dir =
                 File(
                     context.getExternalFilesDir(null),
-                    "FARIC",
+                    ExportFolders.NAME,
                 )
             dir.mkdirs()
 

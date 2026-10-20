@@ -31,13 +31,13 @@ object BatchPlan {
         return clean(base, fallback = "track") + ".mp4"
     }
 
-    /** Folder name → Movies/FARIC/<folder>/ (MediaStore relative path, trailing slash). */
-    fun relativePath(folderName: String): String = "Movies/FARIC/" + clean(folderName, fallback = "Batch") + "/"
+    /** Folder name → Movies/PulseDeck/<folder>/ (MediaStore relative path, trailing slash). */
+    fun relativePath(folderName: String): String = ExportFolders.VIDEO + "/" + clean(folderName, fallback = "Batch") + "/"
 
     /**
      * Batch test (v0.19.74, faric 19.10 20:52: «експорт усіх пісень тільки по 3 секунди»).
      * Each run goes to its own folder, so runs before / after a change can be compared:
-     * Movies/FARIC/<folder>/Тест 3с 19.10 21-05/
+     * Movies/PulseDeck/<folder>/Тест 3с 19.10 21-05/
      */
     fun testRelativePath(
         folderName: String,

@@ -38,6 +38,10 @@ data class CompositionExportConfig(
         Map<String, Boolean>,
     /** V78: the song is in favourites — the ♡ button shows a red heart (same as on screen). */
     val pulseDeckFavorite: Boolean = false,
+    /** V46: phone screen height / width in portrait — the hero and HUD are laid out like that. */
+    val screenAspect: Float = 16f / 9f,
+    /** V46: «вміщається все» — never cut the screen, even in 9:16. */
+    val fitWholeScreen: Boolean = false,
 )
 
 data class CompositionStageTiming(
@@ -194,6 +198,62 @@ class CompositionExportRenderer(
         CyberSharkGpuGlow? =
         cyberSharkRenderer
             .gpuGlowSnapshot()
+            ?.let { glow ->
+                val p = lastPlacement ?: return@let glow
+                glow.copy(
+                    centerX = p.mapX(glow.centerX),
+                    centerY = p.mapY(glow.centerY),
+                    circleRadius = p.mapSize(glow.circleRadius),
+                    gradientRadius = p.mapSize(glow.gradientRadius),
+                )
+            }
+
+    // ---- V46: hero and HUD «як на екрані», scaled into the frame (ScreenPlacement) ----
+    private var lastPlacement: ScreenPlacement? = null
+
+    private fun placementFor(
+        width: Int,
+        height: Int,
+    ): ScreenPlacement {
+        lastPlacement?.let { cached ->
+            if (cachedPlacementWidth == width && cachedPlacementHeight == height) return cached
+        }
+        return ScreenPlacement.compute(width, height, config.screenAspect, config.fitWholeScreen).also {
+            lastPlacement = it
+            cachedPlacementWidth = width
+            cachedPlacementHeight = height
+        }
+    }
+
+    private var cachedPlacementWidth = -1
+    private var cachedPlacementHeight = -1
+
+    private inline fun onScreen(
+        canvas: Canvas,
+        width: Int,
+        height: Int,
+        block: (vw: Int, vh: Int) -> Unit,
+    ) {
+        val p = placementFor(width, height)
+        val saved = canvas.save()
+        canvas.clipRect(0f, 0f, width.toFloat(), height.toFloat())
+        canvas.translate(p.dx, p.dy)
+        canvas.scale(p.scale, p.scale)
+        try {
+            block(p.virtualWidth, p.virtualHeight)
+        } finally {
+            canvas.restoreToCount(saved)
+        }
+    }
+
+    private fun mapSprite(sprite: CyberSharkGpuFrame): CyberSharkGpuFrame {
+        val p = lastPlacement ?: return sprite
+        return sprite.copy(
+            centerX = p.mapX(sprite.centerX),
+            centerY = p.mapY(sprite.centerY),
+            size = p.mapSize(sprite.size),
+        )
+    }
 
     fun renderBeforeCyberShark(
         canvas: Canvas,
@@ -317,14 +377,15 @@ class CompositionExportRenderer(
         ) {
             cyberSharkRenderer
                 .gpuFrame(
-                    width = width,
-                    height = height,
+                    width = placementFor(width, height).virtualWidth,
+                    height = placementFor(width, height).virtualHeight,
                     timeMs = timeMs,
                     signal = signal,
                     config =
                         config
                             .cyberSharkConfig,
                 )
+                ?.let(::mapSprite)
         } else {
             null
         }
@@ -341,14 +402,15 @@ class CompositionExportRenderer(
         ) {
             cyberSharkRenderer
                 .gpuCreature(
-                    width = width,
-                    height = height,
+                    width = placementFor(width, height).virtualWidth,
+                    height = placementFor(width, height).virtualHeight,
                     timeMs = timeMs,
                     signal = signal,
                     config =
                         config
                             .cyberSharkConfig,
                 )
+                ?.let(::mapSprite)
         } else {
             null
         }
@@ -365,14 +427,15 @@ class CompositionExportRenderer(
         ) {
             cyberSharkRenderer
                 .gpuWordmark(
-                    width = width,
-                    height = height,
+                    width = placementFor(width, height).virtualWidth,
+                    height = placementFor(width, height).virtualHeight,
                     timeMs = timeMs,
                     signal = signal,
                     config =
                         config
                             .cyberSharkConfig,
                 )
+                ?.let(::mapSprite)
         } else {
             null
         }
@@ -418,23 +481,25 @@ class CompositionExportRenderer(
         val startedNs =
             System.nanoTime()
 
-        cyberSharkRenderer
-            .render(
-                canvas = canvas,
-                width = width,
-                height = height,
-                timeMs = timeMs,
-                signal = signal,
-                config =
-                    config
-                        .cyberSharkConfig
-                        .copy(
-                            visibility =
-                                visibility,
-                        ),
-                skipBackgroundGlow =
-                    true,
-            )
+        onScreen(canvas, width, height) { vw, vh ->
+            cyberSharkRenderer
+                .render(
+                    canvas = canvas,
+                    width = vw,
+                    height = vh,
+                    timeMs = timeMs,
+                    signal = signal,
+                    config =
+                        config
+                            .cyberSharkConfig
+                            .copy(
+                                visibility =
+                                    visibility,
+                            ),
+                    skipBackgroundGlow =
+                        true,
+                )
+        }
 
         cyberSharkNs +=
             System.nanoTime() -
@@ -482,23 +547,25 @@ class CompositionExportRenderer(
         val startedNs =
             System.nanoTime()
 
-        cyberSharkRenderer
-            .render(
-                canvas = canvas,
-                width = width,
-                height = height,
-                timeMs = timeMs,
-                signal = signal,
-                config =
-                    config
-                        .cyberSharkConfig
-                        .copy(
-                            visibility =
-                                visibility,
-                        ),
-                skipBackgroundGlow =
-                    true,
-            )
+        onScreen(canvas, width, height) { vw, vh ->
+            cyberSharkRenderer
+                .render(
+                    canvas = canvas,
+                    width = vw,
+                    height = vh,
+                    timeMs = timeMs,
+                    signal = signal,
+                    config =
+                        config
+                            .cyberSharkConfig
+                            .copy(
+                                visibility =
+                                    visibility,
+                            ),
+                    skipBackgroundGlow =
+                        true,
+                )
+        }
 
         cyberSharkNs +=
             System.nanoTime() -
@@ -539,23 +606,25 @@ class CompositionExportRenderer(
             val startedNs =
                 System.nanoTime()
 
-            cyberSharkRenderer
-                .render(
-                    canvas = canvas,
-                    width = width,
-                    height = height,
-                    timeMs = timeMs,
-                    signal = signal,
-                    config =
-                        config
-                            .cyberSharkConfig
-                            .copy(
-                                visibility =
-                                    visibility,
-                            ),
-                    skipBackgroundGlow =
-                        true,
-                )
+            onScreen(canvas, width, height) { vw, vh ->
+                cyberSharkRenderer
+                    .render(
+                        canvas = canvas,
+                        width = vw,
+                        height = vh,
+                        timeMs = timeMs,
+                        signal = signal,
+                        config =
+                            config
+                                .cyberSharkConfig
+                                .copy(
+                                    visibility =
+                                        visibility,
+                                ),
+                        skipBackgroundGlow =
+                            true,
+                    )
+            }
 
             cyberSharkNs +=
                 System.nanoTime() -
@@ -591,8 +660,8 @@ class CompositionExportRenderer(
 
                 ensurePulseDeckSize(
                     view = view,
-                    width = width,
-                    height = height,
+                    width = placementFor(width, height).virtualWidth,
+                    height = placementFor(width, height).virtualHeight,
                 )
 
                 view.updateSignal(
@@ -660,9 +729,11 @@ class CompositionExportRenderer(
                 val drawStartedNs =
                     System.nanoTime()
 
-                view.draw(
-                    canvas,
-                )
+                onScreen(canvas, width, height) { _, _ ->
+                    view.draw(
+                        canvas,
+                    )
+                }
 
                 pulseDeckDrawNs +=
                     System.nanoTime() -
@@ -710,8 +781,8 @@ class CompositionExportRenderer(
 
                 ensurePulseDeckSize(
                     view = view,
-                    width = width,
-                    height = height,
+                    width = placementFor(width, height).virtualWidth,
+                    height = placementFor(width, height).virtualHeight,
                 )
 
                 view.updateSignal(
@@ -779,9 +850,11 @@ class CompositionExportRenderer(
                 val drawStartedNs =
                     System.nanoTime()
 
-                view.draw(
-                    canvas,
-                )
+                onScreen(canvas, width, height) { _, _ ->
+                    view.draw(
+                        canvas,
+                    )
+                }
 
                 pulseDeckDrawNs +=
                     System.nanoTime() -
@@ -807,19 +880,21 @@ class CompositionExportRenderer(
             val startedNs =
                 System.nanoTime()
 
-            cyberSharkRenderer
-                .render(
-                    canvas = canvas,
-                    width = width,
-                    height = height,
-                    timeMs = timeMs,
-                    signal = signal,
-                    config =
-                        config
-                            .cyberSharkConfig,
-                    skipBackgroundGlow =
-                        true,
-                )
+            onScreen(canvas, width, height) { vw, vh ->
+                cyberSharkRenderer
+                    .render(
+                        canvas = canvas,
+                        width = vw,
+                        height = vh,
+                        timeMs = timeMs,
+                        signal = signal,
+                        config =
+                            config
+                                .cyberSharkConfig,
+                        skipBackgroundGlow =
+                            true,
+                    )
+            }
 
             cyberSharkNs +=
                 System.nanoTime() -
@@ -855,8 +930,8 @@ class CompositionExportRenderer(
 
                 ensurePulseDeckSize(
                     view = view,
-                    width = width,
-                    height = height,
+                    width = placementFor(width, height).virtualWidth,
+                    height = placementFor(width, height).virtualHeight,
                 )
 
                 view.updateSignal(
@@ -924,9 +999,11 @@ class CompositionExportRenderer(
                 val drawStartedNs =
                     System.nanoTime()
 
-                view.draw(
-                    canvas,
-                )
+                onScreen(canvas, width, height) { _, _ ->
+                    view.draw(
+                        canvas,
+                    )
+                }
 
                 pulseDeckDrawNs +=
                     System.nanoTime() -
@@ -1059,17 +1136,19 @@ class CompositionExportRenderer(
             val startedNs =
                 System.nanoTime()
 
-            cyberSharkRenderer
-                .render(
-                    canvas = canvas,
-                    width = width,
-                    height = height,
-                    timeMs = timeMs,
-                    signal = signal,
-                    config =
-                        config
-                            .cyberSharkConfig,
-                )
+            onScreen(canvas, width, height) { vw, vh ->
+                cyberSharkRenderer
+                    .render(
+                        canvas = canvas,
+                        width = vw,
+                        height = vh,
+                        timeMs = timeMs,
+                        signal = signal,
+                        config =
+                            config
+                                .cyberSharkConfig,
+                    )
+            }
 
             cyberSharkNs +=
                 System.nanoTime() -
@@ -1109,8 +1188,8 @@ class CompositionExportRenderer(
 
                 ensurePulseDeckSize(
                     view = view,
-                    width = width,
-                    height = height,
+                    width = placementFor(width, height).virtualWidth,
+                    height = placementFor(width, height).virtualHeight,
                 )
 
                 view.updateSignal(
@@ -1178,9 +1257,11 @@ class CompositionExportRenderer(
                 val drawStartedNs =
                     System.nanoTime()
 
-                view.draw(
-                    canvas,
-                )
+                onScreen(canvas, width, height) { _, _ ->
+                    view.draw(
+                        canvas,
+                    )
+                }
 
                 pulseDeckDrawNs +=
                     System.nanoTime() -

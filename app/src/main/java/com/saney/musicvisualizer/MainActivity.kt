@@ -7991,26 +7991,32 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         // V59: buttons always keep their own name; unavailable → grey + a hint on tap.
-        content.addView(
-            exportPill(
-                text = "Тест 3 с → MP4",
-                accent = exportReady && hasTrack,
-            ) {
-                when {
-                    !exportReady -> toast("Ця тема ще не вміє експорт MP4")
-                    !hasTrack -> longToast("Спочатку обери пісню")
-                    else -> exportProofVideo()
-                }
-            }.apply {
-                if (!(exportReady && hasTrack)) alpha = 0.5f
-            },
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply {
-                topMargin = dp(10)
-            },
-        )
+        // V100: «Тест 10 с» next to «Тест 3 с» (AUTO 5 с is visible inside 10 s).
+        for (clipMs in listOf(com.saney.musicvisualizer.export.BatchPlan.TEST_CLIP_MS, com.saney.musicvisualizer.export.BatchPlan.TEST_CLIP_LONG_MS)) {
+            content.addView(
+                exportPill(
+                    text = "Тест ${clipMs / 1000} с → MP4",
+                    accent = exportReady && hasTrack,
+                ) {
+                    when {
+                        !exportReady -> toast("Ця тема ще не вміє експорт MP4")
+                        !hasTrack -> longToast("Спочатку обери пісню")
+                        else -> {
+                            setTestClipMs(clipMs)
+                            exportProofVideo()
+                        }
+                    }
+                }.apply {
+                    if (!(exportReady && hasTrack)) alpha = 0.5f
+                },
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    topMargin = dp(10)
+                },
+            )
+        }
 
         content.addView(
             exportPill(
@@ -8044,20 +8050,23 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
         )
 
-        content.addView(
-            exportPill(
-                text = "Пакет-тест: по 3 с з кожної пісні",
-                accent = false,
-            ) {
-                startBatchFolderPicker(testMode = true)
-            },
-            LinearLayout.LayoutParams(
-                ViewGroup.LayoutParams.MATCH_PARENT,
-                ViewGroup.LayoutParams.WRAP_CONTENT,
-            ).apply {
-                topMargin = dp(10)
-            },
-        )
+        for (clipMs in listOf(com.saney.musicvisualizer.export.BatchPlan.TEST_CLIP_MS, com.saney.musicvisualizer.export.BatchPlan.TEST_CLIP_LONG_MS)) {
+            content.addView(
+                exportPill(
+                    text = "Пакет-тест: по ${clipMs / 1000} с з кожної пісні",
+                    accent = false,
+                ) {
+                    setTestClipMs(clipMs)
+                    startBatchFolderPicker(testMode = true)
+                },
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    topMargin = dp(10)
+                },
+            )
+        }
 
         content.addView(
             exportPill(
@@ -8076,7 +8085,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         content.addView(
             label(
-                "«Тест 3 с» — 3 секунди з того місця, де зараз пісня. «Уся пісня» — від 0:00 до кінця. Звук аналізується сам, рівно стільки, скільки треба для відео.",
+                "«Тест 3 с» / «Тест 10 с» — 3 або 10 секунд з того місця, де зараз пісня. «Уся пісня» — від 0:00 до кінця. Звук аналізується сам, рівно стільки, скільки треба для відео.",
                 12f,
                 COLOR_MUTED,
                 false,
@@ -8568,6 +8577,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
+    /** V100: length of «Тест» clips — 3 or 10 s; kept on disk (the folder picker may recreate the screen). */
+    private fun testClipMs(): Long =
+        exportPrefs().getLong(KEY_EXPORT_TEST_CLIP_MS, com.saney.musicvisualizer.export.BatchPlan.TEST_CLIP_MS)
+
+    private fun setTestClipMs(value: Long) {
+        exportPrefs().edit().putLong(KEY_EXPORT_TEST_CLIP_MS, value).commit()
+    }
+
     private fun exportProofVideo() {
         exportCompositionVideo(
             fullSong = false,
@@ -8723,7 +8740,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 songDurationMs.coerceAtLeast(500L)
             } else {
                 minOf(
-                    PROJECTM_EXPORT_DURATION_MS,
+                    testClipMs(),
                     (songDurationMs - exportStartMs).coerceAtLeast(0L),
                 ).coerceAtLeast(500L)
             }
@@ -8823,7 +8840,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val dialog =
             PulseDeckDialogs.show(
                 context = this,
-                title = if (fullSong) "Експорт усієї пісні" else "Тестовий MP4 · 3 с",
+                title = if (fullSong) "Експорт усієї пісні" else "Тестовий MP4 · ${testClipMs() / 1000} с",
                 body = progressBody,
                 cancelable = false,
                 actions =
@@ -9142,7 +9159,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     if (fullSong) {
                         "Рендерю від 0:00 до кінця…"
                     } else {
-                        "Рендерю 3 секунди…"
+                        "Рендерю ${testClipMs() / 1000} с…"
                     },
                 )
 
@@ -9697,13 +9714,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         val plan = com.saney.musicvisualizer.export.BatchPlan
         val totalMs = songs.sumOf { it.durationMs }
+        val testSeconds = testClipMs() / 1000
         if (testMode) {
             val message =
                 buildString {
                     append("Папка: ").append(folderName).append('\n')
-                    append("Пісень: ").append(songs.size).append(" · з кожної — 3 с із середини пісні\n")
-                    append("Орієнтовно: по пів хвилини на пісню (аналіз звуку + 3 с відео)\n")
-                    append("Відео: ").append(plan.relativePath(folderName)).append("Тест 3с <дата час>/ — кожен запуск в окрему папку\n")
+                    append("Пісень: ").append(songs.size).append(" · з кожної — ").append(testSeconds).append(" с із середини пісні\n")
+                    append("Орієнтовно: ").append(if (testSeconds > 3) "до хвилини" else "по пів хвилини").append(" на пісню (аналіз звуку + ").append(testSeconds).append(" с відео)\n")
+                    append("Відео: ").append(plan.relativePath(folderName)).append("Тест ").append(testSeconds).append("с <дата час>/ — кожен запуск в окрему папку\n")
                     append("Шари й формат — як зараз на екрані (").append(exportAspectRatio.width).append('×').append(exportAspectRatio.height).append(")\n")
                     append("У підсумку — час кожної пісні, можна порівняти з наступним запуском.\n")
                     append("Не вимикай екран і не виходь із застосунку.\n\n")
@@ -9713,7 +9731,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val confirm =
                 PulseDeckDialogs.showConfirm(
                     context = this,
-                    title = "Пакет-тест: ${songs.size} × 3 с",
+                    title = "Пакет-тест: ${songs.size} × $testSeconds с",
                     message = message,
                     positiveLabel = "Почати тест",
                     negativeLabel = "Скасувати",
@@ -9803,6 +9821,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 plan.testRelativePath(
                     folderName,
                     java.text.SimpleDateFormat("dd.MM HH-mm", java.util.Locale.ROOT).format(java.util.Date()),
+                    seconds = (testClipMs() / 1000).toInt(),
                 )
             } else {
                 plan.relativePath(folderName)
@@ -9833,7 +9852,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val dialog =
             PulseDeckDialogs.show(
                 context = this,
-                title = if (testMode) "Пакет-тест · ${songs.size} × 3 с" else "Пакет · ${songs.size} пісень → MP4",
+                title = if (testMode) "Пакет-тест · ${songs.size} × ${testClipMs() / 1000} с" else "Пакет · ${songs.size} пісень → MP4",
                 body = batchBody,
                 cancelable = false,
                 actions =
@@ -9914,7 +9933,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     track = title,
                     durationMs =
                         if (testMode) {
-                            com.saney.musicvisualizer.export.BatchPlan.TEST_CLIP_MS.coerceAtMost(song.durationMs.coerceAtLeast(500L))
+                            testClipMs().coerceAtMost(song.durationMs.coerceAtLeast(500L))
                         } else {
                             song.durationMs
                         },
@@ -9925,7 +9944,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         // V60: the test analyses only its 3 s piece (+ lead-in), not the whole song.
                         val knownDurationMs = song.durationMs
                         val testClip =
-                            if (testMode && knownDurationMs > 0L) plan.testWindow(knownDurationMs) else null
+                            if (testMode && knownDurationMs > 0L) plan.testWindow(knownDurationMs, testClipMs()) else null
                         val analysis =
                             if (testClip != null) {
                                 val (from, to) =
@@ -9948,7 +9967,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         val (clipStartMs, clipLengthMs) =
                             when {
                                 testClip != null -> testClip
-                                testMode -> plan.testWindow(analysis.durationMs)
+                                testMode -> plan.testWindow(analysis.durationMs, testClipMs())
                                 else -> 0L to analysis.durationMs.coerceAtLeast(500L)
                             }
                         runCompositionExportBlocking(
@@ -10001,7 +10020,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val summary =
                 plan.summary(folder = folderName, results = results, total = songs.size)
                     .replace("Відео: " + plan.relativePath(folderName), "Відео: " + relativePath)
-                    .let { if (testMode) "Пакет-тест · по 3 с з середини кожної пісні\n" + it else it }
+                    .let { if (testMode) "Пакет-тест · по ${testClipMs() / 1000} с з середини кожної пісні\n" + it else it }
                     .let {
                         if (albumFolders.isEmpty()) it
                         else it + "\nЗа альбомами з тегів пісень:\n" + albumFolders.joinToString("\n")
@@ -11908,10 +11927,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val EXPORT_PREVIEW_DIM_TAG = "export_projectm_dim"
         private const val BATCH_REQUEST_PREFS = "faric_batch_request_v1"
         private const val KEY_BATCH_TEST_MODE = "test_mode"
+        private const val KEY_EXPORT_TEST_CLIP_MS = "test_clip_ms"
         private const val PROJECTM_EXPORT_FPS =
             30
-        private const val PROJECTM_EXPORT_DURATION_MS =
-            3_000L
 
         private val PULSEDECK_EXPORT_OBJECT_IDS =
             listOf(

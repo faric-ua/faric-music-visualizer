@@ -29,6 +29,13 @@ class ProjectMStateStore(context: Context) {
             prefs.edit().putBoolean(KEY_AUTO_ENABLED, value).apply()
         }
 
+    /** V90: «AUTO ПІСНЯ» — switch the preset when a new song starts (instead of a timer). */
+    var autoPerTrack: Boolean
+        get() = prefs.getBoolean(KEY_AUTO_PER_TRACK, false)
+        set(value) {
+            prefs.edit().putBoolean(KEY_AUTO_PER_TRACK, value).apply()
+        }
+
     var autoSwitchSeconds: Int
         get() =
             prefs.getInt(
@@ -259,6 +266,7 @@ class ProjectMStateStore(context: Context) {
     companion object {
         private const val KEY_BACKGROUND_MODE = "background_mode"
         private const val KEY_AUTO_ENABLED = "auto_enabled"
+        private const val KEY_AUTO_PER_TRACK = "auto_per_track"
         private const val KEY_AUTO_SWITCH_SECONDS =
             "auto_switch_seconds"
         private const val KEY_LAST_PRESET_PATH = "last_preset_path"

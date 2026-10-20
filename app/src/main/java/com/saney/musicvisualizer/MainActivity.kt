@@ -209,14 +209,36 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var projectMFocusCenterControl: TextView? = null
     private var projectMFocusEdgeControl: TextView? = null
     private val projectMFocusHandler = Handler(Looper.getMainLooper())
+    // V90 (faric 20.10 19:32: «AUTO 5 / 10 с — а на головному екрані не міняється»): AUTO used to
+    // run only while the right page was open. Now it runs whenever the live projectM is shown.
+    private var projectMAutoPending = false
     private val projectMFocusAutoTick = object : Runnable {
         override fun run() {
-            if (projectMFocusOverlay == null) return
+            projectMAutoPending = false
             val state = ProjectMStateStore(this@MainActivity)
-            if (!state.autoEnabled) return
+            if (!state.autoEnabled || state.autoPerTrack || !projectMAutoCanRun()) return
             advanceProjectMFocusPreset(manual = false)
             projectMFocusHandler.postDelayed(this, state.autoSwitchSeconds * 1_000L)
+            projectMAutoPending = true
         }
+    }
+
+    private fun projectMAutoCanRun(): Boolean =
+        projectMMainView != null && projectMMainResumed && !exportRunGate.isActive()
+
+    private fun stopProjectMAuto() {
+        projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
+        projectMAutoPending = false
+    }
+
+    /** Starts the AUTO timer if it should run and is not running yet (safe to call often). */
+    private fun ensureProjectMAutoRunning() {
+        if (projectMAutoPending) return
+        val state = ProjectMStateStore(this)
+        if (!state.autoEnabled || state.autoPerTrack || !projectMAutoCanRun()) return
+        if (projectMFocusPresets.isEmpty()) loadProjectMFocusPresets(state.backgroundMode)
+        projectMFocusHandler.postDelayed(projectMFocusAutoTick, state.autoSwitchSeconds * 1_000L)
+        projectMAutoPending = true
     }
     private var projectMRebuildPending = false
     private var projectMRebuildTarget: Screen? = null
@@ -997,7 +1019,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         emergencyRecoveryArmed = false
         playerSwipeEligible = false
         emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
-        projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
+        stopProjectMAuto()
         // Do not pause playback here. Screen lock and Home both stop the Activity,
         // but a music player must keep playing. A MediaSessionService migration is
         // tracked separately for full long-lived background playback/notification.
@@ -1020,7 +1042,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     override fun onDestroy() {
-        projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
+        stopProjectMAuto()
         sceneOrchestrator.close()
         if (exportRunGate.isActive()) {
             // V25: the export worker still reads the PCM cache and drives the
@@ -1051,8 +1073,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         if (snapshot.isPlaying && snapshot.trackName != null) {
             val uri = controller.currentTrackUri()?.toString()
             if (uri != null && uri != lastRecordedMusicUri) {
+                val previousUri = lastRecordedMusicUri
                 lastRecordedMusicUri = uri
                 LocalMusicUserState(this).recordPlay(uri)
+                // V90: «AUTO ПІСНЯ» — one visualization per song, the next song gets the next one.
+                if (previousUri != null && projectMMainView != null && ProjectMStateStore(this).autoPerTrack) {
+                    advanceProjectMFocusPreset(manual = false)
+                }
             }
         }
 
@@ -1265,6 +1292,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             projectMMainView?.onPause()
             projectMMainResumed = false
         }
+        // V90: AUTO follows the visible live projectM, not the right page.
+        ensureProjectMAutoRunning()
     }
 
     /** Library and Tracks menus have no ownership of projectM or the scene. */
@@ -4745,16 +4774,24 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             requireNotNull(projectMFocusEdgeControl),
         )
         projectMFocusAutoControl = legacyControl("") {
-            // V44 (faric 19.10 15:57: «AUTO не вимикається»): AUTO OFF → 5 с → 10 с → 15 с → AUTO OFF.
+            // V44 (faric 19.10 15:57: «AUTO не вимикається»): AUTO OFF → 5 с → 10 с → 15 с → …
+            // V90 (faric 20.10 19:32): … → AUTO ПІСНЯ (нова візуалізація на кожну нову пісню) → AUTO OFF.
             val state = ProjectMStateStore(this)
             val options = intArrayOf(5, 10, 15)
             val current = options.indexOf(state.autoSwitchSeconds)
             when {
+                state.autoPerTrack -> {
+                    state.autoPerTrack = false
+                    state.autoEnabled = false
+                }
                 !state.autoEnabled -> {
                     state.autoEnabled = true
                     state.autoSwitchSeconds = options.first()
                 }
-                current == options.lastIndex || current < 0 -> state.autoEnabled = false
+                current == options.lastIndex || current < 0 -> {
+                    state.autoEnabled = false
+                    state.autoPerTrack = true
+                }
                 else -> state.autoSwitchSeconds = options[current + 1]
             }
             scheduleProjectMFocusAuto()
@@ -4814,10 +4851,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ProjectMPresetRating.HIDDEN -> "−"
             ProjectMPresetRating.NONE -> "○"
         }
-        val auto = if (state.autoEnabled) {
-            "AUTO ${state.autoSwitchSeconds}s"
-        } else {
-            "MANUAL"
+        val auto = when {
+            state.autoPerTrack -> "AUTO ПІСНЯ"
+            state.autoEnabled -> "AUTO ${state.autoSwitchSeconds}s"
+            else -> "MANUAL"
         }
         val onOff = { active: Boolean -> if (active) "ON" else "OFF" }
         projectMFocusStatus?.text =
@@ -4828,7 +4865,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 "CENTER ${onOff(state.foregroundCenterVisible)} · " +
                 "EDGE ${onOff(state.foregroundEdgeFxVisible)}"
         projectMFocusAutoControl?.text =
-            if (state.autoEnabled) "AUTO ${state.autoSwitchSeconds}s" else "AUTO OFF"
+            when {
+                state.autoPerTrack -> "AUTO ПІСНЯ"
+                state.autoEnabled -> "AUTO ${state.autoSwitchSeconds}s"
+                else -> "AUTO OFF"
+            }
         projectMFocusBackgroundControl?.text =
             (if (state.backgroundVisible) "● " else "○ ") + "BG"
         projectMFocusCenterControl?.text =
@@ -4851,6 +4892,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun loadProjectMFocusPresets(
         mode: com.saney.musicvisualizer.projectm.ProjectMBackgroundMode,
+        onLoaded: (() -> Unit)? = null,
     ) {
         val state = ProjectMStateStore(this)
         state.backgroundMode = mode
@@ -4865,7 +4907,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
             }.getOrDefault(emptyList())
             runOnUiThread {
-                if (projectMFocusOverlay == null ||
+                // V90: also without the right page — AUTO needs the list on the main screen.
+                if (isFinishing || isDestroyed ||
                     generation != projectMFocusCatalogGeneration
                 ) return@runOnUiThread
                 val ratings = ProjectMPresetRatingsStore(this)
@@ -4874,7 +4917,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         ratings.ratingFor(it) != ProjectMPresetRating.HIDDEN
                 }
                 if (projectMFocusPresets.isEmpty()) {
-                    toast("Для ${mode.name} немає доступних preset")
+                    if (projectMFocusOverlay != null) toast("Для ${mode.name} немає доступних preset")
+                } else {
+                    onLoaded?.invoke()
                 }
                 updateProjectMFocusStatus()
             }
@@ -4885,10 +4930,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val state = ProjectMStateStore(this)
         if (manual) {
             state.autoEnabled = false
-            projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
+            stopProjectMAuto()
         }
         val pool = projectMFocusPresets
         if (pool.isEmpty()) {
+            // V90: on the main screen the list may not be loaded yet — load, then switch.
+            loadProjectMFocusPresets(state.backgroundMode) { advanceProjectMFocusPreset(manual = false) }
             updateProjectMFocusStatus()
             return
         }
@@ -4902,21 +4949,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         updateProjectMFocusStatus()
     }
 
+    /** Restart the AUTO timer (after the AUTO button or opening the right page). */
     private fun scheduleProjectMFocusAuto() {
-        projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
-        if (projectMFocusOverlay == null) return
-        val state = ProjectMStateStore(this)
-        if (state.autoEnabled) {
-            projectMFocusHandler.postDelayed(
-                projectMFocusAutoTick,
-                state.autoSwitchSeconds * 1_000L,
-            )
-        }
+        stopProjectMAuto()
+        ensureProjectMAutoRunning()
     }
 
     private fun closeProjectMFocusOverlay() {
         val overlay = projectMFocusOverlay ?: return
-        projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
+        stopProjectMAuto()
         projectMFocusCatalogGeneration++
         (overlay.parent as? ViewGroup)?.removeView(overlay)
         projectMFocusOverlay = null
@@ -4927,7 +4968,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusEdgeControl = null
         val saved = projectMFocusSavedVisibility
         projectMFocusSavedVisibility = null
-        projectMFocusPresets = emptyList()
+        // V90: the preset list stays — AUTO keeps using it on the main screen.
         val stack = pulseDeckLayerStack
         if (saved != null && stack != null) {
             saved.forEach { (layer, visible) ->
@@ -7668,7 +7709,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
                             else ->
                                 "L0 projectM*"
-                        },
+                        } +
+                            // V92: which visualization goes into the video — the one on screen.
+                            (
+                                ProjectMStateStore(this@MainActivity)
+                                    .lastPresetFileOrNull()
+                                    ?.nameWithoutExtension
+                                    ?.take(24)
+                                    ?.let { " · $it" } ?: ""
+                            ),
                     )
                 }
                 if (
@@ -11041,7 +11090,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun clearScreenRefs() {
-        projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
+        stopProjectMAuto()
         projectMFocusCatalogGeneration++
         projectMFocusOverlay = null
         projectMFocusStatus = null
@@ -11050,7 +11099,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusCenterControl = null
         projectMFocusEdgeControl = null
         projectMFocusSavedVisibility = null
-        projectMFocusPresets = emptyList()
+        // V90: the preset list stays — AUTO keeps using it on the main screen.
         boardMenuOverlay = null
         themeMenuOverlay = null
         mediaMenuOverlay = null

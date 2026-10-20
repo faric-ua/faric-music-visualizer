@@ -64,10 +64,19 @@ object PcmConvert {
  * The guard measures real bytes per sample from the timestamps of the first two buffers
  * (PTS come from the file, so they are right) and fixes the encoding from then on.
  */
-class PcmEncodingGuard {
+class PcmEncodingGuard(
+    /**
+     * V99 (faric 21.10 02:10–02:30: у цілій пісні з MP3 візуалізація «стоїть»): only for raw PCM
+     * (WAV through Android). A compressed decoder (MP3, AAC …) reports its format correctly, and its
+     * first buffers are uneven (encoder delay trimmed), so measuring them used to pick a wrong format —
+     * projectM then got broken PCM for the whole song.
+     */
+    private val enabled: Boolean = true,
+) {
     private var lastPtsUs = -1L
     private var lastBytes = 0
-    private var checked = false
+    private val measurements = mutableListOf<Double>()
+    private var decided = false
     private var override: Int? = null
 
     /** Encoding to use for this buffer. Call before converting each decoded buffer. */
@@ -79,12 +88,17 @@ class PcmEncodingGuard {
         sampleRate: Int,
         channels: Int,
     ): Int {
-        if (!checked && lastPtsUs >= 0L && ptsUs > lastPtsUs && sampleRate > 0 && channels > 0) {
+        if (!enabled) return reported
+        if (!decided && lastPtsUs >= 0L && ptsUs > lastPtsUs && sampleRate > 0 && channels > 0) {
             val seconds = (ptsUs - lastPtsUs) / 1_000_000.0
-            val measured = lastBytes / (seconds * sampleRate * channels)
-            val fixed = PcmConvert.resolveEncoding(reported, measured, sample)
-            if (fixed != reported) override = fixed
-            checked = true
+            measurements += lastBytes / (seconds * sampleRate * channels)
+            // Decide on the median of several buffers, never on one uneven first buffer.
+            if (measurements.size >= MEASUREMENTS) {
+                val median = measurements.sorted()[measurements.size / 2]
+                val fixed = PcmConvert.resolveEncoding(reported, median, sample)
+                if (fixed != reported) override = fixed
+                decided = true
+            }
         }
         lastPtsUs = ptsUs
         lastBytes = bytes
@@ -93,6 +107,10 @@ class PcmEncodingGuard {
 
     /** Non-null once a wrong reported encoding was detected (for the export log). */
     val corrected: Int? get() = override
+
+    private companion object {
+        const val MEASUREMENTS = 5
+    }
 }
 
 /** Bytes per sample for an AudioFormat.ENCODING_PCM_* value, 0 if unknown. */

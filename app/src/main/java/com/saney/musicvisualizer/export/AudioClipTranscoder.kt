@@ -171,7 +171,7 @@ object AudioClipTranscoder {
             } else {
                 AudioFormat.ENCODING_PCM_16BIT
             }
-        val encodingGuard = PcmEncodingGuard()
+        val encodingGuard = PcmEncodingGuard(enabled = sourceMime == "audio/raw")
 
         try {
             decoder.configure(

@@ -33,27 +33,24 @@ class PcmEncodingGuardTest {
     fun floatWavReportedAs16BitIsFixedFromSecondBuffer() {
         val guard = PcmEncodingGuard()
         val buf = floatAudio(1024, 2)
-        assertEquals(PcmConvert.PCM_16BIT, guard.resolve(0L, buf.remaining(), buf, PcmConvert.PCM_16BIT, 44_100, 2))
-        assertEquals(PcmConvert.PCM_FLOAT, guard.resolve(frameUs, buf.remaining(), buf, PcmConvert.PCM_16BIT, 44_100, 2))
+        assertEquals(PcmConvert.PCM_FLOAT, feed(guard, buf, PcmConvert.PCM_16BIT))
         assertEquals(PcmConvert.PCM_FLOAT, guard.corrected)
         // stays fixed for the rest of the song
-        assertEquals(PcmConvert.PCM_FLOAT, guard.resolve(2 * frameUs, buf.remaining(), buf, PcmConvert.PCM_16BIT, 44_100, 2))
+        assertEquals(PcmConvert.PCM_FLOAT, guard.resolve(100 * frameUs, buf.remaining(), buf, PcmConvert.PCM_16BIT, 44_100, 2))
     }
 
     @Test
     fun int32WavReportedAs16BitBecomes32Bit() {
         val guard = PcmEncodingGuard()
         val buf = int32Audio(1024, 2)
-        guard.resolve(0L, buf.remaining(), buf, PcmConvert.PCM_16BIT, 44_100, 2)
-        assertEquals(PcmConvert.PCM_32BIT, guard.resolve(frameUs, buf.remaining(), buf, PcmConvert.PCM_16BIT, 44_100, 2))
+        assertEquals(PcmConvert.PCM_32BIT, feed(guard, buf, PcmConvert.PCM_16BIT))
     }
 
     @Test
     fun correct16BitIsLeftAlone() {
         val guard = PcmEncodingGuard()
         val buf = pcm16(1024, 2)
-        guard.resolve(0L, buf.remaining(), buf, PcmConvert.PCM_16BIT, 44_100, 2)
-        assertEquals(PcmConvert.PCM_16BIT, guard.resolve(frameUs, buf.remaining(), buf, PcmConvert.PCM_16BIT, 44_100, 2))
+        assertEquals(PcmConvert.PCM_16BIT, feed(guard, buf, PcmConvert.PCM_16BIT))
         assertNull(guard.corrected)
     }
 
@@ -61,8 +58,34 @@ class PcmEncodingGuardTest {
     fun twentyFourBitReportedAs16BitIsFixed() {
         val guard = PcmEncodingGuard()
         val buf = ByteBuffer.allocate(1024 * 2 * 3).order(ByteOrder.LITTLE_ENDIAN)
-        guard.resolve(0L, buf.remaining(), buf, PcmConvert.PCM_16BIT, 44_100, 2)
-        assertEquals(PcmConvert.PCM_24BIT_PACKED, guard.resolve(frameUs, buf.remaining(), buf, PcmConvert.PCM_16BIT, 44_100, 2))
+        assertEquals(PcmConvert.PCM_24BIT_PACKED, feed(guard, buf, PcmConvert.PCM_16BIT))
+    }
+
+    /** Feeds 8 equal buffers (1024 frames each) and returns the encoding used for the last one. */
+    private fun feed(guard: PcmEncodingGuard, buf: ByteBuffer, reported: Int): Int {
+        var result = reported
+        for (i in 0 until 8) result = guard.resolve(i * frameUs, buf.remaining(), buf, reported, 44_100, 2)
+        return result
+    }
+
+    @Test
+    fun mp3LikeShortFirstBufferDoesNotFoolTheGuard() {
+        // V99: an MP3 decoder's first buffer is shorter (encoder delay trimmed) but has a full frame's time.
+        val guard = PcmEncodingGuard()
+        val full = pcm16(1152, 2)
+        val first = pcm16(1152 - 529, 2)
+        var used = guard.resolve(0L, first.remaining(), first, PcmConvert.PCM_16BIT, 44_100, 2)
+        val step = 1152 * 1_000_000L / 44_100
+        for (i in 1 until 10) used = guard.resolve(i * step, full.remaining(), full, PcmConvert.PCM_16BIT, 44_100, 2)
+        assertEquals(PcmConvert.PCM_16BIT, used)
+        assertNull(guard.corrected)
+    }
+
+    @Test
+    fun disabledForCompressedSources() {
+        val guard = PcmEncodingGuard(enabled = false)
+        val buf = floatAudio(1024, 2)
+        assertEquals(PcmConvert.PCM_16BIT, feed(guard, buf, PcmConvert.PCM_16BIT))
     }
 
     @Test

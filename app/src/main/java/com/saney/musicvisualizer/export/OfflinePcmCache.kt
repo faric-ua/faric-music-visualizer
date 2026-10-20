@@ -271,9 +271,14 @@ object OfflinePcmCache {
                         2,
                     )
 
+            // V89: see OfflineAudioAnalyzer — WAV format from the track + real-size guard.
             var pcmEncoding =
-                AudioFormat
-                    .ENCODING_PCM_16BIT
+                inputFormat
+                    .getIntegerOrDefault(
+                        MediaFormat.KEY_PCM_ENCODING,
+                        AudioFormat.ENCODING_PCM_16BIT,
+                    )
+            val encodingGuard = PcmEncodingGuard()
 
             var sampleCount =
                 0L
@@ -438,8 +443,7 @@ object OfflinePcmCache {
                                         .getIntegerOrDefault(
                                             MediaFormat
                                                 .KEY_PCM_ENCODING,
-                                            AudioFormat
-                                                .ENCODING_PCM_16BIT,
+                                            pcmEncoding,
                                         )
                             }
 
@@ -483,6 +487,16 @@ object OfflinePcmCache {
                                                     ByteOrder
                                                         .LITTLE_ENDIAN,
                                                 )
+
+                                        pcmEncoding =
+                                            encodingGuard.resolve(
+                                                ptsUs = info.presentationTimeUs,
+                                                bytes = info.size,
+                                                sample = pcm,
+                                                reported = pcmEncoding,
+                                                sampleRate = sampleRate,
+                                                channels = channelCount,
+                                            )
 
                                         sampleCount +=
                                             writeMono16(

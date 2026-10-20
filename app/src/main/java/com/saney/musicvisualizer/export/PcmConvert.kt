@@ -56,3 +56,87 @@ object PcmConvert {
         return out
     }
 }
+
+/**
+ * V89 (faric 20.10 19:24: з WAV тест 3 с дав звук 6,7 с — музика розтягнута й повільна).
+ * Some phones report «16-bit» for decoded WAV while the data is 32-bit (float or int) —
+ * then every sample is read as two and the sound plays twice as long, an octave lower.
+ * The guard measures real bytes per sample from the timestamps of the first two buffers
+ * (PTS come from the file, so they are right) and fixes the encoding from then on.
+ */
+class PcmEncodingGuard {
+    private var lastPtsUs = -1L
+    private var lastBytes = 0
+    private var checked = false
+    private var override: Int? = null
+
+    /** Encoding to use for this buffer. Call before converting each decoded buffer. */
+    fun resolve(
+        ptsUs: Long,
+        bytes: Int,
+        sample: ByteBuffer,
+        reported: Int,
+        sampleRate: Int,
+        channels: Int,
+    ): Int {
+        if (!checked && lastPtsUs >= 0L && ptsUs > lastPtsUs && sampleRate > 0 && channels > 0) {
+            val seconds = (ptsUs - lastPtsUs) / 1_000_000.0
+            val measured = lastBytes / (seconds * sampleRate * channels)
+            val fixed = PcmConvert.resolveEncoding(reported, measured, sample)
+            if (fixed != reported) override = fixed
+            checked = true
+        }
+        lastPtsUs = ptsUs
+        lastBytes = bytes
+        return override ?: reported
+    }
+
+    /** Non-null once a wrong reported encoding was detected (for the export log). */
+    val corrected: Int? get() = override
+}
+
+/** Bytes per sample for an AudioFormat.ENCODING_PCM_* value, 0 if unknown. */
+fun PcmConvert.bytesPerSample(encoding: Int): Int =
+    when (encoding) {
+        PcmConvert.PCM_16BIT -> 2
+        PcmConvert.PCM_8BIT -> 1
+        PcmConvert.PCM_FLOAT, PcmConvert.PCM_32BIT -> 4
+        PcmConvert.PCM_24BIT_PACKED -> 3
+        else -> 0
+    }
+
+/**
+ * Keeps [reported] when the measured bytes per sample agree with it; otherwise picks the
+ * encoding that matches the measurement (4 bytes: float if the data looks like float audio).
+ */
+fun PcmConvert.resolveEncoding(
+    reported: Int,
+    measuredBytesPerSample: Double,
+    sample: ByteBuffer,
+): Int {
+    if (!measuredBytesPerSample.isFinite()) return reported
+    val expected = bytesPerSample(reported)
+    if (expected > 0 && kotlin.math.abs(measuredBytesPerSample - expected) < 0.35) return reported
+    return when (kotlin.math.round(measuredBytesPerSample).toInt()) {
+        1 -> PcmConvert.PCM_8BIT
+        2 -> PcmConvert.PCM_16BIT
+        3 -> PcmConvert.PCM_24BIT_PACKED
+        4 -> if (looksLikeFloatAudio(sample)) PcmConvert.PCM_FLOAT else PcmConvert.PCM_32BIT
+        else -> reported
+    }
+}
+
+/** Float audio: almost every value is 0 or between 1e-7 and 2 in size; 32-bit ints read as float are not. */
+fun PcmConvert.looksLikeFloatAudio(sample: ByteBuffer): Boolean {
+    val floats = sample.duplicate().order(ByteOrder.LITTLE_ENDIAN)
+    floats.position(sample.position())
+    var total = 0
+    var plausible = 0
+    while (floats.remaining() >= 4 && total < 512) {
+        val v = floats.float
+        total++
+        val a = kotlin.math.abs(v)
+        if (v.isFinite() && (a == 0f || (a >= 1e-7f && a <= 2f))) plausible++
+    }
+    return total > 0 && plausible * 10 >= total * 9
+}

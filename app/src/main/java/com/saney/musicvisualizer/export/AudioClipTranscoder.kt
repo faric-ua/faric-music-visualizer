@@ -152,8 +152,16 @@ object AudioClipTranscoder {
         var encoderInputDone = false
         var encoderOutputDone = false
 
+        // V89 (faric 20.10 19:24: WAV → звук у 2 рази довший і повільніший): the WAV track
+        // says its own sample format; keep it unless the decoder reports another one, and
+        // let the guard check the real bytes per sample from the timestamps.
         var pcmEncoding =
-            AudioFormat.ENCODING_PCM_16BIT
+            if (sourceFormat.containsKey(MediaFormat.KEY_PCM_ENCODING)) {
+                sourceFormat.getInteger(MediaFormat.KEY_PCM_ENCODING)
+            } else {
+                AudioFormat.ENCODING_PCM_16BIT
+            }
+        val encodingGuard = PcmEncodingGuard()
 
         try {
             decoder.configure(
@@ -403,6 +411,16 @@ object AudioClipTranscoder {
                                         decoderInfo.offset +
                                             decoderInfo.size,
                                     )
+
+                                    pcmEncoding =
+                                        encodingGuard.resolve(
+                                            ptsUs = sourcePtsUs,
+                                            bytes = decoderInfo.size,
+                                            sample = outputBuffer.slice().order(ByteOrder.LITTLE_ENDIAN),
+                                            reported = pcmEncoding,
+                                            sampleRate = sampleRate,
+                                            channels = channelCount,
+                                        )
 
                                     if (
                                         sourcePtsUs >=

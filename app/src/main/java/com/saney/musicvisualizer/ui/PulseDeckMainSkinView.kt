@@ -2388,12 +2388,14 @@ class PulseDeckMainSkinView(
 
         when (event.actionMasked) {
             MotionEvent.ACTION_DOWN -> {
+                // V120: a tap just beside a button (between ⏮ and ⏯) still counts for the nearest one.
                 val target =
                     findTarget(
                         event.x,
                         event.y,
-                    )
+                    ) ?: findNearTarget(event.x, event.y)
 
+                pressedTargetRect = target?.rect?.let { RectF(it) }
                 pressedAction =
                     target?.action
                 pressedOriginAction =
@@ -2436,10 +2438,14 @@ class PulseDeckMainSkinView(
                         ?.invoke()
                 } else if (pressedOriginAction != null) {
                     val hoveredAction =
-                        findTarget(
-                            event.x,
-                            event.y,
-                        )?.action
+                        if (stillOnPressed(event.x, event.y)) {
+                            pressedOriginAction
+                        } else {
+                            findTarget(
+                                event.x,
+                                event.y,
+                            )?.action
+                        }
                     val nextPressed =
                         pressedOriginAction
                             .takeIf { it == hoveredAction }
@@ -2476,14 +2482,15 @@ class PulseDeckMainSkinView(
                     interactionListener
                         ?.invoke()
                 } else {
-                    val target =
-                        findTarget(
-                            event.x,
-                            event.y,
-                        )
-
                     val action =
-                        target?.action
+                        if (stillOnPressed(event.x, event.y)) {
+                            pressedOriginAction
+                        } else {
+                            findTarget(
+                                event.x,
+                                event.y,
+                            )?.action
+                        }
 
                     if (
                         pressedAction != null &&
@@ -2568,6 +2575,42 @@ class PulseDeckMainSkinView(
                     fraction,
                 )
         }
+    }
+
+    /**
+     * V120 (faric 22.10 00:34, запис: кнопки «то працюють, то зависають на 2–5 с»). Розбір кадрів:
+     * палець тиснув край ⏮ і за 0,1–0,2 с з'їжджав на кілька міліметрів убік — з кнопки — і натиск
+     * скасовувався (кнопка світилась, але пісня не мінялась). Тепер натиснута кнопка «тримає» палець
+     * у межах [PRESS_TOLERANCE_DP] навколо себе, а дотик поруч з кнопкою дістається найближчій.
+     */
+    private var pressedTargetRect: RectF? = null
+
+    private fun stillOnPressed(
+        x: Float,
+        y: Float,
+    ): Boolean {
+        val rect = pressedTargetRect ?: return false
+        if (pressedOriginAction == null || pressedOriginAction == "seek") return false
+        val slack = PRESS_TOLERANCE_DP * resources.displayMetrics.density
+        return x >= rect.left - slack && x <= rect.right + slack && y >= rect.top - slack && y <= rect.bottom + slack
+    }
+
+    private fun findNearTarget(
+        x: Float,
+        y: Float,
+    ): HitTarget? {
+        val reach = NEAR_TAP_DP * resources.displayMetrics.density
+        return hitTargets
+            .asSequence()
+            .filter { it.action != "seek" }
+            .map { target ->
+                val dx = maxOf(target.rect.left - x, 0f, x - target.rect.right)
+                val dy = maxOf(target.rect.top - y, 0f, y - target.rect.bottom)
+                target to (dx * dx + dy * dy)
+            }
+            .filter { (_, distance) -> distance <= reach * reach }
+            .minByOrNull { (_, distance) -> distance }
+            ?.first
     }
 
     private fun findTarget(
@@ -3071,6 +3114,12 @@ class PulseDeckMainSkinView(
         }.getOrNull()
 
     companion object {
+        /** V120: a pressed button keeps the finger this far around it. */
+        const val PRESS_TOLERANCE_DP = 28f
+
+        /** V120: a tap this close to a button (but not on it) goes to that button. */
+        const val NEAR_TAP_DP = 14f
+
         const val COVER_BOX_ID = "cover_box"
         const val COVER_FALLBACK_HIDE = 0
         const val COVER_FALLBACK_PLACEHOLDER = 1

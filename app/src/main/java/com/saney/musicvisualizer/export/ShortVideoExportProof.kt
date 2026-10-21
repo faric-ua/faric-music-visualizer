@@ -70,7 +70,18 @@ object ShortVideoExportProof {
             Boolean,
         val projectMOfflineStages:
             ProjectMOfflineTiming?,
+        /** V115: whole-frame time per visualization (slowest first) — which ones make the export slow. */
+        val presetTimings: List<PresetTiming> = emptyList(),
     )
+
+    /** V115: one visualization in the MP4 — [frames] frames, [totalMs] of whole-frame time. */
+    data class PresetTiming(
+        val path: String,
+        val frames: Int,
+        val totalMs: Long,
+    ) {
+        val msPerFrame: Long get() = if (frames > 0) totalMs / frames else 0L
+    }
 
     private const val MIME = "video/avc"
     private const val DEFAULT_FPS = 30
@@ -380,6 +391,7 @@ object ShortVideoExportProof {
             EglBitmapEncoderSurface? =
             null
 
+        val presetFrameStats = HashMap<String, LongArray>()
         var projectMFrameNs =
             0L
         var compositionNs =
@@ -568,6 +580,15 @@ object ShortVideoExportProof {
 
             // V94: AUTO in the video — which visualization is loaded in the offline projectM now.
             var loadedPresetPath: String? = directGpuProjectMConfig?.presetPath
+            // V115: whole-frame time is booked to the visualization that drew the frame.
+            var timedPreset: String? = null
+            var frameStartedNs = 0L
+            fun bookFrameTime(now: Long) {
+                val key = timedPreset ?: return
+                val slot = presetFrameStats.getOrPut(key) { LongArray(2) }
+                slot[0] += now - frameStartedNs
+                slot[1] += 1
+            }
             for (
                 frameIndex in
                 0 until frameCount
@@ -578,6 +599,10 @@ object ShortVideoExportProof {
                     throw CancellationException(
                         "Export cancelled",
                     )
+                }
+                System.nanoTime().let { now ->
+                    if (frameIndex > 0) bookFrameTime(now)
+                    frameStartedNs = now
                 }
 
                 presetForVideoTime
@@ -592,6 +617,8 @@ object ShortVideoExportProof {
                             }
                         }
                     }
+
+                timedPreset = loadedPresetPath ?: "—"
 
                 val frameTimeMs =
                     startMs +
@@ -1308,6 +1335,7 @@ object ShortVideoExportProof {
                     ),
                 )
             }
+            bookFrameTime(System.nanoTime())
 
             encoder.signalEndOfInputStream()
 
@@ -1494,6 +1522,10 @@ object ShortVideoExportProof {
                 projectMOfflineStages =
                     projectMOfflineTimingProvider
                         ?.invoke(),
+                presetTimings =
+                    presetFrameStats
+                        .map { (path, slot) -> PresetTiming(path, slot[1].toInt(), slot[0] / 1_000_000L) }
+                        .sortedByDescending { it.msPerFrame },
             )
         } finally {
             videoTemp.delete()

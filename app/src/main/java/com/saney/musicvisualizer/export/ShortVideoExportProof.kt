@@ -205,12 +205,11 @@ object ShortVideoExportProof {
                         .CodecCapabilities
                         .COLOR_FormatSurface,
                 )
+                // V113 (faric 21.10 14:49: «кнопки у відео моросять»): on a busy projectM background the
+                // fine HUD details ran out of bits (blocky «mosquito» noise). More bits, keyframe every 2 s.
                 setInteger(
                     MediaFormat.KEY_BIT_RATE,
-                    max(
-                        8_000_000,
-                        width * height * 6,
-                    ),
+                    ExportStorageBudget.videoBitRate(width, height).toInt(),
                 )
                 setInteger(
                     MediaFormat.KEY_FRAME_RATE,
@@ -218,8 +217,13 @@ object ShortVideoExportProof {
                 )
                 setInteger(
                     MediaFormat.KEY_I_FRAME_INTERVAL,
-                    1,
+                    2,
                 )
+                // High profile packs the same picture into fewer bits (when the encoder has it).
+                highProfileLevel(encoderInfo)?.let { (profile, level) ->
+                    setInteger(MediaFormat.KEY_PROFILE, profile)
+                    setInteger(MediaFormat.KEY_LEVEL, level)
+                }
             }
 
         val encoder =
@@ -400,12 +404,30 @@ object ShortVideoExportProof {
             false
 
         try {
-            encoder.configure(
-                format,
-                null,
-                null,
-                MediaCodec.CONFIGURE_FLAG_ENCODE,
-            )
+            val configured =
+                runCatching {
+                    encoder.configure(
+                        format,
+                        null,
+                        null,
+                        MediaCodec.CONFIGURE_FLAG_ENCODE,
+                    )
+                }
+            if (configured.isFailure && format.containsKey(MediaFormat.KEY_PROFILE)) {
+                // V113: an encoder that refuses High profile — the old settings, as before.
+                Log.w("FARIC-export", "High profile refused; default profile", configured.exceptionOrNull())
+                encoder.reset()
+                format.removeKey(MediaFormat.KEY_PROFILE)
+                format.removeKey(MediaFormat.KEY_LEVEL)
+                encoder.configure(
+                    format,
+                    null,
+                    null,
+                    MediaCodec.CONFIGURE_FLAG_ENCODE,
+                )
+            } else {
+                configured.getOrThrow()
+            }
 
             val codecInputSurface =
                 encoder.createInputSurface()
@@ -1483,6 +1505,15 @@ object ShortVideoExportProof {
             videoTemp.delete()
         }
     }
+
+    /** V113: AVC High profile at the best level this encoder offers, or null. */
+    private fun highProfileLevel(info: MediaCodecInfo): Pair<Int, Int>? =
+        runCatching {
+            info.getCapabilitiesForType(MIME).profileLevels
+                .filter { it.profile == MediaCodecInfo.CodecProfileLevel.AVCProfileHigh }
+                .maxByOrNull { it.level }
+                ?.let { it.profile to it.level }
+        }.getOrNull()
 
     private fun findSurfaceEncoder():
         MediaCodecInfo? {

@@ -25,4 +25,11 @@ class ExportStorageBudgetTest {
         assertFalse(ExportStorageBudget.hasCapacity(0, 0))
         assertEquals(2L, ExportStorageBudget.formatMiB(1_048_577L))
     }
+
+    @Test fun videoBitRateIsHigherButCapped() {
+        // V113: 1080×1920 → 9 bits per pixel-second ≈ 18.7 Mbit/s (was 6 → 12.4).
+        assertEquals(18_662_400L, ExportStorageBudget.videoBitRate(1080, 1920))
+        assertEquals(8_000_000L, ExportStorageBudget.videoBitRate(320, 240))
+        assertEquals(24_000_000L, ExportStorageBudget.videoBitRate(3840, 2160))
+    }
 }

@@ -8148,6 +8148,27 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
         )
 
+        // V116 (faric 21.10 20:01: «щоб під час експорту музика й візуалізатор не грали — менше гріється»).
+        content.addView(
+            exportPill(
+                text = pauseDuringExportLabel(),
+                accent = false,
+            ) {}.apply {
+                // V85: the switch changes only itself — the screen is not re-drawn.
+                setOnClickListener {
+                    val now = !pauseMusicDuringExport()
+                    exportPrefs().edit().putBoolean(KEY_EXPORT_PAUSE_MUSIC, now).apply()
+                    text = pauseDuringExportLabel()
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+            },
+        )
+
         // V38: buttons (HUD) in the video — yes / no, remembered.
         content.addView(
             exportPill(
@@ -8892,6 +8913,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         CrashJournal.exportNote(this, "експорт продовжено (шлях Б)")
     }
 
+    /** V116: pause the music (and so the live visualization) while an MP4 is made — less load, less heat. */
+    private fun pauseMusicDuringExport(): Boolean =
+        exportPrefs().getBoolean(KEY_EXPORT_PAUSE_MUSIC, true)
+
+    private fun pauseDuringExportLabel(): String =
+        if (pauseMusicDuringExport()) "Під час експорту: музика на паузі" else "Під час експорту: музика грає"
+
     /** V115: battery temperature and Android's heat level when the export started. */
     private var exportHeatAtStart: String? = null
 
@@ -8914,6 +8942,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         }
         exportHeatAtStart = com.saney.musicvisualizer.export.DeviceHeat.read(this)
+        if (pauseMusicDuringExport() && latestSnapshot.isPlaying) {
+            // V116: the video is made from the file, not from what plays — the music can rest.
+            controller.pause()
+            toast("Музику зупинено на час експорту")
+        }
         Log.i("FARIC-export", "Export started; fullSong=$fullSong")
         // V107: keep the app alive (notification «Експорт MP4») if faric switches to another app.
         com.saney.musicvisualizer.export.ExportKeepAliveService.start(this)
@@ -12335,6 +12368,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val EXPORT_PREVIEW_HEIGHT_DP = 200
         private const val UNKNOWN_ARTIST = "Невідомий виконавець"
         private const val KEY_COVER_BOX_FALLBACK = "pulsedeck.cover_box_fallback"
+        private const val KEY_EXPORT_PAUSE_MUSIC = "pause_music_during_export"
         private const val NOW_CONTROLS_AUTO_HIDE_MS =
             6000L
         private const val EMERGENCY_RECOVERY_HOLD_MS =

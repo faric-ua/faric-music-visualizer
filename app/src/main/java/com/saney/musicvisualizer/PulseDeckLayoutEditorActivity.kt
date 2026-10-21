@@ -50,7 +50,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
     private var stepPx = 5
     private var dirty = false
     private var zoom = 1
-    private var snapMode = com.saney.musicvisualizer.ui.SnapMode.CENTERS
+    private var snapSet = com.saney.musicvisualizer.ui.SnapSet()
     private var snapPx = 20
     private lateinit var snapDistanceButton: TextView
     private lateinit var chipRow: LinearLayout
@@ -66,6 +66,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
     private var loadList: List<LayoutProfileStore.Snapshot> = emptyList()
     private var loadIndex = 0
     private var beforeLoad: Map<String, LayoutAdjust>? = null
+    private var pulseAnimator: android.animation.ValueAnimator? = null
     private var guideX: Float? = null
     private var guideY: Float? = null
     private var outsideFrame: Set<String> = emptySet()
@@ -103,9 +104,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
             stepPx = savedInstanceState.getInt(STATE_STEP, stepPx)
             dirty = savedInstanceState.getBoolean(STATE_DIRTY, false)
             zoom = savedInstanceState.getInt(STATE_ZOOM, 1).coerceIn(1, ZOOMS.last())
-            snapMode =
-                runCatching { com.saney.musicvisualizer.ui.SnapMode.valueOf(savedInstanceState.getString(STATE_SNAP).orEmpty()) }
-                    .getOrDefault(com.saney.musicvisualizer.ui.SnapMode.CENTERS)
+            snapSet = com.saney.musicvisualizer.ui.SnapSet.decode(savedInstanceState.getString(STATE_SNAP))
             snapPx = savedInstanceState.getInt(STATE_SNAP_PX, snapPx)
         } else {
             working.putAll(store.load(profile))
@@ -193,6 +192,18 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
                 isEnabled = false
             }
         previewBox.addView(skin, FrameLayout.LayoutParams(virtualW, virtualH))
+        // V126 (faric 02:23: «у макеті — одне, на головній — інше»): the copy shows the cover of the
+        // song that plays, like the main screen (not only the ♪ placeholder).
+        kotlin.concurrent.thread(name = "editor-cover") {
+            val art =
+                runCatching {
+                    val session = com.saney.musicvisualizer.playback.LastSessionStore(this)
+                    val tracks = session.loadTracks()
+                    tracks.getOrNull(session.index().coerceIn(0, (tracks.size - 1).coerceAtLeast(0)))
+                        ?.let { com.saney.musicvisualizer.ui.CoverArtLoader.load(this, android.net.Uri.parse(it.uri)) }
+                }.getOrNull()
+            if (art != null) runOnUiThread { if (!isDestroyed) skin.coverArt = art }
+        }
         overlay = EditorOverlay(this)
         previewBox.addView(overlay, FrameLayout.LayoutParams(-1, -1))
         // The overlay lies on top of the preview and takes the finger (the player view would eat it).
@@ -205,13 +216,35 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
             },
         )
 
-        chipRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        chipRow =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.HORIZONTAL
+                // V126: room for the chips' frame (the bottom edge was cut).
+                setPadding(0, dp(2), 0, dp(6))
+            }
         // V123 (faric 22.10 01:45): «☰» next to the chosen part — its own settings (видимість, прозорість).
         optionsChip =
             UtilityUi.button(this, "☰") { openObjectPanel() }.apply {
                 textSize = 16f
                 contentDescription = "Налаштування вибраної частини"
             }
+        // V126 (faric 02:23): «☰» gently breathes (frame cyan ↔ dark) — «мене можна натиснути».
+        pulseAnimator = android.animation.ValueAnimator.ofFloat(0f, 1f).apply {
+            duration = 1400L
+            repeatMode = android.animation.ValueAnimator.REVERSE
+            repeatCount = android.animation.ValueAnimator.INFINITE
+            addUpdateListener { anim ->
+                val f = anim.animatedValue as Float
+                val edge =
+                    android.graphics.Color.rgb(
+                        (42 + (64 - 42) * f).toInt(),
+                        (59 + (200 - 59) * f).toInt(),
+                        (74 + (255 - 74) * f).toInt(),
+                    )
+                optionsChip.background = UtilityUi.frame(UtilityUi.PANEL, edge, 2, 12, this@PulseDeckLayoutEditorActivity)
+            }
+            start()
+        }
         LayoutGroups.ALL.forEach { group ->
             val chip = UtilityUi.button(this, group.label) { select(group) }
             chip.textSize = 13f
@@ -327,7 +360,18 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
                     },
                 )
             }
-        objectPanel.addView(alphaBar, LinearLayout.LayoutParams(-1, dp(48)))
+        // V126 (faric 02:23): «−» / «+» at the ends — exactly one percent per tap, no hunting with the finger.
+        val alphaRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL }
+        alphaRow.addView(
+            UtilityUi.button(this, "−") { setTransparency((alphaBar.progress - 1).coerceAtLeast(0)) }.apply { contentDescription = "Менше прозорості на 1 %" },
+            LinearLayout.LayoutParams(dp(52), dp(48)),
+        )
+        alphaRow.addView(alphaBar, LinearLayout.LayoutParams(0, dp(48), 1f))
+        alphaRow.addView(
+            UtilityUi.button(this, "+") { setTransparency((alphaBar.progress + 1).coerceAtMost(alphaBar.max)) }.apply { contentDescription = "Більше прозорості на 1 %" },
+            LinearLayout.LayoutParams(dp(52), dp(48)),
+        )
+        objectPanel.addView(alphaRow, LinearLayout.LayoutParams(-1, -2))
         objectPanel.addView(
             UtilityUi.text(this, "0 % — видно повністю; більше — крізь частину видно візуалізацію.", 12f, UtilityUi.MUTED),
             LinearLayout.LayoutParams(-1, -2),
@@ -369,6 +413,12 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         select(selected)
     }
 
+    override fun onDestroy() {
+        pulseAnimator?.cancel()
+        pulseAnimator = null
+        super.onDestroy()
+    }
+
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString(STATE_WORKING, LayoutProfileCodec.encode(working))
@@ -376,7 +426,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         outState.putInt(STATE_STEP, stepPx)
         outState.putBoolean(STATE_DIRTY, dirty)
         outState.putInt(STATE_ZOOM, zoom)
-        outState.putString(STATE_SNAP, snapMode.name)
+        outState.putString(STATE_SNAP, snapSet.encode())
         outState.putInt(STATE_SNAP_PX, snapPx)
     }
 
@@ -466,20 +516,61 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         }
     }
 
-    /** V124: what the part sticks to — a list (centres, edges, one side, everything, off). */
+    /**
+     * V126 (faric 22.10 02:23): ticks, several at once — Центр and the edges; «Усі 4 краї» ticks all
+     * four and greys the single sides. «Зберегти» / «Скасувати».
+     */
     private fun chooseSnap() {
-        val modes = com.saney.musicvisualizer.ui.SnapMode.entries
-        PulseDeckDialogs.showSingleChoice(
+        var draft = snapSet
+        val body = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        val rows = mutableListOf<Pair<TextView, () -> Unit>>()
+        fun refreshRows() = rows.forEach { (_, refresh) -> refresh() }
+        fun row(
+            label: String,
+            checked: () -> Boolean,
+            enabled: () -> Boolean,
+            toggle: () -> Unit,
+        ) {
+            val view = UtilityUi.button(this, "") {}
+            view.gravity = android.view.Gravity.CENTER_VERTICAL or android.view.Gravity.START
+            view.setOnClickListener {
+                if (enabled()) {
+                    toggle()
+                    refreshRows()
+                }
+            }
+            val refresh = {
+                val on = checked()
+                view.text = (if (on) "☑  " else "☐  ") + label
+                UtilityUi.style(view, if (on) UtilityUi.Kind.CHOSEN else UtilityUi.Kind.NORMAL)
+                view.alpha = if (enabled()) 1f else 0.4f
+            }
+            rows += view to refresh
+            body.addView(view, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) })
+        }
+        row("Центр", { draft.center }, { true }) { draft = draft.copy(center = !draft.center) }
+        row("Усі 4 краї", { draft.allEdges }, { true }) { draft = draft.withAllEdges(!draft.allEdges) }
+        row("Лівий край", { draft.left }, { !draft.allEdges }) { draft = draft.copy(left = !draft.left) }
+        row("Правий край", { draft.right }, { !draft.allEdges }) { draft = draft.copy(right = !draft.right) }
+        row("Верхній край", { draft.top }, { !draft.allEdges }) { draft = draft.copy(top = !draft.top) }
+        row("Нижній край", { draft.bottom }, { !draft.allEdges }) { draft = draft.copy(bottom = !draft.bottom) }
+        refreshRows()
+        PulseDeckDialogs.show(
             context = this,
             title = "Прив'язка",
-            labels = modes.map { it.label },
-            checkedIndex = modes.indexOf(snapMode),
-        ) { index ->
-            snapMode = modes[index]
-            guideX = null
-            guideY = null
-            refreshLabels()
-        }
+            message = "До чого «прилипає» частина: її центр і / або краї — до центрів і країв екрана та інших частин. Нічого не вибрано — прив'язка вимкнена.",
+            body = body,
+            actions =
+                listOf(
+                    PulseDeckDialogs.Action(label = "Зберегти", accent = true) {
+                        snapSet = draft
+                        guideX = null
+                        guideY = null
+                        refreshLabels()
+                    },
+                    PulseDeckDialogs.Action(label = "Скасувати") {},
+                ),
+        )
     }
 
     /** V124: from how far (screen px) the part jumps onto the line. */
@@ -669,9 +760,10 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         stepButton.text = "крок $stepPx ▾"
         zoomButton.text = "Лупа ${zoom}× ▾"
         UtilityUi.style(zoomButton, if (zoom > 1) UtilityUi.Kind.CHOSEN else UtilityUi.Kind.NORMAL)
-        val snapOn = snapMode != com.saney.musicvisualizer.ui.SnapMode.OFF
-        snapButton.text = (if (snapOn) snapMode.label else "Прив'язка: ні") + " ▾"
-        UtilityUi.style(snapButton, if (snapOn) UtilityUi.Kind.CHOSEN else UtilityUi.Kind.NORMAL)
+        // V126: just «Прив'язка» — green when on, grey when off; what it sticks to is in the list.
+        snapButton.text = "Прив'язка ▾"
+        UtilityUi.style(snapButton, if (snapSet.isOff) UtilityUi.Kind.NORMAL else UtilityUi.Kind.CHOSEN)
+        snapButton.contentDescription = "Прив'язка: " + snapSet.label
         snapDistanceButton.text = "$snapPx px ▾"
         // «☰» stands right after the chosen part's chip.
         (optionsChip.parent as? android.view.ViewGroup)?.removeView(optionsChip)
@@ -740,7 +832,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
                 screenW = virtualW.toFloat(),
                 screenH = virtualH.toFloat(),
                 others = otherBoxes(),
-                mode = snapMode,
+                set = snapSet,
                 threshold = snapPx.toFloat(),
             )
         guideX = result.guideX
@@ -758,7 +850,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
                 screenW = virtualW.toFloat(),
                 screenH = virtualH.toFloat(),
                 others = otherBoxes(),
-                mode = snapMode,
+                set = snapSet,
                 threshold = 0.75f,
             )
         guideX = result.guideX
@@ -892,7 +984,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
                 canvas.drawRect(0f, bottom, w, h, shade)
                 canvas.drawRect(px(r.left), top, px(r.right), bottom, frameLine)
             }
-            if (snapMode != com.saney.musicvisualizer.ui.SnapMode.OFF) {
+            if (!snapSet.isOff) {
                 canvas.drawLine(px(virtualW / 2f), 0f, px(virtualW / 2f), h, centerLine)
                 canvas.drawLine(0f, py(virtualH / 2f), w, py(virtualH / 2f), centerLine)
             }

@@ -211,73 +211,98 @@ object LayoutSnap {
     }
 }
 
-/** V124 (faric 22.10 01:45): what the dragged part sticks to. */
-enum class SnapMode(
-    val label: String,
+/**
+ * V124 / V126 (faric 22.10 01:45, 02:23): what the dragged part sticks to — ticks, several at once:
+ * the centre and any of the four edges. «Усі 4 краї» = all four edges ticked.
+ */
+data class SnapSet(
+    val center: Boolean = true,
+    val left: Boolean = false,
+    val right: Boolean = false,
+    val top: Boolean = false,
+    val bottom: Boolean = false,
 ) {
-    OFF("Вимкнено"),
-    CENTERS("По центрах"),
-    EDGES("По краях (усі 4)"),
-    LEFT("По лівому краю"),
-    RIGHT("По правому краю"),
-    TOP("По верхньому краю"),
-    BOTTOM("По нижньому краю"),
-    ALL("Центри й краї"),
+    val isOff: Boolean get() = !center && !left && !right && !top && !bottom
+    val allEdges: Boolean get() = left && right && top && bottom
+    private val anyEdgeX: Boolean get() = left || right
+    private val anyEdgeY: Boolean get() = top || bottom
+
+    fun withAllEdges(on: Boolean): SnapSet = copy(left = on, right = on, top = on, bottom = on)
+
+    /** Short text for the button / saved state: «центр + 4 краї», «центр + лівий» … */
+    val label: String
+        get() {
+            if (isOff) return "вимкнено"
+            val parts = mutableListOf<String>()
+            if (center) parts += "центр"
+            if (allEdges) {
+                parts += "4 краї"
+            } else {
+                if (left) parts += "лівий"
+                if (right) parts += "правий"
+                if (top) parts += "верх"
+                if (bottom) parts += "низ"
+            }
+            return parts.joinToString(" + ")
+        }
+
+    fun encode(): String = listOf(center, left, right, top, bottom).joinToString("") { if (it) "1" else "0" }
+
+    companion object {
+        fun decode(raw: String?): SnapSet {
+            if (raw == null || raw.length != 5 || raw.any { it != '0' && it != '1' }) return SnapSet()
+            return SnapSet(raw[0] == '1', raw[1] == '1', raw[2] == '1', raw[3] == '1', raw[4] == '1')
+        }
+    }
+
+    internal fun xFeatures(box: LayoutBox): List<Float> =
+        listOfNotNull(box.left.takeIf { left }, box.centerX.takeIf { center }, box.right.takeIf { right })
+
+    internal fun yFeatures(box: LayoutBox): List<Float> =
+        listOfNotNull(box.top.takeIf { top }, box.centerY.takeIf { center }, box.bottom.takeIf { bottom })
+
+    /** Lines of the screen / other parts the chosen features may stick to (an edge meets any edge). */
+    internal fun xTargets(box: LayoutBox): List<Float> =
+        listOfNotNull(
+            box.left.takeIf { anyEdgeX },
+            box.centerX.takeIf { center },
+            box.right.takeIf { anyEdgeX },
+        )
+
+    internal fun yTargets(box: LayoutBox): List<Float> =
+        listOfNotNull(
+            box.top.takeIf { anyEdgeY },
+            box.centerY.takeIf { center },
+            box.bottom.takeIf { anyEdgeY },
+        )
 }
 
 /**
- * V124: snapping by centres and / or edges. The moving part's chosen lines (left / centre / right,
- * top / centre / bottom) stick to the same kind of lines of the screen and of the other parts.
+ * V124: snapping by centres and / or edges. The moving part's ticked lines stick to the same kind
+ * of lines of the screen and of the other parts.
  */
 object LayoutSnapEdges {
-    private fun xFeatures(
-        box: LayoutBox,
-        mode: SnapMode,
-    ): List<Float> =
-        when (mode) {
-            SnapMode.OFF, SnapMode.TOP, SnapMode.BOTTOM -> emptyList()
-            SnapMode.CENTERS -> listOf(box.centerX)
-            SnapMode.EDGES -> listOf(box.left, box.right)
-            SnapMode.LEFT -> listOf(box.left)
-            SnapMode.RIGHT -> listOf(box.right)
-            SnapMode.ALL -> listOf(box.left, box.centerX, box.right)
-        }
-
-    private fun yFeatures(
-        box: LayoutBox,
-        mode: SnapMode,
-    ): List<Float> =
-        when (mode) {
-            SnapMode.OFF, SnapMode.LEFT, SnapMode.RIGHT -> emptyList()
-            SnapMode.CENTERS -> listOf(box.centerY)
-            SnapMode.EDGES -> listOf(box.top, box.bottom)
-            SnapMode.TOP -> listOf(box.top)
-            SnapMode.BOTTOM -> listOf(box.bottom)
-            SnapMode.ALL -> listOf(box.top, box.centerY, box.bottom)
-        }
-
     fun snap(
         raw: LayoutAdjust,
         base: LayoutBox,
         screenW: Float,
         screenH: Float,
         others: List<LayoutBox>,
-        mode: SnapMode,
+        set: SnapSet,
         threshold: Float,
     ): LayoutSnap.Result {
-        if (mode == SnapMode.OFF) return LayoutSnap.Result(raw, null, null)
+        if (set.isOff) return LayoutSnap.Result(raw, null, null)
         val box = base.adjusted(raw, screenW, screenH)
-        val screen = LayoutBox(0f, 0f, screenW, screenH)
-        val all = others + screen
-        val targetsX = all.flatMap { xFeatures(it, mode) }
-        val targetsY = all.flatMap { yFeatures(it, mode) }
+        val all = others + LayoutBox(0f, 0f, screenW, screenH)
+        val targetsX = all.flatMap { set.xTargets(it) }
+        val targetsY = all.flatMap { set.yTargets(it) }
         val bestX =
-            xFeatures(box, mode)
+            set.xFeatures(box)
                 .flatMap { f -> targetsX.map { t -> Triple(f, t, kotlin.math.abs(t - f)) } }
                 .filter { it.third <= threshold }
                 .minByOrNull { it.third }
         val bestY =
-            yFeatures(box, mode)
+            set.yFeatures(box)
                 .flatMap { f -> targetsY.map { t -> Triple(f, t, kotlin.math.abs(t - f)) } }
                 .filter { it.third <= threshold }
                 .minByOrNull { it.third }

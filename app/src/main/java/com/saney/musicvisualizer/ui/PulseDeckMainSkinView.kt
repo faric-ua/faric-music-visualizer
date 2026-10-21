@@ -244,6 +244,9 @@ class PulseDeckMainSkinView(
         }
     }
 
+    /** V121: the group's place in the template (before faric's move / size) — for guides and snapping. */
+    fun groupBaseRect(groupId: String): RectF? = groupBounds[groupId]?.let { RectF(it) }
+
     /** Where the group is on screen now (with faric's move / size) — the editor checks the video frame. */
     fun groupRect(groupId: String): RectF? {
         val bounds = groupBounds[groupId] ?: return null

@@ -25,8 +25,10 @@ class PulseDeckUtilitiesActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // V121: a turned phone keeps the chosen position (Книжка / Альбом / Відео).
+        val kept = savedInstanceState?.getString(STATE_PROFILE)?.let { name -> runCatching { LayoutProfileId.valueOf(name) }.getOrNull() }
         profile =
-            if (resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
+            kept ?: if (resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
                 LayoutProfileId.LANDSCAPE
             } else {
                 LayoutProfileId.PORTRAIT
@@ -130,6 +132,11 @@ class PulseDeckUtilitiesActivity : ComponentActivity() {
         refresh()
     }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        super.onSaveInstanceState(outState)
+        outState.putString(STATE_PROFILE, profile.name)
+    }
+
     override fun onResume() {
         super.onResume()
         refresh()
@@ -175,4 +182,8 @@ class PulseDeckUtilitiesActivity : ComponentActivity() {
         }
 
     private fun block(topDp: Int) = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(topDp) }
+
+    private companion object {
+        const val STATE_PROFILE = "profile"
+    }
 }

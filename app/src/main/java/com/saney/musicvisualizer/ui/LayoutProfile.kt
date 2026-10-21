@@ -140,3 +140,60 @@ object LayoutProfileChoice {
         return saved[id].orEmpty()
     }
 }
+
+/** A rectangle in screen pixels (pure — the editor's guides are tested on JVM). */
+data class LayoutBox(
+    val left: Float,
+    val top: Float,
+    val right: Float,
+    val bottom: Float,
+) {
+    val centerX: Float get() = (left + right) / 2f
+    val centerY: Float get() = (top + bottom) / 2f
+
+    /** Where a group's template box ends up with [adjust] (size from its centre, then the shift). */
+    fun adjusted(
+        adjust: LayoutAdjust,
+        screenW: Float,
+        screenH: Float,
+    ): LayoutBox {
+        val halfW = (right - left) / 2f * adjust.scale
+        val halfH = (bottom - top) / 2f * adjust.scale
+        val cx = centerX + adjust.dx * screenW
+        val cy = centerY + adjust.dy * screenH
+        return LayoutBox(cx - halfW, cy - halfH, cx + halfW, cy + halfH)
+    }
+}
+
+/**
+ * V121 (faric 22.10 00:45: «прив'язка по центрах — веду кружочок, і коли він став по центру екрана
+ * або по центру іншого, підсвічується лінія»). While a part is dragged, its centre «sticks» to the
+ * screen's centre lines and to the centres of the other parts when it comes within [threshold] px.
+ */
+object LayoutSnap {
+    data class Result(
+        val adjust: LayoutAdjust,
+        /** Vertical guide (x in screen px) the centre sits on, or null. */
+        val guideX: Float?,
+        /** Horizontal guide (y in screen px), or null. */
+        val guideY: Float?,
+    )
+
+    fun snap(
+        raw: LayoutAdjust,
+        base: LayoutBox,
+        screenW: Float,
+        screenH: Float,
+        targetsX: List<Float>,
+        targetsY: List<Float>,
+        threshold: Float,
+    ): Result {
+        val box = base.adjusted(raw, screenW, screenH)
+        val nearX = targetsX.minByOrNull { kotlin.math.abs(it - box.centerX) }?.takeIf { kotlin.math.abs(it - box.centerX) <= threshold }
+        val nearY = targetsY.minByOrNull { kotlin.math.abs(it - box.centerY) }?.takeIf { kotlin.math.abs(it - box.centerY) <= threshold }
+        var adjust = raw
+        if (nearX != null) adjust = adjust.copy(dx = raw.dx + (nearX - box.centerX) / screenW)
+        if (nearY != null) adjust = adjust.copy(dy = raw.dy + (nearY - box.centerY) / screenH)
+        return Result(adjust, nearX, nearY)
+    }
+}

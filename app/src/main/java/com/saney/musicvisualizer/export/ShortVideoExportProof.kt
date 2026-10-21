@@ -114,6 +114,8 @@ object ShortVideoExportProof {
         relativePath: String = Mp4AvMuxer.DEFAULT_RELATIVE_PATH,
         /** V93: song tags for the MP4 (title, artist, album, year, genre, cover). */
         tags: Mp4Tagger.Tags? = null,
+        /** V109: a small copy of the MP4 frame about once a second (progress window). */
+        onPreviewFrame: ((android.graphics.Bitmap) -> Unit)? = null,
         shouldCancel: () -> Boolean = {
             false
         },
@@ -415,7 +417,7 @@ object ShortVideoExportProof {
                     surface = codecInputSurface,
                     width = width,
                     height = height,
-                )
+                ).also { it.previewSink = onPreviewFrame }
 
             directGpuProjectMConfig
                 ?.let { gpuConfig ->

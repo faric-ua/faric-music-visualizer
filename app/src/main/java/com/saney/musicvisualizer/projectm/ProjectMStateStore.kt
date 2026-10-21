@@ -6,6 +6,9 @@ import java.io.File
 enum class ProjectMBackgroundMode {
     TOP,
     ALL,
+
+    /** V110 (faric 21.10 03:54): only the visualizations faric gave 👍. */
+    LIKED,
 }
 
 class ProjectMStateStore(context: Context) {

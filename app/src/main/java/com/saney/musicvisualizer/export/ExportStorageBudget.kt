@@ -11,7 +11,17 @@ object ExportStorageBudget {
     private const val AAC_BIT_RATE = 160_000L
     private const val PCM_MONO_BYTES_PER_SECOND = 96_000L
     private const val MIN_VIDEO_BIT_RATE = 8_000_000L
+    private const val MAX_VIDEO_BIT_RATE = 24_000_000L
     const val MIN_FREE_RESERVE_BYTES = 128L * MIB
+
+    /**
+     * The MP4 video bit rate (also used by the encoder). V113 (faric 21.10 14:49: «кнопки моросять»):
+     * 9 bits per pixel-second (was 6) — 1080×1920 ≈ 18.7 Mbit/s, capped at 24 Mbit/s.
+     */
+    fun videoBitRate(
+        width: Int,
+        height: Int,
+    ): Long = (width.toLong() * height * 9L).coerceIn(MIN_VIDEO_BIT_RATE, MAX_VIDEO_BIT_RATE)
 
     fun estimateRequiredBytes(
         durationMs: Long,
@@ -21,7 +31,7 @@ object ExportStorageBudget {
     ): Long {
         require(durationMs > 0L && width > 0 && height > 0)
         val seconds = durationMs.toDouble() / 1000.0
-        val videoBitRate = maxOf(MIN_VIDEO_BIT_RATE, width.toLong() * height * 6L)
+        val videoBitRate = videoBitRate(width, height)
         val encodedVideoBytes = videoBitRate.toDouble() / 8.0 * seconds
         val audioBytes = AAC_BIT_RATE.toDouble() / 8.0 * seconds
         val pcmBytes = if (needsPcm) PCM_MONO_BYTES_PER_SECOND * seconds else 0.0

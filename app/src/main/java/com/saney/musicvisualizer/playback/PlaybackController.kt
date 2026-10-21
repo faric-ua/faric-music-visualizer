@@ -273,12 +273,37 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         trackName = item?.localConfiguration?.tag as? String
             ?: item?.mediaMetadata?.title?.toString()
             ?: trackUri?.lastPathSegment
-        trackArtist = item?.mediaMetadata?.artist?.toString()?.takeIf { it.isNotBlank() }
+        trackArtist = item?.mediaMetadata?.artist?.toString()?.takeIf { isRealArtist(it) }
         trackAlbum = item?.mediaMetadata?.albumTitle?.toString()?.takeIf { it.isNotBlank() }
     }
 
     fun currentTrackUri(): Uri? =
         trackUri
+
+    /** V111: «null» (faric's shade, 14:46) and «<unknown>» are not artists. */
+    private fun isRealArtist(value: String?): Boolean =
+        !value.isNullOrBlank() && value != "null" && value != "<unknown>"
+
+    /**
+     * V111 (faric 21.10 14:49: «у шторці, де автор, — нічого»): a song opened as a file has no artist
+     * in the player; the app reads it from the song's tag and puts it into the current item, so the
+     * shade and the screen show it. Same URI → Media3 updates the item without stopping the sound.
+     */
+    fun fillMissingArtist(
+        uri: Uri,
+        artist: String,
+    ) {
+        val item = player.currentMediaItem ?: return
+        if (item.localConfiguration?.uri != uri) return
+        if (isRealArtist(item.mediaMetadata.artist?.toString())) return
+        val updated =
+            item.buildUpon()
+                .setMediaMetadata(item.mediaMetadata.buildUpon().setArtist(artist).build())
+                .build()
+        runCatching { player.replaceMediaItem(player.currentMediaItemIndex, updated) }
+        syncTrackFromPlayer()
+        emitCurrentState()
+    }
 
     fun play() {
         if (trackName == null) return

@@ -209,6 +209,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var projectMFocusCenterControl: TextView? = null
     private var projectMFocusEdgeControl: TextView? = null
     private var projectMFocusLightControl: TextView? = null
+
+    /** V112: ТОП / ВСІ / 👍 buttons — the chosen one is marked (✓, green frame). */
+    private var projectMFocusModeControls: Map<com.saney.musicvisualizer.projectm.ProjectMBackgroundMode, TextView> = emptyMap()
     private val projectMFocusHandler = Handler(Looper.getMainLooper())
     // V90 (faric 20.10 19:32: «AUTO 5 / 10 с — а на головному екрані не міняється»): AUTO used to
     // run only while the right page was open. Now it runs whenever the live projectM is shown.
@@ -4740,28 +4743,40 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 buttons.forEach { addView(it) }
             }
 
-        val modes = controlRow(
-            6, 4,
-            // V44: ТОП / ВСІ only choose the list; they no longer switch AUTO on by themselves.
+        val topControl =
             legacyControl("ТОП") {
                 loadProjectMFocusPresets(
                     com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP,
                 )
                 scheduleProjectMFocusAuto()
-            },
+            }
+        val allControl =
             legacyControl("ВСІ") {
                 loadProjectMFocusPresets(
                     com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL,
                 )
                 scheduleProjectMFocusAuto()
-            },
-            // V110 (faric 21.10 03:54: «щоб крутились тільки ті, що я пальцем вверх натискав»).
+            }
+        // V110 (faric 21.10 03:54: «щоб крутились тільки ті, що я пальцем вверх натискав»).
+        val likedControl =
             legacyControl("👍") {
                 loadProjectMFocusPresets(
                     com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED,
                 )
                 scheduleProjectMFocusAuto()
-            },
+            }
+        projectMFocusModeControls =
+            mapOf(
+                com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP to topControl,
+                com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL to allControl,
+                com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED to likedControl,
+            )
+        val modes = controlRow(
+            6, 4,
+            // V44: ТОП / ВСІ only choose the list; they no longer switch AUTO on by themselves.
+            topControl,
+            allControl,
+            likedControl,
             legacyControl("NEXT") { advanceProjectMFocusPreset(manual = true) },
             legacyControl("FG") {
                 val state = ProjectMStateStore(this)
@@ -4934,6 +4949,22 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 "BG ${onOff(state.backgroundVisible)} · " +
                 "CENTER ${onOff(state.foregroundCenterVisible)} · " +
                 "EDGE ${onOff(state.foregroundEdgeFxVisible)}"
+        // V112 (faric 21.10 14:49: «ніхрена не бачу, чи я вибрав»): the chosen list is marked.
+        projectMFocusModeControls.forEach { (mode, control) ->
+            val chosen = mode == state.backgroundMode
+            control.text = (if (chosen) "✓ " else "") + projectMModeLabel(mode)
+            control.background =
+                android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = dp(6).toFloat()
+                    if (chosen) {
+                        setColor(Color.argb(200, 16, 84, 48))
+                        setStroke(dp(2), Color.rgb(61, 220, 132))
+                    } else {
+                        setColor(Color.argb(150, 15, 22, 31))
+                    }
+                }
+            control.contentDescription = projectMModeLabel(mode) + if (chosen) " — вибрано" else ""
+        }
         projectMFocusAutoControl?.text =
             when {
                 state.autoPerTrack -> "AUTO\nпісня"
@@ -4960,6 +4991,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             advanceProjectMFocusPreset(manual = false)
         }
         updateProjectMFocusStatus()
+    }
+
+    /** V112: one line for Export Lab — which visualizations go into the MP4. */
+    private fun exportVisualizationsLine(): String {
+        val state = ProjectMStateStore(this)
+        val list = projectMModeLabel(state.backgroundMode)
+        val count = projectMFocusPresets.size.takeIf { it > 0 }?.let { " ($it)" }.orEmpty()
+        return "Візуалізації у відео: " +
+            when {
+                state.autoPerTrack -> "AUTO «пісня» — ОДНА на всю пісню, наступна пісня — наступна зі списку $list$count."
+                state.autoEnabled -> "AUTO — міняються кожні ${state.autoSwitchSeconds} с, зі списку $list$count."
+                else -> "AUTO вимкнено — ОДНА (та, що зараз на екрані), на всю пісню."
+            } +
+            "\nЗмінити: права сторінка → AUTO."
     }
 
     /** ТОП / ВСІ / 👍 (V110) — the visualizations AUTO picks from, on the screen and in the MP4. */
@@ -5056,6 +5101,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusCenterControl = null
         projectMFocusEdgeControl = null
         projectMFocusLightControl = null
+        projectMFocusModeControls = emptyMap()
         val saved = projectMFocusSavedVisibility
         projectMFocusSavedVisibility = null
         // V90: the preset list stays — AUTO keeps using it on the main screen.
@@ -7885,6 +7931,25 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 topMargin = dp(18)
             },
         )
+
+        // V112 (faric 21.10 14:49: «вибрав 👍, експортував — грала одна візуалізація»): say plainly
+        // which visualizations the video will get, before the export starts.
+        if (compositionConfig.projectMVisible) {
+            content.addView(
+                label(
+                    exportVisualizationsLine(),
+                    13f,
+                    Color.rgb(61, 220, 132),
+                    false,
+                ),
+                LinearLayout.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.WRAP_CONTENT,
+                ).apply {
+                    topMargin = dp(8)
+                },
+            )
+        }
 
         content.addView(
             label(
@@ -11232,7 +11297,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var tagArtist: String? = null
 
     private fun displayArtist(snapshot: PlaybackSnapshot): String? =
-        snapshot.trackArtist?.takeIf { it.isNotBlank() && it != "<unknown>" }
+        snapshot.trackArtist?.takeIf { it.isNotBlank() && it != "<unknown>" && it != "null" }
             ?: tagArtist?.takeIf { tagArtistUri != null && tagArtistUri == controller.currentTrackUri()?.toString() }
 
     private fun refreshCoverArt() {
@@ -11256,7 +11321,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     heroThemeView?.coverArt = bitmap
                     tagArtistUri = uri
                     tagArtist = artist
-                    if (artist != null && latestSnapshot.trackArtist.isNullOrBlank()) {
+                    if (latestSnapshot.trackArtist.isNullOrBlank() || latestSnapshot.trackArtist == "null") {
+                        // V111: into the player too (shade); no tag → the canonical «Невідомий виконавець».
+                        controller.fillMissingArtist(Uri.parse(uri), artist ?: UNKNOWN_ARTIST)
                         onPlaybackSnapshot(latestSnapshot)
                     }
                 }
@@ -12182,6 +12249,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val KEY_NOW_CONTROLS_HIDDEN =
             "faric.now_controls_hidden"
         private const val EXPORT_PREVIEW_HEIGHT_DP = 200
+        private const val UNKNOWN_ARTIST = "Невідомий виконавець"
         private const val NOW_CONTROLS_AUTO_HIDE_MS =
             6000L
         private const val EMERGENCY_RECOVERY_HOLD_MS =

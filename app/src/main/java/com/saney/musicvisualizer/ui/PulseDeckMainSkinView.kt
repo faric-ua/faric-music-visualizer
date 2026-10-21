@@ -198,6 +198,83 @@ class PulseDeckMainSkinView(
     private var feedbackScale = 1f
     private var feedbackGlow = 0f
 
+    /**
+     * V114: the song's embedded picture for the frame at the top («Обкладинка вгорі»); null = none.
+     * [coverFallback] — what the frame shows without a picture: [COVER_FALLBACK_HIDE] or
+     * [COVER_FALLBACK_PLACEHOLDER].
+     */
+    var coverArt: Bitmap? = null
+        set(value) {
+            field = value
+            invalidate()
+        }
+    var coverFallback: Int = COVER_FALLBACK_HIDE
+        set(value) {
+            field = value
+            invalidate()
+        }
+    private val coverPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private val coverFramePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val coverClip = android.graphics.Path()
+
+    /** V114: frame size and place — a square between the header and the hero, centred. */
+    private fun coverBoxRect(
+        w: Float,
+        h: Float,
+    ): RectF {
+        val side = w * 0.2f
+        val offset = editorOffsets[COVER_BOX_ID] ?: (0f to 0f)
+        val left = (w - side) / 2f + offset.first * w
+        val top = h * 0.137f + offset.second * h
+        return RectF(left, top, left + side, top + side)
+    }
+
+    private fun drawCoverBox(
+        canvas: Canvas,
+        w: Float,
+        h: Float,
+    ) {
+        if (!isObjectVisible(COVER_BOX_ID)) return
+        val rect = coverBoxRect(w, h)
+        resolvedRects[COVER_BOX_ID] = RectF(rect)
+        // The tap zone stays even when the frame is hidden for a song without a picture —
+        // a tap opens the menu «що тут показувати» (faric 18:39).
+        hitTargets.add(HitTarget(action = COVER_BOX_ID, z = 900, rect = RectF(rect)))
+        val art = coverArt?.takeIf { !it.isRecycled }
+        if (art == null && coverFallback == COVER_FALLBACK_HIDE) return
+        val radius = rect.width() * 0.09f
+        canvas.save()
+        coverClip.reset()
+        coverClip.addRoundRect(rect, radius, radius, android.graphics.Path.Direction.CW)
+        canvas.clipPath(coverClip)
+        if (art != null) {
+            // Centre-crop: the picture keeps its proportions, what does not fit is cut off.
+            val scale = max(rect.width() / art.width, rect.height() / art.height)
+            val sw = rect.width() / scale
+            val sh = rect.height() / scale
+            val sx = (art.width - sw) / 2f
+            val sy = (art.height - sh) / 2f
+            canvas.drawBitmap(
+                art,
+                Rect(sx.toInt(), sy.toInt(), (sx + sw).toInt(), (sy + sh).toInt()),
+                rect,
+                coverPaint,
+            )
+        } else {
+            coverPaint.color = Color.rgb(10, 18, 26)
+            canvas.drawRect(rect, coverPaint)
+            textPaint.textAlign = Paint.Align.CENTER
+            textPaint.typeface = Typeface.DEFAULT
+            textPaint.textSize = rect.height() * 0.5f
+            textPaint.color = Color.rgb(64, 200, 255)
+            canvas.drawText("♪", rect.centerX(), rect.centerY() + rect.height() * 0.18f, textPaint)
+        }
+        canvas.restore()
+        coverFramePaint.strokeWidth = resources.displayMetrics.density * 2f
+        coverFramePaint.color = Color.argb(220, 64, 200, 255)
+        canvas.drawRoundRect(rect, radius, radius, coverFramePaint)
+    }
+
     private var pressedAction: String? = null
     private var pressedOriginAction: String? = null
     private var scrubbing = false
@@ -418,6 +495,15 @@ class PulseDeckMainSkinView(
                 ObjectInfo(
                     id = "track_info",
                     label = "Track info",
+                    groupCode = PulseDeckSubsystem.TRACK_UI.code,
+                    groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
+                ),
+            )
+            // V114 (faric 21.10 18:35): the song's cover in a frame at the top of the screen.
+            add(
+                ObjectInfo(
+                    id = COVER_BOX_ID,
+                    label = "Обкладинка вгорі",
                     groupCode = PulseDeckSubsystem.TRACK_UI.code,
                     groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
                 ),
@@ -856,6 +942,12 @@ class PulseDeckMainSkinView(
         drawSubsystemLayers(
             canvas = canvas,
             subsystem = PulseDeckSubsystem.REACTOR,
+            w = w,
+            h = h,
+        )
+
+        drawCoverBox(
+            canvas = canvas,
             w = w,
             h = h,
         )
@@ -2865,6 +2957,10 @@ class PulseDeckMainSkinView(
         }.getOrNull()
 
     companion object {
+        const val COVER_BOX_ID = "cover_box"
+        const val COVER_FALLBACK_HIDE = 0
+        const val COVER_FALLBACK_PLACEHOLDER = 1
+
         private const val SKIN_ROOT =
             "pulsedeck_hud"
 

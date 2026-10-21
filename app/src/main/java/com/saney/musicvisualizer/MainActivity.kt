@@ -2463,6 +2463,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             ),
                         )
                     }
+                // V114: the song's cover in the frame at the top.
+                view.coverArt = currentCoverArt
+                view.coverFallback = coverBoxFallback()
                 view.setInteractionListener {
                     scheduleNowControlsAutoHide()
                 }
@@ -2575,6 +2578,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             toast(
                                 "Дії треку — наступний етап",
                             )
+
+                        PulseDeckMainSkinView.COVER_BOX_ID ->
+                            showCoverBoxMenu()
 
                         "shuffle" -> {
                             val enabled = controller.toggleShuffle()
@@ -4993,6 +4999,42 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         updateProjectMFocusStatus()
     }
 
+    /** V114: what the cover frame shows when the song has no picture (faric 18:39: «тикаєш — менюшечка»). */
+    private fun coverBoxFallback(): Int =
+        layerPrefs().getInt(KEY_COVER_BOX_FALLBACK, PulseDeckMainSkinView.COVER_FALLBACK_HIDE)
+
+    private fun showCoverBoxMenu() {
+        val hasCover = currentCoverArt != null
+        val options =
+            listOf(
+                "Немає картинки — сховати рамку",
+                "Немає картинки — заглушка (♪)",
+                "Вимкнути рамку зовсім",
+            )
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = if (hasCover) "Обкладинка вгорі" else "Обкладинка вгорі · у пісні нема картинки",
+            labels = options,
+            checkedIndex = coverBoxFallback(),
+        ) { index ->
+            when (index) {
+                0, 1 -> {
+                    layerPrefs().edit().putInt(KEY_COVER_BOX_FALLBACK, index).apply()
+                    pulseDeckMainSkinView?.coverFallback = index
+                }
+                else -> {
+                    setLayerObjectVisible(
+                        PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
+                        PulseDeckMainSkinView.COVER_BOX_ID,
+                        false,
+                    )
+                    pulseDeckMainSkinView?.setObjectVisible(PulseDeckMainSkinView.COVER_BOX_ID, false)
+                    toast("Рамку вимкнено. Увімкнути — «Шари та об'єкти» → «Обкладинка вгорі»")
+                }
+            }
+        }
+    }
+
     /** V112: one line for Export Lab — which visualizations go into the MP4. */
     private fun exportVisualizationsLine(): String {
         val state = ProjectMStateStore(this)
@@ -5010,6 +5052,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     /** ТОП / ВСІ / 👍 (V110) — the visualizations AUTO picks from, on the screen and in the MP4. */
     private fun projectMPresetPool(mode: com.saney.musicvisualizer.projectm.ProjectMBackgroundMode): List<java.io.File> {
         val ratings = ProjectMPresetRatingsStore(this)
+        // V81: faric's Poweramp favourites get 👍 once (if he has not rated them himself).
+        runCatching { ratings.seedFavoritesOnce(ProjectMLibraryManager.fullPresetDir(this)) }
         val files =
             when (mode) {
                 com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP ->
@@ -8595,6 +8639,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 standaloneTheme,
             coverArt =
                 coverArt,
+            hudCoverArt = currentCoverArt,
+            hudCoverFallback = coverBoxFallback(),
             faricReactiveVisible =
                 belowHeroVisible &&
                 visualizerVisible &&
@@ -10218,12 +10264,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             ratio = ratio,
                             // V91: «Обкладинка» — every song of the batch with its own cover.
                             compositionConfig =
-                                if (compositionConfig.standaloneTheme == PlaybackThemeId.COVER_ART) {
+                                run {
+                                    // V91 / V114: every song of the batch with its own cover (theme and the frame at the top).
+                                    val songCover = com.saney.musicvisualizer.ui.CoverArtLoader.load(this, song.uri)
                                     compositionConfig.copy(
-                                        coverArt = com.saney.musicvisualizer.ui.CoverArtLoader.load(this, song.uri),
+                                        coverArt =
+                                            songCover.takeIf {
+                                                compositionConfig.standaloneTheme == PlaybackThemeId.COVER_ART
+                                            },
+                                        hudCoverArt = songCover,
                                     )
-                                } else {
-                                    compositionConfig
                                 },
                             projectMView = projectMView,
                             directGpuProjectMEligible = directGpuEligible,
@@ -11306,6 +11356,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         coverArtUri = uri
         currentCoverArt = null
         heroThemeView?.coverArt = null
+        pulseDeckMainSkinView?.coverArt = null
         tagArtistUri = null
         tagArtist = null
         if (uri == null) return
@@ -11319,6 +11370,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 if (coverArtUri == uri && !isDestroyed) {
                     currentCoverArt = bitmap
                     heroThemeView?.coverArt = bitmap
+                    pulseDeckMainSkinView?.coverArt = bitmap
                     tagArtistUri = uri
                     tagArtist = artist
                     if (latestSnapshot.trackArtist.isNullOrBlank() || latestSnapshot.trackArtist == "null") {
@@ -12225,6 +12277,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 "back",
                 "menu",
                 "header_title",
+                "cover_box",
                 "track_info",
                 "track_artist",
                 "track_status",
@@ -12250,6 +12303,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             "faric.now_controls_hidden"
         private const val EXPORT_PREVIEW_HEIGHT_DP = 200
         private const val UNKNOWN_ARTIST = "Невідомий виконавець"
+        private const val KEY_COVER_BOX_FALLBACK = "pulsedeck.cover_box_fallback"
         private const val NOW_CONTROLS_AUTO_HIDE_MS =
             6000L
         private const val EMERGENCY_RECOVERY_HOLD_MS =

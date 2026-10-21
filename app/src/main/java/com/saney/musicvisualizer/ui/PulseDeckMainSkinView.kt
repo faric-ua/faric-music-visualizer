@@ -231,21 +231,25 @@ class PulseDeckMainSkinView(
                 else -> adjust.alpha.coerceIn(0f, 1f)
             }
         val matrix = matrixFor(groupId, w, h)
-        if (matrix == null && alpha >= 0.999f) {
+        // V127: the cover paints its own alpha (cheap); other parts need a layer for it.
+        val selfAlpha = groupId == "cover"
+        coverAlpha = if (selfAlpha) (alpha * 255f).toInt().coerceIn(0, 255) else 255
+        val layerAlpha = if (selfAlpha) 1f else alpha
+        if (matrix == null && layerAlpha >= 0.999f) {
             block()
             return
         }
         val firstTarget = hitTargets.size
         val saveCount =
-            if (alpha < 0.999f) {
+            if (layerAlpha < 0.999f) {
                 val bounds = groupId?.let { groupBounds[it] }
                 if (bounds != null) {
                     layerBounds.set(bounds)
                     matrix?.mapRect(layerBounds)
                     layerBounds.inset(-w * 0.05f, -h * 0.05f)
-                    canvas.saveLayerAlpha(layerBounds, (alpha * 255f).toInt())
+                    canvas.saveLayerAlpha(layerBounds, (layerAlpha * 255f).toInt())
                 } else {
-                    canvas.saveLayerAlpha(null, (alpha * 255f).toInt())
+                    canvas.saveLayerAlpha(null, (layerAlpha * 255f).toInt())
                 }
             } else {
                 canvas.save()
@@ -354,6 +358,12 @@ class PulseDeckMainSkinView(
             invalidate()
         }
     private val coverPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private var coverShader: android.graphics.BitmapShader? = null
+    private var coverShaderBitmap: Bitmap? = null
+    private val coverShaderMatrix = android.graphics.Matrix()
+
+    /** V127: the cover's see-through (0–255), set by withGroup — the cover needs no extra layer. */
+    private var coverAlpha = 255
     private val coverFramePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
     private val coverClip = android.graphics.Path()
 
@@ -383,35 +393,46 @@ class PulseDeckMainSkinView(
         val art = coverArt?.takeIf { !it.isRecycled }
         if (art == null && coverFallback == COVER_FALLBACK_HIDE) return
         val radius = rect.width() * 0.09f
-        canvas.save()
-        coverClip.reset()
-        coverClip.addRoundRect(rect, radius, radius, android.graphics.Path.Direction.CW)
-        canvas.clipPath(coverClip)
+        // V127 (замір 22.10 02:31: HUD у відео 10 → 34 мс/кадр з великою прозорою обкладинкою): no
+        // clipPath and no extra layer — the picture is painted through a shader into a rounded
+        // rectangle, the see-through comes from the paint's own alpha.
+        val alpha = coverAlpha
         if (art != null) {
             // Centre-crop: the picture keeps its proportions, what does not fit is cut off.
+            val shader =
+                coverShader?.takeIf { coverShaderBitmap === art }
+                    ?: android.graphics.BitmapShader(art, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also {
+                        coverShader = it
+                        coverShaderBitmap = art
+                    }
             val scale = max(rect.width() / art.width, rect.height() / art.height)
-            val sw = rect.width() / scale
-            val sh = rect.height() / scale
-            val sx = (art.width - sw) / 2f
-            val sy = (art.height - sh) / 2f
-            canvas.drawBitmap(
-                art,
-                Rect(sx.toInt(), sy.toInt(), (sx + sw).toInt(), (sy + sh).toInt()),
-                rect,
-                coverPaint,
+            coverShaderMatrix.reset()
+            coverShaderMatrix.setScale(scale, scale)
+            coverShaderMatrix.postTranslate(
+                rect.centerX() - art.width * scale / 2f,
+                rect.centerY() - art.height * scale / 2f,
             )
+            shader.setLocalMatrix(coverShaderMatrix)
+            coverPaint.shader = shader
+            coverPaint.color = Color.WHITE
+            coverPaint.alpha = alpha
+            canvas.drawRoundRect(rect, radius, radius, coverPaint)
+            coverPaint.shader = null
         } else {
+            coverPaint.shader = null
             coverPaint.color = Color.rgb(10, 18, 26)
-            canvas.drawRect(rect, coverPaint)
+            coverPaint.alpha = alpha
+            canvas.drawRoundRect(rect, radius, radius, coverPaint)
             textPaint.textAlign = Paint.Align.CENTER
             textPaint.typeface = Typeface.DEFAULT
             textPaint.textSize = rect.height() * 0.5f
             textPaint.color = Color.rgb(64, 200, 255)
+            textPaint.alpha = alpha
             canvas.drawText("♪", rect.centerX(), rect.centerY() + rect.height() * 0.18f, textPaint)
+            textPaint.alpha = 255
         }
-        canvas.restore()
         coverFramePaint.strokeWidth = resources.displayMetrics.density * 2f
-        coverFramePaint.color = Color.argb(220, 64, 200, 255)
+        coverFramePaint.color = Color.argb(220 * alpha / 255, 64, 200, 255)
         canvas.drawRoundRect(rect, radius, radius, coverFramePaint)
     }
 

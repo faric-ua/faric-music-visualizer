@@ -33,6 +33,11 @@ class ProjectMOfflineFrameRequest internal constructor(
     @Volatile
     internal var result: Bitmap? =
         null
+
+    /** V107: drawn while the screen's GL surface was gone (app in the background) — draw again. */
+    @Volatile
+    var noSurface: Boolean = false
+        internal set
 }
 
 class ProjectMView(
@@ -51,6 +56,24 @@ class ProjectMView(
     private val manualRenderWidth: Int? = null,
     private val manualRenderHeight: Int? = null,
 ) : GLSurfaceView(context) {
+
+    /**
+     * V107: true while this view has a GL surface on screen. False after Android takes the surface
+     * away (PulseDeck went to the background); export path B waits for it to come back.
+     */
+    @Volatile
+    var windowSurfaceReady: Boolean = false
+        private set
+
+    override fun surfaceCreated(holder: android.view.SurfaceHolder) {
+        super.surfaceCreated(holder)
+        windowSurfaceReady = true
+    }
+
+    override fun surfaceDestroyed(holder: android.view.SurfaceHolder) {
+        windowSurfaceReady = false
+        super.surfaceDestroyed(holder)
+    }
 
     @Volatile
     private var glWidth = 0
@@ -644,6 +667,14 @@ class ProjectMView(
                 offlineQueueWaitNs +=
                     System.nanoTime() -
                         requestStartedNs
+
+                if (
+                    android.opengl.EGL14.eglGetCurrentSurface(android.opengl.EGL14.EGL_DRAW) ==
+                    android.opengl.EGL14.EGL_NO_SURFACE
+                ) {
+                    request.noSurface = true
+                    return@queueEvent
+                }
 
                 ProjectMBridge.beginOfflineExport()
                 ProjectMBridge.setFrameTime(

@@ -8892,6 +8892,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         CrashJournal.exportNote(this, "експорт продовжено (шлях Б)")
     }
 
+    /** V115: battery temperature and Android's heat level when the export started. */
+    private var exportHeatAtStart: String? = null
+
     private fun beginGuardedExport(fullSong: Boolean): Boolean {
         if (!exportRunGate.tryStart()) {
             toast("Експорт уже виконується")
@@ -8910,6 +8913,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 return false
             }
         }
+        exportHeatAtStart = com.saney.musicvisualizer.export.DeviceHeat.read(this)
         Log.i("FARIC-export", "Export started; fullSong=$fullSong")
         // V107: keep the app alive (notification «Експорт MP4») if faric switches to another app.
         com.saney.musicvisualizer.export.ExportKeepAliveService.start(this)
@@ -8984,9 +8988,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             if (fullSong) {
                 0L
             } else {
+                // V115 (faric 19:16: «тест 10 с» дав 15 кадрів — пісня майже скінчилась): near the end
+                // the test starts earlier, so it is the whole clip length.
                 snapshot.positionMs
                     .coerceAtMost(
-                        (songDurationMs - 500L).coerceAtLeast(0L),
+                        (songDurationMs - testClipMs()).coerceAtLeast(0L),
                     )
             }
         val requestedDurationMs =
@@ -11990,6 +11996,31 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     result.totalMs,
                 )
                 append(" ms")
+
+                // V115 (faric 21.10 19:09: «довго йде — розбираємось»): what the export ran with,
+                // how warm the phone was, and which visualizations cost the most per frame.
+                append("\n\nсписок: ")
+                append(projectMModeLabel(ProjectMStateStore(this@MainActivity).backgroundMode))
+                append(" · візуалізація: ")
+                append(if (exportPrefs().getBoolean(KEY_EXPORT_PROJECTM_HIGH, false)) "висока 100 %" else "звичайна 78 %")
+                append("\nнагрів: старт ")
+                append(exportHeatAtStart ?: "—")
+                append(" → кінець ")
+                append(com.saney.musicvisualizer.export.DeviceHeat.read(this@MainActivity))
+                result.presetTimings
+                    .filter { it.frames > 0 }
+                    .takeIf { it.isNotEmpty() }
+                    ?.let { timings ->
+                        append("\n\nвізуалізації (мс на кадр, найповільніші вгорі):")
+                        timings.take(6).forEach { t ->
+                            append("\n")
+                            append(t.msPerFrame)
+                            append(" мс · ")
+                            append(t.frames / 30)
+                            append(" с · ")
+                            append(java.io.File(t.path).nameWithoutExtension.take(48))
+                        }
+                    }
 
                 result.compositionStages
                     ?.let { stages ->

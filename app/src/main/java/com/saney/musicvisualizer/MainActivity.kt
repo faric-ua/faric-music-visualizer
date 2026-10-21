@@ -1099,7 +1099,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         dock?.visibility = if (snapshot.trackName == null) View.GONE else View.VISIBLE
         dockTitle?.text = snapshot.trackName ?: "Нічого не грає"
         dockSubtitle?.text = buildString {
-            append(snapshot.trackArtist ?: "Локальний файл")
+            append(displayArtist(snapshot) ?: "Локальний файл")
             if (snapshot.analysisActive) append(" · reactive ON")
         }
         dockPlay?.text = if (snapshot.isPlaying) "Ⅱ" else "▶"
@@ -1113,7 +1113,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         nowTitle?.text = snapshot.trackName ?: "PulseDeck"
         nowArtist?.text = if (snapshot.trackName == null) "Оберіть музику" else
-            snapshot.trackArtist ?: "Невідомий виконавець"
+            displayArtist(snapshot) ?: "Невідомий виконавець"
         nowStatus?.text = buildString {
             append(snapshot.status)
             if (snapshot.trackName != null) {
@@ -1155,7 +1155,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 if (snapshot.trackName == null) {
                     "Оберіть музику"
                 } else {
-                    snapshot.trackArtist ?: "Невідомий виконавець"
+                    displayArtist(snapshot) ?: "Невідомий виконавець"
                 },
             status =
                 buildString {
@@ -1185,7 +1185,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
         heroThemeView?.setMetadata(
             title = snapshot.trackName,
-            artist = snapshot.trackArtist,
+            artist = displayArtist(snapshot),
         )
 
         updateSceneOrchestratorState()
@@ -8714,6 +8714,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
+    /** V107: path B export waits here while the app is in the background (no GL surface). */
+    private fun waitForProjectMSurface(
+        view: ProjectMView,
+        cancelled: AtomicBoolean,
+    ) {
+        if (view.windowSurfaceReady) return
+        CrashJournal.exportNote(this, "експорт на паузі: застосунок у фоні (шлях Б)")
+        com.saney.musicvisualizer.export.ExportKeepAliveService.update(
+            this,
+            "Експорт на паузі — відкрий PulseDeck, і він продовжиться з того ж місця.",
+        )
+        while (!view.windowSurfaceReady) {
+            if (cancelled.get()) throw CancellationException("Export cancelled")
+            Thread.sleep(250L)
+        }
+        com.saney.musicvisualizer.export.ExportKeepAliveService.update(
+            this,
+            "Створюється відео. Можна перейти в іншу програму.",
+        )
+        CrashJournal.exportNote(this, "експорт продовжено (шлях Б)")
+    }
+
     private fun beginGuardedExport(fullSong: Boolean): Boolean {
         if (!exportRunGate.tryStart()) {
             toast("Експорт уже виконується")
@@ -8733,12 +8755,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         }
         Log.i("FARIC-export", "Export started; fullSong=$fullSong")
+        // V107: keep the app alive (notification «Експорт MP4») if faric switches to another app.
+        com.saney.musicvisualizer.export.ExportKeepAliveService.start(this)
         return true
     }
 
     private fun endGuardedExport() {
         if (!exportRunGate.isActive()) return
         exportRunGate.finish()
+        com.saney.musicvisualizer.export.ExportKeepAliveService.stop(this)
         activeExportCancel = null
         // onStop() kept the export GL view alive during the render (V25);
         // pause it now if the screen is no longer visible.
@@ -9005,7 +9030,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     // V101: title / artist from the song's tags when the player has none («IGNITION POINT.mp3»,
                     // «Невідомий виконавець» in the video while the tags know the artist).
                     title = songTags.title ?: snapshot.trackName.orEmpty(),
-                    artist = snapshot.trackArtist?.takeIf { it.isNotBlank() } ?: songTags.artist.orEmpty(),
+                    artist = displayArtist(snapshot) ?: songTags.artist.orEmpty(),
                     cancelled = cancelled,
                     updateProgress = { progress, status -> updateProgress(progress, status) },
                     presetSchedule = buildExportPresetSchedule(compositionConfig),
@@ -9513,16 +9538,35 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 pendingProjectMFrameIndex =
                                     -1
 
-                                val frame =
+                                var frame =
                                     projectMView
                                         .awaitOfflineFrame(
                                             request,
                                         )
-                                        ?: error(
-                                            "projectM offline frame " +
-                                                frameIndex +
-                                                " не відрендерився",
+                                // V107: path B draws on the screen's GL surface. While PulseDeck is in
+                                // the background that surface is gone — wait for faric to come back and
+                                // draw the same frame again (the notification says «на паузі»).
+                                var lastRequest = request
+                                while (frame == null && (lastRequest.noSurface || !projectMView.windowSurfaceReady)) {
+                                    waitForProjectMSurface(projectMView, cancelled)
+                                    // The surface is back but GL may need a moment to attach it.
+                                    if (lastRequest.noSurface) Thread.sleep(50L)
+                                    lastRequest =
+                                        queueProjectMFrame(
+                                            frameIndex =
+                                                frameIndex,
+                                            frameTimeMs =
+                                                frameTimeMs,
                                         )
+                                    frame = projectMView.awaitOfflineFrame(lastRequest)
+                                }
+                                if (frame == null) {
+                                    error(
+                                        "projectM offline frame " +
+                                            frameIndex +
+                                            " не відрендерився",
+                                    )
+                                }
 
                                 val nextFrameIndex =
                                     frameIndex +
@@ -11130,19 +11174,41 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var currentCoverArt: Bitmap? = null
     private var coverArtUri: String? = null
 
+    /**
+     * V106 (faric 21.10 03:32: «автора нема»): a song opened as a file (not from the library) has no
+     * artist in the player — the MP3 tag has it. The tag is read once per song next to the cover.
+     */
+    private var tagArtistUri: String? = null
+    private var tagArtist: String? = null
+
+    private fun displayArtist(snapshot: PlaybackSnapshot): String? =
+        snapshot.trackArtist?.takeIf { it.isNotBlank() && it != "<unknown>" }
+            ?: tagArtist?.takeIf { tagArtistUri != null && tagArtistUri == controller.currentTrackUri()?.toString() }
+
     private fun refreshCoverArt() {
         val uri = controller.currentTrackUri()?.toString()
         if (uri == coverArtUri) return
         coverArtUri = uri
         currentCoverArt = null
         heroThemeView?.coverArt = null
+        tagArtistUri = null
+        tagArtist = null
         if (uri == null) return
         thread(name = "cover-art") {
             val bitmap = com.saney.musicvisualizer.ui.CoverArtLoader.load(this, Uri.parse(uri))
+            val artist =
+                runCatching {
+                    com.saney.musicvisualizer.export.SongTags.read(this, Uri.parse(uri), null, null).artist
+                }.getOrNull()
             runOnUiThread {
                 if (coverArtUri == uri && !isDestroyed) {
                     currentCoverArt = bitmap
                     heroThemeView?.coverArt = bitmap
+                    tagArtistUri = uri
+                    tagArtist = artist
+                    if (artist != null && latestSnapshot.trackArtist.isNullOrBlank()) {
+                        onPlaybackSnapshot(latestSnapshot)
+                    }
                 }
             }
         }

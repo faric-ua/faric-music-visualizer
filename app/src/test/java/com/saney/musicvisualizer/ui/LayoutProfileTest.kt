@@ -70,4 +70,30 @@ class LayoutProfileTest {
         assertNull(far.guideX)
         assertEquals(LayoutAdjust(), far.adjust)
     }
+
+    @Test fun codecKeepsAlphaAndHiddenAndReadsOldFormat() {
+        val map = mapOf("cover" to LayoutAdjust(scale = 4.3f, alpha = 0.4f), "back" to LayoutAdjust(hidden = true))
+        val decoded = LayoutProfileCodec.decode(LayoutProfileCodec.encode(map))
+        assertEquals(0.4f, decoded.getValue("cover").alpha, 1e-6f)
+        assertEquals(4.3f, decoded.getValue("cover").scale, 1e-6f)
+        assertTrue(decoded.getValue("back").hidden)
+        assertEquals(1f, LayoutProfileCodec.decode("cover:0:0:1.2").getValue("cover").alpha, 1e-6f)
+    }
+
+    @Test fun edgeSnapSticksLeftEdgeToScreenEdge() {
+        val base = LayoutBox(15f, 100f, 115f, 200f)
+        val r = LayoutSnapEdges.snap(LayoutAdjust(), base, 1080f, 2340f, emptyList(), SnapMode.EDGES, 20f)
+        assertEquals(0f, r.guideX)
+        assertEquals(0f, base.adjusted(r.adjust, 1080f, 2340f).left, 1e-3f)
+        val off = LayoutSnapEdges.snap(LayoutAdjust(), base, 1080f, 2340f, emptyList(), SnapMode.OFF, 20f)
+        assertEquals(LayoutAdjust(), off.adjust)
+    }
+
+    @Test fun bottomSnapUsesOtherPartsBottom() {
+        val base = LayoutBox(100f, 100f, 200f, 195f)
+        val other = LayoutBox(400f, 150f, 500f, 200f)
+        val r = LayoutSnapEdges.snap(LayoutAdjust(), base, 1080f, 2340f, listOf(other), SnapMode.BOTTOM, 10f)
+        assertEquals(200f, r.guideY)
+        assertNull(r.guideX)
+    }
 }

@@ -193,7 +193,7 @@ class PulseDeckMainSkinView(
         h: Float,
     ): android.graphics.Matrix? {
         val adjust = groupId?.let { activeLayout[it] } ?: return null
-        if (adjust.isIdentity) return null
+        if (adjust.isPlaceIdentity) return null
         val bounds = groupBounds[groupId]
         val cx = bounds?.centerX() ?: (w / 2f)
         val cy = bounds?.centerY() ?: (h / 2f)
@@ -203,7 +203,18 @@ class PulseDeckMainSkinView(
         return groupMatrix
     }
 
-    /** Draw [block] moved / resized as faric set the group; taps follow the drawing. */
+    /** V123: the layout editor shows switched-off parts faintly (so they can be found and switched on). */
+    var showHiddenFaint: Boolean = false
+        set(value) {
+            field = value
+            invalidate()
+        }
+    private val layerBounds = RectF()
+
+    /**
+     * Draw [block] moved / resized as faric set the group; taps follow the drawing.
+     * V123: a part can also be see-through ([LayoutAdjust.alpha]) or switched off ([LayoutAdjust.hidden]).
+     */
     private inline fun withGroup(
         canvas: Canvas,
         groupId: String?,
@@ -211,24 +222,52 @@ class PulseDeckMainSkinView(
         h: Float,
         block: () -> Unit,
     ) {
+        val adjust = groupId?.let { activeLayout[it] }
+        if (adjust != null && adjust.hidden && !showHiddenFaint) return
+        val alpha =
+            when {
+                adjust == null -> 1f
+                adjust.hidden -> 0.25f
+                else -> adjust.alpha.coerceIn(0f, 1f)
+            }
         val matrix = matrixFor(groupId, w, h)
-        if (matrix == null) {
+        if (matrix == null && alpha >= 0.999f) {
             block()
             return
         }
         val firstTarget = hitTargets.size
-        canvas.save()
-        canvas.concat(matrix)
+        val saveCount =
+            if (alpha < 0.999f) {
+                val bounds = groupId?.let { groupBounds[it] }
+                if (bounds != null) {
+                    layerBounds.set(bounds)
+                    matrix?.mapRect(layerBounds)
+                    layerBounds.inset(-w * 0.05f, -h * 0.05f)
+                    canvas.saveLayerAlpha(layerBounds, (alpha * 255f).toInt())
+                } else {
+                    canvas.saveLayerAlpha(null, (alpha * 255f).toInt())
+                }
+            } else {
+                canvas.save()
+            }
+        if (matrix != null) canvas.concat(matrix)
         try {
             block()
         } finally {
-            canvas.restore()
+            canvas.restoreToCount(saveCount)
         }
-        for (index in firstTarget until hitTargets.size) {
-            val target = hitTargets[index]
-            val mapped = RectF(target.rect)
-            matrix.mapRect(mapped)
-            hitTargets[index] = target.copy(rect = mapped)
+        if (adjust?.hidden == true) {
+            // A faint switched-off part is only a hint in the editor — not a button.
+            while (hitTargets.size > firstTarget) hitTargets.removeAt(hitTargets.size - 1)
+            return
+        }
+        if (matrix != null) {
+            for (index in firstTarget until hitTargets.size) {
+                val target = hitTargets[index]
+                val mapped = RectF(target.rect)
+                matrix.mapRect(mapped)
+                hitTargets[index] = target.copy(rect = mapped)
+            }
         }
     }
 

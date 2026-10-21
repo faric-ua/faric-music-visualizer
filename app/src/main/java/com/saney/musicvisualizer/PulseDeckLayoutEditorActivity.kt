@@ -50,7 +50,22 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
     private var stepPx = 5
     private var dirty = false
     private var zoom = 1
-    private var snapOn = true
+    private var snapMode = com.saney.musicvisualizer.ui.SnapMode.CENTERS
+    private var snapPx = 20
+    private lateinit var snapDistanceButton: TextView
+    private lateinit var chipRow: LinearLayout
+    private lateinit var optionsChip: TextView
+    private lateinit var controlsPanel: LinearLayout
+    private lateinit var objectPanel: LinearLayout
+    private lateinit var loadPanel: LinearLayout
+    private lateinit var visibleButton: TextView
+    private lateinit var alphaLabel: TextView
+    private lateinit var alphaBar: android.widget.SeekBar
+    private lateinit var loadTitle: TextView
+    private lateinit var loadInfo: TextView
+    private var loadList: List<LayoutProfileStore.Snapshot> = emptyList()
+    private var loadIndex = 0
+    private var beforeLoad: Map<String, LayoutAdjust>? = null
     private var guideX: Float? = null
     private var guideY: Float? = null
     private var outsideFrame: Set<String> = emptySet()
@@ -88,7 +103,10 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
             stepPx = savedInstanceState.getInt(STATE_STEP, stepPx)
             dirty = savedInstanceState.getBoolean(STATE_DIRTY, false)
             zoom = savedInstanceState.getInt(STATE_ZOOM, 1).coerceIn(1, ZOOMS.last())
-            snapOn = savedInstanceState.getBoolean(STATE_SNAP, true)
+            snapMode =
+                runCatching { com.saney.musicvisualizer.ui.SnapMode.valueOf(savedInstanceState.getString(STATE_SNAP).orEmpty()) }
+                    .getOrDefault(com.saney.musicvisualizer.ui.SnapMode.CENTERS)
+            snapPx = savedInstanceState.getInt(STATE_SNAP_PX, snapPx)
         } else {
             working.putAll(store.load(profile))
         }
@@ -165,6 +183,8 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
                 setControlsVisible(true, false)
                 // The frame shows even without a picture, so it can be placed.
                 coverFallback = PulseDeckMainSkinView.COVER_FALLBACK_PLACEHOLDER
+                // Switched-off parts show faintly here, so they can be found and switched on.
+                showHiddenFaint = true
                 previewLayout = working.toMap()
                 pivotX = 0f
                 pivotY = 0f
@@ -185,7 +205,13 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
             },
         )
 
-        val chipRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        chipRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        // V123 (faric 22.10 01:45): «☰» next to the chosen part — its own settings (видимість, прозорість).
+        optionsChip =
+            UtilityUi.button(this, "☰") { openObjectPanel() }.apply {
+                textSize = 16f
+                contentDescription = "Налаштування вибраної частини"
+            }
         LayoutGroups.ALL.forEach { group ->
             val chip = UtilityUi.button(this, group.label) { select(group) }
             chip.textSize = 13f
@@ -209,6 +235,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         groupTitle = UtilityUi.text(this, "", 15f, bold = true)
         root.addView(groupTitle, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
 
+        controlsPanel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
         // V122 (faric 22.10 01:18): «Розмір» зліва і «Місце» справа — дві колонки по три ряди;
         // «Скинути частину» і «Зберегти» — на всю ширину, унизу.
         val columns = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -240,29 +267,96 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         )
         columns.addView(sizeColumn, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(6) })
         columns.addView(moveColumn, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(6) })
-        root.addView(columns, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) })
+        controlsPanel.addView(columns, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) })
 
         val toolsRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
         zoomButton = UtilityUi.button(this, "") { chooseZoom() }
-        snapButton = UtilityUi.button(this, "") { toggleSnap() }
+        snapButton = UtilityUi.button(this, "") { chooseSnap() }
+        snapDistanceButton = UtilityUi.button(this, "") { chooseSnapDistance() }
+        zoomButton.textSize = 13f
+        snapButton.textSize = 13f
+        snapDistanceButton.textSize = 13f
         toolsRow.addView(zoomButton, UtilityUi.weighted(context = this))
-        toolsRow.addView(snapButton, UtilityUi.weighted(context = this))
-        root.addView(toolsRow, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
+        toolsRow.addView(snapButton, UtilityUi.weighted(context = this, weight = 1.4f))
+        toolsRow.addView(snapDistanceButton, UtilityUi.weighted(context = this, weight = 0.9f))
+        controlsPanel.addView(toolsRow, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
 
         if (profile == LayoutProfileId.VIDEO_9X16) {
-            root.addView(
+            controlsPanel.addView(
                 UtilityUi.button(this, "Узяти з «Книжки»") { copyFromPortrait() },
                 LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(3), dp(10), dp(3), 0) },
             )
         }
-        root.addView(
+        controlsPanel.addView(
             UtilityUi.button(this, "Скинути частину", UtilityUi.Kind.WARNING) { resetSelected() },
             LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(3), dp(10), dp(3), 0) },
         )
-        root.addView(
+        // V125: named saves — «Зберегти як…» and «Завантажити…» (list with a live preview).
+        val filesRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        filesRow.addView(UtilityUi.button(this, "Зберегти як…") { saveAs() }, UtilityUi.weighted(context = this))
+        filesRow.addView(UtilityUi.button(this, "Завантажити…") { openLoadPanel() }, UtilityUi.weighted(context = this))
+        controlsPanel.addView(filesRow, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
+        controlsPanel.addView(
             UtilityUi.button(this, "Зберегти", UtilityUi.Kind.MAIN) { save() },
             LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(3), dp(10), dp(3), 0) },
         )
+
+        root.addView(controlsPanel, LinearLayout.LayoutParams(-1, -2))
+
+        // V123: the chosen part's own settings (instead of the size / place buttons while open).
+        objectPanel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
+        visibleButton = UtilityUi.button(this, "") { toggleVisible() }
+        objectPanel.addView(visibleButton, LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(3), dp(8), dp(3), 0) })
+        alphaLabel = UtilityUi.text(this, "", 14f)
+        objectPanel.addView(alphaLabel, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(14) })
+        alphaBar =
+            android.widget.SeekBar(this).apply {
+                max = 90
+                progressTintList = android.content.res.ColorStateList.valueOf(UtilityUi.CYAN)
+                thumbTintList = android.content.res.ColorStateList.valueOf(UtilityUi.CYAN)
+                minimumHeight = dp(48)
+                setOnSeekBarChangeListener(
+                    object : android.widget.SeekBar.OnSeekBarChangeListener {
+                        override fun onProgressChanged(bar: android.widget.SeekBar?, progress: Int, fromUser: Boolean) {
+                            if (fromUser) setTransparency(progress)
+                        }
+
+                        override fun onStartTrackingTouch(bar: android.widget.SeekBar?) = Unit
+
+                        override fun onStopTrackingTouch(bar: android.widget.SeekBar?) = Unit
+                    },
+                )
+            }
+        objectPanel.addView(alphaBar, LinearLayout.LayoutParams(-1, dp(48)))
+        objectPanel.addView(
+            UtilityUi.text(this, "0 % — видно повністю; більше — крізь частину видно візуалізацію.", 12f, UtilityUi.MUTED),
+            LinearLayout.LayoutParams(-1, -2),
+        )
+        objectPanel.addView(
+            UtilityUi.button(this, "Готово", UtilityUi.Kind.MAIN) { closePanels() },
+            LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(3), dp(14), dp(3), 0) },
+        )
+        root.addView(objectPanel, LinearLayout.LayoutParams(-1, -2))
+
+        // V125: saved layouts — step through them with ▲ ▼, the copy above shows each one.
+        loadPanel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
+        loadTitle = UtilityUi.text(this, "", 17f, bold = true)
+        loadPanel.addView(loadTitle, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
+        loadInfo = UtilityUi.text(this, "", 13f, UtilityUi.MUTED)
+        loadPanel.addView(loadInfo, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(4) })
+        val arrows = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        arrows.addView(UtilityUi.button(this, "▲ попереднє") { stepLoad(-1) }, UtilityUi.weighted(context = this))
+        arrows.addView(UtilityUi.button(this, "▼ наступне") { stepLoad(1) }, UtilityUi.weighted(context = this))
+        loadPanel.addView(arrows, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
+        loadPanel.addView(
+            UtilityUi.button(this, "Видалити це збереження", UtilityUi.Kind.WARNING) { deleteLoaded() },
+            LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(3), dp(10), dp(3), 0) },
+        )
+        val loadActions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        loadActions.addView(UtilityUi.button(this, "Закрити") { cancelLoad() }, UtilityUi.weighted(context = this))
+        loadActions.addView(UtilityUi.button(this, "Застосувати", UtilityUi.Kind.MAIN) { applyLoaded() }, UtilityUi.weighted(context = this))
+        loadPanel.addView(loadActions, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
+        root.addView(loadPanel, LinearLayout.LayoutParams(-1, -2))
 
         setContentView(scroll)
         // Back asks before dropping unsaved changes.
@@ -282,7 +376,8 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         outState.putInt(STATE_STEP, stepPx)
         outState.putBoolean(STATE_DIRTY, dirty)
         outState.putInt(STATE_ZOOM, zoom)
-        outState.putBoolean(STATE_SNAP, snapOn)
+        outState.putString(STATE_SNAP, snapMode.name)
+        outState.putInt(STATE_SNAP_PX, snapPx)
     }
 
     private fun leave() {
@@ -305,6 +400,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         guideX = null
         guideY = null
         refreshLabels()
+        if (::objectPanel.isInitialized && objectPanel.visibility == View.VISIBLE) refreshObjectPanel()
     }
 
     private fun current(): LayoutAdjust = working[selected.id] ?: LayoutAdjust()
@@ -370,11 +466,163 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         }
     }
 
-    private fun toggleSnap() {
-        snapOn = !snapOn
-        guideX = null
-        guideY = null
+    /** V124: what the part sticks to — a list (centres, edges, one side, everything, off). */
+    private fun chooseSnap() {
+        val modes = com.saney.musicvisualizer.ui.SnapMode.entries
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = "Прив'язка",
+            labels = modes.map { it.label },
+            checkedIndex = modes.indexOf(snapMode),
+        ) { index ->
+            snapMode = modes[index]
+            guideX = null
+            guideY = null
+            refreshLabels()
+        }
+    }
+
+    /** V124: from how far (screen px) the part jumps onto the line. */
+    private fun chooseSnapDistance() {
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = "Прив'язка — з якої відстані",
+            labels = SNAP_DISTANCES.map { "$it px" },
+            checkedIndex = SNAP_DISTANCES.indexOf(snapPx),
+        ) { index ->
+            snapPx = SNAP_DISTANCES[index]
+            refreshLabels()
+        }
+    }
+
+    private fun showOnly(panel: LinearLayout) {
+        listOf(controlsPanel, objectPanel, loadPanel).forEach { it.visibility = if (it === panel) View.VISIBLE else View.GONE }
+    }
+
+    private fun closePanels() {
+        showOnly(controlsPanel)
         refreshLabels()
+    }
+
+    private fun openObjectPanel() {
+        showOnly(objectPanel)
+        refreshObjectPanel()
+    }
+
+    private fun refreshObjectPanel() {
+        val adjust = current()
+        visibleButton.text = if (adjust.hidden) "Видимість: вимкнено" else "Видимість: увімкнено"
+        UtilityUi.style(visibleButton, if (adjust.hidden) UtilityUi.Kind.OUTSIDE else UtilityUi.Kind.CHOSEN)
+        val transparency = Math.round((1f - adjust.alpha) * 100f)
+        alphaLabel.text = "${selected.label} · прозорість $transparency %"
+        if (alphaBar.progress != transparency) alphaBar.progress = transparency
+    }
+
+    private fun toggleVisible() {
+        update(current().copy(hidden = !current().hidden))
+        refreshObjectPanel()
+    }
+
+    private fun setTransparency(percent: Int) {
+        update(current().copy(alpha = (1f - percent / 100f).coerceIn(0.1f, 1f)))
+        refreshObjectPanel()
+    }
+
+    private fun saveAs() {
+        PulseDeckDialogs.showTextInput(
+            context = this,
+            title = "Зберегти розкладку як…",
+            hint = "Назва (напр. «Велика обкладинка»)",
+            positiveLabel = "Зберегти",
+        ) { name ->
+            store.saveSnapshot(profile, name, working)
+            PulseDeckDialogs.showMessage(
+                context = this,
+                title = "Збережено",
+                message = "«${name.trim().ifBlank { "Без назви" }}» — у списку «Завантажити…» для «${profile.label}».",
+            )
+        }
+    }
+
+    private fun openLoadPanel() {
+        loadList = store.snapshots(profile)
+        if (loadList.isEmpty()) {
+            PulseDeckDialogs.showMessage(
+                context = this,
+                title = "Збережень ще нема",
+                message = "Спершу «Зберегти як…» — і розкладка з'явиться тут.",
+            )
+            return
+        }
+        beforeLoad = working.toMap()
+        loadIndex = 0
+        showOnly(loadPanel)
+        showLoaded()
+    }
+
+    private fun showLoaded() {
+        val snapshot = loadList.getOrNull(loadIndex) ?: return
+        loadTitle.text = snapshot.name
+        val date =
+            java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.ROOT).format(java.util.Date(snapshot.savedAt))
+        loadInfo.text = "${loadIndex + 1} з ${loadList.size} · $date · змінено частин: ${snapshot.adjusts.size}"
+        skin.previewLayout = snapshot.adjusts
+        refreshLabelsLight()
+    }
+
+    private fun stepLoad(delta: Int) {
+        if (loadList.isEmpty()) return
+        loadIndex = (loadIndex + delta + loadList.size) % loadList.size
+        showLoaded()
+    }
+
+    private fun cancelLoad() {
+        beforeLoad?.let { skin.previewLayout = it }
+        beforeLoad = null
+        closePanels()
+    }
+
+    /** «Застосувати»: the saved layout becomes this position's layout right away (no extra «Зберегти»). */
+    private fun applyLoaded() {
+        val snapshot = loadList.getOrNull(loadIndex) ?: return
+        working.clear()
+        working.putAll(snapshot.adjusts)
+        store.save(profile, working)
+        dirty = false
+        beforeLoad = null
+        skin.previewLayout = working.toMap()
+        closePanels()
+        PulseDeckDialogs.showMessage(
+            context = this,
+            title = "Застосовано",
+            message = "«${snapshot.name}» — тепер розкладка «${profile.label}».",
+        )
+    }
+
+    private fun deleteLoaded() {
+        val snapshot = loadList.getOrNull(loadIndex) ?: return
+        PulseDeckDialogs.showConfirm(
+            context = this,
+            title = "Видалити «${snapshot.name}»?",
+            message = "Збереження зникне зі списку. Поточна розкладка не зміниться.",
+            positiveLabel = "Видалити",
+            destructive = true,
+        ) {
+            store.deleteSnapshot(profile, snapshot.id)
+            loadList = store.snapshots(profile)
+            if (loadList.isEmpty()) {
+                cancelLoad()
+            } else {
+                loadIndex = loadIndex.coerceAtMost(loadList.lastIndex)
+                showLoaded()
+            }
+        }
+    }
+
+    /** Keep the view (zoom, video frame) in step without touching the panels. */
+    private fun refreshLabelsLight() {
+        applyView()
+        skin.postDelayed({ applyView() }, 80L)
     }
 
     private fun resetSelected() = update(LayoutAdjust())
@@ -421,8 +669,16 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         stepButton.text = "крок $stepPx ▾"
         zoomButton.text = "Лупа ${zoom}× ▾"
         UtilityUi.style(zoomButton, if (zoom > 1) UtilityUi.Kind.CHOSEN else UtilityUi.Kind.NORMAL)
-        snapButton.text = if (snapOn) "Прив'язка: так" else "Прив'язка: ні"
+        val snapOn = snapMode != com.saney.musicvisualizer.ui.SnapMode.OFF
+        snapButton.text = (if (snapOn) snapMode.label else "Прив'язка: ні") + " ▾"
         UtilityUi.style(snapButton, if (snapOn) UtilityUi.Kind.CHOSEN else UtilityUi.Kind.NORMAL)
+        snapDistanceButton.text = "$snapPx px ▾"
+        // «☰» stands right after the chosen part's chip.
+        (optionsChip.parent as? android.view.ViewGroup)?.removeView(optionsChip)
+        val chosenChip = chips[selected.id]
+        val at = chosenChip?.let { chipRow.indexOfChild(it) } ?: -1
+        chipRow.addView(optionsChip, at + 1, LinearLayout.LayoutParams(dp(52), -2).apply { marginEnd = dp(6) })
+        if (current().hidden) chosenChip?.text = "✓ " + selected.label + " (вимк.)"
         applyView()
         // The parts' template places are known after the next drawing.
         skin.postDelayed({
@@ -465,35 +721,48 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         return xs to ys
     }
 
+    private fun otherBoxes(): List<LayoutBox> =
+        LayoutGroups.ALL.filter { it.id != selected.id }.mapNotNull { group ->
+            boxOf(group.id)?.takeIf { working[group.id]?.hidden != true }
+        }
+
     private fun snapped(raw: LayoutAdjust): LayoutAdjust {
         val baseRect = skin.groupBaseRect(selected.id)
-        if (!snapOn || baseRect == null) {
+        if (baseRect == null) {
             guideX = null
             guideY = null
             return raw
         }
-        val (xs, ys) = guideTargets()
         val result =
-            LayoutSnap.snap(
+            com.saney.musicvisualizer.ui.LayoutSnapEdges.snap(
                 raw = raw,
                 base = LayoutBox(baseRect.left, baseRect.top, baseRect.right, baseRect.bottom),
                 screenW = virtualW.toFloat(),
                 screenH = virtualH.toFloat(),
-                targetsX = xs,
-                targetsY = ys,
-                threshold = dp(SNAP_DP) / viewScale,
+                others = otherBoxes(),
+                mode = snapMode,
+                threshold = snapPx.toFloat(),
             )
         guideX = result.guideX
         guideY = result.guideY
         return result.adjust
     }
 
+    /** Arrows are exact: the line only lights up when a chosen edge / centre sits on one. */
     private fun showGuidesExact() {
-        if (!snapOn) return
-        val box = boxOf(selected.id) ?: return
-        val (xs, ys) = guideTargets()
-        guideX = xs.firstOrNull { abs(it - box.centerX) < 0.75f }
-        guideY = ys.firstOrNull { abs(it - box.centerY) < 0.75f }
+        val baseRect = skin.groupBaseRect(selected.id) ?: return
+        val result =
+            com.saney.musicvisualizer.ui.LayoutSnapEdges.snap(
+                raw = current(),
+                base = LayoutBox(baseRect.left, baseRect.top, baseRect.right, baseRect.bottom),
+                screenW = virtualW.toFloat(),
+                screenH = virtualH.toFloat(),
+                others = otherBoxes(),
+                mode = snapMode,
+                threshold = 0.75f,
+            )
+        guideX = result.guideX
+        guideY = result.guideY
         overlay.invalidate()
     }
 
@@ -623,7 +892,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
                 canvas.drawRect(0f, bottom, w, h, shade)
                 canvas.drawRect(px(r.left), top, px(r.right), bottom, frameLine)
             }
-            if (snapOn) {
+            if (snapMode != com.saney.musicvisualizer.ui.SnapMode.OFF) {
                 canvas.drawLine(px(virtualW / 2f), 0f, px(virtualW / 2f), h, centerLine)
                 canvas.drawLine(0f, py(virtualH / 2f), w, py(virtualH / 2f), centerLine)
             }
@@ -646,5 +915,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         private const val STATE_DIRTY = "dirty"
         private const val STATE_ZOOM = "zoom"
         private const val STATE_SNAP = "snap"
+        private const val STATE_SNAP_PX = "snap_px"
+        private val SNAP_DISTANCES = listOf(5, 10, 20, 30, 40)
     }
 }

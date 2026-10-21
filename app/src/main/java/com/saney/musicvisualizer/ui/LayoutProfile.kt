@@ -20,8 +20,16 @@ data class LayoutAdjust(
     val dx: Float = 0f,
     val dy: Float = 0f,
     val scale: Float = 1f,
+    /** V123: how much of the part shows (1 = fully, 0.3 = the visualization shines through). */
+    val alpha: Float = 1f,
+    /** V123: switched off in this position (☰ → Видимість). */
+    val hidden: Boolean = false,
 ) {
     val isIdentity: Boolean
+        get() = isPlaceIdentity && kotlin.math.abs(alpha - 1f) < 1e-3f && !hidden
+
+    /** No move and no size change (look settings aside). */
+    val isPlaceIdentity: Boolean
         get() = kotlin.math.abs(dx) < 1e-5f && kotlin.math.abs(dy) < 1e-5f && kotlin.math.abs(scale - 1f) < 1e-4f
 
     fun moved(
@@ -103,22 +111,27 @@ object LayoutProfileCodec {
             .filterValues { !it.isIdentity }
             .toSortedMap()
             .entries
-            .joinToString(";") { (id, a) -> "$id:${a.dx}:${a.dy}:${a.scale}" }
+            .joinToString(";") { (id, a) -> "$id:${a.dx}:${a.dy}:${a.scale}:${a.alpha}:${if (a.hidden) 1 else 0}" }
 
     fun decode(raw: String?): Map<String, LayoutAdjust> {
         if (raw.isNullOrBlank()) return emptyMap()
         return raw.split(';').mapNotNull { part ->
             val bits = part.split(':')
-            if (bits.size != 4 || bits[0].isBlank()) return@mapNotNull null
+            // v0.21.x wrote 4 fields; from v0.21.4 — 6 (+ alpha, hidden).
+            if ((bits.size != 4 && bits.size != 6) || bits[0].isBlank()) return@mapNotNull null
             val dx = bits[1].toFloatOrNull() ?: return@mapNotNull null
             val dy = bits[2].toFloatOrNull() ?: return@mapNotNull null
             val scale = bits[3].toFloatOrNull() ?: return@mapNotNull null
-            if (!dx.isFinite() || !dy.isFinite() || !scale.isFinite()) return@mapNotNull null
+            val alpha = if (bits.size == 6) bits[4].toFloatOrNull() ?: return@mapNotNull null else 1f
+            val hidden = bits.size == 6 && bits[5] == "1"
+            if (!dx.isFinite() || !dy.isFinite() || !scale.isFinite() || !alpha.isFinite()) return@mapNotNull null
             bits[0] to
                 LayoutAdjust(
                     dx.coerceIn(-LayoutAdjust.MAX_SHIFT, LayoutAdjust.MAX_SHIFT),
                     dy.coerceIn(-LayoutAdjust.MAX_SHIFT, LayoutAdjust.MAX_SHIFT),
                     scale.coerceIn(LayoutAdjust.MIN_SCALE, LayoutAdjust.MAX_SCALE),
+                    alpha.coerceIn(0f, 1f),
+                    hidden,
                 )
         }.toMap()
     }
@@ -195,5 +208,82 @@ object LayoutSnap {
         if (nearX != null) adjust = adjust.copy(dx = raw.dx + (nearX - box.centerX) / screenW)
         if (nearY != null) adjust = adjust.copy(dy = raw.dy + (nearY - box.centerY) / screenH)
         return Result(adjust, nearX, nearY)
+    }
+}
+
+/** V124 (faric 22.10 01:45): what the dragged part sticks to. */
+enum class SnapMode(
+    val label: String,
+) {
+    OFF("Вимкнено"),
+    CENTERS("По центрах"),
+    EDGES("По краях (усі 4)"),
+    LEFT("По лівому краю"),
+    RIGHT("По правому краю"),
+    TOP("По верхньому краю"),
+    BOTTOM("По нижньому краю"),
+    ALL("Центри й краї"),
+}
+
+/**
+ * V124: snapping by centres and / or edges. The moving part's chosen lines (left / centre / right,
+ * top / centre / bottom) stick to the same kind of lines of the screen and of the other parts.
+ */
+object LayoutSnapEdges {
+    private fun xFeatures(
+        box: LayoutBox,
+        mode: SnapMode,
+    ): List<Float> =
+        when (mode) {
+            SnapMode.OFF, SnapMode.TOP, SnapMode.BOTTOM -> emptyList()
+            SnapMode.CENTERS -> listOf(box.centerX)
+            SnapMode.EDGES -> listOf(box.left, box.right)
+            SnapMode.LEFT -> listOf(box.left)
+            SnapMode.RIGHT -> listOf(box.right)
+            SnapMode.ALL -> listOf(box.left, box.centerX, box.right)
+        }
+
+    private fun yFeatures(
+        box: LayoutBox,
+        mode: SnapMode,
+    ): List<Float> =
+        when (mode) {
+            SnapMode.OFF, SnapMode.LEFT, SnapMode.RIGHT -> emptyList()
+            SnapMode.CENTERS -> listOf(box.centerY)
+            SnapMode.EDGES -> listOf(box.top, box.bottom)
+            SnapMode.TOP -> listOf(box.top)
+            SnapMode.BOTTOM -> listOf(box.bottom)
+            SnapMode.ALL -> listOf(box.top, box.centerY, box.bottom)
+        }
+
+    fun snap(
+        raw: LayoutAdjust,
+        base: LayoutBox,
+        screenW: Float,
+        screenH: Float,
+        others: List<LayoutBox>,
+        mode: SnapMode,
+        threshold: Float,
+    ): LayoutSnap.Result {
+        if (mode == SnapMode.OFF) return LayoutSnap.Result(raw, null, null)
+        val box = base.adjusted(raw, screenW, screenH)
+        val screen = LayoutBox(0f, 0f, screenW, screenH)
+        val all = others + screen
+        val targetsX = all.flatMap { xFeatures(it, mode) }
+        val targetsY = all.flatMap { yFeatures(it, mode) }
+        val bestX =
+            xFeatures(box, mode)
+                .flatMap { f -> targetsX.map { t -> Triple(f, t, kotlin.math.abs(t - f)) } }
+                .filter { it.third <= threshold }
+                .minByOrNull { it.third }
+        val bestY =
+            yFeatures(box, mode)
+                .flatMap { f -> targetsY.map { t -> Triple(f, t, kotlin.math.abs(t - f)) } }
+                .filter { it.third <= threshold }
+                .minByOrNull { it.third }
+        var adjust = raw
+        if (bestX != null) adjust = adjust.copy(dx = raw.dx + (bestX.second - bestX.first) / screenW)
+        if (bestY != null) adjust = adjust.copy(dy = raw.dy + (bestY.second - bestY.first) / screenH)
+        return LayoutSnap.Result(adjust, bestX?.second, bestY?.second)
     }
 }

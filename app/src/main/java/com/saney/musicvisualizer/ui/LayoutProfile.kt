@@ -37,7 +37,7 @@ data class LayoutAdjust(
 
     companion object {
         const val MIN_SCALE = 0.5f
-        const val MAX_SCALE = 1.6f
+        const val MAX_SCALE = 6f
         const val MAX_SHIFT = 0.6f
     }
 }

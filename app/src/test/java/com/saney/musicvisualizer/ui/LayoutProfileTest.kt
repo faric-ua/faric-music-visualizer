@@ -53,4 +53,21 @@ class LayoutProfileTest {
             LayoutProfileChoice.forView(1080, 2340, LayoutProfileId.VIDEO_9X16, saved + (LayoutProfileId.VIDEO_9X16 to video)),
         )
     }
+
+    @Test fun adjustedBoxGrowsFromCentreThenMoves() {
+        val base = LayoutBox(100f, 100f, 200f, 200f)
+        val box = base.adjusted(LayoutAdjust(dx = 0.1f, dy = 0f, scale = 2f), 1000f, 2000f)
+        assertEquals(LayoutBox(150f, 50f, 350f, 250f), box)
+    }
+
+    @Test fun snapsCentreToNearestGuideWithinThreshold() {
+        val base = LayoutBox(480f, 100f, 580f, 200f) // centre 530
+        val near = LayoutSnap.snap(LayoutAdjust(), base, 1080f, 2340f, listOf(540f), listOf(1170f), 12f)
+        assertEquals(540f, near.guideX)
+        assertNull(near.guideY)
+        assertEquals(540f, base.adjusted(near.adjust, 1080f, 2340f).centerX, 1e-3f)
+        val far = LayoutSnap.snap(LayoutAdjust(), base, 1080f, 2340f, listOf(560f), emptyList(), 12f)
+        assertNull(far.guideX)
+        assertEquals(LayoutAdjust(), far.adjust)
+    }
 }

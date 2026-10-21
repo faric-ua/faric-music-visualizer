@@ -55,6 +55,8 @@ class PulseDeckTemplateConstructorActivity : ComponentActivity() {
         enableImmersiveFullscreen()
         val root = FrameLayout(this)
         val skin = PulseDeckMainSkinView(this).apply {
+                // V104: the tools show the approved template itself, without faric's Утиліти moves.
+                previewLayout = emptyMap()
             setPlaying(true)
             setPlaybackContent(
                 title = "Neon Heartbeat (3).mp3",

@@ -2514,6 +2514,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         "Автоприховування",
                                         "Системні панелі Android",
                                         "Журнал збоїв",
+                                        // V104 (faric 21.10 23:43: «поки просто додамо Утиліти в PulseDeck tools»).
+                                        "Утиліти",
                                     ),
                                 cancelLabel = "Закрити",
                             ) { which ->
@@ -2558,6 +2560,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         showDiagnosticsReport(
                                             title = "Журнал збоїв",
                                             report = CrashJournal.fullReport(this),
+                                        )
+
+                                    8 ->
+                                        startActivity(
+                                            Intent(
+                                                this,
+                                                PulseDeckUtilitiesActivity::class.java,
+                                            ),
                                         )
                                 }
                             }

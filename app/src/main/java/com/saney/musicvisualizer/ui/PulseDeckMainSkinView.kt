@@ -154,6 +154,104 @@ class PulseDeckMainSkinView(
     private val hitTargets =
         mutableListOf<HitTarget>()
 
+    // V104 «Утиліти»: faric's own moves / sizes per position, on top of the approved template.
+    /** The MP4 forces «Відео 9:16»; null = by the view's shape (wide → «Альбом»). */
+    var forcedLayoutProfile: LayoutProfileId? = null
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    /** The layout editor shows its unsaved set here; null = the saved one. */
+    var previewLayout: Map<String, LayoutAdjust>? = null
+        set(value) {
+            field = value
+            invalidate()
+        }
+    private var savedLayouts: Map<LayoutProfileId, Map<String, LayoutAdjust>> =
+        runCatching { LayoutProfileStore(context).loadAll() }.getOrDefault(emptyMap())
+    private var activeLayout: Map<String, LayoutAdjust> = emptyMap()
+
+    /** Each group's place in the template (no faric moves) — the centre a size change grows from. */
+    private val groupBounds = HashMap<String, RectF>()
+    private val groupMatrix = android.graphics.Matrix()
+
+    /** After «Зберегти» in Утиліти: the main screen is shown again → read the saved sets anew. */
+    fun reloadLayoutProfiles() {
+        savedLayouts = runCatching { LayoutProfileStore(context).loadAll() }.getOrDefault(emptyMap())
+        invalidate()
+    }
+
+    override fun onWindowVisibilityChanged(visibility: Int) {
+        super.onWindowVisibilityChanged(visibility)
+        if (visibility == VISIBLE && previewLayout == null) reloadLayoutProfiles()
+    }
+
+    private fun matrixFor(
+        groupId: String?,
+        w: Float,
+        h: Float,
+    ): android.graphics.Matrix? {
+        val adjust = groupId?.let { activeLayout[it] } ?: return null
+        if (adjust.isIdentity) return null
+        val bounds = groupBounds[groupId]
+        val cx = bounds?.centerX() ?: (w / 2f)
+        val cy = bounds?.centerY() ?: (h / 2f)
+        groupMatrix.reset()
+        groupMatrix.postScale(adjust.scale, adjust.scale, cx, cy)
+        groupMatrix.postTranslate(adjust.dx * w, adjust.dy * h)
+        return groupMatrix
+    }
+
+    /** Draw [block] moved / resized as faric set the group; taps follow the drawing. */
+    private inline fun withGroup(
+        canvas: Canvas,
+        groupId: String?,
+        w: Float,
+        h: Float,
+        block: () -> Unit,
+    ) {
+        val matrix = matrixFor(groupId, w, h)
+        if (matrix == null) {
+            block()
+            return
+        }
+        val firstTarget = hitTargets.size
+        canvas.save()
+        canvas.concat(matrix)
+        try {
+            block()
+        } finally {
+            canvas.restore()
+        }
+        for (index in firstTarget until hitTargets.size) {
+            val target = hitTargets[index]
+            val mapped = RectF(target.rect)
+            matrix.mapRect(mapped)
+            hitTargets[index] = target.copy(rect = mapped)
+        }
+    }
+
+    private fun rememberGroupBounds() {
+        LayoutGroups.ALL.forEach { group ->
+            var union: RectF? = null
+            group.members.forEach { id ->
+                resolvedRects[id]?.let { rect ->
+                    union = (union ?: RectF(rect)).apply { union(rect) }
+                }
+            }
+            union?.let { groupBounds[group.id] = it }
+        }
+    }
+
+    /** Where the group is on screen now (with faric's move / size) — the editor checks the video frame. */
+    fun groupRect(groupId: String): RectF? {
+        val bounds = groupBounds[groupId] ?: return null
+        val rect = RectF(bounds)
+        matrixFor(groupId, width.toFloat(), height.toFloat())?.mapRect(rect)
+        return rect
+    }
+
     private val resolvedRects =
         mutableMapOf<String, RectF>()
 
@@ -891,6 +989,9 @@ class PulseDeckMainSkinView(
     ) {
         super.onDraw(canvas)
         marqueeRunning = false
+        activeLayout =
+            previewLayout
+                ?: LayoutProfileChoice.forView(width, height, forcedLayoutProfile, savedLayouts)
 
         val w =
             width.toFloat()
@@ -946,11 +1047,13 @@ class PulseDeckMainSkinView(
             h = h,
         )
 
-        drawCoverBox(
-            canvas = canvas,
-            w = w,
-            h = h,
-        )
+        withGroup(canvas, "cover", w, h) {
+            drawCoverBox(
+                canvas = canvas,
+                w = w,
+                h = h,
+            )
+        }
 
         drawSubsystemLayers(
             canvas = canvas,
@@ -983,19 +1086,22 @@ class PulseDeckMainSkinView(
                 w = w,
                 h = h,
             )
-            if (equalizerVisible) {
-                drawFrequencySpectrum(
+            withGroup(canvas, "progress", w, h) {
+                if (equalizerVisible) {
+                    drawFrequencySpectrum(
+                        canvas = canvas,
+                        w = w,
+                        h = h,
+                    )
+                }
+                drawProgressThumb(
                     canvas = canvas,
                     w = w,
                     h = h,
                 )
             }
-            drawProgressThumb(
-                canvas = canvas,
-                w = w,
-                h = h,
-            )
         }
+        rememberGroupBounds()
 
         if (
             playing ||
@@ -1068,12 +1174,14 @@ class PulseDeckMainSkinView(
                 layer.z
             }
             .forEach { layer ->
-                drawLayer(
-                    canvas = canvas,
-                    layer = layer,
-                    w = w,
-                    h = h,
-                )
+                withGroup(canvas, LayoutGroups.groupOf(layer.id), w, h) {
+                    drawLayer(
+                        canvas = canvas,
+                        layer = layer,
+                        w = w,
+                        h = h,
+                    )
+                }
             }
     }
 
@@ -1846,6 +1954,7 @@ class PulseDeckMainSkinView(
             h *
                 (0.069f + headerOffset.second)
 
+        withGroup(canvas, "header", w, h) {
         if (isObjectVisible("header_title")) {
             // V86 / V76: logo + "PulseDeck", the pair centred where the title was.
             val headerSize = w * 0.052f
@@ -1885,6 +1994,7 @@ class PulseDeckMainSkinView(
                     headerY + h * 0.014f,
                 )
         }
+        }
 
         val trackOffset =
             editorOffsets["track_info"]
@@ -1896,6 +2006,7 @@ class PulseDeckMainSkinView(
             h *
                 trackOffset.second
 
+        withGroup(canvas, "track", w, h) {
         drawFavoriteHeart(canvas)
 
         if (isObjectVisible("track_info")) {
@@ -1942,6 +2053,7 @@ class PulseDeckMainSkinView(
                     h * 0.548f + trackDy,
                 )
         }
+        }
 
         val progressOffset =
             editorOffsets["progress_group"]
@@ -1953,6 +2065,7 @@ class PulseDeckMainSkinView(
             h *
                 progressOffset.second
 
+        withGroup(canvas, "progress", w, h) {
         if (isObjectVisible("progress_time")) {
             drawCenteredText(
                 canvas = canvas,
@@ -1973,6 +2086,7 @@ class PulseDeckMainSkinView(
                 color = Color.WHITE,
                 bold = true,
             )
+        }
         }
 
         textPaint.alpha = 255

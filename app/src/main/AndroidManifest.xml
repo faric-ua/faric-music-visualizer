@@ -26,6 +26,13 @@
         <activity
             android:name=".PulseDeckCenterCalibrationActivity"
             android:exported="false" />
+        <!-- V104 «Утиліти» and its layout editor. -->
+        <activity
+            android:name=".PulseDeckUtilitiesActivity"
+            android:exported="false" />
+        <activity
+            android:name=".PulseDeckLayoutEditorActivity"
+            android:exported="false" />
         <activity
             android:name=".projectm.ProjectMActivity"
             android:exported="false" />

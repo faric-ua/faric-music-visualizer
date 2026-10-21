@@ -57,7 +57,6 @@ class ProjectMView(
     private val manualRenderHeight: Int? = null,
 ) : GLSurfaceView(context) {
 
-    @Volatile
     /**
      * V107: true while this view has a GL surface on screen. False after Android takes the surface
      * away (PulseDeck went to the background); export path B waits for it to come back.
@@ -76,6 +75,7 @@ class ProjectMView(
         super.surfaceDestroyed(holder)
     }
 
+    @Volatile
     private var glWidth = 0
 
     @Volatile

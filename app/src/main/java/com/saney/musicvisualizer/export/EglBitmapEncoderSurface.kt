@@ -1914,6 +1914,39 @@ class EglBitmapEncoderSurface(
         )
     }
 
+    /**
+     * V109 (faric 21.10 03:46: «хочу бачити, чи візуалізація зависає під час експорту»): about once a
+     * second the frame that goes into the MP4 is copied, small, for the progress window.
+     * null = no copies (no cost).
+     */
+    @Volatile
+    var previewSink: ((Bitmap) -> Unit)? = null
+    private var lastPreviewNs = Long.MIN_VALUE
+    private var previewBuffer: ByteBuffer? = null
+    private var previewFull: Bitmap? = null
+
+    private fun maybeSendPreview(presentationTimeNs: Long) {
+        val sink = previewSink ?: return
+        if (lastPreviewNs != Long.MIN_VALUE && presentationTimeNs - lastPreviewNs < PREVIEW_EVERY_NS) return
+        lastPreviewNs = presentationTimeNs
+        runCatching {
+            val buffer =
+                previewBuffer?.takeIf { it.capacity() == width * height * 4 }
+                    ?: ByteBuffer.allocateDirect(width * height * 4).order(ByteOrder.nativeOrder()).also { previewBuffer = it }
+            buffer.rewind()
+            GLES20.glReadPixels(0, 0, width, height, GLES20.GL_RGBA, GLES20.GL_UNSIGNED_BYTE, buffer)
+            buffer.rewind()
+            val full =
+                previewFull?.takeIf { !it.isRecycled }
+                    ?: Bitmap.createBitmap(width, height, Bitmap.Config.ARGB_8888).also { previewFull = it }
+            full.copyPixelsFromBuffer(buffer)
+            val scale = PREVIEW_WIDTH_PX.toFloat() / width
+            // GL rows start at the bottom — flip while scaling down.
+            val matrix = android.graphics.Matrix().apply { setScale(scale, -scale) }
+            sink(Bitmap.createBitmap(full, 0, 0, width, height, matrix, true))
+        }
+    }
+
     private fun finishFrame(
         presentationTimeNs: Long,
     ) {
@@ -1923,6 +1956,7 @@ class EglBitmapEncoderSurface(
         GLES20.glDisable(
             GLES20.GL_SCISSOR_TEST,
         )
+        maybeSendPreview(presentationTimeNs)
 
         check(
             EGLExt.eglPresentationTimeANDROID(
@@ -1958,6 +1992,9 @@ class EglBitmapEncoderSurface(
     }
 
     override fun close() {
+        previewSink = null
+        runCatching { previewFull?.recycle() }
+        previewFull = null
         runCatching {
             makeCurrent()
 
@@ -2210,6 +2247,9 @@ class EglBitmapEncoderSurface(
     }
 
     companion object {
+        private const val PREVIEW_EVERY_NS = 1_000_000_000L
+        private const val PREVIEW_WIDTH_PX = 270
+
         private const val EGL_RECORDABLE_ANDROID =
             0x3142
 

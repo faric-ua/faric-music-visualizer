@@ -4755,6 +4755,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 )
                 scheduleProjectMFocusAuto()
             },
+            // V110 (faric 21.10 03:54: «щоб крутились тільки ті, що я пальцем вверх натискав»).
+            legacyControl("👍") {
+                loadProjectMFocusPresets(
+                    com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED,
+                )
+                scheduleProjectMFocusAuto()
+            },
             legacyControl("NEXT") { advanceProjectMFocusPreset(manual = true) },
             legacyControl("FG") {
                 val state = ProjectMStateStore(this)
@@ -4921,7 +4928,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         val onOff = { active: Boolean -> if (active) "ON" else "OFF" }
         projectMFocusStatus?.text =
-            "$auto · ${state.backgroundMode.name} ${projectMFocusPresets.size} · " +
+            "$auto · ${projectMModeLabel(state.backgroundMode)} ${projectMFocusPresets.size} · " +
                 "$ratingIcon ${current?.nameWithoutExtension?.take(28) ?: "—"} · " +
                 "FG ${state.foregroundSample.label} · " +
                 "BG ${onOff(state.backgroundVisible)} · " +
@@ -4955,6 +4962,28 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         updateProjectMFocusStatus()
     }
 
+    /** ТОП / ВСІ / 👍 (V110) — the visualizations AUTO picks from, on the screen and in the MP4. */
+    private fun projectMPresetPool(mode: com.saney.musicvisualizer.projectm.ProjectMBackgroundMode): List<java.io.File> {
+        val ratings = ProjectMPresetRatingsStore(this)
+        val files =
+            when (mode) {
+                com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP ->
+                    ProjectMLibraryManager.fastPresetFiles(this)
+                com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL ->
+                    ProjectMLibraryManager.allPresetFiles(this)
+                com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED ->
+                    ProjectMLibraryManager.allPresetFiles(this).filter { ratings.ratingFor(it) == ProjectMPresetRating.UP }
+            }
+        return files.filter { it.isFile && ratings.ratingFor(it) != ProjectMPresetRating.HIDDEN }
+    }
+
+    private fun projectMModeLabel(mode: com.saney.musicvisualizer.projectm.ProjectMBackgroundMode): String =
+        when (mode) {
+            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP -> "ТОП"
+            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL -> "ВСІ"
+            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED -> "👍"
+        }
+
     private fun loadProjectMFocusPresets(
         mode: com.saney.musicvisualizer.projectm.ProjectMBackgroundMode,
         onLoaded: (() -> Unit)? = null,
@@ -4963,24 +4992,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         state.backgroundMode = mode
         val generation = ++projectMFocusCatalogGeneration
         thread(name = "projectm-focus-catalog") {
-            val pool = runCatching {
-                when (mode) {
-                    com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP ->
-                        ProjectMLibraryManager.fastPresetFiles(this)
-                    com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL ->
-                        ProjectMLibraryManager.allPresetFiles(this)
-                }
-            }.getOrDefault(emptyList())
+            val pool = runCatching { projectMPresetPool(mode) }.getOrDefault(emptyList())
             runOnUiThread {
                 // V90: also without the right page — AUTO needs the list on the main screen.
                 if (isFinishing || isDestroyed ||
                     generation != projectMFocusCatalogGeneration
                 ) return@runOnUiThread
-                val ratings = ProjectMPresetRatingsStore(this)
-                projectMFocusPresets = pool.filter {
-                    it.isFile &&
-                        ratings.ratingFor(it) != ProjectMPresetRating.HIDDEN
+                if (pool.isEmpty() && mode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED) {
+                    // V110: nothing liked yet — stay on ТОП, say how to fill the list.
+                    toast("Ще нема візуалізацій з 👍. Постав 👍 тим, що подобаються, — і вони крутитимуться в 👍.")
+                    loadProjectMFocusPresets(com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP, onLoaded)
+                    return@runOnUiThread
                 }
+                projectMFocusPresets = pool
                 if (projectMFocusPresets.isEmpty()) {
                     if (projectMFocusOverlay != null) toast("Для ${mode.name} немає доступних preset")
                 } else {
@@ -8714,6 +8738,27 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
+    /**
+     * V109 (faric 21.10 03:46: «щоб було видно, чи візуалізація зависає під час експорту»): a small
+     * picture in the progress window — the frame that goes into the MP4, refreshed about once a second.
+     */
+    private fun exportPreviewView(): android.widget.ImageView =
+        android.widget.ImageView(this).apply {
+            scaleType = android.widget.ImageView.ScaleType.FIT_CENTER
+            setBackgroundColor(Color.BLACK)
+            contentDescription = "Кадр, що йде у відео"
+        }
+
+    private fun showExportPreviewFrame(
+        view: android.widget.ImageView,
+        frame: android.graphics.Bitmap,
+    ) {
+        runOnUiThread {
+            if (isFinishing || isDestroyed) return@runOnUiThread
+            view.setImageBitmap(frame)
+        }
+    }
+
     /** V107: path B export waits here while the app is in the background (no GL surface). */
     private fun waitForProjectMSurface(
         view: ProjectMView,
@@ -8899,9 +8944,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 progress =
                     0
             }
+        val previewImage = exportPreviewView()
         val progressBody =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
+                addView(
+                    previewImage,
+                    LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(EXPORT_PREVIEW_HEIGHT_DP)).apply {
+                        bottomMargin = dp(12)
+                    },
+                )
                 addView(
                     progressStatus,
                     LinearLayout.LayoutParams(
@@ -9033,6 +9085,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     artist = displayArtist(snapshot) ?: songTags.artist.orEmpty(),
                     cancelled = cancelled,
                     updateProgress = { progress, status -> updateProgress(progress, status) },
+                    onPreviewFrame = { frame -> showExportPreviewFrame(previewImage, frame) },
                     presetSchedule = buildExportPresetSchedule(compositionConfig),
                     tags = songTags,
                     relativePath =
@@ -9149,6 +9202,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         artist: String,
         cancelled: AtomicBoolean,
         updateProgress: (Int, String) -> Unit,
+        onPreviewFrame: ((android.graphics.Bitmap) -> Unit)? = null,
         exactDisplayName: String? = null,
         relativePath: String = com.saney.musicvisualizer.export.Mp4AvMuxer.DEFAULT_RELATIVE_PATH,
         presetSchedule: com.saney.musicvisualizer.export.ExportPresetSchedule? = null,
@@ -9644,6 +9698,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     relativePath =
                         relativePath,
                     tags = tags,
+                    onPreviewFrame = onPreviewFrame,
                     shouldCancel = {
                         cancelled.get()
                     },
@@ -9700,15 +9755,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         if (!state.autoEnabled && !state.autoPerTrack) return null
         val pool =
             projectMFocusPresets.takeIf { it.isNotEmpty() }
-                ?: runCatching {
-                    val ratings = ProjectMPresetRatingsStore(this)
-                    when (state.backgroundMode) {
-                        com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP ->
-                            ProjectMLibraryManager.fastPresetFiles(this)
-                        com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL ->
-                            ProjectMLibraryManager.allPresetFiles(this)
-                    }.filter { it.isFile && ratings.ratingFor(it) != ProjectMPresetRating.HIDDEN }
-                }.getOrDefault(emptyList())
+                ?: runCatching { projectMPresetPool(state.backgroundMode) }.getOrDefault(emptyList())
         return com.saney.musicvisualizer.export.ExportPresetSchedule.createOrNull(
             pool = pool.map { it.absolutePath },
             current = state.lastPresetPath,
@@ -9957,6 +10004,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         activeExportCancel = cancelled
 
         // V62: canonical window; Back does not close it — «Зупинити пакет» does.
+        val batchPreview = exportPreviewView()
         val songLabel = label("Підготовка…", 15f, Color.WHITE, true)
         val stageLabel = label("", 13f, COLOR_MUTED, false)
         val songBar = ProgressBar(this, null, android.R.attr.progressBarStyleHorizontal).apply { max = 100 }
@@ -9965,6 +10013,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val batchBody =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
+                addView(batchPreview, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(EXPORT_PREVIEW_HEIGHT_DP)).apply { bottomMargin = dp(12) })
                 addView(songLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
                 addView(stageLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply { topMargin = dp(4) })
                 addView(songBar, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, dp(10)).apply { topMargin = dp(12) })
@@ -10118,6 +10167,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             artist = songTags.artist.orEmpty(),
                             cancelled = cancelled,
                             updateProgress = { progress, status -> ui(5 + progress * 95 / 100, status) },
+                            onPreviewFrame = { frame -> showExportPreviewFrame(batchPreview, frame) },
                             exactDisplayName = fileName,
                             relativePath = songPath,
                             presetSchedule = presetSchedule,
@@ -12109,6 +12159,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 "menu",
                 "header_title",
                 "track_info",
+                "track_artist",
                 "track_status",
                 "progress_time",
                 "progress_thumb",
@@ -12130,6 +12181,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             "faric.board_editor_layer"
         private const val KEY_NOW_CONTROLS_HIDDEN =
             "faric.now_controls_hidden"
+        private const val EXPORT_PREVIEW_HEIGHT_DP = 200
         private const val NOW_CONTROLS_AUTO_HIDE_MS =
             6000L
         private const val EMERGENCY_RECOVERY_HOLD_MS =

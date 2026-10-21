@@ -622,6 +622,13 @@ class ProjectMActivity : ComponentActivity() {
 
                     ProjectMBackgroundMode.ALL ->
                         ProjectMLibraryManager.allPresetFiles(this)
+
+                    ProjectMBackgroundMode.LIKED ->
+                        ProjectMPresetRatingsStore(this).let { ratings ->
+                            ProjectMLibraryManager.allPresetFiles(this).filter {
+                                ratings.ratingFor(it) == ProjectMPresetRating.UP
+                            }
+                        }
                 }
 
             val pool =

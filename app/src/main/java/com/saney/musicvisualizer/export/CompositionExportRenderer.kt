@@ -186,6 +186,8 @@ class CompositionExportRenderer(
                     animate = false,
                 )
                 view.favoriteActive = config.pulseDeckFavorite
+                // V104 / V119: the MP4 uses faric's «Відео 9:16» set (or «Книжка», if he made none).
+                view.forcedLayoutProfile = com.saney.musicvisualizer.ui.LayoutProfileId.VIDEO_9X16
                 view.coverArt = config.hudCoverArt
                 view.coverFallback = config.hudCoverFallback
                 view.setChromeVisibility(

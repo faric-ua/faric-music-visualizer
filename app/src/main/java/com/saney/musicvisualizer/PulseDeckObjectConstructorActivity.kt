@@ -98,6 +98,8 @@ class PulseDeckObjectConstructorActivity : ComponentActivity() {
                 context = this,
                 forceModularMode = true,
             ).apply {
+                // V104: the tools show the approved template itself, without faric's Утиліти moves.
+                previewLayout = emptyMap()
                 setPlaying(true)
                 setPlaybackContent(
                     title = "Neon Heartbeat (3).mp3",

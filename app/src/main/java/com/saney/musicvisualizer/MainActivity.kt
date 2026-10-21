@@ -1005,6 +1005,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onStart() {
         super.onStart()
+        // V126: back from «Утиліти» — read the saved layouts again (size, place, прозорість, видимість).
+        pulseDeckMainSkinView?.reloadLayoutProfiles()
         // V96: a permission given in Android settings works as soon as the app is back.
         controller.setAnalysisPermissionGranted(hasAnalysisPermission())
         if (projectMFocusOverlay != null) scheduleProjectMFocusAuto()

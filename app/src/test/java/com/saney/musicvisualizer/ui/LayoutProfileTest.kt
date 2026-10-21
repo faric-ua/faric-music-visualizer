@@ -82,18 +82,27 @@ class LayoutProfileTest {
 
     @Test fun edgeSnapSticksLeftEdgeToScreenEdge() {
         val base = LayoutBox(15f, 100f, 115f, 200f)
-        val r = LayoutSnapEdges.snap(LayoutAdjust(), base, 1080f, 2340f, emptyList(), SnapMode.EDGES, 20f)
+        val r = LayoutSnapEdges.snap(LayoutAdjust(), base, 1080f, 2340f, emptyList(), SnapSet(center = false).withAllEdges(true), 20f)
         assertEquals(0f, r.guideX)
         assertEquals(0f, base.adjusted(r.adjust, 1080f, 2340f).left, 1e-3f)
-        val off = LayoutSnapEdges.snap(LayoutAdjust(), base, 1080f, 2340f, emptyList(), SnapMode.OFF, 20f)
+        val off = LayoutSnapEdges.snap(LayoutAdjust(), base, 1080f, 2340f, emptyList(), SnapSet(center = false), 20f)
         assertEquals(LayoutAdjust(), off.adjust)
     }
 
     @Test fun bottomSnapUsesOtherPartsBottom() {
         val base = LayoutBox(100f, 100f, 200f, 195f)
         val other = LayoutBox(400f, 150f, 500f, 200f)
-        val r = LayoutSnapEdges.snap(LayoutAdjust(), base, 1080f, 2340f, listOf(other), SnapMode.BOTTOM, 10f)
+        val r = LayoutSnapEdges.snap(LayoutAdjust(), base, 1080f, 2340f, listOf(other), SnapSet(center = false, bottom = true), 10f)
         assertEquals(200f, r.guideY)
         assertNull(r.guideX)
+    }
+
+    @Test fun snapSetLabelAndCodec() {
+        val set = SnapSet(center = true).withAllEdges(true)
+        assertEquals("центр + 4 краї", set.label)
+        assertEquals(set, SnapSet.decode(set.encode()))
+        assertEquals("центр + лівий", SnapSet(center = true, left = true).label)
+        assertTrue(SnapSet(center = false).isOff)
+        assertEquals(SnapSet(), SnapSet.decode("bad"))
     }
 }

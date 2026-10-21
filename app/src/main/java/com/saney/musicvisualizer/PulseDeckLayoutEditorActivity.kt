@@ -47,7 +47,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
     private lateinit var store: LayoutProfileStore
     private val working = mutableMapOf<String, LayoutAdjust>()
     private var selected: LayoutGroup = LayoutGroups.ALL.first()
-    private var stepPx = 4
+    private var stepPx = 5
     private var dirty = false
     private var zoom = 1
     private var snapOn = true
@@ -87,7 +87,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
             selected = LayoutGroups.byId(savedInstanceState.getString(STATE_SELECTED).orEmpty()) ?: selected
             stepPx = savedInstanceState.getInt(STATE_STEP, stepPx)
             dirty = savedInstanceState.getBoolean(STATE_DIRTY, false)
-            zoom = savedInstanceState.getInt(STATE_ZOOM, 1).coerceIn(1, 3)
+            zoom = savedInstanceState.getInt(STATE_ZOOM, 1).coerceIn(1, ZOOMS.last())
             snapOn = savedInstanceState.getBoolean(STATE_SNAP, true)
         } else {
             working.putAll(store.load(profile))
@@ -209,43 +209,60 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         groupTitle = UtilityUi.text(this, "", 15f, bold = true)
         root.addView(groupTitle, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
 
-        root.addView(UtilityUi.text(this, "Розмір", 12f, UtilityUi.MUTED), LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) })
-        val sizeRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL }
-        listOf(-5, -1).forEach { step -> sizeRow.addView(UtilityUi.button(this, "$step") { resize(step) }, UtilityUi.weighted(context = this)) }
-        sizeValue = UtilityUi.text(this, "100 %", 15f, bold = true).apply {
+        // V122 (faric 22.10 01:18): «Розмір» зліва і «Місце» справа — дві колонки по три ряди;
+        // «Скинути частину» і «Зберегти» — на всю ширину, унизу.
+        val columns = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
+        val sizeColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        sizeColumn.addView(UtilityUi.text(this, "Розмір", 12f, UtilityUi.MUTED).apply { gravity = android.view.Gravity.CENTER }, LinearLayout.LayoutParams(-1, -2))
+        sizeColumn.addView(pair(UtilityUi.button(this, "−5") { resize(-5) }, UtilityUi.button(this, "−1") { resize(-1) }))
+        sizeValue = UtilityUi.text(this, "100 %", 16f, bold = true).apply {
             gravity = android.view.Gravity.CENTER
             minHeight = dp(48)
             background = UtilityUi.frame(UtilityUi.BG, UtilityUi.CYAN, 1, 10, context)
         }
-        sizeRow.addView(sizeValue, UtilityUi.weighted(context = this, weight = 1.3f))
-        listOf(1, 5).forEach { step -> sizeRow.addView(UtilityUi.button(this, "+$step") { resize(step) }, UtilityUi.weighted(context = this)) }
-        root.addView(sizeRow, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(2) })
-
-        root.addView(UtilityUi.text(this, "Місце", 12f, UtilityUi.MUTED), LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) })
-        val moveRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = android.view.Gravity.CENTER_VERTICAL }
-        moveRow.addView(UtilityUi.button(this, "←") { move(-stepPx, 0) }.apply { contentDescription = "Вліво" }, UtilityUi.weighted(context = this))
-        moveRow.addView(UtilityUi.button(this, "↑") { move(0, -stepPx) }.apply { contentDescription = "Вгору" }, UtilityUi.weighted(context = this))
-        moveRow.addView(UtilityUi.button(this, "↓") { move(0, stepPx) }.apply { contentDescription = "Вниз" }, UtilityUi.weighted(context = this))
-        moveRow.addView(UtilityUi.button(this, "→") { move(stepPx, 0) }.apply { contentDescription = "Вправо" }, UtilityUi.weighted(context = this))
-        stepButton = UtilityUi.button(this, "") { nextStep() }
-        stepButton.textSize = 13f
-        moveRow.addView(stepButton, UtilityUi.weighted(context = this, weight = 1.4f))
-        root.addView(moveRow, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(2) })
+        sizeColumn.addView(sizeValue, LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(3), dp(6), dp(3), 0) })
+        sizeColumn.addView(pair(UtilityUi.button(this, "+1") { resize(1) }, UtilityUi.button(this, "+5") { resize(5) }))
+        val moveColumn = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+        moveColumn.addView(UtilityUi.text(this, "Місце", 12f, UtilityUi.MUTED).apply { gravity = android.view.Gravity.CENTER }, LinearLayout.LayoutParams(-1, -2))
+        moveColumn.addView(
+            pair(
+                UtilityUi.button(this, "←") { move(-stepPx, 0) }.apply { contentDescription = "Вліво" },
+                UtilityUi.button(this, "↑") { move(0, -stepPx) }.apply { contentDescription = "Вгору" },
+            ),
+        )
+        stepButton = UtilityUi.button(this, "") { chooseStep() }
+        moveColumn.addView(stepButton, LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(3), dp(6), dp(3), 0) })
+        moveColumn.addView(
+            pair(
+                UtilityUi.button(this, "↓") { move(0, stepPx) }.apply { contentDescription = "Вниз" },
+                UtilityUi.button(this, "→") { move(stepPx, 0) }.apply { contentDescription = "Вправо" },
+            ),
+        )
+        columns.addView(sizeColumn, LinearLayout.LayoutParams(0, -2, 1f).apply { marginEnd = dp(6) })
+        columns.addView(moveColumn, LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(6) })
+        root.addView(columns, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) })
 
         val toolsRow = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        zoomButton = UtilityUi.button(this, "") { nextZoom() }
+        zoomButton = UtilityUi.button(this, "") { chooseZoom() }
         snapButton = UtilityUi.button(this, "") { toggleSnap() }
         toolsRow.addView(zoomButton, UtilityUi.weighted(context = this))
         toolsRow.addView(snapButton, UtilityUi.weighted(context = this))
-        root.addView(toolsRow, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
+        root.addView(toolsRow, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
 
-        val actions = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
-        actions.addView(UtilityUi.button(this, "Зберегти", UtilityUi.Kind.MAIN) { save() }, UtilityUi.weighted(context = this))
-        actions.addView(UtilityUi.button(this, "Скинути частину") { resetSelected() }, UtilityUi.weighted(context = this))
         if (profile == LayoutProfileId.VIDEO_9X16) {
-            actions.addView(UtilityUi.button(this, "Узяти з «Книжки»") { copyFromPortrait() }, UtilityUi.weighted(context = this))
+            root.addView(
+                UtilityUi.button(this, "Узяти з «Книжки»") { copyFromPortrait() },
+                LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(3), dp(10), dp(3), 0) },
+            )
         }
-        root.addView(actions, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(10) })
+        root.addView(
+            UtilityUi.button(this, "Скинути частину", UtilityUi.Kind.WARNING) { resetSelected() },
+            LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(3), dp(10), dp(3), 0) },
+        )
+        root.addView(
+            UtilityUi.button(this, "Зберегти", UtilityUi.Kind.MAIN) { save() },
+            LinearLayout.LayoutParams(-1, -2).apply { setMargins(dp(3), dp(10), dp(3), 0) },
+        )
 
         setContentView(scroll)
         // Back asks before dropping unsaved changes.
@@ -313,19 +330,44 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         showGuidesExact()
     }
 
-    private fun nextStep() {
-        stepPx =
-            when (stepPx) {
-                1 -> 4
-                4 -> 16
-                else -> 1
-            }
-        refreshLabels()
+    /** Two buttons side by side, each half of the column. */
+    private fun pair(
+        first: TextView,
+        second: TextView,
+    ): LinearLayout =
+        LinearLayout(this).apply {
+            orientation = LinearLayout.HORIZONTAL
+            addView(first, UtilityUi.weighted(context = context))
+            addView(second, UtilityUi.weighted(context = context))
+            layoutParams = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(6) }
+        }
+
+    /** V122: the step — a list (1, 5, 10, 15, 20, 25 px), not a cycling button. */
+    private fun chooseStep() {
+        val labels = STEPS.map { "$it px" }
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = "Крок стрілок",
+            labels = labels,
+            checkedIndex = STEPS.indexOf(stepPx),
+        ) { index ->
+            stepPx = STEPS[index]
+            refreshLabels()
+        }
     }
 
-    private fun nextZoom() {
-        zoom = if (zoom >= 3) 1 else zoom + 1
-        refreshLabels()
+    /** V122: the magnifier — a list (1× … 5×). */
+    private fun chooseZoom() {
+        val labels = ZOOMS.map { "$it×" }
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = "Лупа",
+            labels = labels,
+            checkedIndex = ZOOMS.indexOf(zoom),
+        ) { index ->
+            zoom = ZOOMS[index]
+            refreshLabels()
+        }
     }
 
     private fun toggleSnap() {
@@ -376,8 +418,8 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         }
         groupTitle.text = "${selected.label} · ${selected.rule}"
         sizeValue.text = "${Math.round(adjust.scale * 100f)} %"
-        stepButton.text = "крок $stepPx"
-        zoomButton.text = "Лупа ${zoom}×"
+        stepButton.text = "крок $stepPx ▾"
+        zoomButton.text = "Лупа ${zoom}× ▾"
         UtilityUi.style(zoomButton, if (zoom > 1) UtilityUi.Kind.CHOSEN else UtilityUi.Kind.NORMAL)
         snapButton.text = if (snapOn) "Прив'язка: так" else "Прив'язка: ні"
         UtilityUi.style(snapButton, if (snapOn) UtilityUi.Kind.CHOSEN else UtilityUi.Kind.NORMAL)
@@ -596,6 +638,8 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
     companion object {
         const val EXTRA_PROFILE = "profile"
         private const val SNAP_DP = 8
+        private val STEPS = listOf(1, 5, 10, 15, 20, 25)
+        private val ZOOMS = listOf(1, 2, 3, 4, 5)
         private const val STATE_WORKING = "working"
         private const val STATE_SELECTED = "selected"
         private const val STATE_STEP = "step"

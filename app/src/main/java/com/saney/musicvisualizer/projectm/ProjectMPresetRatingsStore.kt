@@ -44,6 +44,23 @@ class ProjectMPresetRatingsStore(context: Context) {
         }.apply()
     }
 
+    /**
+     * V81: 👍 for faric's Poweramp favourites — once per [FaricFavoritePresets.SEED_VERSION], and only
+     * where there is no rating yet (his own 👎 / 🚫 always win). Files that are not on the phone are skipped.
+     */
+    fun seedFavoritesOnce(collectionRoot: File) {
+        val flag = SEED_FLAG_PREFIX + FaricFavoritePresets.SEED_VERSION
+        if (prefs.getBoolean(flag, false)) return
+        if (!collectionRoot.isDirectory) return
+        FaricFavoritePresets.IDS.forEach { id ->
+            val file = File(collectionRoot, id)
+            if (file.isFile && ratingFor(file) == ProjectMPresetRating.NONE) {
+                setRating(file, ProjectMPresetRating.UP)
+            }
+        }
+        prefs.edit().putBoolean(flag, true).apply()
+    }
+
     fun counts(): Map<ProjectMPresetRating, Int> {
         val result =
             ProjectMPresetRating.entries
@@ -94,5 +111,6 @@ class ProjectMPresetRatingsStore(context: Context) {
 
     companion object {
         private const val KEY_PREFIX = "rating:"
+        private const val SEED_FLAG_PREFIX = "seed:poweramp:v"
     }
 }

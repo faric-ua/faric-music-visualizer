@@ -52,6 +52,9 @@ data class CompositionExportConfig(
     val standaloneTheme: PlaybackThemeId? = null,
     /** V91: the song's cover for the «Обкладинка» theme. */
     val coverArt: Bitmap? = null,
+    /** V114: the song's picture for the HUD frame «Обкладинка вгорі» and what it shows without one. */
+    val hudCoverArt: Bitmap? = null,
+    val hudCoverFallback: Int = 0,
 )
 
 data class CompositionStageTiming(
@@ -183,6 +186,8 @@ class CompositionExportRenderer(
                     animate = false,
                 )
                 view.favoriteActive = config.pulseDeckFavorite
+                view.coverArt = config.hudCoverArt
+                view.coverFallback = config.hudCoverFallback
                 view.setChromeVisibility(
                     transportVisible = true,
                     quickActionsVisible = true,

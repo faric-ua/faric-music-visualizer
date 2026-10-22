@@ -27,6 +27,7 @@ import java.util.Locale
  */
 object CrashJournal {
     private const val TAG = "FARIC-crash"
+    private const val KEY_EXPORT_REPORT_UNSEEN = "export_report_unseen"
     private const val PREFS = "faric_diagnostics"
     private const val DIR = "diagnostics"
     private const val CRASH_FILE = "last-crash.txt"
@@ -167,6 +168,34 @@ object CrashJournal {
         if (crash.isFile) crash.renameTo(File(crash.parentFile, "shown-crash.txt"))
     }
 
+    /**
+     * V133 (faric 22.10 03:29): the last export report is kept on disk — the journal shows it, and if
+     * nobody saw it (PulseDeck was closed when the MP4 finished), the next start shows it.
+     */
+    fun saveExportReport(
+        context: Context,
+        title: String,
+        text: String,
+        seen: Boolean,
+    ) {
+        runCatching {
+            exportReportFile(context).apply { parentFile?.mkdirs() }.writeText(title + "\n" + text)
+            prefs(context).edit().putBoolean(KEY_EXPORT_REPORT_UNSEEN, !seen).commit()
+        }
+    }
+
+    fun unseenExportReport(context: Context): Pair<String, String>? {
+        if (!prefs(context).getBoolean(KEY_EXPORT_REPORT_UNSEEN, false)) return null
+        val raw = runCatching { exportReportFile(context).readText() }.getOrNull() ?: return null
+        return raw.substringBefore('\n') to raw.substringAfter('\n')
+    }
+
+    fun markExportReportSeen(context: Context) {
+        prefs(context).edit().putBoolean(KEY_EXPORT_REPORT_UNSEEN, false).commit()
+    }
+
+    private fun exportReportFile(context: Context) = File(File(context.applicationContext.filesDir, DIR), "last-export-report.txt")
+
     /** Full journal for «PulseDeck tools → Журнал збоїв». */
     /**
      * Newest first (faric 19.10 23:20: «відкриваю — і зразу перша строчка, що сталось
@@ -193,6 +222,11 @@ object CrashJournal {
                 append("\n=== Останній експорт ===\n")
                 append(CrashReport.trailText(trail.copy(outcome = trail.outcome ?: if (trail.running) "ще йде або обірвався" else "—"), ::dateTime))
                 append('\n')
+            }
+            exportReportFile(context).takeIf { it.isFile }?.let { file ->
+                val raw = file.readText()
+                append("\n=== Звіт останнього експорту (").append(raw.substringBefore('\n')).append(") ===\n")
+                append(raw.substringAfter('\n').trim()).append('\n')
             }
             val last = lastReportFile(context)
             if (last.isFile) {

@@ -8859,6 +8859,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun maybeShowCrashReport() {
         if (isFinishing || isDestroyed) return
+        // V133: an export that finished while PulseDeck was closed / hidden — its report now.
+        CrashJournal.unseenExportReport(this)?.let { (title, text) ->
+            CrashJournal.markExportReportSeen(this)
+            showCopyableReport("$title (поки тебе не було)", text)
+            return
+        }
         val report = runCatching { CrashJournal.pendingReport(this) }.getOrNull() ?: return
         CrashJournal.markReported(this)
         showDiagnosticsReport(title = "Минулого разу застосунок закрився", report = report)
@@ -9270,6 +9276,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         "MP4 не збережено"
                     },
                 )
+                // V133 (faric 22.10 03:29: «відео доробилось, але вікна з текстом не було»): the report is
+                // saved before any window — if PulseDeck was closed meanwhile, it waits for the next start.
+                if (result.uri != null) {
+                    runCatching { CrashJournal.saveExportReport(this, "Експорт завершено", exportTimingText(result), seen = false) }
+                }
                 runOnUiThread {
                     if (!isDestroyed && !isFinishing) dialog.dismiss()
 
@@ -9279,9 +9290,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ) {
                         // v0.19.73: the full song also shows the timing report (was a 2 s toast),
                         // so the whole-song speed can be measured against EXPORT_ETALON.md.
-                        showExportTimingResult(
-                            result,
-                        )
+                        if (!isDestroyed && !isFinishing) {
+                            showExportTimingResult(
+                                result,
+                            )
+                        }
                     } else {
                         toast(
                             "Не вдалося зберегти MP4",
@@ -11918,7 +11931,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         title: String = "Експорт завершено",
         headline: String? = null,
     ) {
-        val message =
+        val message = exportTimingText(result, headline)
+        // V133: kept in the journal too; shown now — so not offered again at the next start.
+        CrashJournal.saveExportReport(this, title, message, seen = true)
+        showCopyableReport(title, message)
+    }
+
+    private fun exportTimingText(
+        result: ShortVideoExportProof.Result,
+        headline: String? = null,
+    ): String =
             buildString {
                 // V130: a cancelled export says how far it got and how long the whole would take.
                 headline?.let {
@@ -12235,9 +12257,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
                 append("\n\n" + com.saney.musicvisualizer.export.ExportFolders.VIDEO)
             }
-
-        showCopyableReport(title, message)
-    }
 
     /** V130: «зроблено N з M кадрів (X %) за Y — уся пісня зайняла б ≈ Z». */
     private fun cancelledHeadline(stop: ShortVideoExportProof.ExportCancelledException): String {

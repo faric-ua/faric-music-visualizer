@@ -124,8 +124,52 @@ def test_real_config() -> None:
     print("config PASS")
 
 
+def _alpha_at(png: Path, size: int = 1000) -> bytes:
+    return subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-i", str(png), "-vf", "format=rgba,alphaextract",
+                           "-f", "rawvideo", "-pix_fmt", "gray", "-"], capture_output=True, check=True).stdout
+
+
+def test_disc_cover() -> None:
+    """Кругла наклейка з «рваним» краєм і рваною діркою → рівне коло, рівна дірка, прозорий фон."""
+    import math
+    tmp = Path(tempfile.mkdtemp())
+    t, d = "atan2(Y-800,X-800)", "hypot(X-800,Y-800)"
+    variants = {
+        # прозорий PNG, рваний край і дірка, під прозорістю — білий «мусор»
+        "alpha": f"format=rgba,geq=r='if(lt({d},820),40+X/8,255)':g='if(lt({d},820),20+Y/9,255)':b='if(lt({d},820),160,255)'"
+                 f":a='255*lt({d},760+18*sin(17*{t})+9*sin(41*{t}))*gt({d},115+14*sin(23*{t})+6*sin(57*{t}))'",
+        # непрозорий PNG на чорному фоні
+        "black": f"format=rgb24,geq=r='if(lt({d},760+18*sin(17*{t}))*gt({d},120+14*sin(23*{t})),60+X/8,0)'"
+                 f":g='if(lt({d},760+18*sin(17*{t}))*gt({d},120+14*sin(23*{t})),40+Y/9,0)'"
+                 f":b='if(lt({d},760+18*sin(17*{t}))*gt({d},120+14*sin(23*{t})),180,0)'",
+    }
+    for name, vf in variants.items():
+        src, out = tmp / f"{name}.png", tmp / f"{name}_clean.png"
+        subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=white:s=1600x1600",
+                        "-frames:v", "1", "-vf", vf, str(src)], check=True)
+        assert ap.make_disc_cover(src, out), name
+        a = _alpha_at(out)
+        assert len(a) == 1000 * 1000, (name, len(a))
+        at = lambda x, y: a[int(y) * 1000 + int(x)]
+        assert at(3, 3) == 0 and at(996, 996) == 0 and at(500, 500) == 0, name     # кути й дірка прозорі
+        for k in range(360):                                                       # кільце — суцільне
+            c, s_ = math.cos(math.radians(k)), math.sin(math.radians(k))
+            assert at(500 + 470 * c, 500 + 470 * s_) == 255, (name, k, "edge")
+            assert at(500 + 300 * c, 500 + 300 * s_) == 255, (name, k, "body")
+        for k in (45, 135, 225, 315):                                              # за колом — прозоро
+            c, s_ = math.cos(math.radians(k)), math.sin(math.radians(k))
+            assert at(500 + 520 * c, 500 + 520 * s_) == 0, (name, k, "outside")
+        hole = [r for r in range(0, 400) if at(500 + r, 500) == 255][0]            # дірка кругла: однакова по всіх боках
+        for k in range(0, 360, 15):
+            c, s_ = math.cos(math.radians(k)), math.sin(math.radians(k))
+            assert at(500 + (hole + 3) * c, 500 + (hole + 3) * s_) == 255, (name, k, "hole edge")
+            assert at(500 + (hole - 3) * c, 500 + (hole - 3) * s_) < 255, (name, k, "hole inside")
+        print(f"disc cover PASS ({name}): hole r={hole}px, {out.stat().st_size // 1024} KB")
+
+
 if __name__ == "__main__":
     test_unit()
     test_real_config()
+    test_disc_cover()
     test_end_to_end()
     print("ALL PASS")

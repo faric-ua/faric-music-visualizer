@@ -237,6 +237,109 @@ def make_cover(src: Path, out: Path) -> bool:
         return False
 
 
+# ---------- кругла наклейка: рівне коло замість «рваних» країв ----------
+
+DISC_SCAN = 400  # розмір, на якому шукаємо край диска й дірку (досить і швидко)
+
+
+def _disc_mask(src: Path, n: int = DISC_SCAN) -> list[bytearray] | None:
+    """Маска «тут є диск» n×n: з прозорості PNG, а якщо вона суцільна — за кольором фону в кутах."""
+    def raw(vf: str, pix: str, ch: int) -> bytes:
+        res = subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-i", str(src), "-frames:v", "1",
+                              "-vf", f"scale={n}:{n},{vf}", "-f", "rawvideo", "-pix_fmt", pix, "-"],
+                             capture_output=True, check=True, stdin=subprocess.DEVNULL)
+        data = res.stdout
+        return data if len(data) == n * n * ch else b""
+    alpha = raw("format=rgba,alphaextract", "gray", 1)
+    if alpha and min(alpha) < 128 and sum(1 for a in alpha if a >= 128) > n * n * 0.3:
+        return [bytearray(1 if alpha[y * n + x] >= 128 else 0 for x in range(n)) for y in range(n)]
+    rgb = raw("format=rgb24", "rgb24", 3)
+    if not rgb:
+        return None
+    def px(x, y):
+        i = (y * n + x) * 3
+        return rgb[i], rgb[i + 1], rgb[i + 2]
+    corners = [px(2, 2), px(n - 3, 2), px(2, n - 3), px(n - 3, n - 3)]
+    bg = tuple(sum(c[k] for c in corners) // 4 for k in range(3))
+    if max(abs(c[k] - bg[k]) for c in corners for k in range(3)) > 40:
+        return None  # кути різного кольору — фону нема, це квадратна картинка
+    def far(x, y):
+        r, g, b = px(x, y)
+        return abs(r - bg[0]) + abs(g - bg[1]) + abs(b - bg[2]) > 60
+    return [bytearray(1 if far(x, y) else 0 for x in range(n)) for y in range(n)]
+
+
+def disc_geometry(mask: list[bytearray]) -> tuple[float, float, float, float] | None:
+    """(cx, cy, r_out, r_in) у пікселях маски. r_out — трохи всередину від найглибшої вм'ятини краю,
+    r_in — трохи назовні від найдальшого «рваного» краю дірки. None — це не диск."""
+    import math
+    n = len(mask)
+    sx = sy = cnt = 0
+    for y, row in enumerate(mask):
+        for x, v in enumerate(row):
+            if v:
+                sx += x; sy += y; cnt += 1
+    if cnt < n * n * 0.3:
+        return None
+    cx, cy = sx / cnt, sy / cnt
+    rmax = math.hypot(n, n) / 2
+    outs, ins = [], []
+    for k in range(180):
+        a = 2 * math.pi * k / 180
+        dx, dy = math.cos(a), math.sin(a)
+        def on(r):
+            x, y = int(round(cx + dx * r)), int(round(cy + dy * r))
+            return 0 <= x < n and 0 <= y < n and mask[y][x] == 1
+        r = rmax
+        while r > 0 and not (on(r) and on(r - 1) and on(r - 2)):
+            r -= 1
+        outs.append(r)
+        r = 0.0
+        while r < rmax and not (on(r) and on(r + 1) and on(r + 2)):
+            r += 1
+        ins.append(r)
+    outs.sort(); ins.sort()
+    r_out = outs[int(len(outs) * 0.05)] - n * 0.006
+    r_in = ins[int(len(ins) * 0.95)] + n * 0.006 if ins[len(ins) // 2] > n * 0.01 else 0.0
+    if r_out < n * 0.3 or r_in >= r_out * 0.6:
+        return None
+    return cx, cy, r_out, r_in
+
+
+def make_disc_cover(src: Path, out: Path, size: int = COVER_SIZE) -> bool:
+    """Кругла наклейка: рівне коло з рівною діркою, згладжені краї, прозорий фон (PNG)."""
+    mask = _disc_mask(src)
+    geo = disc_geometry(mask) if mask else None
+    if not geo:
+        return False
+    n = len(mask)
+    cx, cy, r_out, r_in = geo
+    try:
+        res = subprocess.run(["ffprobe", "-v", "error", "-select_streams", "v:0", "-show_entries",
+                              "stream=width,height", "-of", "csv=p=0", str(src)],
+                             capture_output=True, text=True, check=True, stdin=subprocess.DEVNULL)
+        w, h = (int(v) for v in res.stdout.strip().split(",")[:2])
+    except (subprocess.CalledProcessError, ValueError):
+        return False
+    kx, ky = w / n, h / n
+    side = 2 * r_out * (kx + ky) / 2
+    x0, y0 = cx * kx - side / 2, cy * ky - side / 2
+    half = size / 2
+    ro = half - 1.0
+    ri = r_in / r_out * ro if r_in else 0.0
+    d = "hypot(X-%.1f,Y-%.1f)" % (half, half)
+    alpha = f"255*clip({ro:.2f}-{d}+0.5,0,1)" + (f"*clip({d}-{ri:.2f}+0.5,0,1)" if ri else "")
+    vf = (f"format=rgba,crop={side:.0f}:{side:.0f}:{max(0.0, x0):.0f}:{max(0.0, y0):.0f}:exact=1,"
+          f"scale={size}:{size}:flags=lanczos,"
+          f"geq=r='r(X,Y)':g='g(X,Y)':b='b(X,Y)':a='{alpha}'")
+    try:
+        run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(src), "-frames:v", "1", "-vf", vf,
+             "-pix_fmt", "rgba", "-compression_level", "9", str(out)])
+        return out.exists() and out.stat().st_size > 0
+    except subprocess.CalledProcessError:
+        return False
+
+
 # ---------- збирання ----------
 
 def fmt_time(sec: float) -> str:
@@ -305,8 +408,13 @@ def build_preview(folder: Path, config: dict, seg: float, fade: float, assume_ye
         if album and (album.get("disc") or {}).get(side):
             say("Качаю наклейку диска з Диска і зменшую…")
             raw = tmp / "disc.png"
-            if fetch(album["disc"][side], raw) and make_cover(raw, tmp / "cover.jpg"):
-                cover = tmp / "cover.jpg"
+            if fetch(album["disc"][side], raw):
+                if make_disc_cover(raw, tmp / "cover.png"):
+                    cover = tmp / "cover.png"
+                    say("   наклейка: рівне коло, прозорий фон (PNG)")
+                elif make_cover(raw, tmp / "cover.jpg"):
+                    cover = tmp / "cover.jpg"
+                    say("   наклейку не вдалося обрізати колом — квадратом, як є")
         if cover is None and info[files[0]]["has_pic"]:
             say("Беру обкладинку з першої пісні…")
             emb = tmp / "embedded"

@@ -5,7 +5,7 @@
 переходами (одна пісня затихає — наступна наростає). Обкладинка — кругла наклейка диска
 з Google Диска (зменшена до 1000×1000 JPEG), у тегах — лише історія альбому
 (FARIC_ALBUM_STORY_UK / _EN). Готовий файл кладеться поруч із піснями:
-«00 — PREVIEW — <назва> (<сторона> Side).mp3». Оригінали не змінюються.
+«PREVIEW — <назва> (<сторона> Side).mp3». Оригінали не змінюються.
 
 Потрібно: ffmpeg + ffprobe (Termux: pkg install ffmpeg), Python 3.
 Тест без інтернету: FARIC_PREVIEW_OFFLINE_DIR=<папка з файлами <id>.json / <id>.png>.
@@ -435,7 +435,7 @@ def build_preview(folder: Path, config: dict, seg: float, fade: float, assume_ye
 
         base_name = (album["album"].split("—", 1)[-1].strip() if album
                      else (first_tags.get("album") or folder.name))
-        out = unique_path(folder / f"00 — PREVIEW — {base_name} ({side_name} Side).mp3")
+        out = unique_path(folder / f"PREVIEW — {base_name} ({side_name} Side).mp3")
         if not assume_yes:
             ans = input(f"Створити «{out.name}»? Enter — так, n — ні: ").strip().lower()
             if ans.startswith("n") or ans.startswith("н"):
@@ -476,7 +476,7 @@ def build_preview(folder: Path, config: dict, seg: float, fade: float, assume_ye
         if not any(k.lower() == "album" for k in meta) and album:
             meta["album"] = album["album"]
         meta.update({
-            "title": f"{base_name} — PREVIEW ({side_name} Side)",
+            "title": f"PREVIEW — {base_name} ({side_name} Side)",
             "track": "0",
             "TSSE": encoder_list(ref_raw),
             "FARIC_PREVIEW_TRACKS": tracklist,

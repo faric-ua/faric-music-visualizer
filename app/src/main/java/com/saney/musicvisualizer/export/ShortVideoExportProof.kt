@@ -74,6 +74,16 @@ object ShortVideoExportProof {
         val presetTimings: List<PresetTiming> = emptyList(),
     )
 
+    /**
+     * V130: the export was cancelled (or stopped) part way — [partial] holds the numbers up to that
+     * frame, [plannedFrames] how many the whole video would have had. Still a CancellationException,
+     * so every «cancelled» check keeps working.
+     */
+    class ExportCancelledException(
+        val partial: Result,
+        val plannedFrames: Int,
+    ) : CancellationException("Export cancelled")
+
     /** V115: one visualization in the MP4 — [frames] frames, [totalMs] of whole-frame time. */
     data class PresetTiming(
         val path: String,
@@ -589,10 +599,14 @@ object ShortVideoExportProof {
                 slot[0] += now - frameStartedNs
                 slot[1] += 1
             }
+            // V130 (faric 22.10 02:58: «скасував на 47 % — дані загубимо»): a cancel brings the numbers so far.
+            var framesDone = 0
+            try {
             for (
                 frameIndex in
                 0 until frameCount
             ) {
+                framesDone = frameIndex
                 if (
                     shouldCancel()
                 ) {
@@ -1333,6 +1347,42 @@ object ShortVideoExportProof {
                         0,
                         99,
                     ),
+                )
+            }
+            } catch (cancel: CancellationException) {
+                bookFrameTime(System.nanoTime())
+                throw ExportCancelledException(
+                    partial =
+                        Result(
+                            uri = null,
+                            frameCount = framesDone,
+                            width = width,
+                            height = height,
+                            durationMs = framesDone * 1000L / safeFps,
+                            hasAudio = false,
+                            projectMFrameMs = projectMFrameNs / 1_000_000L,
+                            compositionMs = compositionNs / 1_000_000L,
+                            encoderSubmitMs = encoderSubmitNs / 1_000_000L,
+                            gpuProjectMMs = gpuProjectMNs / 1_000_000L,
+                            gpuGlowMs = gpuGlowNs / 1_000_000L,
+                            gpuFrameMs = gpuFrameNs / 1_000_000L,
+                            gpuCreatureMs = gpuCreatureNs / 1_000_000L,
+                            gpuWordmarkMs = gpuWordmarkNs / 1_000_000L,
+                            gpuOverlayMs = gpuOverlayNs / 1_000_000L,
+                            audioTranscodeMs = 0L,
+                            muxMs = 0L,
+                            publishMs = 0L,
+                            totalMs = (System.nanoTime() - totalStartedNs) / 1_000_000L,
+                            compositionStages = compositionRenderer?.timingSnapshot(),
+                            projectMDirectBgra = projectMDirectBgra,
+                            projectMGpuDirect = projectMGpuDirect,
+                            projectMOfflineStages = projectMOfflineTimingProvider?.invoke(),
+                            presetTimings =
+                                presetFrameStats
+                                    .map { (path, slot) -> PresetTiming(path, slot[1].toInt(), slot[0] / 1_000_000L) }
+                                    .sortedByDescending { it.msPerFrame },
+                        ),
+                    plannedFrames = frameCount,
                 )
             }
             bookFrameTime(System.nanoTime())

@@ -9295,7 +9295,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 runOnUiThread {
                     if (!isDestroyed && !isFinishing) dialog.dismiss()
 
-                    if (cancelledByUser) {
+                    val partial = error as? ShortVideoExportProof.ExportCancelledException
+                    if (cancelledByUser && partial != null && partial.partial.frameCount > 0 && !isDestroyed && !isFinishing) {
+                        // V130 (faric 22.10 02:58): the numbers so far, not just a toast.
+                        showExportTimingResult(
+                            result = partial.partial,
+                            title = "Експорт скасовано",
+                            headline = cancelledHeadline(partial),
+                        )
+                    } else if (cancelledByUser) {
                         toast(
                             "Експорт скасовано",
                         )
@@ -10350,7 +10358,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         Log.e("FARIC-export", "Batch song failed: $title", error)
                         if (error is CancellationException || cancelled.get()) {
                             CrashJournal.exportFinished(this, "скасовано (пакет)")
-                            results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.CANCELLED, "зупинено")
+                            // V130: how far the stopped song got and how fast it went.
+                            val stop = error as? ShortVideoExportProof.ExportCancelledException
+                            val detail = stop?.let { "зупинено · " + cancelledHeadline(it).substringAfter("СКАСОВАНО ").replace("\n", " · ") } ?: "зупинено"
+                            results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.CANCELLED, detail)
                         } else {
                             val line = (error.javaClass.simpleName + ": " + (error.message ?: "—")).take(200)
                             CrashJournal.exportFinished(this, "помилка (пакет) · $line")
@@ -11885,9 +11896,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun showExportTimingResult(
         result: ShortVideoExportProof.Result,
+        title: String = "Експорт завершено",
+        headline: String? = null,
     ) {
         val message =
             buildString {
+                // V130: a cancelled export says how far it got and how long the whole would take.
+                headline?.let {
+                    append(it)
+                    append("\n\n")
+                }
                 append(
                     result.width,
                 )
@@ -12195,7 +12213,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 append("\n\n" + com.saney.musicvisualizer.export.ExportFolders.VIDEO)
             }
 
-        showCopyableReport("Експорт завершено", message)
+        showCopyableReport(title, message)
+    }
+
+    /** V130: «зроблено N з M кадрів (X %) за Y — уся пісня зайняла б ≈ Z». */
+    private fun cancelledHeadline(stop: ShortVideoExportProof.ExportCancelledException): String {
+        val done = stop.partial.frameCount
+        val planned = stop.plannedFrames.coerceAtLeast(1)
+        val percent = done * 100 / planned
+        val elapsedS = stop.partial.totalMs / 1000L
+        val wholeS = if (done > 0) stop.partial.totalMs * planned / done / 1000L else 0L
+        val perFrame = if (done > 0) stop.partial.totalMs / done else 0L
+        fun mmss(seconds: Long) = "%d:%02d".format(seconds / 60, seconds % 60)
+        return "СКАСОВАНО на кадрі $done з $planned ($percent %) · минуло ${mmss(elapsedS)}\n" +
+            "$perFrame мс на кадр · уся пісня зайняла б ≈ ${mmss(wholeS)} (без звуку й збирання)"
     }
 
     /** Export report with «Копіювати текст»; it comes back after a rotation (V49). */

@@ -1007,6 +1007,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         super.onStart()
         // V126: back from «Утиліти» — read the saved layouts again (size, place, прозорість, видимість).
         pulseDeckMainSkinView?.reloadLayoutProfiles()
+        // V141: back from «Окантовка-еквалайзер» — take its settings.
+        applyCoverStory()
         // V96: a permission given in Android settings works as soon as the app is back.
         controller.setAnalysisPermissionGranted(hasAnalysisPermission())
         if (projectMFocusOverlay != null) scheduleProjectMFocusAuto()
@@ -5049,7 +5051,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun storyLanguage(): com.saney.musicvisualizer.ui.StoryLanguage =
         com.saney.musicvisualizer.ui.StoryLanguage.fromCode(layerPrefs().getString(KEY_STORY_LANGUAGE, null))
 
+    /** V141: «Окантовка-еквалайзер» (saved by PulseDeckEdgeEqActivity in the same file). */
+    private fun edgeEqSettings(): com.saney.musicvisualizer.ui.EdgeEqSettings =
+        com.saney.musicvisualizer.ui.EdgeEqSettings.decode(layerPrefs().getString(PulseDeckEdgeEqActivity.KEY, null))
+
     private fun applyCoverBoxSettings(view: PulseDeckMainSkinView) {
+        view.edgeEq = edgeEqSettings()
         view.coverMode = coverBoxMode()
         view.coverGlowBand = coverGlowBand()
         view.coverStory = com.saney.musicvisualizer.ui.StoryText.compose(currentStoryTags, storyLanguage())
@@ -5075,6 +5082,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 listOf(
                     "Неонове світіння: " + coverGlowBand().label + " ›",
                     "Мова історії: " + storyLanguage().label + " ›",
+                    "Окантовка-еквалайзер: " + (if (edgeEqSettings().on) "увімкнено" else "вимкнено") + " ›",
                     "Вимкнути рамку зовсім",
                 )
         PulseDeckDialogs.showSingleChoice(
@@ -5090,6 +5098,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
                 index == modes.size -> showCoverGlowMenu()
                 index == modes.size + 1 -> askStoryLanguage(title = "Мова історії") { applyCoverStory() }
+                index == modes.size + 2 -> startActivity(Intent(this, PulseDeckEdgeEqActivity::class.java))
                 else -> {
                     setLayerObjectVisible(
                         PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
@@ -8789,6 +8798,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             hudCoverGlowBand = coverGlowBand(),
             hudCoverRating = controller.currentTrackUri()?.let { LocalMusicUserState(this).rating(it.toString()) } ?: 0,
             hudFileInfo = fileInfoLines(currentSourceInfo),
+            hudEdgeEq = edgeEqSettings(),
             faricReactiveVisible =
                 belowHeroVisible &&
                 visualizerVisible &&

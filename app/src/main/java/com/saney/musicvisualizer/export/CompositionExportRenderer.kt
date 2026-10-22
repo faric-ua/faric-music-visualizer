@@ -62,6 +62,8 @@ data class CompositionExportConfig(
     /** V138: 👍 / 👎 of the song and the two «Інфо про файл» lines. */
     val hudCoverRating: Int = 0,
     val hudFileInfo: List<String> = emptyList(),
+    /** V141: the equalizer round the frame. */
+    val hudEdgeEq: com.saney.musicvisualizer.ui.EdgeEqSettings = com.saney.musicvisualizer.ui.EdgeEqSettings.DEFAULT,
 )
 
 data class CompositionStageTiming(
@@ -202,6 +204,7 @@ class CompositionExportRenderer(
                 view.coverGlowBand = config.hudCoverGlowBand
                 view.coverRating = config.hudCoverRating
                 view.fileInfoLines = config.hudFileInfo
+                view.edgeEq = config.hudEdgeEq
                 view.setChromeVisibility(
                     transportVisible = true,
                     quickActionsVisible = true,

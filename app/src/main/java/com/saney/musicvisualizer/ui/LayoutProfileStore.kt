@@ -60,7 +60,7 @@ class LayoutProfileStore(context: Context) {
         val id = now.toString()
         val prefix = "${profile.name}|$id"
         snaps.edit()
-            .putString("$prefix|name", name.trim().ifBlank { "Без назви" }.take(60))
+            .putString("$prefix|name", SnapshotName.clean(name))
             .putLong("$prefix|at", now)
             .putString("$prefix|data", LayoutProfileCodec.encode(adjusts))
             .apply()

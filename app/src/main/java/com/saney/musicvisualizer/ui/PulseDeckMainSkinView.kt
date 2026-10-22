@@ -342,15 +342,32 @@ class PulseDeckMainSkinView(
 
     /**
      * V114: the song's embedded picture for the frame at the top («Обкладинка вгорі»); null = none.
-     * [coverFallback] — what the frame shows without a picture: [COVER_FALLBACK_HIDE] or
-     * [COVER_FALLBACK_PLACEHOLDER].
+     * V135: [coverMode] decides what the frame shows — the picture, the song's story or words as
+     * slow credits ([coverStory], [coverLyrics]), or nothing (see [CoverBoxContent]).
      */
     var coverArt: Bitmap? = null
         set(value) {
             field = value
             invalidate()
         }
-    var coverFallback: Int = COVER_FALLBACK_HIDE
+    var coverMode: CoverBoxMode = CoverBoxMode.AUTO
+        set(value) {
+            field = value
+            invalidate()
+        }
+    var coverStory: String? = null
+        set(value) {
+            field = value
+            invalidate()
+        }
+    var coverLyrics: String? = null
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    /** V135: neon light from under the frame, pulsing with this part of the music. */
+    var coverGlowBand: CoverGlowBand = CoverGlowBand.BASS
         set(value) {
             field = value
             invalidate()
@@ -363,18 +380,31 @@ class PulseDeckMainSkinView(
     /** V127: the cover's see-through (0–255), set by withGroup — the cover needs no extra layer. */
     private var coverAlpha = 255
     private val coverFramePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
-    private val coverClip = android.graphics.Path()
+    private val coverGlowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+    private val coverGlowRect = RectF()
+    private val coverTextPaint = android.text.TextPaint(Paint.ANTI_ALIAS_FLAG)
+    private var coverLayout: android.text.StaticLayout? = null
+    private var coverLayoutKey: String? = null
 
-    /** V114: frame size and place — a square between the header and the hero, centred. */
+    /** The light level the neon follows, smoothed so it breathes instead of flickering. */
+    private var coverGlowLevel = 0f
+
+    /**
+     * V114: frame size and place — a square between the header and the hero, centred.
+     * V135: with text (story / words) the frame is a wide panel from the same top line, so the
+     * credits can be read.
+     */
     private fun coverBoxRect(
         w: Float,
         h: Float,
+        wide: Boolean = false,
     ): RectF {
         val side = w * 0.2f
         val offset = editorOffsets[COVER_BOX_ID] ?: (0f to 0f)
-        val left = (w - side) / 2f + offset.first * w
+        val width = if (wide) w * 0.8f else side
+        val left = (w - width) / 2f + offset.first * w
         val top = h * 0.137f + offset.second * h
-        return RectF(left, top, left + side, top + side)
+        return RectF(left, top, left + width, top + side)
     }
 
     private fun drawCoverBox(
@@ -383,55 +413,151 @@ class PulseDeckMainSkinView(
         h: Float,
     ) {
         if (!isObjectVisible(COVER_BOX_ID)) return
-        val rect = coverBoxRect(w, h)
+        val art = coverArt?.takeIf { !it.isRecycled }
+        val choice = CoverBoxContent.resolve(coverMode, art != null, coverStory, coverLyrics)
+        val rect = coverBoxRect(w, h, wide = choice.show == CoverBoxShow.TEXT)
         resolvedRects[COVER_BOX_ID] = RectF(rect)
         // The tap zone stays even when the frame is hidden for a song without a picture —
         // a tap opens the menu «що тут показувати» (faric 18:39).
         hitTargets.add(HitTarget(action = COVER_BOX_ID, z = 900, rect = RectF(rect)))
-        val art = coverArt?.takeIf { !it.isRecycled }
-        if (art == null && coverFallback == COVER_FALLBACK_HIDE) return
-        val radius = rect.width() * 0.09f
+        if (choice.show == CoverBoxShow.HIDDEN) return
+        val radius = minOf(rect.width(), rect.height()) * 0.09f
         // V127 (замір 22.10 02:31: HUD у відео 10 → 34 мс/кадр з великою прозорою обкладинкою): no
         // clipPath and no extra layer — the picture is painted through a shader into a rounded
         // rectangle, the see-through comes from the paint's own alpha.
         val alpha = coverAlpha
-        if (art != null) {
-            // Centre-crop: the picture keeps its proportions, what does not fit is cut off.
-            val shader =
-                coverShader?.takeIf { coverShaderBitmap === art }
-                    ?: android.graphics.BitmapShader(art, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also {
-                        coverShader = it
-                        coverShaderBitmap = art
-                    }
-            val scale = max(rect.width() / art.width, rect.height() / art.height)
-            coverShaderMatrix.reset()
-            coverShaderMatrix.setScale(scale, scale)
-            coverShaderMatrix.postTranslate(
-                rect.centerX() - art.width * scale / 2f,
-                rect.centerY() - art.height * scale / 2f,
-            )
-            shader.setLocalMatrix(coverShaderMatrix)
-            coverPaint.shader = shader
-            coverPaint.color = Color.WHITE
-            coverPaint.alpha = alpha
-            canvas.drawRoundRect(rect, radius, radius, coverPaint)
-            coverPaint.shader = null
-        } else {
-            coverPaint.shader = null
-            coverPaint.color = Color.rgb(10, 18, 26)
-            coverPaint.alpha = alpha
-            canvas.drawRoundRect(rect, radius, radius, coverPaint)
-            textPaint.textAlign = Paint.Align.CENTER
-            textPaint.typeface = Typeface.DEFAULT
-            textPaint.textSize = rect.height() * 0.5f
-            textPaint.color = Color.rgb(64, 200, 255)
-            textPaint.alpha = alpha
-            canvas.drawText("♪", rect.centerX(), rect.centerY() + rect.height() * 0.18f, textPaint)
-            textPaint.alpha = 255
+        drawCoverGlow(canvas, rect, radius, alpha)
+        when (choice.show) {
+            CoverBoxShow.PICTURE -> {
+                val picture = art ?: return
+                // Centre-crop: the picture keeps its proportions, what does not fit is cut off.
+                val shader =
+                    coverShader?.takeIf { coverShaderBitmap === picture }
+                        ?: android.graphics.BitmapShader(picture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also {
+                            coverShader = it
+                            coverShaderBitmap = picture
+                        }
+                val scale = max(rect.width() / picture.width, rect.height() / picture.height)
+                coverShaderMatrix.reset()
+                coverShaderMatrix.setScale(scale, scale)
+                coverShaderMatrix.postTranslate(
+                    rect.centerX() - picture.width * scale / 2f,
+                    rect.centerY() - picture.height * scale / 2f,
+                )
+                shader.setLocalMatrix(coverShaderMatrix)
+                coverPaint.shader = shader
+                coverPaint.color = Color.WHITE
+                coverPaint.alpha = alpha
+                canvas.drawRoundRect(rect, radius, radius, coverPaint)
+                coverPaint.shader = null
+            }
+            CoverBoxShow.TEXT -> drawCoverText(canvas, rect, radius, w, choice.text.orEmpty(), alpha)
+            else -> {
+                coverPaint.shader = null
+                coverPaint.color = Color.rgb(10, 18, 26)
+                coverPaint.alpha = alpha
+                canvas.drawRoundRect(rect, radius, radius, coverPaint)
+                textPaint.textAlign = Paint.Align.CENTER
+                textPaint.typeface = Typeface.DEFAULT
+                textPaint.textSize = rect.height() * 0.5f
+                textPaint.color = Color.rgb(64, 200, 255)
+                textPaint.alpha = alpha
+                canvas.drawText("♪", rect.centerX(), rect.centerY() + rect.height() * 0.18f, textPaint)
+                textPaint.alpha = 255
+            }
         }
-        coverFramePaint.strokeWidth = resources.displayMetrics.density * 2f
-        coverFramePaint.color = Color.argb(220 * alpha / 255, 64, 200, 255)
+        // V135 (faric 22.10 17:17: «края дуже товсті… границі описані жорстоко»): a thin, quiet edge;
+        // the light comes from the neon under the tile.
+        coverFramePaint.strokeWidth = resources.displayMetrics.density * 0.8f
+        coverFramePaint.color = Color.argb((70 + 120 * coverGlowLevel).toInt() * alpha / 255, 120, 220, 255)
         canvas.drawRoundRect(rect, radius, radius, coverFramePaint)
+    }
+
+    /**
+     * V135 (faric 22.10 17:17–17:18: «як неонове свічення з-під плитки… реагувати на музику»):
+     * soft light around the tile — a few wide, faint strokes, brighter and wider with the chosen part
+     * of the music. Plain strokes only (no blur, no layer) — cheap enough for every video frame.
+     */
+    private fun drawCoverGlow(
+        canvas: Canvas,
+        rect: RectF,
+        radius: Float,
+        alpha: Int,
+    ) {
+        val raw =
+            when (coverGlowBand) {
+                CoverGlowBand.OFF -> 0f
+                CoverGlowBand.BASS -> bass
+                CoverGlowBand.MID -> mid
+                CoverGlowBand.HIGH -> high
+                CoverGlowBand.BEAT -> beat
+            }.coerceIn(0f, 1f)
+        // Quick up, slower down: a hit flashes, then the light fades out like a neon tube.
+        coverGlowLevel = if (raw > coverGlowLevel) coverGlowLevel + (raw - coverGlowLevel) * 0.6f else coverGlowLevel * 0.86f + raw * 0.14f
+        if (coverGlowBand == CoverGlowBand.OFF) {
+            coverGlowLevel = 0f
+            return
+        }
+        val level = coverGlowLevel
+        val density = resources.displayMetrics.density
+        val rings = 4
+        for (i in rings downTo 1) {
+            val spread = density * (2f + i * (2.2f + 3.5f * level))
+            coverGlowRect.set(rect)
+            coverGlowRect.inset(-spread / 2f, -spread / 2f)
+            coverGlowPaint.strokeWidth = spread
+            val a = (alpha * (0.05f + 0.16f * level) * (rings + 1 - i) / rings).toInt().coerceIn(0, 255)
+            coverGlowPaint.color = Color.argb(a, 40 + (140 * level).toInt(), 190, 255)
+            canvas.drawRoundRect(coverGlowRect, radius + spread / 2f, radius + spread / 2f, coverGlowPaint)
+        }
+    }
+
+    /**
+     * V135: the story or the song's words as slow credits — the text enters from the bottom of the
+     * panel and leaves over its top exactly when the song ends (same on screen and in the MP4).
+     */
+    private fun drawCoverText(
+        canvas: Canvas,
+        rect: RectF,
+        radius: Float,
+        w: Float,
+        text: String,
+        alpha: Int,
+    ) {
+        coverPaint.shader = null
+        coverPaint.color = Color.rgb(8, 14, 20)
+        coverPaint.alpha = (alpha * 0.78f).toInt()
+        canvas.drawRoundRect(rect, radius, radius, coverPaint)
+        val padX = rect.width() * 0.05f
+        val padY = rect.height() * 0.08f
+        val innerWidth = (rect.width() - padX * 2f).toInt().coerceAtLeast(1)
+        val innerHeight = rect.height() - padY * 2f
+        val size = w * 0.032f
+        val key = text.hashCode().toString() + "|" + innerWidth + "|" + size
+        val layout =
+            coverLayout?.takeIf { coverLayoutKey == key }
+                ?: run {
+                    coverTextPaint.textSize = size
+                    coverTextPaint.typeface = Typeface.DEFAULT
+                    android.text.StaticLayout.Builder
+                        .obtain(text, 0, text.length, coverTextPaint, innerWidth)
+                        .setAlignment(android.text.Layout.Alignment.ALIGN_CENTER)
+                        .setLineSpacing(0f, 1.18f)
+                        .setIncludePad(false)
+                        .build()
+                        .also {
+                            coverLayout = it
+                            coverLayoutKey = key
+                        }
+                }
+        coverTextPaint.color = Color.rgb(226, 240, 250)
+        coverTextPaint.alpha = alpha
+        val top = rect.top + padY + CoverBoxContent.crawlTop(progressFraction, innerHeight, layout.height.toFloat())
+        val save = canvas.save()
+        canvas.clipRect(rect.left + padX, rect.top + padY, rect.right - padX, rect.bottom - padY)
+        canvas.translate(rect.left + padX, top)
+        layout.draw(canvas)
+        canvas.restoreToCount(save)
     }
 
     private var pressedAction: String? = null
@@ -3186,8 +3312,6 @@ class PulseDeckMainSkinView(
         const val NEAR_TAP_DP = 14f
 
         const val COVER_BOX_ID = "cover_box"
-        const val COVER_FALLBACK_HIDE = 0
-        const val COVER_FALLBACK_PLACEHOLDER = 1
 
         private const val SKIN_ROOT =
             "pulsedeck_hud"

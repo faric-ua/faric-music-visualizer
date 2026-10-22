@@ -2467,7 +2467,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     }
                 // V114: the song's cover in the frame at the top.
                 view.coverArt = currentCoverArt
-                view.coverFallback = coverBoxFallback()
+                applyCoverBoxSettings(view)
                 view.setInteractionListener {
                     scheduleNowControlsAutoHide()
                 }
@@ -5013,29 +5013,72 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         updateProjectMFocusStatus()
     }
 
-    /** V114: what the cover frame shows when the song has no picture (faric 18:39: «тикаєш — менюшечка»). */
-    private fun coverBoxFallback(): Int =
-        layerPrefs().getInt(KEY_COVER_BOX_FALLBACK, PulseDeckMainSkinView.COVER_FALLBACK_HIDE)
+    /**
+     * V114 / V135: what the frame at the top shows — «Авто» (картинка → історія → слова → сховати) or a
+     * fixed choice. The old V114 setting («сховати» / «заглушка») becomes «Лише картинка …».
+     */
+    private fun coverBoxMode(): com.saney.musicvisualizer.ui.CoverBoxMode {
+        val prefs = layerPrefs()
+        if (prefs.contains(KEY_COVER_BOX_MODE)) {
+            return com.saney.musicvisualizer.ui.CoverBoxMode.fromIndex(prefs.getInt(KEY_COVER_BOX_MODE, 0))
+        }
+        return if (prefs.contains(KEY_COVER_BOX_FALLBACK)) {
+            com.saney.musicvisualizer.ui.CoverBoxMode.fromOldFallback(prefs.getInt(KEY_COVER_BOX_FALLBACK, 0))
+        } else {
+            com.saney.musicvisualizer.ui.CoverBoxMode.AUTO
+        }
+    }
+
+    private fun coverGlowBand(): com.saney.musicvisualizer.ui.CoverGlowBand =
+        com.saney.musicvisualizer.ui.CoverGlowBand.fromIndex(
+            layerPrefs().getInt(KEY_COVER_GLOW_BAND, com.saney.musicvisualizer.ui.CoverGlowBand.BASS.ordinal),
+        )
+
+    /** V135: the story's language — the last one chosen before an export (also used on screen). */
+    private fun storyLanguage(): com.saney.musicvisualizer.ui.StoryLanguage =
+        com.saney.musicvisualizer.ui.StoryLanguage.fromCode(layerPrefs().getString(KEY_STORY_LANGUAGE, null))
+
+    private fun applyCoverBoxSettings(view: PulseDeckMainSkinView) {
+        view.coverMode = coverBoxMode()
+        view.coverGlowBand = coverGlowBand()
+        view.coverStory = com.saney.musicvisualizer.ui.StoryText.compose(currentStoryTags, storyLanguage())
+        view.coverLyrics = currentStoryTags.lyrics
+    }
+
+    private fun applyCoverStory() {
+        pulseDeckMainSkinView?.let { applyCoverBoxSettings(it) }
+    }
 
     private fun showCoverBoxMenu() {
         val hasCover = currentCoverArt != null
-        val options =
-            listOf(
-                "Немає картинки — сховати рамку",
-                "Немає картинки — заглушка (♪)",
-                "Вимкнути рамку зовсім",
-            )
+        val modes = com.saney.musicvisualizer.ui.CoverBoxMode.entries
+        val story = currentStoryTags
+        val songNote =
+            buildList {
+                add(if (hasCover) "є картинка" else "нема картинки")
+                add(if (story.hasStory) "є історія" else "нема історії")
+                add(if (!story.lyrics.isNullOrBlank()) "є слова" else "нема слів")
+            }.joinToString(" · ")
+        val labels =
+            modes.map { it.label } +
+                listOf(
+                    "Неонове світіння: " + coverGlowBand().label + " ›",
+                    "Мова історії: " + storyLanguage().label + " ›",
+                    "Вимкнути рамку зовсім",
+                )
         PulseDeckDialogs.showSingleChoice(
             context = this,
-            title = if (hasCover) "Обкладинка вгорі" else "Обкладинка вгорі · у пісні нема картинки",
-            labels = options,
-            checkedIndex = coverBoxFallback(),
+            title = "Рамка вгорі · у пісні: $songNote",
+            labels = labels,
+            checkedIndex = coverBoxMode().ordinal,
         ) { index ->
-            when (index) {
-                0, 1 -> {
-                    layerPrefs().edit().putInt(KEY_COVER_BOX_FALLBACK, index).apply()
-                    pulseDeckMainSkinView?.coverFallback = index
+            when {
+                index < modes.size -> {
+                    layerPrefs().edit().putInt(KEY_COVER_BOX_MODE, index).apply()
+                    applyCoverStory()
                 }
+                index == modes.size -> showCoverGlowMenu()
+                index == modes.size + 1 -> askStoryLanguage(title = "Мова історії") { applyCoverStory() }
                 else -> {
                     setLayerObjectVisible(
                         PulseDeckLayerStack.Layer.PULSEDECK_LOCKED,
@@ -5046,6 +5089,59 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     toast("Рамку вимкнено. Увімкнути — «Шари та об'єкти» → «Обкладинка вгорі»")
                 }
             }
+        }
+    }
+
+    /** V135 (faric 22.10 17:17: «може, навіть їх настраювати на певні частоти»). */
+    private fun showCoverGlowMenu() {
+        val bands = com.saney.musicvisualizer.ui.CoverGlowBand.entries
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = "Неонове світіння з-під рамки — під що світиться",
+            labels = bands.map { it.label },
+            checkedIndex = coverGlowBand().ordinal,
+        ) { index ->
+            layerPrefs().edit().putInt(KEY_COVER_GLOW_BAND, index).apply()
+            applyCoverStory()
+        }
+    }
+
+    private fun askStoryLanguage(
+        title: String,
+        onChosen: () -> Unit,
+    ) {
+        val languages = com.saney.musicvisualizer.ui.StoryLanguage.entries
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = title,
+            labels = languages.map { it.label },
+            checkedIndex = storyLanguage().ordinal,
+        ) { index ->
+            layerPrefs().edit().putString(KEY_STORY_LANGUAGE, languages[index].code).apply()
+            onChosen()
+        }
+    }
+
+    /**
+     * V135 (faric 22.10 17:16: «перед створенням відео спитати один раз… якщо папку — один раз на всю
+     * папку»): the story's language is asked once per export run, only when the frame can show a story
+     * (one song: only when the song has it in both languages).
+     */
+    private fun withStoryLanguage(
+        batch: Boolean,
+        then: () -> Unit,
+    ) {
+        val frameShowsStory =
+            layerObjectVisible(PulseDeckLayerStack.Layer.PULSEDECK_LOCKED, PulseDeckMainSkinView.COVER_BOX_ID) &&
+                coverBoxMode().usesStory
+        val ask = frameShowsStory && (batch || currentStoryTags.hasBothLanguages)
+        if (!ask) {
+            then()
+            return
+        }
+        askStoryLanguage(title = if (batch) "Мова історій для всієї папки" else "Мова історії у відео") {
+            applyCoverStory()
+            then()
         }
     }
 
@@ -8675,7 +8771,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             coverArt =
                 coverArt,
             hudCoverArt = currentCoverArt,
-            hudCoverFallback = coverBoxFallback(),
+            hudCoverMode = coverBoxMode(),
+            hudCoverStory = com.saney.musicvisualizer.ui.StoryText.compose(currentStoryTags, storyLanguage()),
+            hudCoverLyrics = currentStoryTags.lyrics,
+            hudCoverGlowBand = coverGlowBand(),
             faricReactiveVisible =
                 belowHeroVisible &&
                 visualizerVisible &&
@@ -9011,7 +9110,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             return
         }
         // V3: the export projectM is made now (and given back after), not on opening Export Lab.
-        withExportProjectM { startCompositionVideoExport(fullSong) }
+        withStoryLanguage(batch = false) { withExportProjectM { startCompositionVideoExport(fullSong) } }
     }
 
     private fun startCompositionVideoExport(
@@ -10105,7 +10204,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     positiveLabel = "Почати тест",
                     negativeLabel = "Скасувати",
                 ) {
-                    withExportProjectM { runBatchExport(folderName, songs, testMode = true) }
+                    withStoryLanguage(batch = true) { withExportProjectM { runBatchExport(folderName, songs, testMode = true) } }
                 }
             rememberBatchConfirm(confirm, testMode = true)
             return
@@ -10134,7 +10233,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 positiveLabel = "Почати",
                 negativeLabel = "Скасувати",
             ) {
-                withExportProjectM { runBatchExport(folderName, songs) }
+                withStoryLanguage(batch = true) { withExportProjectM { runBatchExport(folderName, songs) } }
             }
         rememberBatchConfirm(confirm, testMode = false)
     }
@@ -10356,7 +10455,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 run {
                                     // V91 / V114: every song of the batch with its own cover (theme and the frame at the top).
                                     val songCover = com.saney.musicvisualizer.ui.CoverArtLoader.load(this, song.uri)
+                                    // V135: every song of the batch with its own story / words (language — asked once at the start).
+                                    val songStory = com.saney.musicvisualizer.export.SongStoryReader.read(this, song.uri)
                                     compositionConfig.copy(
+                                        hudCoverStory = com.saney.musicvisualizer.ui.StoryText.compose(songStory, storyLanguage()),
+                                        hudCoverLyrics = songStory.lyrics,
                                         coverArt =
                                             songCover.takeIf {
                                                 compositionConfig.standaloneTheme == PlaybackThemeId.COVER_ART
@@ -11438,6 +11541,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
      * artist in the player — the MP3 tag has it. The tag is read once per song next to the cover.
      */
     private var tagArtistUri: String? = null
+
+    /** V135: the playing song's story and words, read from its tags. */
+    private var currentStoryTags = com.saney.musicvisualizer.ui.SongStoryTags.EMPTY
     private var tagArtist: String? = null
 
     private fun displayArtist(snapshot: PlaybackSnapshot): String? =
@@ -11453,9 +11559,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         pulseDeckMainSkinView?.coverArt = null
         tagArtistUri = null
         tagArtist = null
+        currentStoryTags = com.saney.musicvisualizer.ui.SongStoryTags.EMPTY
+        applyCoverStory()
         if (uri == null) return
         thread(name = "cover-art") {
             val bitmap = com.saney.musicvisualizer.ui.CoverArtLoader.load(this, Uri.parse(uri))
+            val story = com.saney.musicvisualizer.export.SongStoryReader.read(this, Uri.parse(uri))
             val artist =
                 runCatching {
                     com.saney.musicvisualizer.export.SongTags.read(this, Uri.parse(uri), null, null).artist
@@ -11467,6 +11576,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     pulseDeckMainSkinView?.coverArt = bitmap
                     tagArtistUri = uri
                     tagArtist = artist
+                    currentStoryTags = story
+                    applyCoverStory()
                     if (latestSnapshot.trackArtist.isNullOrBlank() || latestSnapshot.trackArtist == "null") {
                         // V111: into the player too (shade); no tag → the canonical «Невідомий виконавець».
                         controller.fillMissingArtist(Uri.parse(uri), artist ?: UNKNOWN_ARTIST)
@@ -12453,6 +12564,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val EXPORT_PREVIEW_HEIGHT_DP = 200
         private const val UNKNOWN_ARTIST = "Невідомий виконавець"
         private const val KEY_COVER_BOX_FALLBACK = "pulsedeck.cover_box_fallback"
+        private const val KEY_COVER_BOX_MODE = "pulsedeck.cover_box_mode"
+        private const val KEY_COVER_GLOW_BAND = "pulsedeck.cover_glow_band"
+        private const val KEY_STORY_LANGUAGE = "pulsedeck.story_language"
         private const val KEY_EXPORT_PAUSE_MUSIC = "pause_music_during_export"
         private const val NOW_CONTROLS_AUTO_HIDE_MS =
             6000L

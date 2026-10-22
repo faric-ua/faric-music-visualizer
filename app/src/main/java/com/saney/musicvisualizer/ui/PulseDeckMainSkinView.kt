@@ -378,6 +378,31 @@ class PulseDeckMainSkinView(
             invalidate()
         }
 
+    /** V141: the equalizer round the frame (bars / dots / wave), set in «Окантовка-еквалайзер». */
+    var edgeEq: EdgeEqSettings
+        get() = edgeRenderer.settings
+        set(value) {
+            edgeRenderer.settings = value
+            invalidate()
+        }
+    private val edgeRenderer = EdgeEqRenderer()
+    private var edgeSpectrum = FloatArray(0)
+
+    /** The spectrum for the edge; without one (no analyser) — made from bass / middle / highs. */
+    private fun spectrumForEdge(): FloatArray {
+        if (spectrum.size >= 8) return spectrum
+        if (edgeSpectrum.size != 24) edgeSpectrum = FloatArray(24)
+        for (i in edgeSpectrum.indices) {
+            val k = i / 23f
+            edgeSpectrum[i] =
+                when {
+                    k < 0.5f -> bass + (mid - bass) * (k / 0.5f)
+                    else -> mid + (high - mid) * ((k - 0.5f) / 0.5f)
+                }
+        }
+        return edgeSpectrum
+    }
+
     /** V135: neon light from under the frame, pulsing with this part of the music. */
     var coverGlowBand: CoverGlowBand = CoverGlowBand.BASS
         set(value) {
@@ -458,6 +483,8 @@ class PulseDeckMainSkinView(
         val alpha = coverAlpha
         val radius = minOf(panel.width(), panel.height()) * if (choice.show == CoverBoxShow.TEXT) 0.06f else 0.09f
         drawCoverGlow(canvas, panel, radius, alpha)
+        // V141: the equalizer round the tile (under the tile — it grows outward from the edge).
+        edgeRenderer.draw(canvas, panel, radius, spectrumForEdge(), marqueeClockMs ?: SystemClock.uptimeMillis(), alpha, w)
         when (choice.show) {
             CoverBoxShow.PICTURE -> {
                 val picture = art
@@ -686,7 +713,15 @@ class PulseDeckMainSkinView(
         val padX = w * 0.04f
         val padY = w * 0.03f
         val innerWidth = (panel.width() - padX * 2f).toInt().coerceAtLeast(1)
-        val innerHeight = panel.height() - padY * 2f
+        // V141 (скрін faric 23.10 00:24: 👍 👎 ⋮ лежали поверх нижніх рядків): with the buttons on, the
+        // text ends above them.
+        val padBottom =
+            if (isObjectVisible(COVER_MENU_ID)) {
+                (w * 0.085f).coerceAtMost(minOf(panel.width(), panel.height()) * 0.3f) * 1.36f
+            } else {
+                padY
+            }
+        val innerHeight = (panel.height() - padY - padBottom).coerceAtLeast(1f)
         // The song title's size (w × 0.031, with its own «Розкладка» size) and «a couple of points» more.
         val size = w * 0.031f * 1.15f * (activeLayout["track"]?.scale ?: 1f).coerceIn(0.8f, 1.6f)
         val key = text.hashCode().toString() + "|" + choice.lyrics + "|" + innerWidth + "|" + size
@@ -700,7 +735,7 @@ class PulseDeckMainSkinView(
         coverTextPaint.alpha = alpha
         val top = panel.top + padY + CoverBoxContent.crawlTop(crawlFraction(), innerHeight, layout.height.toFloat())
         val clip = canvas.save()
-        canvas.clipRect(panel.left + padX, panel.top + padY, panel.right - padX, panel.bottom - padY)
+        canvas.clipRect(panel.left + padX, panel.top + padY, panel.right - padX, panel.bottom - padBottom)
         canvas.translate(panel.left + padX, top)
         layout.draw(canvas)
         canvas.restoreToCount(clip)

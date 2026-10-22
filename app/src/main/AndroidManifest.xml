@@ -33,6 +33,10 @@
         <activity
             android:name=".PulseDeckLayoutEditorActivity"
             android:exported="false" />
+        <!-- V141: the equalizer round the frame at the top. -->
+        <activity
+            android:name=".PulseDeckEdgeEqActivity"
+            android:exported="false" />
         <activity
             android:name=".projectm.ProjectMActivity"
             android:exported="false" />

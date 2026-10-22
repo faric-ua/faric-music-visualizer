@@ -7,6 +7,7 @@ import android.widget.ScrollView
 import android.widget.SeekBar
 import android.widget.TextView
 import androidx.activity.ComponentActivity
+import com.saney.musicvisualizer.ui.CoverTextSettings
 import com.saney.musicvisualizer.ui.EdgeEqPreviewView
 import com.saney.musicvisualizer.ui.EdgeEqSettings
 import com.saney.musicvisualizer.ui.EdgeLayer
@@ -23,12 +24,14 @@ import com.saney.musicvisualizer.ui.UtilityUi.dp
  */
 class PulseDeckEdgeEqActivity : ComponentActivity() {
     private var settings = EdgeEqSettings.DEFAULT
+    private var text = CoverTextSettings()
     private lateinit var preview: EdgeEqPreviewView
     private lateinit var content: LinearLayout
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         settings = load()
+        text = CoverTextSettings.decode(getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY_TEXT, null))
         content =
             LinearLayout(this).apply {
                 orientation = LinearLayout.VERTICAL
@@ -53,7 +56,7 @@ class PulseDeckEdgeEqActivity : ComponentActivity() {
                 gravity = Gravity.CENTER_VERTICAL
             }
         header.addView(UtilityUi.button(this, "‹") { finish() }.apply { contentDescription = "Назад" }, LinearLayout.LayoutParams(dp(48), dp(48)))
-        header.addView(UtilityUi.text(this, "Окантовка-еквалайзер", 22f, bold = true), LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(12) })
+        header.addView(UtilityUi.text(this, "Текст і окантовка", 22f, bold = true), LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(12) })
         content.addView(header)
         content.addView(
             UtilityUi.text(
@@ -64,6 +67,17 @@ class PulseDeckEdgeEqActivity : ComponentActivity() {
             ),
             block(8),
         )
+        // V148 (faric 23.10 02:54: «текст не дуже видно… поставити йому окремо прозорість»).
+        content.addView(UtilityUi.text(this, "Текст у рамці (історія, слова)", 17f, bold = true), block(14))
+        content.addView(
+            UtilityUi.text(this, "Свій, окремо від прозорості плитки в «Розкладці».", 12f, UtilityUi.MUTED),
+            block(2),
+        )
+        slider({ v -> "Видимість тексту: ${v + 10} %" }, 90, text.opacity - 10) { v -> changeText(text.copy(opacity = v + 10)) }
+        slider({ v -> "Затемнення під текстом: $v %" }, 90, text.veil) { v -> changeText(text.copy(veil = v)) }
+        slider({ v -> "Розмір тексту: ${v + 70} %" }, 90, text.size - 70) { v -> changeText(text.copy(size = v + 70)) }
+        content.addView(UtilityUi.text(this, "Окантовка-еквалайзер", 17f, bold = true), block(22))
+
         (preview.parent as? android.view.ViewGroup)?.removeView(preview)
         preview.renderer.settings = settings
         content.addView(preview, LinearLayout.LayoutParams(-1, dp(300)).apply { topMargin = dp(10) })
@@ -86,11 +100,14 @@ class PulseDeckEdgeEqActivity : ComponentActivity() {
             UtilityUi.button(this, "Скинути все до стандартних", UtilityUi.Kind.WARNING) {
                 PulseDeckDialogs.showConfirm(
                     context = this,
-                    title = "Скинути окантовку?",
-                    message = "Усі кольори, щільність, товщина, реакція й прокручування стануть стандартними.",
+                    title = "Скинути текст і окантовку?",
+                    message = "Видимість, затемнення й розмір тексту, а також кольори, щільність, товщина, реакція й прокручування окантовки стануть стандартними.",
                     positiveLabel = "Так, скинути",
                     destructive = true,
-                ) { change(EdgeEqSettings.DEFAULT) }
+                ) {
+                    changeText(CoverTextSettings())
+                    change(EdgeEqSettings.DEFAULT)
+                }
             },
             block(24),
         )
@@ -205,6 +222,11 @@ class PulseDeckEdgeEqActivity : ComponentActivity() {
         }
     }
 
+    private fun changeText(next: CoverTextSettings) {
+        text = next
+        getSharedPreferences(PREFS, MODE_PRIVATE).edit().putString(KEY_TEXT, next.encode()).apply()
+    }
+
     private fun load(): EdgeEqSettings = EdgeEqSettings.decode(getSharedPreferences(PREFS, MODE_PRIVATE).getString(KEY, null))
 
     private fun block(topDp: Int) = LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(topDp) }
@@ -213,5 +235,6 @@ class PulseDeckEdgeEqActivity : ComponentActivity() {
         /** Same file as MainActivity.layerPrefs(). */
         const val PREFS = "pulsedeck_layers"
         const val KEY = "pulsedeck.edge_eq"
+        const val KEY_TEXT = "pulsedeck.cover_text"
     }
 }

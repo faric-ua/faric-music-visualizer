@@ -5076,7 +5076,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
+    /** V148: the text's own look, saved by «Текст і окантовка». */
+    private fun coverTextSettings(): com.saney.musicvisualizer.ui.CoverTextSettings =
+        com.saney.musicvisualizer.ui.CoverTextSettings.decode(layerPrefs().getString(PulseDeckEdgeEqActivity.KEY_TEXT, null))
+
     private fun applyCoverBoxSettings(view: PulseDeckMainSkinView) {
+        view.coverText = coverTextSettings()
         view.edgeEq = edgeEqSettings()
         view.coverMix = coverMix()
         view.coverMode = coverBoxMode()
@@ -5111,7 +5116,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 listOf(
                     "Неонове світіння: " + coverGlowBand().label + " ›",
                     "Мова історії: " + storyLanguage().label + " ›",
-                    "Окантовка-еквалайзер: " + (if (edgeEqSettings().on) "увімкнено" else "вимкнено") + " ›",
+                    "Текст і окантовка (прозорість, розмір, еквалайзер) ›",
                     "Вимкнути рамку зовсім",
                 )
         PulseDeckDialogs.showSingleChoice(
@@ -8825,6 +8830,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             hudCoverArt = currentCoverArt,
             hudCoverMode = coverBoxMode(),
             hudCoverMix = coverMix(),
+            hudCoverText = coverTextSettings(),
             hudCoverStory = com.saney.musicvisualizer.ui.StoryText.compose(currentStoryTags, storyLanguage()),
             hudCoverLyrics = currentStoryTags.lyrics,
             hudCoverGlowBand = coverGlowBand(),

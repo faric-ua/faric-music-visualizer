@@ -369,6 +369,52 @@ object PulseDeckDialogs {
         )
     }
 
+    /**
+     * V142 (faric 23.10 01:09: «галочки поставити»): a list of ☑ / ☐ rows — tap toggles, «Зберегти»
+     * gives the ticks back. The canonical window (title · scroll · buttons always visible).
+     */
+    fun showMultiChoice(
+        context: Context,
+        title: String,
+        labels: List<String>,
+        checked: BooleanArray,
+        positiveLabel: String = "Зберегти",
+        negativeLabel: String = "Скасувати",
+        onSaved: (BooleanArray) -> Unit,
+    ): Dialog {
+        val state = checked.copyOf(labels.size)
+        val body = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
+        labels.forEachIndexed { index, labelText ->
+            fun text() = (if (state[index]) "☑  " else "☐  ") + labelText
+            lateinit var row: TextView
+            row =
+                actionButton(
+                    context = context,
+                    action = Action(label = text()) {},
+                ) {
+                    state[index] = !state[index]
+                    row.text = text()
+                }
+            body.addView(
+                row,
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    if (index > 0) topMargin = context.dp(8)
+                },
+            )
+        }
+        return show(
+            context = context,
+            title = title,
+            body = body,
+            actions =
+                listOf(
+                    Action(label = positiveLabel, accent = true) { onSaved(state.copyOf()) },
+                    Action(label = negativeLabel) {},
+                ),
+            dismissAfterAction = true,
+        )
+    }
+
     fun showTextInput(
         context: Context,
         title: String,

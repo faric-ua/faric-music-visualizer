@@ -378,6 +378,13 @@ class PulseDeckMainSkinView(
             invalidate()
         }
 
+    /** V142: the ticks of the «Разом» mode (picture / story / words). */
+    var coverMix: CoverMix = CoverMix()
+        set(value) {
+            field = value
+            invalidate()
+        }
+
     /** V141: the equalizer round the frame (bars / dots / wave), set in «Окантовка-еквалайзер». */
     var edgeEq: EdgeEqSettings
         get() = edgeRenderer.settings
@@ -455,7 +462,7 @@ class PulseDeckMainSkinView(
     ) {
         if (!isObjectVisible(COVER_BOX_ID)) return
         val art = coverArt?.takeIf { !it.isRecycled }
-        val choice = CoverBoxContent.resolve(coverMode, art != null, coverStory, coverLyrics)
+        val choice = CoverBoxContent.resolve(coverMode, art != null, coverStory, coverLyrics, coverMix)
         val square = coverBoxRect(w, h)
         resolvedRects[COVER_BOX_ID] = RectF(square)
         val group = matrixFor("cover", w, h)
@@ -486,33 +493,13 @@ class PulseDeckMainSkinView(
         // V141: the equalizer round the tile (under the tile — it grows outward from the edge).
         edgeRenderer.draw(canvas, panel, radius, spectrumForEdge(), marqueeClockMs ?: SystemClock.uptimeMillis(), alpha, w)
         when (choice.show) {
-            CoverBoxShow.PICTURE -> {
-                val picture = art
-                if (picture != null) {
-                    // Centre-crop: the picture keeps its proportions, what does not fit is cut off.
-                    // V127: no clipPath and no extra layer — a shader in a rounded rectangle.
-                    val shader =
-                        coverShader?.takeIf { coverShaderBitmap === picture }
-                            ?: android.graphics.BitmapShader(picture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also {
-                                coverShader = it
-                                coverShaderBitmap = picture
-                            }
-                    val scale = max(panel.width() / picture.width, panel.height() / picture.height)
-                    coverShaderMatrix.reset()
-                    coverShaderMatrix.setScale(scale, scale)
-                    coverShaderMatrix.postTranslate(
-                        panel.centerX() - picture.width * scale / 2f,
-                        panel.centerY() - picture.height * scale / 2f,
-                    )
-                    shader.setLocalMatrix(coverShaderMatrix)
-                    coverPaint.shader = shader
-                    coverPaint.color = Color.WHITE
-                    coverPaint.alpha = alpha
-                    canvas.drawRoundRect(panel, radius, radius, coverPaint)
-                    coverPaint.shader = null
-                }
+            CoverBoxShow.PICTURE -> art?.let { drawCoverPicture(canvas, panel, radius, it, alpha) }
+            CoverBoxShow.TEXT -> {
+                // V142: «Разом» — the picture underneath, the text going over it on a lighter veil.
+                val under = if (choice.pictureUnder) art else null
+                if (under != null) drawCoverPicture(canvas, panel, radius, under, alpha)
+                drawCoverText(canvas, panel, radius, w, choice, alpha, veil = if (under != null) 0.5f else 0.78f)
             }
-            CoverBoxShow.TEXT -> drawCoverText(canvas, panel, radius, w, choice, alpha)
             else -> {
                 coverPaint.shader = null
                 coverPaint.color = Color.rgb(10, 18, 26)
@@ -534,6 +521,35 @@ class PulseDeckMainSkinView(
         canvas.drawRoundRect(panel, radius, radius, coverFramePaint)
         if (isObjectVisible(COVER_MENU_ID)) drawCoverMenu(canvas, panel, w, alpha, group != null)
         canvas.restoreToCount(save)
+    }
+
+    /** Centre-crop: the picture keeps its proportions; V127: a shader in a rounded rectangle, no layer. */
+    private fun drawCoverPicture(
+        canvas: Canvas,
+        panel: RectF,
+        radius: Float,
+        picture: Bitmap,
+        alpha: Int,
+    ) {
+        val shader =
+            coverShader?.takeIf { coverShaderBitmap === picture }
+                ?: android.graphics.BitmapShader(picture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also {
+                    coverShader = it
+                    coverShaderBitmap = picture
+                }
+        val scale = max(panel.width() / picture.width, panel.height() / picture.height)
+        coverShaderMatrix.reset()
+        coverShaderMatrix.setScale(scale, scale)
+        coverShaderMatrix.postTranslate(
+            panel.centerX() - picture.width * scale / 2f,
+            panel.centerY() - picture.height * scale / 2f,
+        )
+        shader.setLocalMatrix(coverShaderMatrix)
+        coverPaint.shader = shader
+        coverPaint.color = Color.WHITE
+        coverPaint.alpha = alpha
+        canvas.drawRoundRect(panel, radius, radius, coverPaint)
+        coverPaint.shader = null
     }
 
     private fun addCoverTarget(
@@ -704,11 +720,12 @@ class PulseDeckMainSkinView(
         w: Float,
         choice: CoverBoxChoice,
         alpha: Int,
+        veil: Float = 0.78f,
     ) {
         val text = choice.text.orEmpty()
         coverPaint.shader = null
         coverPaint.color = Color.rgb(8, 14, 20)
-        coverPaint.alpha = (alpha * 0.78f).toInt()
+        coverPaint.alpha = (alpha * veil).toInt()
         canvas.drawRoundRect(panel, radius, radius, coverPaint)
         val padX = w * 0.04f
         val padY = w * 0.03f

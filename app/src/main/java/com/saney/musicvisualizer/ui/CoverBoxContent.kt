@@ -13,10 +13,13 @@ enum class CoverBoxMode(
     PICTURE_PLACEHOLDER("Лише картинка (нема — заглушка ♪)"),
     STORY("Історія пісні (титри)"),
     LYRICS("Слова пісні (титри)"),
+
+    /** V142 (faric 23.10 01:09): picture underneath, the text going over it — chosen by ticks. */
+    MIX("Разом — галочками (картинка + текст поверх)"),
     ;
 
     /** Does this mode ever show the story (then the export asks its language). */
-    val usesStory: Boolean get() = this == AUTO || this == STORY
+    val usesStory: Boolean get() = this == AUTO || this == STORY || this == MIX
 
     companion object {
         fun fromIndex(index: Int): CoverBoxMode = entries.getOrNull(index) ?: AUTO
@@ -33,7 +36,25 @@ data class CoverBoxChoice(
     val text: String? = null,
     /** V137: the song's words (lines centred) rather than a story (justified paragraphs). */
     val lyrics: Boolean = false,
+    /** V142: with TEXT — the picture is drawn underneath (dimmed), the text goes over it. */
+    val pictureUnder: Boolean = false,
 )
+
+/** V142: the ticks of «Разом»: what goes into the frame together. */
+data class CoverMix(
+    val picture: Boolean = true,
+    val story: Boolean = true,
+    val lyrics: Boolean = false,
+) {
+    fun encode(): String = listOf(picture, story, lyrics).joinToString("") { if (it) "1" else "0" }
+
+    companion object {
+        fun decode(text: String?): CoverMix =
+            text?.takeIf { it.length == 3 && it.all { c -> c == '0' || c == '1' } }
+                ?.let { CoverMix(it[0] == '1', it[1] == '1', it[2] == '1') }
+                ?: CoverMix()
+    }
+}
 
 object CoverBoxContent {
     fun resolve(
@@ -41,6 +62,7 @@ object CoverBoxContent {
         hasPicture: Boolean,
         story: String?,
         lyrics: String?,
+        mix: CoverMix = CoverMix(),
     ): CoverBoxChoice {
         val storyText = story?.trim()?.takeIf { it.isNotEmpty() }
         val lyricsText = lyrics?.trim()?.takeIf { it.isNotEmpty() }
@@ -56,6 +78,21 @@ object CoverBoxContent {
             CoverBoxMode.PICTURE_PLACEHOLDER -> CoverBoxChoice(if (hasPicture) CoverBoxShow.PICTURE else CoverBoxShow.PLACEHOLDER)
             CoverBoxMode.STORY -> storyText?.let { CoverBoxChoice(CoverBoxShow.TEXT, it) } ?: CoverBoxChoice(CoverBoxShow.HIDDEN)
             CoverBoxMode.LYRICS -> lyricsText?.let { CoverBoxChoice(CoverBoxShow.TEXT, it, lyrics = true) } ?: CoverBoxChoice(CoverBoxShow.HIDDEN)
+            CoverBoxMode.MIX -> {
+                // Story first, then the words — whichever is ticked and is in the song.
+                val (text, isLyrics) =
+                    when {
+                        mix.story && storyText != null -> storyText to false
+                        mix.lyrics && lyricsText != null -> lyricsText to true
+                        else -> null to false
+                    }
+                val picture = mix.picture && hasPicture
+                when {
+                    text != null -> CoverBoxChoice(CoverBoxShow.TEXT, text, isLyrics, pictureUnder = picture)
+                    picture -> CoverBoxChoice(CoverBoxShow.PICTURE)
+                    else -> CoverBoxChoice(CoverBoxShow.HIDDEN)
+                }
+            }
         }
     }
 

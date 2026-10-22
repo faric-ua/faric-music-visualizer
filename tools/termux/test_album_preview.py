@@ -24,7 +24,14 @@ def make_track(path: Path, title: str, loud_from: float, dur: float = 90.0, freq
                     f"aevalsrc={expr}|{expr}:s=48000:d={dur}",
                     "-b:a", "128k", "-metadata", f"title={title}", "-metadata", "artist=Faric(AI)",
                     "-metadata", "album=VOL. 99 — TEST PULSE — White Side",
-                    "-metadata", "comment=for memory....", str(path)], check=True)
+                    "-metadata", "album_artist=Faric", "-metadata", "composer=Faric",
+                    "-metadata", "copyright=Saney", "-metadata", "genre=Trance", "-metadata", "date=2026",
+                    "-metadata", "comment=for memory....",
+                    "-metadata", "TSSE=Track Catcher; Audio Converter 0.24.1",
+                    "-metadata", "CONVERTER=Audio Converter 0.29.0 · лише теги",
+                    "-metadata", f"FARIC_STORY_UK=Історія пісні {title}",
+                    "-metadata", f"lyrics=words of {title}",
+                    "-metadata", "track=7", "-fflags", "+bitexact", str(path)], check=True)
 
 
 def test_unit() -> None:
@@ -84,6 +91,14 @@ def test_end_to_end() -> None:
     assert "FARIC_STORY_UK" not in tags and "FARIC_STORY_EN" not in tags
     assert "PREVIEW" in tags["FARIC_STORY_SOURCE"]
     assert tags["ALBUM"] == "VOL. 99 — TEST PULSE — White Side"
+    # спільні теги альбому — з пісні; пісенні (назва, номер, слова, історія пісні) — ні
+    for k, v in {"ARTIST": "Faric(AI)", "ALBUM_ARTIST": "Faric", "COMPOSER": "Faric", "COPYRIGHT": "Saney",
+                 "GENRE": "Trance", "DATE": "2026", "COMMENT": "for memory....",
+                 "CONVERTER": "Audio Converter 0.29.0 · лише теги",
+                 "ENCODER": "Track Catcher; Audio Converter 0.24.1; PulseDeck Preview"}.items():
+        assert tags.get(k) == v, (k, tags.get(k))
+    assert tags["TITLE"] == "TEST PULSE — PREVIEW (White Side)" and tags["TRACK"] == "0", tags
+    assert not any(k.startswith("LYRICS") for k in tags), tags.keys()
     order = [l.split(". ", 1)[1].split(" — ")[0] for l in tags["FARIC_PREVIEW_TRACKS"].splitlines()]
     assert order == ["FIRST ONE", "SECOND ONE", "LAST ONE", "SOMETHING ELSE"], order
     # найгучніше місце: FIRST ONE гучна з 40 с; шматок починається на 3 с раніше (перехід — на наростанні)

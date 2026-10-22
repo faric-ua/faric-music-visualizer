@@ -82,7 +82,42 @@ def probe(path: Path) -> dict:
         for k, v in (s.get("tags") or {}).items():
             tags.setdefault(k.lower(), v)
     has_pic = any(s.get("codec_type") == "video" for s in data.get("streams", []))
-    return {"duration": float(fmt.get("duration") or 0), "tags": tags, "has_pic": has_pic}
+    return {"duration": float(fmt.get("duration") or 0), "tags": tags, "has_pic": has_pic,
+            "raw_tags": dict(fmt.get("tags") or {})}
+
+
+# Теги, що стосуються саме однієї пісні (або які прев'ю пише саме) — їх з пісні НЕ копіюємо.
+SONG_ONLY_TAGS = {
+    "title", "track", "tracknumber", "tracktotal", "totaltracks", "length", "tlen", "duration",
+    "bpm", "tbpm", "initialkey", "key", "isrc", "encoder", "tsse",
+    "replaygain_track_gain", "replaygain_track_peak", "itunnorm", "itunsmpb",
+    "musicbrainz_trackid", "musicbrainz_releasetrackid", "acoustid_id", "acoustid_fingerprint",
+    "faric_story_uk", "faric_story_en", "faric_story_source",
+    "faric_album_story_uk", "faric_album_story_en", "faric_preview_tracks",
+}
+PREVIEW_ENCODER = "PulseDeck Preview"
+
+
+def common_tags(raw: dict) -> dict:
+    """Спільні теги альбому з однієї пісні (виконавець, альбом, права, рік, жанр, коментар,
+    CONVERTER, …) — без назви, номера, слів і історії самої пісні."""
+    out = {}
+    for k, v in raw.items():
+        low = k.lower()
+        if low in SONG_ONLY_TAGS or low.startswith("lyrics") or low.startswith("unsyncedlyrics"):
+            continue
+        if isinstance(v, str) and v.strip():
+            out[k] = v
+    return out
+
+
+def encoder_list(raw: dict) -> str:
+    """ENCODER — список (правило конвертера): що було в пісні + прев'ю в кінці, без повторів."""
+    old = next((v for k, v in raw.items() if k.lower() in ("encoder", "tsse")), "")
+    items = [x.strip() for x in old.split(";") if x.strip() and not x.strip().startswith("Lavf")]
+    if PREVIEW_ENCODER not in items:
+        items.append(PREVIEW_ENCODER)
+    return "; ".join(items)
 
 
 def identify_album(folder: Path, first_tags: dict, config: dict) -> tuple[dict | None, str]:
@@ -314,26 +349,30 @@ def build_preview(folder: Path, config: dict, seg: float, fade: float, assume_ye
         fade_in = min(1.5, total / 4)
         fade_out = min(3.0, total / 4)
         chains.append(f"[{prev}]afade=t=in:d={fade_in:.2f},afade=t=out:st={total - fade_out:.2f}:d={fade_out:.2f}[out]")
-        cmd += ["-filter_complex", ";".join(chains), "-map", "[out]"]
+        # -map_metadata -1: ffmpeg сам НЕ переносить теги першої пісні (там її назва, слова, історія) —
+        # спільні теги ставимо самі нижче.
+        cmd += ["-filter_complex", ";".join(chains), "-map", "[out]", "-map_metadata", "-1", "-map_chapters", "-1"]
         if cover:
             cmd += ["-map", f"{n}:v", "-c:v", "copy", "-disposition:v:0", "attached_pic",
                     "-metadata:s:v", "title=Album cover", "-metadata:s:v", "comment=Cover (front)"]
-        cmd += ["-c:a", "libmp3lame", "-b:a", "320k", "-id3v2_version", "3", "-write_id3v1", "0"]
+        # +bitexact: ffmpeg не підміняє «Програма-кодувальник» своїм «Lavf…» — пишемо свій список (TSSE).
+        cmd += ["-c:a", "libmp3lame", "-b:a", "320k", "-id3v2_version", "3", "-write_id3v1", "0",
+                "-fflags", "+bitexact"]
 
         tracklist = "\n".join(
             f"{i + 1:02d}. {titles.get(f) or f.stem} — {fmt_time(s)}–{fmt_time(s + l)}"
             for i, (f, s, l) in enumerate(parts))
-        meta = {
+        # Спільні теги — з першої пісні альбому (уже в правильному порядку).
+        ref_raw = info[parts[0][0]]["raw_tags"]
+        meta = common_tags(ref_raw)
+        if not any(k.lower() == "album" for k in meta) and album:
+            meta["album"] = album["album"]
+        meta.update({
             "title": f"{base_name} — PREVIEW ({side_name} Side)",
-            "artist": first_tags.get("artist", ""),
-            "album_artist": first_tags.get("album_artist", first_tags.get("album artist", "")),
-            "album": first_tags.get("album", album["album"] if album else ""),
-            "date": first_tags.get("date", first_tags.get("year", "")),
-            "composer": first_tags.get("composer", ""),
-            "copyright": first_tags.get("copyright", ""),
             "track": "0",
+            "TSSE": encoder_list(ref_raw),
             "FARIC_PREVIEW_TRACKS": tracklist,
-        }
+        })
         if story:
             meta["FARIC_ALBUM_STORY_UK"] = story.get("album_story", {}).get("uk", "")
             meta["FARIC_ALBUM_STORY_EN"] = story.get("album_story", {}).get("en", "")

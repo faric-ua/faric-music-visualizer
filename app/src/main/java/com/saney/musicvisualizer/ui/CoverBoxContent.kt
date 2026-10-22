@@ -65,27 +65,41 @@ object CoverBoxContent {
      * Returns the text's top relative to the frame's inner top.
      */
     /**
-     * V137 (запис faric 22.10 20:22: «рамку затягло аж за екран», текст величезний): the text panel is
-     * laid out on the SCREEN, not inside the cover's own enlargement. It keeps the height the frame has
-     * on screen (faric's «Розкладка»), takes the screen width minus margins, and stays on the screen.
+     * V137 / V138 (faric 22.10 20:24 і 22:50: «габарити плитки не відповідають тим, що виставили в
+     * утилітах»): the frame is drawn on the SCREEN exactly where and as big as «Розкладка» puts it —
+     * only cut to the screen (2 % margins), never wider. Text gets a readable minimum (60 % of the width,
+     * a quarter of the width high) only when the frame is smaller than that.
      */
-    fun textPanel(
+    fun framePanel(
         frameOnScreen: LayoutBox,
         screenW: Float,
         screenH: Float,
+        text: Boolean,
     ): LayoutBox {
-        val left = screenW * 0.04f
-        val right = screenW * 0.96f
-        val minHeight = screenW * 0.25f
-        val maxHeight = screenH * 0.6f
-        var top = frameOnScreen.top.coerceAtLeast(screenH * 0.05f)
-        var bottom = frameOnScreen.bottom.coerceAtMost(screenH * 0.95f)
-        if (bottom - top < minHeight) {
-            val cy = ((top + bottom) / 2f).coerceIn(screenH * 0.05f + minHeight / 2f, screenH * 0.95f - minHeight / 2f)
-            top = cy - minHeight / 2f
-            bottom = cy + minHeight / 2f
+        val minLeft = screenW * 0.02f
+        val maxRight = screenW * 0.98f
+        val minTop = screenH * 0.02f
+        val maxBottom = screenH * 0.98f
+        var left = frameOnScreen.left.coerceAtLeast(minLeft)
+        var right = frameOnScreen.right.coerceAtMost(maxRight)
+        var top = frameOnScreen.top.coerceAtLeast(minTop)
+        var bottom = frameOnScreen.bottom.coerceAtMost(maxBottom)
+        if (text) {
+            val minW = screenW * 0.6f
+            val minH = screenW * 0.25f
+            if (right - left < minW) {
+                val cx = ((left + right) / 2f).coerceIn(minLeft + minW / 2f, maxRight - minW / 2f)
+                left = cx - minW / 2f
+                right = cx + minW / 2f
+            }
+            if (bottom - top < minH) {
+                val cy = ((top + bottom) / 2f).coerceIn(minTop + minH / 2f, maxBottom - minH / 2f)
+                top = cy - minH / 2f
+                bottom = cy + minH / 2f
+            }
         }
-        if (bottom - top > maxHeight) bottom = top + maxHeight
+        if (right < left) right = left
+        if (bottom < top) bottom = top
         return LayoutBox(left, top, right, bottom)
     }
 

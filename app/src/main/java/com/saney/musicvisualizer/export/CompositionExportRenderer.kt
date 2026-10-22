@@ -59,6 +59,9 @@ data class CompositionExportConfig(
     val hudCoverStory: String? = null,
     val hudCoverLyrics: String? = null,
     val hudCoverGlowBand: com.saney.musicvisualizer.ui.CoverGlowBand = com.saney.musicvisualizer.ui.CoverGlowBand.BASS,
+    /** V138: 👍 / 👎 of the song and the two «Інфо про файл» lines. */
+    val hudCoverRating: Int = 0,
+    val hudFileInfo: List<String> = emptyList(),
 )
 
 data class CompositionStageTiming(
@@ -197,6 +200,8 @@ class CompositionExportRenderer(
                 view.coverStory = config.hudCoverStory
                 view.coverLyrics = config.hudCoverLyrics
                 view.coverGlowBand = config.hudCoverGlowBand
+                view.coverRating = config.hudCoverRating
+                view.fileInfoLines = config.hudFileInfo
                 view.setChromeVisibility(
                     transportVisible = true,
                     quickActionsVisible = true,

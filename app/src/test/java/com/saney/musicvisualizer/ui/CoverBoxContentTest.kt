@@ -46,15 +46,19 @@ class CoverBoxContentTest {
         assertEquals(StoryLanguage.UK, StoryLanguage.fromCode(null))
     }
 
-    @Test fun textPanelStaysOnScreenWhateverTheFrameScale() {
-        // faric's cover enlarged ~5× — far wider than the screen.
-        val panel = CoverBoxContent.textPanel(LayoutBox(-1500f, 250f, 2580f, 1000f), 1080f, 2340f)
-        assertEquals(43.2f, panel.left, 1e-3f)
-        assertEquals(1036.8f, panel.right, 1e-3f)
-        assertEquals(250f, panel.top, 1e-3f)
-        assertEquals(1000f, panel.bottom, 1e-3f)
-        // a small frame still gets a readable height
-        val small = CoverBoxContent.textPanel(LayoutBox(432f, 320f, 648f, 536f), 1080f, 2340f)
+    @Test fun framePanelIsTheFrameCutToTheScreen() {
+        // the frame as «Розкладка» puts it — kept as is
+        val kept = CoverBoxContent.framePanel(LayoutBox(80f, 250f, 1000f, 1000f), 1080f, 2340f, text = true)
+        assertEquals(LayoutBox(80f, 250f, 1000f, 1000f), kept)
+        // enlarged past the screen — cut to the screen with 2 % margins
+        val cut = CoverBoxContent.framePanel(LayoutBox(-1500f, 250f, 2580f, 1000f), 1080f, 2340f, text = false)
+        assertEquals(21.6f, cut.left, 1e-3f)
+        assertEquals(1058.4f, cut.right, 1e-3f)
+        // a small frame: a picture stays small, text gets a readable minimum
+        val square = LayoutBox(432f, 320f, 648f, 536f)
+        assertEquals(square, CoverBoxContent.framePanel(square, 1080f, 2340f, text = false))
+        val small = CoverBoxContent.framePanel(square, 1080f, 2340f, text = true)
+        assertEquals(648f, small.right - small.left, 1e-3f)
         assertEquals(270f, small.bottom - small.top, 1e-3f)
     }
 

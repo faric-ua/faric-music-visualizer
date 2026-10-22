@@ -188,6 +188,12 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
                 setControlsVisible(true, false)
                 // The frame shows even without a picture, so it can be placed.
                 coverMode = com.saney.musicvisualizer.ui.CoverBoxMode.PICTURE_PLACEHOLDER
+                // V138: sample lines, so «Інфо про файл» can be placed.
+                fileInfoLines =
+                    listOf(
+                        "Пісня · MP3 · 48 кГц · 320 кбіт/с",
+                        com.saney.musicvisualizer.export.SongSourceInfo.videoLine(1080, 1920, 30),
+                    )
                 // Switched-off parts show faintly here, so they can be found and switched on.
                 showHiddenFaint = true
                 previewLayout = working.toMap()

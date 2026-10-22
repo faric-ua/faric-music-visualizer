@@ -1149,8 +1149,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         pulseDeckMainSkinView?.setPlaying(snapshot.isPlaying)
         pulseDeckMainSkinView?.let { skin ->
             // V78: red heart when this song is in favourites (also changed from the library).
-            skin.favoriteActive =
-                controller.currentTrackUri()?.let { LocalMusicUserState(this).isFavorite(it.toString()) } == true
+            val userState = LocalMusicUserState(this)
+            val uri = controller.currentTrackUri()?.toString()
+            skin.favoriteActive = uri?.let { userState.isFavorite(it) } == true
+            // V138: 👍 / 👎 in the frame; the clock that makes the credits glide.
+            skin.coverRating = uri?.let { userState.rating(it) } ?: 0
+            skin.setPlaybackClock(snapshot.positionMs, snapshot.durationMs, snapshot.isPlaying)
         }
         pulseDeckMainSkinView?.setPlaybackContent(
             title =
@@ -2468,6 +2472,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 // V114: the song's cover in the frame at the top.
                 view.coverArt = currentCoverArt
                 applyCoverBoxSettings(view)
+                view.fileInfoLines = fileInfoLines(currentSourceInfo)
                 view.setInteractionListener {
                     scheduleNowControlsAutoHide()
                 }
@@ -2593,8 +2598,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 "Дії треку — наступний етап",
                             )
 
-                        PulseDeckMainSkinView.COVER_BOX_ID ->
+                        PulseDeckMainSkinView.COVER_BOX_ID,
+                        PulseDeckMainSkinView.COVER_MORE_ID,
+                        ->
                             showCoverBoxMenu()
+
+                        PulseDeckMainSkinView.COVER_LIKE_ID,
+                        PulseDeckMainSkinView.COVER_DISLIKE_ID,
+                        -> rateCurrentSong(if (action == PulseDeckMainSkinView.COVER_LIKE_ID) 1 else -1)
 
                         "shuffle" -> {
                             val enabled = controller.toggleShuffle()
@@ -8203,6 +8214,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         ratio == exportAspectRatio,
                 ) {
                     exportAspectRatio = ratio
+                    applyFileInfo()
                     showExportLab()
                 },
                 LinearLayout.LayoutParams(
@@ -8775,6 +8787,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             hudCoverStory = com.saney.musicvisualizer.ui.StoryText.compose(currentStoryTags, storyLanguage()),
             hudCoverLyrics = currentStoryTags.lyrics,
             hudCoverGlowBand = coverGlowBand(),
+            hudCoverRating = controller.currentTrackUri()?.let { LocalMusicUserState(this).rating(it.toString()) } ?: 0,
+            hudFileInfo = fileInfoLines(currentSourceInfo),
             faricReactiveVisible =
                 belowHeroVisible &&
                 visualizerVisible &&
@@ -10460,6 +10474,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     compositionConfig.copy(
                                         hudCoverStory = com.saney.musicvisualizer.ui.StoryText.compose(songStory, storyLanguage()),
                                         hudCoverLyrics = songStory.lyrics,
+                                        hudCoverRating = LocalMusicUserState(this).rating(song.uri.toString()),
+                                        hudFileInfo = fileInfoLines(com.saney.musicvisualizer.export.SongSourceInfo.read(this, song.uri, song.name)),
                                         coverArt =
                                             songCover.takeIf {
                                                 compositionConfig.standaloneTheme == PlaybackThemeId.COVER_ART
@@ -11544,6 +11560,33 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     /** V135: the playing song's story and words, read from its tags. */
     private var currentStoryTags = com.saney.musicvisualizer.ui.SongStoryTags.EMPTY
+
+    /** V138: «Пісня · MP3 · 48 кГц · 320 кбіт/с» of the playing song. */
+    private var currentSourceInfo: String? = null
+
+    private fun fileInfoLines(source: String?): List<String> =
+        listOfNotNull(
+            source,
+            com.saney.musicvisualizer.export.SongSourceInfo.videoLine(exportAspectRatio.width, exportAspectRatio.height, PROJECTM_EXPORT_FPS),
+        )
+
+    private fun applyFileInfo() {
+        pulseDeckMainSkinView?.fileInfoLines = fileInfoLines(currentSourceInfo)
+    }
+
+    /** V138 (faric 22.10 22:50): 👍 / 👎 of the playing song; the same thumb again takes it back. */
+    private fun rateCurrentSong(value: Int) {
+        val uri = controller.currentTrackUri()?.toString() ?: return
+        val now = LocalMusicUserState(this).toggleRating(uri, value)
+        pulseDeckMainSkinView?.coverRating = now
+        toast(
+            when (now) {
+                1 -> "👍 Подобається"
+                -1 -> "👎 Не подобається"
+                else -> "Оцінку прибрано"
+            },
+        )
+    }
     private var tagArtist: String? = null
 
     private fun displayArtist(snapshot: PlaybackSnapshot): String? =
@@ -11561,10 +11604,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         tagArtist = null
         currentStoryTags = com.saney.musicvisualizer.ui.SongStoryTags.EMPTY
         applyCoverStory()
+        currentSourceInfo = null
+        applyFileInfo()
         if (uri == null) return
+        val fileName = latestSnapshot.trackName
         thread(name = "cover-art") {
             val bitmap = com.saney.musicvisualizer.ui.CoverArtLoader.load(this, Uri.parse(uri))
             val story = com.saney.musicvisualizer.export.SongStoryReader.read(this, Uri.parse(uri))
+            val sourceInfo = com.saney.musicvisualizer.export.SongSourceInfo.read(this, Uri.parse(uri), fileName)
             val artist =
                 runCatching {
                     com.saney.musicvisualizer.export.SongTags.read(this, Uri.parse(uri), null, null).artist
@@ -11578,6 +11625,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     tagArtist = artist
                     currentStoryTags = story
                     applyCoverStory()
+                    currentSourceInfo = sourceInfo
+                    applyFileInfo()
                     if (latestSnapshot.trackArtist.isNullOrBlank() || latestSnapshot.trackArtist == "null") {
                         // V111: into the player too (shade); no tag → the canonical «Невідомий виконавець».
                         controller.fillMissingArtist(Uri.parse(uri), artist ?: UNKNOWN_ARTIST)

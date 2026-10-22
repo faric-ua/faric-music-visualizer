@@ -215,6 +215,15 @@ class PulseDeckMainSkinView(
     private var groupAlphaMul = 1f
 
     /**
+     * V136 (запис faric 22.10 20:02: ▶ ⏮ ⏸ на головному не реагують, у шторці — грають): with a part
+     * made see-through in Утиліти (V126), [withGroup] multiplies [controlsAlpha] for drawing, and the
+     * «are the controls shown?» check (≥ 0.35) then threw the buttons out of the touch list — a part
+     * 70 % transparent could not be pressed at all. Touch now looks at the controls' own visibility,
+     * kept here while a group is drawn (−1 = not inside a group).
+     */
+    private var controlsTouchAlpha = -1f
+
+    /**
      * Draw [block] moved / resized as faric set the group; taps follow the drawing.
      * V123: a part can also be see-through ([LayoutAdjust.alpha]) or switched off ([LayoutAdjust.hidden]).
      */
@@ -247,6 +256,8 @@ class PulseDeckMainSkinView(
         val firstTarget = hitTargets.size
         val savedControlsAlpha = controlsAlpha
         val savedGroupAlpha = groupAlphaMul
+        val savedTouchAlpha = controlsTouchAlpha
+        controlsTouchAlpha = savedControlsAlpha
         groupAlphaMul = paintAlpha
         controlsAlpha = savedControlsAlpha * paintAlpha
         val saveCount = canvas.save()
@@ -256,6 +267,7 @@ class PulseDeckMainSkinView(
         } finally {
             canvas.restoreToCount(saveCount)
             controlsAlpha = savedControlsAlpha
+            controlsTouchAlpha = savedTouchAlpha
             groupAlphaMul = savedGroupAlpha
         }
         if (adjust?.hidden == true) {
@@ -2057,7 +2069,7 @@ class PulseDeckMainSkinView(
         if (
             action != null &&
             controlsVisible &&
-            controlsAlpha >= 0.35f
+            (if (controlsTouchAlpha >= 0f) controlsTouchAlpha else controlsAlpha) >= 0.35f
         ) {
             val touchRect =
                 when {

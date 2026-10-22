@@ -5100,7 +5100,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 add(if (!story.lyrics.isNullOrBlank()) "є слова" else "нема слів")
             }.joinToString(" · ")
         val labels =
-            modes.map { it.label } +
+            // V143: say right in the list which text this song does not have.
+            modes.map { mode ->
+                when {
+                    mode == com.saney.musicvisualizer.ui.CoverBoxMode.STORY && !story.hasStory -> mode.label + " — у цій пісні нема"
+                    mode == com.saney.musicvisualizer.ui.CoverBoxMode.LYRICS && story.lyrics.isNullOrBlank() -> mode.label + " — у цій пісні нема"
+                    else -> mode.label
+                }
+            } +
                 listOf(
                     "Неонове світіння: " + coverGlowBand().label + " ›",
                     "Мова історії: " + storyLanguage().label + " ›",

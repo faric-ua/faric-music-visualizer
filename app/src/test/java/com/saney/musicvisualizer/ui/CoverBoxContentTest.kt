@@ -19,7 +19,9 @@ class CoverBoxContentTest {
         assertEquals(CoverBoxShow.PLACEHOLDER, CoverBoxContent.resolve(CoverBoxMode.PICTURE_PLACEHOLDER, false, "s", null).show)
         assertEquals(CoverBoxShow.HIDDEN, CoverBoxContent.resolve(CoverBoxMode.PICTURE, false, "s", null).show)
         assertEquals(CoverBoxChoice(CoverBoxShow.TEXT, "s"), CoverBoxContent.resolve(CoverBoxMode.STORY, true, "s", "l"))
-        assertEquals(CoverBoxShow.HIDDEN, CoverBoxContent.resolve(CoverBoxMode.LYRICS, true, "s", null).show)
+        // V143: chosen words the song has not → the picture stays (or ♪), the frame does not vanish
+        assertEquals(CoverBoxShow.PICTURE, CoverBoxContent.resolve(CoverBoxMode.LYRICS, true, "s", null).show)
+        assertEquals(CoverBoxShow.PLACEHOLDER, CoverBoxContent.resolve(CoverBoxMode.STORY, false, null, "l").show)
         assertEquals(CoverBoxMode.PICTURE_PLACEHOLDER, CoverBoxMode.fromOldFallback(1))
         assertEquals(CoverBoxMode.PICTURE, CoverBoxMode.fromOldFallback(0))
         assertTrue(CoverBoxMode.AUTO.usesStory)

@@ -124,7 +124,8 @@ object CrashReport {
         trail: ExportTrail,
         formatTime: (Long) -> String,
     ) {
-        append(if (trail.fullSong) "уся пісня" else "тест 3 с")
+        // V134 (журнал 22.10 03:58: «тест 3 с», а тест був 10 с): the test length comes from the trail.
+        append(if (trail.fullSong) "уся пісня" else "тест " + ((trail.durationMs + 500L) / 1000L) + " с")
         append(" · шлях ").append(trail.path)
         if (trail.track.isNotBlank()) append(" · «").append(trail.track).append('»')
         append('\n')

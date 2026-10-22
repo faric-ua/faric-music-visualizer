@@ -76,8 +76,11 @@ object CoverBoxContent {
                 }
             CoverBoxMode.PICTURE -> CoverBoxChoice(if (hasPicture) CoverBoxShow.PICTURE else CoverBoxShow.HIDDEN)
             CoverBoxMode.PICTURE_PLACEHOLDER -> CoverBoxChoice(if (hasPicture) CoverBoxShow.PICTURE else CoverBoxShow.PLACEHOLDER)
-            CoverBoxMode.STORY -> storyText?.let { CoverBoxChoice(CoverBoxShow.TEXT, it) } ?: CoverBoxChoice(CoverBoxShow.HIDDEN)
-            CoverBoxMode.LYRICS -> lyricsText?.let { CoverBoxChoice(CoverBoxShow.TEXT, it, lyrics = true) } ?: CoverBoxChoice(CoverBoxShow.HIDDEN)
+            // V143 (запис faric 23.10 01:49: вибрав «Слова пісні» — і рамка зникла вся, бо слів у пісні
+            // нема): a text chosen by hand that the song does not have → the picture (or ♪) stays,
+            // so the frame, its buttons and the edge do not vanish.
+            CoverBoxMode.STORY -> storyText?.let { CoverBoxChoice(CoverBoxShow.TEXT, it) } ?: stayVisible(hasPicture)
+            CoverBoxMode.LYRICS -> lyricsText?.let { CoverBoxChoice(CoverBoxShow.TEXT, it, lyrics = true) } ?: stayVisible(hasPicture)
             CoverBoxMode.MIX -> {
                 // Story first, then the words — whichever is ticked and is in the song.
                 val (text, isLyrics) =
@@ -101,6 +104,8 @@ object CoverBoxContent {
      * song's end — the same on screen and in the MP4 (both give the song position as [fraction]).
      * Returns the text's top relative to the frame's inner top.
      */
+    private fun stayVisible(hasPicture: Boolean) = CoverBoxChoice(if (hasPicture) CoverBoxShow.PICTURE else CoverBoxShow.PLACEHOLDER)
+
     /**
      * V137 / V138 (faric 22.10 20:24 і 22:50: «габарити плитки не відповідають тим, що виставили в
      * утилітах»): the frame is drawn on the SCREEN exactly where and as big as «Розкладка» puts it —

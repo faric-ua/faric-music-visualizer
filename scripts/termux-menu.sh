@@ -164,6 +164,9 @@ while true; do
   echo "DOCUMENTATION"
   echo "20 — Documentation →"
   echo
+  echo "МУЗИКА"
+  echo "21 — Прев'ю альбому (по 20 с з кожної пісні + історія альбому)"
+  echo
   echo "0 — Вийти"
   echo
   printf "Вибір: "
@@ -190,6 +193,7 @@ while true; do
     18) run_tool "$REPO/tools/termux/import-pulsedeck-hud-skin.sh" ;;
     19) run_tool "$REPO/tools/termux/import-pulsedeck-master-plate.sh" ;;
     20) bash "$REPO/tools/termux/documentation-menu.sh" ;;
+    21) run_tool "$REPO/tools/termux/album-preview.sh" ;;
     0) clear; exit 0 ;;
     *) echo "Невідомий пункт."; sleep 1 ;;
   esac

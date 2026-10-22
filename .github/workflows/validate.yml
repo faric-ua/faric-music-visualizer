@@ -31,6 +31,9 @@ jobs:
           grep -q '20 — Documentation' scripts/termux-menu.sh
           bash -n tools/install_termux_aliases.sh
           bash -n tools/install_termux_widget.sh
+          bash -n tools/termux/album-preview.sh
+          python3 -m py_compile tools/termux/album_preview.py
+          grep -q "21 — Прев'ю альбому" scripts/termux-menu.sh
 
       - name: Documentation menu and safe ZIP import smoke
         shell: bash
@@ -65,6 +68,13 @@ jobs:
             bash tools/termux/documentation-menu.sh >"$tmp/offline.log"
           test -s "$tmp/home/.cache/faric-music-visualizer/documentation/FARIC_User_Guide_UK_offline.html"
           echo "Documentation menu, offline HTML and ZIP import smoke PASS"
+
+      - name: Album preview (V143) — synthetic songs, offline
+        shell: bash
+        run: |
+          set -euo pipefail
+          command -v ffmpeg >/dev/null 2>&1 || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null; }
+          python3 tools/termux/test_album_preview.py
 
       - name: Repository contracts
         shell: bash

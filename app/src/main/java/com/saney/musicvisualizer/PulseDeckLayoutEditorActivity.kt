@@ -187,7 +187,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
                 )
                 setControlsVisible(true, false)
                 // The frame shows even without a picture, so it can be placed.
-                coverFallback = PulseDeckMainSkinView.COVER_FALLBACK_PLACEHOLDER
+                coverMode = com.saney.musicvisualizer.ui.CoverBoxMode.PICTURE_PLACEHOLDER
                 // Switched-off parts show faintly here, so they can be found and switched on.
                 showHiddenFaint = true
                 previewLayout = working.toMap()

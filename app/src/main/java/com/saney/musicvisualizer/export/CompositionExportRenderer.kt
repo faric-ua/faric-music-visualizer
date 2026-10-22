@@ -54,7 +54,11 @@ data class CompositionExportConfig(
     val coverArt: Bitmap? = null,
     /** V114: the song's picture for the HUD frame «Обкладинка вгорі» and what it shows without one. */
     val hudCoverArt: Bitmap? = null,
-    val hudCoverFallback: Int = 0,
+    /** V135: what the frame shows (picture / story / words), the story text, the words and the neon. */
+    val hudCoverMode: com.saney.musicvisualizer.ui.CoverBoxMode = com.saney.musicvisualizer.ui.CoverBoxMode.AUTO,
+    val hudCoverStory: String? = null,
+    val hudCoverLyrics: String? = null,
+    val hudCoverGlowBand: com.saney.musicvisualizer.ui.CoverGlowBand = com.saney.musicvisualizer.ui.CoverGlowBand.BASS,
 )
 
 data class CompositionStageTiming(
@@ -189,7 +193,10 @@ class CompositionExportRenderer(
                 // V104 / V119: the MP4 uses faric's «Відео 9:16» set (or «Книжка», if he made none).
                 view.forcedLayoutProfile = com.saney.musicvisualizer.ui.LayoutProfileId.VIDEO_9X16
                 view.coverArt = config.hudCoverArt
-                view.coverFallback = config.hudCoverFallback
+                view.coverMode = config.hudCoverMode
+                view.coverStory = config.hudCoverStory
+                view.coverLyrics = config.hudCoverLyrics
+                view.coverGlowBand = config.hudCoverGlowBand
                 view.setChromeVisibility(
                     transportVisible = true,
                     quickActionsVisible = true,

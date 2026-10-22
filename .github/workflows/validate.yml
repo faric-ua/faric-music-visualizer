@@ -70,11 +70,12 @@ jobs:
           echo "Documentation menu, offline HTML and ZIP import smoke PASS"
 
       - name: Album preview (V143) — synthetic songs, offline
+        timeout-minutes: 8
         shell: bash
         run: |
           set -euo pipefail
           command -v ffmpeg >/dev/null 2>&1 || { sudo apt-get update -qq && sudo apt-get install -y -qq ffmpeg >/dev/null; }
-          python3 tools/termux/test_album_preview.py
+          timeout 300 python3 tools/termux/test_album_preview.py </dev/null
 
       - name: Repository contracts
         shell: bash

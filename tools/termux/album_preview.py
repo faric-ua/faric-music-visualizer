@@ -37,7 +37,8 @@ def say(msg: str = "") -> None:
 
 
 def run(cmd: list[str], **kw) -> subprocess.CompletedProcess:
-    return subprocess.run(cmd, check=True, **kw)
+    # stdin закритий: ffmpeg не має «з'їдати» натискання клавіш у меню і не чекає на ввід у CI.
+    return subprocess.run(cmd, check=True, stdin=subprocess.DEVNULL, **kw)
 
 
 # ---------- пошук і впізнавання ----------
@@ -73,7 +74,7 @@ def find_album_folders(roots: list[str], max_depth: int = 5, min_files: int = 3)
 def probe(path: Path) -> dict:
     res = subprocess.run(
         ["ffprobe", "-v", "error", "-print_format", "json", "-show_format", "-show_streams", str(path)],
-        capture_output=True, text=True, check=True)
+        capture_output=True, text=True, check=True, stdin=subprocess.DEVNULL)
     data = json.loads(res.stdout)
     fmt = data.get("format", {})
     tags = {k.lower(): v for k, v in (fmt.get("tags") or {}).items()}
@@ -132,8 +133,8 @@ def order_tracks(files: list[Path], titles: dict[Path, str], story: dict | None)
 
 def block_energies(path: Path) -> list[float]:
     res = subprocess.run(
-        ["ffmpeg", "-v", "error", "-i", str(path), "-vn", "-ac", "1", "-ar", str(ANALYSIS_RATE),
-         "-f", "s16le", "-"], capture_output=True, check=True)
+        ["ffmpeg", "-nostdin", "-v", "error", "-i", str(path), "-vn", "-ac", "1", "-ar", str(ANALYSIS_RATE),
+         "-f", "s16le", "-"], capture_output=True, check=True, stdin=subprocess.DEVNULL)
     samples = array.array("h")
     samples.frombytes(res.stdout[: len(res.stdout) // 2 * 2])
     if sys.byteorder == "big":
@@ -192,7 +193,7 @@ def fetch(file_id: str, dest: Path) -> bool:
 
 def make_cover(src: Path, out: Path) -> bool:
     try:
-        run(["ffmpeg", "-v", "error", "-y", "-i", str(src), "-frames:v", "1", "-vf",
+        run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(src), "-frames:v", "1", "-vf",
              f"scale={COVER_SIZE}:{COVER_SIZE}:force_original_aspect_ratio=decrease,"
              f"pad={COVER_SIZE}:{COVER_SIZE}:(ow-iw)/2:(oh-ih)/2:color=black,format=yuvj420p",
              "-q:v", "3", str(out)])
@@ -275,7 +276,7 @@ def build_preview(folder: Path, config: dict, seg: float, fade: float, assume_ye
             say("Беру обкладинку з першої пісні…")
             emb = tmp / "embedded"
             try:
-                run(["ffmpeg", "-v", "error", "-y", "-i", str(files[0]), "-an", "-frames:v", "1",
+                run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(files[0]), "-an", "-frames:v", "1",
                      "-c:v", "copy", "-f", "image2", str(emb)])
                 if make_cover(emb, tmp / "cover.jpg"):
                     cover = tmp / "cover.jpg"
@@ -298,7 +299,7 @@ def build_preview(folder: Path, config: dict, seg: float, fade: float, assume_ye
                 say("Скасовано.")
                 return None
 
-        cmd = ["ffmpeg", "-v", "error", "-y"]
+        cmd = ["ffmpeg", "-nostdin", "-v", "error", "-y"]
         for f, start, length in parts:
             cmd += ["-ss", f"{start:.2f}", "-t", f"{length:.2f}", "-i", str(f)]
         if cover:

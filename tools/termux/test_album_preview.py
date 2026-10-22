@@ -20,7 +20,7 @@ def ffprobe_json(p: Path) -> dict:
 
 def make_track(path: Path, title: str, loud_from: float, dur: float = 90.0, freq: int = 220) -> None:
     expr = f"0.05*sin(2*PI*{freq}*t)*(1+15*between(t\\,{loud_from}\\,{loud_from + 20}))"
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i",
+    subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-f", "lavfi", "-i",
                     f"aevalsrc={expr}|{expr}:s=48000:d={dur}",
                     "-b:a", "128k", "-metadata", f"title={title}", "-metadata", "artist=Faric(AI)",
                     "-metadata", "album=VOL. 99 — TEST PULSE — White Side",
@@ -56,7 +56,7 @@ def test_end_to_end() -> None:
                         {"n": 2, "bonus": False, "title": "SECOND ONE"},
                         {"n": 1, "bonus": True, "title": "LAST ONE"}]}
     (offline / "STORY99.json").write_text(json.dumps(story, ensure_ascii=False), encoding="utf-8")
-    subprocess.run(["ffmpeg", "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=red:s=1600x1600",
+    subprocess.run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-f", "lavfi", "-i", "color=c=red:s=1600x1600",
                     "-frames:v", "1", str(offline / "DISC99.png")], check=True)
     cfg = {"albums": [{"vol": 99, "album": "VOL. 99 — TEST PULSE", "match": "TEST PULSE",
                        "story_file": "vol-99-test.json", "story_id": "STORY99", "story_version": 3,

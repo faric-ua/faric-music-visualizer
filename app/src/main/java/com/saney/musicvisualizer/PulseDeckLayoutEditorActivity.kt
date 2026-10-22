@@ -26,6 +26,7 @@ import com.saney.musicvisualizer.ui.LayoutProfileStore
 import com.saney.musicvisualizer.ui.LayoutSnap
 import com.saney.musicvisualizer.ui.PulseDeckDialogs
 import com.saney.musicvisualizer.ui.PulseDeckMainSkinView
+import com.saney.musicvisualizer.ui.SnapshotName
 import com.saney.musicvisualizer.ui.UtilityUi
 import com.saney.musicvisualizer.ui.UtilityUi.dp
 import kotlin.math.abs
@@ -63,6 +64,10 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
     private lateinit var alphaBar: android.widget.SeekBar
     private lateinit var loadTitle: TextView
     private lateinit var loadInfo: TextView
+    private lateinit var loadDescription: TextView
+
+    /** V127: the name of the layout last saved or applied here — «Зберегти як…» starts from it. */
+    private var lastName: String? = null
     private var loadList: List<LayoutProfileStore.Snapshot> = emptyList()
     private var loadIndex = 0
     private var beforeLoad: Map<String, LayoutAdjust>? = null
@@ -106,6 +111,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
             zoom = savedInstanceState.getInt(STATE_ZOOM, 1).coerceIn(1, ZOOMS.last())
             snapSet = com.saney.musicvisualizer.ui.SnapSet.decode(savedInstanceState.getString(STATE_SNAP))
             snapPx = savedInstanceState.getInt(STATE_SNAP_PX, snapPx)
+            lastName = savedInstanceState.getString(STATE_LAST_NAME)
         } else {
             working.putAll(store.load(profile))
         }
@@ -386,6 +392,8 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         loadPanel = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL; visibility = View.GONE }
         loadTitle = UtilityUi.text(this, "", 17f, bold = true)
         loadPanel.addView(loadTitle, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(8) })
+        loadDescription = UtilityUi.text(this, "", 14f)
+        loadPanel.addView(loadDescription, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(4) })
         loadInfo = UtilityUi.text(this, "", 13f, UtilityUi.MUTED)
         loadPanel.addView(loadInfo, LinearLayout.LayoutParams(-1, -2).apply { topMargin = dp(4) })
         val arrows = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL }
@@ -422,6 +430,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putString(STATE_WORKING, LayoutProfileCodec.encode(working))
+        outState.putString(STATE_LAST_NAME, lastName)
         outState.putString(STATE_SELECTED, selected.id)
         outState.putInt(STATE_STEP, stepPx)
         outState.putBoolean(STATE_DIRTY, dirty)
@@ -620,17 +629,25 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
     }
 
     private fun saveAs() {
+        // V127 (faric 22.10 02:29): the field starts with the last name, so a series of saves is just
+        // «дописати» («Обкладинка по центру» → «… + меню знизу 50 %»); ✕ wipes it; long names wrap.
+        val start = lastName ?: store.snapshots(profile).firstOrNull()?.name
         PulseDeckDialogs.showTextInput(
             context = this,
             title = "Зберегти розкладку як…",
             hint = "Назва (напр. «Велика обкладинка»)",
+            initialValue = start,
             positiveLabel = "Зберегти",
-        ) { name ->
+            multiLine = true,
+            clearButton = true,
+        ) { raw ->
+            val name = SnapshotName.clean(raw)
             store.saveSnapshot(profile, name, working)
+            lastName = name
             PulseDeckDialogs.showMessage(
                 context = this,
                 title = "Збережено",
-                message = "«${name.trim().ifBlank { "Без назви" }}» — у списку «Завантажити…» для «${profile.label}».",
+                message = "«$name» — у списку «Завантажити…» для «${profile.label}».",
             )
         }
     }
@@ -653,7 +670,10 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
 
     private fun showLoaded() {
         val snapshot = loadList.getOrNull(loadIndex) ?: return
-        loadTitle.text = snapshot.name
+        loadTitle.text = SnapshotName.header(snapshot.name)
+        val description = SnapshotName.description(snapshot.name)
+        loadDescription.text = description.orEmpty()
+        loadDescription.visibility = if (description == null) View.GONE else View.VISIBLE
         val date =
             java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.ROOT).format(java.util.Date(snapshot.savedAt))
         loadInfo.text = "${loadIndex + 1} з ${loadList.size} · $date · змінено частин: ${snapshot.adjusts.size}"
@@ -679,6 +699,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         working.clear()
         working.putAll(snapshot.adjusts)
         store.save(profile, working)
+        lastName = snapshot.name
         dirty = false
         beforeLoad = null
         skin.previewLayout = working.toMap()
@@ -686,7 +707,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         PulseDeckDialogs.showMessage(
             context = this,
             title = "Застосовано",
-            message = "«${snapshot.name}» — тепер розкладка «${profile.label}».",
+            message = "«${SnapshotName.header(snapshot.name)}» — тепер розкладка «${profile.label}».",
         )
     }
 
@@ -694,7 +715,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         val snapshot = loadList.getOrNull(loadIndex) ?: return
         PulseDeckDialogs.showConfirm(
             context = this,
-            title = "Видалити «${snapshot.name}»?",
+            title = "Видалити «${SnapshotName.header(snapshot.name)}»?",
             message = "Збереження зникне зі списку. Поточна розкладка не зміниться.",
             positiveLabel = "Видалити",
             destructive = true,
@@ -1008,6 +1029,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
         private const val STATE_ZOOM = "zoom"
         private const val STATE_SNAP = "snap"
         private const val STATE_SNAP_PX = "snap_px"
+        private const val STATE_LAST_NAME = "last_name"
         private val SNAP_DISTANCES = listOf(5, 10, 20, 30, 40)
     }
 }

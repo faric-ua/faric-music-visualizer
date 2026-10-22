@@ -10,6 +10,7 @@ import android.view.View
 import android.view.ViewGroup
 import android.view.Window
 import android.widget.EditText
+import android.widget.FrameLayout
 import android.widget.LinearLayout
 import android.widget.ScrollView
 import android.widget.TextView
@@ -375,6 +376,10 @@ object PulseDeckDialogs {
         initialValue: String? = null,
         positiveLabel: String = "Зберегти",
         negativeLabel: String = "Скасувати",
+        // V127 (faric 22.10 02:29): long names wrap onto several lines (the window grows) and a ✕ at the
+        // right edge wipes the field. Enter still means «done» — the name stays one line of text.
+        multiLine: Boolean = false,
+        clearButton: Boolean = false,
         onPositive: (String) -> Unit,
     ): Dialog {
         val input =
@@ -429,6 +434,10 @@ object PulseDeckDialogs {
                 this.hint =
                     hint.orEmpty()
 
+                if (multiLine) {
+                    setHorizontallyScrolling(false)
+                    maxLines = 6
+                }
                 if (
                     !initialValue.isNullOrEmpty()
                 ) {
@@ -440,12 +449,58 @@ object PulseDeckDialogs {
                     )
                 }
             }
+        val body: View =
+            if (!clearButton) {
+                input
+            } else {
+                input.setPadding(context.dp(14), context.dp(12), context.dp(52), context.dp(12))
+                val clear =
+                    TextView(context).apply {
+                        text = "✕"
+                        textSize = 18f
+                        gravity = Gravity.CENTER
+                        setTextColor(COLOR_MUTED)
+                        contentDescription = "Стерти назву"
+                        isClickable = true
+                        isFocusable = true
+                        setOnClickListener {
+                            input.setText("")
+                            input.requestFocus()
+                        }
+                        visibility = if (input.text.isNullOrEmpty()) View.GONE else View.VISIBLE
+                    }
+                input.addTextChangedListener(
+                    object : android.text.TextWatcher {
+                        override fun beforeTextChanged(
+                            s: CharSequence?,
+                            start: Int,
+                            count: Int,
+                            after: Int,
+                        ) = Unit
+
+                        override fun onTextChanged(
+                            s: CharSequence?,
+                            start: Int,
+                            before: Int,
+                            count: Int,
+                        ) = Unit
+
+                        override fun afterTextChanged(s: android.text.Editable?) {
+                            clear.visibility = if (s.isNullOrEmpty()) View.GONE else View.VISIBLE
+                        }
+                    },
+                )
+                FrameLayout(context).apply {
+                    addView(input, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT))
+                    addView(clear, FrameLayout.LayoutParams(context.dp(48), context.dp(48), Gravity.END or Gravity.TOP))
+                }
+            }
 
         return show(
             context = context,
             title = title,
             body =
-                input,
+                body,
             actions =
                 listOf(
                     Action(
@@ -456,7 +511,8 @@ object PulseDeckDialogs {
                         onPositive(
                             input.text
                                 ?.toString()
-                                .orEmpty(),
+                                .orEmpty()
+                                .replace('\n', ' '),
                         )
                     },
                     Action(

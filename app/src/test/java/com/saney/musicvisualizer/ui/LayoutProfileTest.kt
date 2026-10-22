@@ -105,4 +105,21 @@ class LayoutProfileTest {
         assertTrue(SnapSet(center = false).isOff)
         assertEquals(SnapSet(), SnapSet.decode("bad"))
     }
+
+    @Test fun snapshotNameShortStaysWhole() {
+        assertEquals("Велика обкладинка", SnapshotName.header("  Велика   обкладинка "))
+        assertNull(SnapshotName.description("Велика обкладинка"))
+        assertEquals("Без назви", SnapshotName.clean(" \n "))
+    }
+
+    @Test fun snapshotNameLongGetsHeaderAndDescription() {
+        val name = "Обкладинка по центру + меню знизу 50 % + керування 50 %"
+        assertEquals("Обкладинка по центру …", SnapshotName.header(name))
+        assertEquals(name, SnapshotName.description(name))
+        val plain = "Дуже довга назва без жодних роздільників тільки слова й слова"
+        val header = SnapshotName.header(plain)
+        assertTrue(header.length <= SnapshotName.HEADER_MAX)
+        assertTrue(header.endsWith("…"))
+        assertEquals(SnapshotName.NAME_MAX, SnapshotName.clean("x".repeat(500)).length)
+    }
 }

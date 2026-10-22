@@ -312,3 +312,31 @@ object LayoutSnapEdges {
         return LayoutSnap.Result(adjust, bestX?.second, bestY?.second)
     }
 }
+
+/**
+ * V127 (faric 22.10 02:29): a saved layout's name can be long («Обкладинка по центру + меню знизу 50 % +
+ * керування 50 %»). The list shows a short header and, under it, the whole name as the description.
+ */
+object SnapshotName {
+    const val HEADER_MAX = 34
+    const val NAME_MAX = 200
+    private val SEPARATORS = listOf(" + ", " · ", " — ", ", ", "; ")
+
+    fun clean(raw: String): String = raw.replace('\n', ' ').replace(Regex("\\s+"), " ").trim().ifBlank { "Без назви" }.take(NAME_MAX)
+
+    fun header(raw: String): String {
+        val name = clean(raw)
+        if (name.length <= HEADER_MAX) return name
+        val cut = SEPARATORS.mapNotNull { sep -> name.indexOf(sep).takeIf { it >= 3 } }.minOrNull()
+        if (cut != null && cut <= HEADER_MAX) return name.substring(0, cut).trimEnd() + " …"
+        val space = name.lastIndexOf(' ', HEADER_MAX - 1)
+        val end = if (space >= HEADER_MAX / 2) space else HEADER_MAX - 1
+        return name.substring(0, end).trimEnd() + "…"
+    }
+
+    /** The whole name under the header, or null when the header already says everything. */
+    fun description(raw: String): String? {
+        val name = clean(raw)
+        return if (header(name) == name) null else name
+    }
+}

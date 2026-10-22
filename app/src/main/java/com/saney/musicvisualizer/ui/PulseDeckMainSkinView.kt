@@ -211,6 +211,9 @@ class PulseDeckMainSkinView(
         }
     private val layerBounds = RectF()
 
+    /** V132: the see-through of the part being drawn now (1 = solid). */
+    private var groupAlphaMul = 1f
+
     /**
      * Draw [block] moved / resized as faric set the group; taps follow the drawing.
      * V123: a part can also be see-through ([LayoutAdjust.alpha]) or switched off ([LayoutAdjust.hidden]).
@@ -231,34 +234,29 @@ class PulseDeckMainSkinView(
                 else -> adjust.alpha.coerceIn(0f, 1f)
             }
         val matrix = matrixFor(groupId, w, h)
-        // V127: the cover paints its own alpha (cheap); other parts need a layer for it.
+        // V127: the cover paints its own alpha. V132 (замір 22.10 03:27: HUD 71 мс/кадр з прозорими
+        // панелями): every other part too — no extra layer any more; the alpha rides on the paints
+        // (bitmaps, text, lines) through [groupAlphaMul] and the controls alpha.
         val selfAlpha = groupId == "cover"
         coverAlpha = if (selfAlpha) (alpha * 255f).toInt().coerceIn(0, 255) else 255
-        val layerAlpha = if (selfAlpha) 1f else alpha
-        if (matrix == null && layerAlpha >= 0.999f) {
+        val paintAlpha = if (selfAlpha) 1f else alpha
+        if (matrix == null && paintAlpha >= 0.999f) {
             block()
             return
         }
         val firstTarget = hitTargets.size
-        val saveCount =
-            if (layerAlpha < 0.999f) {
-                val bounds = groupId?.let { groupBounds[it] }
-                if (bounds != null) {
-                    layerBounds.set(bounds)
-                    matrix?.mapRect(layerBounds)
-                    layerBounds.inset(-w * 0.05f, -h * 0.05f)
-                    canvas.saveLayerAlpha(layerBounds, (layerAlpha * 255f).toInt())
-                } else {
-                    canvas.saveLayerAlpha(null, (layerAlpha * 255f).toInt())
-                }
-            } else {
-                canvas.save()
-            }
+        val savedControlsAlpha = controlsAlpha
+        val savedGroupAlpha = groupAlphaMul
+        groupAlphaMul = paintAlpha
+        controlsAlpha = savedControlsAlpha * paintAlpha
+        val saveCount = canvas.save()
         if (matrix != null) canvas.concat(matrix)
         try {
             block()
         } finally {
             canvas.restoreToCount(saveCount)
+            controlsAlpha = savedControlsAlpha
+            groupAlphaMul = savedGroupAlpha
         }
         if (adjust?.hidden == true) {
             // A faint switched-off part is only a hint in the editor — not a button.
@@ -1756,6 +1754,8 @@ class PulseDeckMainSkinView(
         bitmapPaint.alpha =
             (
                 255f *
+                    // V132: chrome layers get it through controlsAlpha; the rest — here.
+                    (if (isChrome) 1f else groupAlphaMul) *
                     chromeAlpha *
                     reactiveAlpha *
                     layer.opacity
@@ -2036,7 +2036,7 @@ class PulseDeckMainSkinView(
                     (groupLeft + logoSize).toInt(),
                     (logoTop + logoSize).toInt(),
                 )
-                logo.alpha = alpha
+                logo.alpha = (alpha * groupAlphaMul).toInt().coerceIn(0, 255)
                 logo.draw(canvas)
             }
             drawCenteredText(
@@ -2201,6 +2201,7 @@ class PulseDeckMainSkinView(
         marqueeRunning = true
         applyTrackFont(line)
         textPaint.color = line.color
+        textPaint.alpha = (Color.alpha(line.color) * groupAlphaMul).toInt().coerceIn(0, 255)
         canvas.save()
         canvas.clipRect(left, line.y - line.size * 1.25f, right, line.y + line.size * 0.45f)
         textPaint.textAlign = Paint.Align.LEFT
@@ -2220,6 +2221,7 @@ class PulseDeckMainSkinView(
     ) {
         textPaint.textSize = size
         textPaint.color = color
+        textPaint.alpha = (Color.alpha(color) * groupAlphaMul).toInt().coerceIn(0, 255)
         textPaint.typeface =
             Typeface.create(
                 Typeface.DEFAULT,

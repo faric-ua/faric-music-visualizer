@@ -16,7 +16,7 @@ import kotlin.math.roundToInt
 
 object AudioClipTranscoder {
     private const val AAC_MIME = "audio/mp4a-latm"
-    private const val AUDIO_BITRATE = 160_000
+    const val AUDIO_BITRATE = 160_000
     private const val TIMEOUT_US = 10_000L
     private const val STALL_LIMIT_MS = 20_000L
 

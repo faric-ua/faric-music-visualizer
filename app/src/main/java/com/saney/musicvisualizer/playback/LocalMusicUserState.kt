@@ -20,6 +20,30 @@ class LocalMusicUserState(context: Context) {
         return enabled
     }
 
+    /** V138 (faric 22.10 22:50, як 👍 👎 у Poweramp): 1 — подобається, −1 — ні, 0 — без оцінки. */
+    fun rating(uri: String): Int =
+        when (uri) {
+            in (prefs.getStringSet("liked-uris", emptySet()) ?: emptySet()) -> 1
+            in (prefs.getStringSet("disliked-uris", emptySet()) ?: emptySet()) -> -1
+            else -> 0
+        }
+
+    /** Tapping the same thumb again takes the rating back. Returns the new rating. */
+    fun toggleRating(
+        uri: String,
+        value: Int,
+    ): Int {
+        val now = if (rating(uri) == value) 0 else value
+        val liked = (prefs.getStringSet("liked-uris", emptySet()) ?: emptySet()).toMutableSet()
+        val disliked = (prefs.getStringSet("disliked-uris", emptySet()) ?: emptySet()).toMutableSet()
+        liked.remove(uri)
+        disliked.remove(uri)
+        if (now > 0) liked.add(uri)
+        if (now < 0) disliked.add(uri)
+        prefs.edit().putStringSet("liked-uris", liked).putStringSet("disliked-uris", disliked).apply()
+        return now
+    }
+
     fun recentlyPlayed(): List<String> {
         return prefs.getString("recent-uris", "").orEmpty()
             .split("\n")

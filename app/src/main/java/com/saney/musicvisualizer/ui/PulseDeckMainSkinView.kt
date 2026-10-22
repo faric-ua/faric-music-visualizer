@@ -403,7 +403,7 @@ class PulseDeckMainSkinView(
 
     /**
      * V114: frame size and place — a square between the header and the hero, centred.
-     * Text (story / words) is laid out on the screen from this frame — see drawCoverTextPanel (V137).
+     * Everything inside is laid out on the screen from this frame — see drawCoverBox (V137 / V138).
      */
     private fun coverBoxRect(
         w: Float,
@@ -417,6 +417,12 @@ class PulseDeckMainSkinView(
         return RectF(left, top, left + width, top + side)
     }
 
+    /**
+     * V114 / V135 / V137 / V138: the frame at the top. Everything is drawn on the SCREEN: the cover's
+     * «Розкладка» size only says where the frame is and how big ([CoverBoxContent.framePanel]) — the
+     * neon, the edge, the letters and the small buttons inside keep their screen size, so a frame made
+     * 5× bigger does not get 5× letters (faric 22.10 20:24, 22:50).
+     */
     private fun drawCoverBox(
         canvas: Canvas,
         w: Float,
@@ -425,57 +431,72 @@ class PulseDeckMainSkinView(
         if (!isObjectVisible(COVER_BOX_ID)) return
         val art = coverArt?.takeIf { !it.isRecycled }
         val choice = CoverBoxContent.resolve(coverMode, art != null, coverStory, coverLyrics)
-        val rect = coverBoxRect(w, h)
-        resolvedRects[COVER_BOX_ID] = RectF(rect)
-        if (choice.show == CoverBoxShow.TEXT) {
-            drawCoverTextPanel(canvas, rect, w, h, choice)
-            return
-        }
+        val square = coverBoxRect(w, h)
+        resolvedRects[COVER_BOX_ID] = RectF(square)
+        val group = matrixFor("cover", w, h)
+        coverScreenMatrix.reset()
+        if (group != null) coverScreenMatrix.set(group)
+        if (group != null && !coverScreenMatrix.invert(coverInverse)) return
+        val onScreen = RectF(square)
+        coverScreenMatrix.mapRect(onScreen)
+        val box =
+            CoverBoxContent.framePanel(
+                LayoutBox(onScreen.left, onScreen.top, onScreen.right, onScreen.bottom),
+                w,
+                h,
+                text = choice.show == CoverBoxShow.TEXT,
+            )
+        val panel = RectF(box.left, box.top, box.right, box.bottom)
         // The tap zone stays even when the frame is hidden for a song without a picture —
-        // a tap opens the menu «що тут показувати» (faric 18:39).
-        hitTargets.add(HitTarget(action = COVER_BOX_ID, z = 900, rect = RectF(rect)))
+        // a tap opens the menu «що тут показувати» (faric 18:39). Zones are given in the group's
+        // space: withGroup maps them back onto the screen.
+        addCoverTarget(COVER_BOX_ID, 900, panel, group != null)
         if (choice.show == CoverBoxShow.HIDDEN) return
-        val radius = minOf(rect.width(), rect.height()) * 0.09f
-        // V127 (замір 22.10 02:31: HUD у відео 10 → 34 мс/кадр з великою прозорою обкладинкою): no
-        // clipPath and no extra layer — the picture is painted through a shader into a rounded
-        // rectangle, the see-through comes from the paint's own alpha.
+
+        val save = canvas.save()
+        if (group != null) canvas.concat(coverInverse)
         val alpha = coverAlpha
-        drawCoverGlow(canvas, rect, radius, alpha)
+        val radius = minOf(panel.width(), panel.height()) * if (choice.show == CoverBoxShow.TEXT) 0.06f else 0.09f
+        drawCoverGlow(canvas, panel, radius, alpha)
         when (choice.show) {
             CoverBoxShow.PICTURE -> {
-                val picture = art ?: return
-                // Centre-crop: the picture keeps its proportions, what does not fit is cut off.
-                val shader =
-                    coverShader?.takeIf { coverShaderBitmap === picture }
-                        ?: android.graphics.BitmapShader(picture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also {
-                            coverShader = it
-                            coverShaderBitmap = picture
-                        }
-                val scale = max(rect.width() / picture.width, rect.height() / picture.height)
-                coverShaderMatrix.reset()
-                coverShaderMatrix.setScale(scale, scale)
-                coverShaderMatrix.postTranslate(
-                    rect.centerX() - picture.width * scale / 2f,
-                    rect.centerY() - picture.height * scale / 2f,
-                )
-                shader.setLocalMatrix(coverShaderMatrix)
-                coverPaint.shader = shader
-                coverPaint.color = Color.WHITE
-                coverPaint.alpha = alpha
-                canvas.drawRoundRect(rect, radius, radius, coverPaint)
-                coverPaint.shader = null
+                val picture = art
+                if (picture != null) {
+                    // Centre-crop: the picture keeps its proportions, what does not fit is cut off.
+                    // V127: no clipPath and no extra layer — a shader in a rounded rectangle.
+                    val shader =
+                        coverShader?.takeIf { coverShaderBitmap === picture }
+                            ?: android.graphics.BitmapShader(picture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also {
+                                coverShader = it
+                                coverShaderBitmap = picture
+                            }
+                    val scale = max(panel.width() / picture.width, panel.height() / picture.height)
+                    coverShaderMatrix.reset()
+                    coverShaderMatrix.setScale(scale, scale)
+                    coverShaderMatrix.postTranslate(
+                        panel.centerX() - picture.width * scale / 2f,
+                        panel.centerY() - picture.height * scale / 2f,
+                    )
+                    shader.setLocalMatrix(coverShaderMatrix)
+                    coverPaint.shader = shader
+                    coverPaint.color = Color.WHITE
+                    coverPaint.alpha = alpha
+                    canvas.drawRoundRect(panel, radius, radius, coverPaint)
+                    coverPaint.shader = null
+                }
             }
+            CoverBoxShow.TEXT -> drawCoverText(canvas, panel, radius, w, choice, alpha)
             else -> {
                 coverPaint.shader = null
                 coverPaint.color = Color.rgb(10, 18, 26)
                 coverPaint.alpha = alpha
-                canvas.drawRoundRect(rect, radius, radius, coverPaint)
+                canvas.drawRoundRect(panel, radius, radius, coverPaint)
                 textPaint.textAlign = Paint.Align.CENTER
                 textPaint.typeface = Typeface.DEFAULT
-                textPaint.textSize = rect.height() * 0.5f
+                textPaint.textSize = minOf(panel.width(), panel.height()) * 0.5f
                 textPaint.color = Color.rgb(64, 200, 255)
                 textPaint.alpha = alpha
-                canvas.drawText("♪", rect.centerX(), rect.centerY() + rect.height() * 0.18f, textPaint)
+                canvas.drawText("♪", panel.centerX(), panel.centerY() + panel.height() * 0.18f, textPaint)
                 textPaint.alpha = 255
             }
         }
@@ -483,7 +504,20 @@ class PulseDeckMainSkinView(
         // the light comes from the neon under the tile.
         coverFramePaint.strokeWidth = resources.displayMetrics.density * 0.8f
         coverFramePaint.color = Color.argb((70 + 120 * coverGlowLevel).toInt() * alpha / 255, 120, 220, 255)
-        canvas.drawRoundRect(rect, radius, radius, coverFramePaint)
+        canvas.drawRoundRect(panel, radius, radius, coverFramePaint)
+        if (isObjectVisible(COVER_MENU_ID)) drawCoverMenu(canvas, panel, w, alpha, group != null)
+        canvas.restoreToCount(save)
+    }
+
+    private fun addCoverTarget(
+        action: String,
+        z: Int,
+        screenRect: RectF,
+        inGroup: Boolean,
+    ) {
+        val rect = RectF(screenRect)
+        if (inGroup) coverInverse.mapRect(rect)
+        hitTargets.add(HitTarget(action = action, z = z, rect = rect))
     }
 
     /**
@@ -529,52 +563,132 @@ class PulseDeckMainSkinView(
     private val coverScreenMatrix = android.graphics.Matrix()
 
     /**
-     * V135: the story or the song's words as slow credits — the text enters from the bottom of the
-     * panel and leaves over its top exactly when the song ends (same on screen and in the MP4).
-     * V137 (запис faric 22.10 20:22: рамку «затягло аж за екран», літери величезні): the panel and the
-     * letters are laid out on the screen — the cover's own enlargement from «Розкладка» only gives the
-     * panel its height and place ([CoverBoxContent.textPanel]); letters are the size of the song title;
-     * a story is justified paragraphs with a first-line indent (як «по ширині» у Word), headings and
-     * song words are centred.
+     * V138 (faric 22.10 22:50, скрін Poweramp): rating of the playing song — 1 👍, −1 👎, 0 none.
+     * Shown on the small see-through buttons at the bottom of the frame, with ⋮ for the frame's menu.
      */
-    private fun drawCoverTextPanel(
+    var coverRating: Int = 0
+        set(value) {
+            field = value
+            invalidate()
+        }
+    private val coverMenuPaint = Paint(Paint.ANTI_ALIAS_FLAG)
+    private val thumbPath: android.graphics.Path by lazy {
+        // Material «thumb_up» (24 × 24) — the same shape as Poweramp's, drawn in our soft blue.
+        PathParser.createPathFromPathData(
+            "M1 21h4V9H1v12zm22-11c0-1.1-.9-2-2-2h-6.31l.95-4.57.03-.32c0-.41-.17-.79-.44-1.06L14.17 1 " +
+                "7.59 7.59C7.22 7.95 7 8.45 7 9v10c0 1.1.9 2 2 2h9c.83 0 1.54-.5 1.84-1.22l3.02-7.05c.09-.23.14-.47.14-.73v-2z",
+        )
+    }
+    private val iconMatrix = android.graphics.Matrix()
+    private val iconPath = android.graphics.Path()
+
+    private fun drawCoverMenu(
         canvas: Canvas,
-        square: RectF,
+        panel: RectF,
         w: Float,
-        h: Float,
+        alpha: Int,
+        inGroup: Boolean,
+    ) {
+        val d = (w * 0.085f).coerceAtMost(minOf(panel.width(), panel.height()) * 0.3f)
+        if (d < w * 0.04f) return
+        val gap = d * 0.18f
+        val cy = panel.bottom - gap - d / 2f
+        val buttons =
+            listOf(
+                Triple(COVER_LIKE_ID, panel.left + gap + d / 2f, coverRating > 0),
+                Triple(COVER_DISLIKE_ID, panel.left + gap * 2f + d * 1.5f, coverRating < 0),
+                Triple(COVER_MORE_ID, panel.right - gap - d / 2f, false),
+            )
+        for ((id, cx, active) in buttons) {
+            val pressed = feedbackAction == id
+            val r = d / 2f * (if (pressed) feedbackScale else 1f)
+            coverMenuPaint.style = Paint.Style.FILL
+            coverMenuPaint.color = if (active) Color.rgb(20, 60, 90) else Color.rgb(6, 12, 18)
+            coverMenuPaint.alpha = (alpha * 0.55f).toInt()
+            canvas.drawCircle(cx, cy, r, coverMenuPaint)
+            coverMenuPaint.style = Paint.Style.STROKE
+            coverMenuPaint.strokeWidth = resources.displayMetrics.density
+            coverMenuPaint.color = Color.rgb(120, 200, 240)
+            coverMenuPaint.alpha = (alpha * if (active) 0.9f else 0.35f).toInt()
+            canvas.drawCircle(cx, cy, r, coverMenuPaint)
+            coverMenuPaint.style = Paint.Style.FILL
+            // Soft blue, not white (faric: white on black is hard for his eyes); chosen = bright cyan / orange.
+            coverMenuPaint.color =
+                when {
+                    active && id == COVER_LIKE_ID -> Color.rgb(90, 220, 255)
+                    active && id == COVER_DISLIKE_ID -> Color.rgb(255, 160, 80)
+                    else -> Color.rgb(150, 200, 235)
+                }
+            coverMenuPaint.alpha = (alpha * if (active) 1f else 0.8f).toInt()
+            if (id == COVER_MORE_ID) {
+                val dot = r * 0.11f
+                for (k in -1..1) canvas.drawCircle(cx, cy + k * r * 0.34f, dot, coverMenuPaint)
+            } else {
+                val icon = r * 1.0f
+                iconMatrix.reset()
+                iconMatrix.setScale(icon / 24f, icon / 24f)
+                iconMatrix.postTranslate(-icon / 2f, -icon / 2f)
+                if (id == COVER_DISLIKE_ID) iconMatrix.postRotate(180f)
+                iconMatrix.postTranslate(cx, cy)
+                iconPath.reset()
+                thumbPath.transform(iconMatrix, iconPath)
+                canvas.drawPath(iconPath, coverMenuPaint)
+            }
+            addCoverTarget(id, 950, RectF(cx - d / 2f, cy - d / 2f, cx + d / 2f, cy + d / 2f), inGroup)
+        }
+    }
+
+    /**
+     * V138 (faric 22.10 22:50: «текст ривками йде»): the live screen gets the song position only
+     * 4 times a second; between those the credits move on by the clock, so they glide. The MP4 gives
+     * every frame its exact time ([marqueeClockMs] set) — no guessing there.
+     */
+    private var clockPositionMs = 0L
+    private var clockDurationMs = 0L
+    private var clockPlaying = false
+    private var clockStampMs = 0L
+
+    fun setPlaybackClock(
+        positionMs: Long,
+        durationMs: Long,
+        playing: Boolean,
+    ) {
+        clockPositionMs = positionMs
+        clockDurationMs = durationMs
+        clockPlaying = playing
+        clockStampMs = SystemClock.uptimeMillis()
+    }
+
+    private fun crawlFraction(): Float {
+        if (marqueeClockMs != null || clockDurationMs <= 0L) return progressFraction
+        val moved = if (clockPlaying) SystemClock.uptimeMillis() - clockStampMs else 0L
+        return ((clockPositionMs + moved).toFloat() / clockDurationMs).coerceIn(0f, 1f)
+    }
+
+    /**
+     * V135 / V137: the story or the song's words as slow credits — enter at the bottom of the panel,
+     * leave over its top exactly when the song ends. Story: justified paragraphs with a first-line
+     * indent; headings and song words centred. V138: letters a bit bigger than the song title, soft blue.
+     */
+    private fun drawCoverText(
+        canvas: Canvas,
+        panel: RectF,
+        radius: Float,
+        w: Float,
         choice: CoverBoxChoice,
+        alpha: Int,
     ) {
         val text = choice.text.orEmpty()
-        val group = matrixFor("cover", w, h)
-        coverScreenMatrix.reset()
-        if (group != null) coverScreenMatrix.set(group)
-        val onScreen = RectF(square)
-        coverScreenMatrix.mapRect(onScreen)
-        val box = CoverBoxContent.textPanel(LayoutBox(onScreen.left, onScreen.top, onScreen.right, onScreen.bottom), w, h)
-        val panel = RectF(box.left, box.top, box.right, box.bottom)
-        val inverted = group == null || coverScreenMatrix.invert(coverInverse)
-        if (!inverted) return
-        // The tap zone: the panel itself, given in the group's space (withGroup maps hit zones back).
-        val tap = RectF(panel)
-        if (group != null) coverInverse.mapRect(tap)
-        hitTargets.add(HitTarget(action = COVER_BOX_ID, z = 900, rect = tap))
-
-        val save = canvas.save()
-        if (group != null) canvas.concat(coverInverse)
-        val alpha = coverAlpha
-        val radius = minOf(panel.width(), panel.height()) * 0.06f
-        drawCoverGlow(canvas, panel, radius, alpha)
         coverPaint.shader = null
         coverPaint.color = Color.rgb(8, 14, 20)
         coverPaint.alpha = (alpha * 0.78f).toInt()
         canvas.drawRoundRect(panel, radius, radius, coverPaint)
-
         val padX = w * 0.04f
         val padY = w * 0.03f
         val innerWidth = (panel.width() - padX * 2f).toInt().coerceAtLeast(1)
         val innerHeight = panel.height() - padY * 2f
-        // The song title's size (w × 0.031, with the title's own «Розкладка» size).
-        val size = w * 0.031f * (activeLayout["track"]?.scale ?: 1f).coerceIn(0.8f, 1.6f)
+        // The song title's size (w × 0.031, with its own «Розкладка» size) and «a couple of points» more.
+        val size = w * 0.031f * 1.15f * (activeLayout["track"]?.scale ?: 1f).coerceIn(0.8f, 1.6f)
         val key = text.hashCode().toString() + "|" + choice.lyrics + "|" + innerWidth + "|" + size
         val layout =
             coverLayout?.takeIf { coverLayoutKey == key }
@@ -582,19 +696,15 @@ class PulseDeckMainSkinView(
                     coverLayout = it
                     coverLayoutKey = key
                 }
-        coverTextPaint.color = Color.rgb(226, 240, 250)
+        coverTextPaint.color = Color.rgb(176, 216, 242)
         coverTextPaint.alpha = alpha
-        val top = panel.top + padY + CoverBoxContent.crawlTop(progressFraction, innerHeight, layout.height.toFloat())
+        val top = panel.top + padY + CoverBoxContent.crawlTop(crawlFraction(), innerHeight, layout.height.toFloat())
         val clip = canvas.save()
         canvas.clipRect(panel.left + padX, panel.top + padY, panel.right - padX, panel.bottom - padY)
         canvas.translate(panel.left + padX, top)
         layout.draw(canvas)
         canvas.restoreToCount(clip)
-
-        coverFramePaint.strokeWidth = resources.displayMetrics.density * 0.8f
-        coverFramePaint.color = Color.argb((70 + 120 * coverGlowLevel).toInt() * alpha / 255, 120, 220, 255)
-        canvas.drawRoundRect(panel, radius, radius, coverFramePaint)
-        canvas.restoreToCount(save)
+        if (marqueeClockMs == null && clockPlaying) postInvalidateOnAnimation()
     }
 
     private fun buildCoverLayout(
@@ -876,6 +986,24 @@ class PulseDeckMainSkinView(
                 ObjectInfo(
                     id = COVER_BOX_ID,
                     label = "Обкладинка вгорі",
+                    groupCode = PulseDeckSubsystem.TRACK_UI.code,
+                    groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
+                ),
+            )
+            // V138 (faric 22.10 22:50): 👍 👎 ⋮ at the bottom of the frame — can be switched off.
+            add(
+                ObjectInfo(
+                    id = COVER_MENU_ID,
+                    label = "Кнопки в рамці (👍 👎 ⋮)",
+                    groupCode = PulseDeckSubsystem.TRACK_UI.code,
+                    groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
+                ),
+            )
+            // V138: two small lines — the song file and the video PulseDeck makes.
+            add(
+                ObjectInfo(
+                    id = FILE_INFO_ID,
+                    label = "Інфо про файл (пісня і відео)",
                     groupCode = PulseDeckSubsystem.TRACK_UI.code,
                     groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
                 ),
@@ -1374,6 +1502,7 @@ class PulseDeckMainSkinView(
                     h = h,
                 )
             }
+            withGroup(canvas, "info", w, h) { drawFileInfo(canvas, w, h) }
         }
         rememberGroupBounds()
 
@@ -2366,6 +2495,38 @@ class PulseDeckMainSkinView(
         }
 
         textPaint.alpha = 255
+    }
+
+    /**
+     * V138 (faric 22.10 22:50, як у Poweramp «48 КГЦ 320 КБ/С MP3»): the song file and the video —
+     * two small soft-blue lines between the two times. Own part in «Розкладка» («Інфо про файл»).
+     */
+    var fileInfoLines: List<String> = emptyList()
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    private fun drawFileInfo(
+        canvas: Canvas,
+        w: Float,
+        h: Float,
+    ) {
+        if (!isObjectVisible(FILE_INFO_ID)) return
+        val lines = fileInfoLines.filter { it.isNotBlank() }.take(2)
+        if (lines.isEmpty()) return
+        val size = w * 0.023f
+        val step = size * 1.3f
+        val firstY = h * 0.618f
+        textPaint.textAlign = Paint.Align.CENTER
+        textPaint.textSize = size
+        var widest = 0f
+        lines.forEachIndexed { index, line ->
+            widest = max(widest, textPaint.measureText(line))
+            drawCenteredText(canvas, line, w / 2f, firstY + index * step, size, Color.argb(200, 150, 200, 235), false)
+        }
+        resolvedRects[FILE_INFO_ID] =
+            RectF(w / 2f - widest / 2f, firstY - size, w / 2f + widest / 2f, firstY + (lines.size - 1) * step + size * 0.3f)
     }
 
     private fun drawFavoriteHeart(canvas: Canvas) {
@@ -3398,6 +3559,11 @@ class PulseDeckMainSkinView(
         /** V120: a tap this close to a button (but not on it) goes to that button. */
         const val NEAR_TAP_DP = 14f
 
+        const val COVER_MENU_ID = "cover_menu"
+        const val FILE_INFO_ID = "file_info"
+        const val COVER_LIKE_ID = "cover_like"
+        const val COVER_DISLIKE_ID = "cover_dislike"
+        const val COVER_MORE_ID = "cover_more"
         const val COVER_BOX_ID = "cover_box"
 
         private const val SKIN_ROOT =

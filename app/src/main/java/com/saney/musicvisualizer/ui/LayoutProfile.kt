@@ -94,6 +94,8 @@ object LayoutGroups {
                 PROPORTIONAL,
                 listOf("quick_rail", "theme", "board", "visualizer", "export"),
             ),
+            // V138 (faric 22.10 22:50): the song / video lines, placed and see-through like the rest.
+            LayoutGroup("info", "Інфо про файл", PROPORTIONAL, listOf("file_info")),
         )
 
     private val byMember: Map<String, String> =

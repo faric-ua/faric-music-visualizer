@@ -11,7 +11,7 @@ class CoverBoxContentTest {
         val m = CoverBoxMode.AUTO
         assertEquals(CoverBoxShow.PICTURE, CoverBoxContent.resolve(m, true, "s", "l").show)
         assertEquals(CoverBoxChoice(CoverBoxShow.TEXT, "s"), CoverBoxContent.resolve(m, false, " s ", "l"))
-        assertEquals(CoverBoxChoice(CoverBoxShow.TEXT, "l"), CoverBoxContent.resolve(m, false, "  ", "l"))
+        assertEquals(CoverBoxChoice(CoverBoxShow.TEXT, "l", lyrics = true), CoverBoxContent.resolve(m, false, "  ", "l"))
         assertEquals(CoverBoxShow.HIDDEN, CoverBoxContent.resolve(m, false, null, null).show)
     }
 
@@ -44,5 +44,26 @@ class CoverBoxContentTest {
         assertEquals("w", fromTags.lyrics)
         assertEquals(StoryLanguage.EN, StoryLanguage.fromCode("en"))
         assertEquals(StoryLanguage.UK, StoryLanguage.fromCode(null))
+    }
+
+    @Test fun textPanelStaysOnScreenWhateverTheFrameScale() {
+        // faric's cover enlarged ~5× — far wider than the screen.
+        val panel = CoverBoxContent.textPanel(LayoutBox(-1500f, 250f, 2580f, 1000f), 1080f, 2340f)
+        assertEquals(43.2f, panel.left, 1e-3f)
+        assertEquals(1036.8f, panel.right, 1e-3f)
+        assertEquals(250f, panel.top, 1e-3f)
+        assertEquals(1000f, panel.bottom, 1e-3f)
+        // a small frame still gets a readable height
+        val small = CoverBoxContent.textPanel(LayoutBox(432f, 320f, 648f, 536f), 1080f, 2340f)
+        assertEquals(270f, small.bottom - small.top, 1e-3f)
+    }
+
+    @Test fun paragraphsAndHeadings() {
+        val text = StoryText.compose(SongStoryTags(trackUk = "Смисл. А\n\nЗвучання. Б", albumUk = "Альбом"), StoryLanguage.UK)!!
+        val parts = CoverBoxContent.paragraphs(text)
+        assertEquals(listOf("Смисл. А", "Звучання. Б", "— Про альбом —", "Альбом"), parts)
+        assertTrue(CoverBoxContent.isHeading(parts[2]))
+        assertFalse(CoverBoxContent.isHeading(parts[0]))
+        assertTrue(CoverBoxContent.resolve(CoverBoxMode.LYRICS, true, null, "la").lyrics)
     }
 }

@@ -31,6 +31,8 @@ enum class CoverBoxShow { PICTURE, PLACEHOLDER, TEXT, HIDDEN }
 data class CoverBoxChoice(
     val show: CoverBoxShow,
     val text: String? = null,
+    /** V137: the song's words (lines centred) rather than a story (justified paragraphs). */
+    val lyrics: Boolean = false,
 )
 
 object CoverBoxContent {
@@ -47,13 +49,13 @@ object CoverBoxContent {
                 when {
                     hasPicture -> CoverBoxChoice(CoverBoxShow.PICTURE)
                     storyText != null -> CoverBoxChoice(CoverBoxShow.TEXT, storyText)
-                    lyricsText != null -> CoverBoxChoice(CoverBoxShow.TEXT, lyricsText)
+                    lyricsText != null -> CoverBoxChoice(CoverBoxShow.TEXT, lyricsText, lyrics = true)
                     else -> CoverBoxChoice(CoverBoxShow.HIDDEN)
                 }
             CoverBoxMode.PICTURE -> CoverBoxChoice(if (hasPicture) CoverBoxShow.PICTURE else CoverBoxShow.HIDDEN)
             CoverBoxMode.PICTURE_PLACEHOLDER -> CoverBoxChoice(if (hasPicture) CoverBoxShow.PICTURE else CoverBoxShow.PLACEHOLDER)
             CoverBoxMode.STORY -> storyText?.let { CoverBoxChoice(CoverBoxShow.TEXT, it) } ?: CoverBoxChoice(CoverBoxShow.HIDDEN)
-            CoverBoxMode.LYRICS -> lyricsText?.let { CoverBoxChoice(CoverBoxShow.TEXT, it) } ?: CoverBoxChoice(CoverBoxShow.HIDDEN)
+            CoverBoxMode.LYRICS -> lyricsText?.let { CoverBoxChoice(CoverBoxShow.TEXT, it, lyrics = true) } ?: CoverBoxChoice(CoverBoxShow.HIDDEN)
         }
     }
 
@@ -62,6 +64,36 @@ object CoverBoxContent {
      * song's end — the same on screen and in the MP4 (both give the song position as [fraction]).
      * Returns the text's top relative to the frame's inner top.
      */
+    /**
+     * V137 (запис faric 22.10 20:22: «рамку затягло аж за екран», текст величезний): the text panel is
+     * laid out on the SCREEN, not inside the cover's own enlargement. It keeps the height the frame has
+     * on screen (faric's «Розкладка»), takes the screen width minus margins, and stays on the screen.
+     */
+    fun textPanel(
+        frameOnScreen: LayoutBox,
+        screenW: Float,
+        screenH: Float,
+    ): LayoutBox {
+        val left = screenW * 0.04f
+        val right = screenW * 0.96f
+        val minHeight = screenW * 0.25f
+        val maxHeight = screenH * 0.6f
+        var top = frameOnScreen.top.coerceAtLeast(screenH * 0.05f)
+        var bottom = frameOnScreen.bottom.coerceAtMost(screenH * 0.95f)
+        if (bottom - top < minHeight) {
+            val cy = ((top + bottom) / 2f).coerceIn(screenH * 0.05f + minHeight / 2f, screenH * 0.95f - minHeight / 2f)
+            top = cy - minHeight / 2f
+            bottom = cy + minHeight / 2f
+        }
+        if (bottom - top > maxHeight) bottom = top + maxHeight
+        return LayoutBox(left, top, right, bottom)
+    }
+
+    /** Paragraphs of a story: split on blank lines; «— Про альбом —» is a heading (centred). */
+    fun paragraphs(text: String): List<String> = text.split(Regex("\\n\\s*\\n")).map { it.trim() }.filter { it.isNotEmpty() }
+
+    fun isHeading(paragraph: String): Boolean = paragraph.startsWith("— ") && paragraph.endsWith(" —") && paragraph.length <= 60
+
     fun crawlTop(
         fraction: Float,
         innerHeight: Float,

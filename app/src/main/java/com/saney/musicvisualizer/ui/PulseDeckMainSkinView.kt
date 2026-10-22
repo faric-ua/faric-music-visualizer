@@ -403,17 +403,15 @@ class PulseDeckMainSkinView(
 
     /**
      * V114: frame size and place — a square between the header and the hero, centred.
-     * V135: with text (story / words) the frame is a wide panel from the same top line, so the
-     * credits can be read.
+     * Text (story / words) is laid out on the screen from this frame — see drawCoverTextPanel (V137).
      */
     private fun coverBoxRect(
         w: Float,
         h: Float,
-        wide: Boolean = false,
     ): RectF {
         val side = w * 0.2f
         val offset = editorOffsets[COVER_BOX_ID] ?: (0f to 0f)
-        val width = if (wide) w * 0.8f else side
+        val width = side
         val left = (w - width) / 2f + offset.first * w
         val top = h * 0.137f + offset.second * h
         return RectF(left, top, left + width, top + side)
@@ -427,8 +425,12 @@ class PulseDeckMainSkinView(
         if (!isObjectVisible(COVER_BOX_ID)) return
         val art = coverArt?.takeIf { !it.isRecycled }
         val choice = CoverBoxContent.resolve(coverMode, art != null, coverStory, coverLyrics)
-        val rect = coverBoxRect(w, h, wide = choice.show == CoverBoxShow.TEXT)
+        val rect = coverBoxRect(w, h)
         resolvedRects[COVER_BOX_ID] = RectF(rect)
+        if (choice.show == CoverBoxShow.TEXT) {
+            drawCoverTextPanel(canvas, rect, w, h, choice)
+            return
+        }
         // The tap zone stays even when the frame is hidden for a song without a picture —
         // a tap opens the menu «що тут показувати» (faric 18:39).
         hitTargets.add(HitTarget(action = COVER_BOX_ID, z = 900, rect = RectF(rect)))
@@ -463,7 +465,6 @@ class PulseDeckMainSkinView(
                 canvas.drawRoundRect(rect, radius, radius, coverPaint)
                 coverPaint.shader = null
             }
-            CoverBoxShow.TEXT -> drawCoverText(canvas, rect, radius, w, choice.text.orEmpty(), alpha)
             else -> {
                 coverPaint.shader = null
                 coverPaint.color = Color.rgb(10, 18, 26)
@@ -524,52 +525,126 @@ class PulseDeckMainSkinView(
         }
     }
 
+    private val coverInverse = android.graphics.Matrix()
+    private val coverScreenMatrix = android.graphics.Matrix()
+
     /**
      * V135: the story or the song's words as slow credits — the text enters from the bottom of the
      * panel and leaves over its top exactly when the song ends (same on screen and in the MP4).
+     * V137 (запис faric 22.10 20:22: рамку «затягло аж за екран», літери величезні): the panel and the
+     * letters are laid out on the screen — the cover's own enlargement from «Розкладка» only gives the
+     * panel its height and place ([CoverBoxContent.textPanel]); letters are the size of the song title;
+     * a story is justified paragraphs with a first-line indent (як «по ширині» у Word), headings and
+     * song words are centred.
      */
-    private fun drawCoverText(
+    private fun drawCoverTextPanel(
         canvas: Canvas,
-        rect: RectF,
-        radius: Float,
+        square: RectF,
         w: Float,
-        text: String,
-        alpha: Int,
+        h: Float,
+        choice: CoverBoxChoice,
     ) {
+        val text = choice.text.orEmpty()
+        val group = matrixFor("cover", w, h)
+        coverScreenMatrix.reset()
+        if (group != null) coverScreenMatrix.set(group)
+        val onScreen = RectF(square)
+        coverScreenMatrix.mapRect(onScreen)
+        val box = CoverBoxContent.textPanel(LayoutBox(onScreen.left, onScreen.top, onScreen.right, onScreen.bottom), w, h)
+        val panel = RectF(box.left, box.top, box.right, box.bottom)
+        val inverted = group == null || coverScreenMatrix.invert(coverInverse)
+        if (!inverted) return
+        // The tap zone: the panel itself, given in the group's space (withGroup maps hit zones back).
+        val tap = RectF(panel)
+        if (group != null) coverInverse.mapRect(tap)
+        hitTargets.add(HitTarget(action = COVER_BOX_ID, z = 900, rect = tap))
+
+        val save = canvas.save()
+        if (group != null) canvas.concat(coverInverse)
+        val alpha = coverAlpha
+        val radius = minOf(panel.width(), panel.height()) * 0.06f
+        drawCoverGlow(canvas, panel, radius, alpha)
         coverPaint.shader = null
         coverPaint.color = Color.rgb(8, 14, 20)
         coverPaint.alpha = (alpha * 0.78f).toInt()
-        canvas.drawRoundRect(rect, radius, radius, coverPaint)
-        val padX = rect.width() * 0.05f
-        val padY = rect.height() * 0.08f
-        val innerWidth = (rect.width() - padX * 2f).toInt().coerceAtLeast(1)
-        val innerHeight = rect.height() - padY * 2f
-        val size = w * 0.032f
-        val key = text.hashCode().toString() + "|" + innerWidth + "|" + size
+        canvas.drawRoundRect(panel, radius, radius, coverPaint)
+
+        val padX = w * 0.04f
+        val padY = w * 0.03f
+        val innerWidth = (panel.width() - padX * 2f).toInt().coerceAtLeast(1)
+        val innerHeight = panel.height() - padY * 2f
+        // The song title's size (w × 0.031, with the title's own «Розкладка» size).
+        val size = w * 0.031f * (activeLayout["track"]?.scale ?: 1f).coerceIn(0.8f, 1.6f)
+        val key = text.hashCode().toString() + "|" + choice.lyrics + "|" + innerWidth + "|" + size
         val layout =
             coverLayout?.takeIf { coverLayoutKey == key }
-                ?: run {
-                    coverTextPaint.textSize = size
-                    coverTextPaint.typeface = Typeface.DEFAULT
-                    android.text.StaticLayout.Builder
-                        .obtain(text, 0, text.length, coverTextPaint, innerWidth)
-                        .setAlignment(android.text.Layout.Alignment.ALIGN_CENTER)
-                        .setLineSpacing(0f, 1.18f)
-                        .setIncludePad(false)
-                        .build()
-                        .also {
-                            coverLayout = it
-                            coverLayoutKey = key
-                        }
+                ?: buildCoverLayout(text, choice.lyrics, innerWidth, size).also {
+                    coverLayout = it
+                    coverLayoutKey = key
                 }
         coverTextPaint.color = Color.rgb(226, 240, 250)
         coverTextPaint.alpha = alpha
-        val top = rect.top + padY + CoverBoxContent.crawlTop(progressFraction, innerHeight, layout.height.toFloat())
-        val save = canvas.save()
-        canvas.clipRect(rect.left + padX, rect.top + padY, rect.right - padX, rect.bottom - padY)
-        canvas.translate(rect.left + padX, top)
+        val top = panel.top + padY + CoverBoxContent.crawlTop(progressFraction, innerHeight, layout.height.toFloat())
+        val clip = canvas.save()
+        canvas.clipRect(panel.left + padX, panel.top + padY, panel.right - padX, panel.bottom - padY)
+        canvas.translate(panel.left + padX, top)
         layout.draw(canvas)
+        canvas.restoreToCount(clip)
+
+        coverFramePaint.strokeWidth = resources.displayMetrics.density * 0.8f
+        coverFramePaint.color = Color.argb((70 + 120 * coverGlowLevel).toInt() * alpha / 255, 120, 220, 255)
+        canvas.drawRoundRect(panel, radius, radius, coverFramePaint)
         canvas.restoreToCount(save)
+    }
+
+    private fun buildCoverLayout(
+        text: String,
+        lyrics: Boolean,
+        width: Int,
+        size: Float,
+    ): android.text.StaticLayout {
+        coverTextPaint.textSize = size
+        coverTextPaint.typeface = Typeface.DEFAULT
+        val styled = android.text.SpannableStringBuilder()
+        val paragraphs = if (lyrics) listOf(text.trim()) else CoverBoxContent.paragraphs(text)
+        paragraphs.forEachIndexed { index, paragraph ->
+            if (index > 0) {
+                // A half-height empty line between paragraphs.
+                styled.append('\n')
+                val gap = styled.length
+                styled.append('\n')
+                styled.setSpan(android.text.style.RelativeSizeSpan(0.5f), gap, gap + 1, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+            }
+            val start = styled.length
+            styled.append(paragraph)
+            val end = styled.length
+            when {
+                lyrics || CoverBoxContent.isHeading(paragraph) -> {
+                    styled.setSpan(
+                        android.text.style.AlignmentSpan.Standard(android.text.Layout.Alignment.ALIGN_CENTER),
+                        start,
+                        end,
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+                    )
+                    if (!lyrics) styled.setSpan(android.text.style.StyleSpan(Typeface.BOLD), start, end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
+                else ->
+                    styled.setSpan(
+                        android.text.style.LeadingMarginSpan.Standard((size * 1.6f).toInt(), 0),
+                        start,
+                        end,
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+                    )
+            }
+        }
+        val builder =
+            android.text.StaticLayout.Builder
+                .obtain(styled, 0, styled.length, coverTextPaint, width)
+                .setAlignment(android.text.Layout.Alignment.ALIGN_NORMAL)
+                .setLineSpacing(0f, 1.22f)
+                .setIncludePad(false)
+        if (!lyrics) builder.setJustificationMode(android.text.Layout.JUSTIFICATION_MODE_INTER_WORD)
+        return builder.build()
     }
 
     private var pressedAction: String? = null

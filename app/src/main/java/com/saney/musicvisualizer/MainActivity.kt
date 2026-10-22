@@ -2561,7 +2561,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     7 ->
                                         showDiagnosticsReport(
                                             title = "Журнал збоїв",
-                                            report = CrashJournal.fullReport(this),
+                                            report =
+                                                CrashJournal.fullReport(this) + "\n\n" +
+                                                    com.saney.musicvisualizer.export.PresetExportSpeedStore(this).summary(),
                                         )
 
                                     8 ->
@@ -9258,6 +9260,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 )
             }.onSuccess { result ->
                 Log.i("FARIC-export", "Render finished; published=" + (result.uri != null))
+                // V131: every visualization's speed in this video is remembered (✓ / ? / !).
+                runCatching { com.saney.musicvisualizer.export.PresetExportSpeedStore(this).record(result.presetTimings) }
                 CrashJournal.exportFinished(
                     this,
                     if (result.uri != null) {
@@ -9287,6 +9291,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }.onFailure { error ->
                 Log.e("FARIC-export", "Export failed", error)
                 val cancelledByUser = error is CancellationException
+                (error as? ShortVideoExportProof.ExportCancelledException)?.let { stop ->
+                    runCatching { com.saney.musicvisualizer.export.PresetExportSpeedStore(this).record(stop.partial.presetTimings) }
+                }
                 val errorLine = error.javaClass.simpleName + ": " + (error.message ?: "—")
                 CrashJournal.exportFinished(
                     this,
@@ -9919,6 +9926,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
      */
     private fun buildExportPresetSchedule(
         compositionConfig: CompositionExportConfig,
+        /** V131: a batch leaves out visualizations marked «!» (too slow for video). */
+        skipTooSlow: Boolean = false,
     ): com.saney.musicvisualizer.export.ExportPresetSchedule? {
         if (!compositionConfig.projectMVisible) return null
         val state = ProjectMStateStore(this)
@@ -9926,8 +9935,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val pool =
             projectMFocusPresets.takeIf { it.isNotEmpty() }
                 ?: runCatching { projectMPresetPool(state.backgroundMode) }.getOrDefault(emptyList())
+        val usablePool =
+            if (skipTooSlow) {
+                val speeds = com.saney.musicvisualizer.export.PresetExportSpeedStore(this)
+                pool.filter { speeds.markOf(it.absolutePath) != com.saney.musicvisualizer.export.PresetSpeedMark.TOO_SLOW }
+                    .ifEmpty { pool }
+            } else {
+                pool
+            }
         return com.saney.musicvisualizer.export.ExportPresetSchedule.createOrNull(
-            pool = pool.map { it.absolutePath },
+            pool = usablePool.map { it.absolutePath },
             current = state.lastPresetPath,
             autoEnabled = state.autoEnabled,
             autoSeconds = state.autoSwitchSeconds,
@@ -10218,7 +10235,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         thread(name = "faric-batch-export") {
             val results = mutableListOf<com.saney.musicvisualizer.export.BatchPlan.SongResult>()
             // V94: one schedule for the whole batch — song 2 goes on after the last visualization of song 1.
-            val presetSchedule = buildExportPresetSchedule(compositionConfig)
+            val presetSchedule = buildExportPresetSchedule(compositionConfig, skipTooSlow = true)
             val albumFolders = linkedSetOf<String>()
             for ((index, song) in songs.withIndex()) {
                 if (cancelled.get()) break
@@ -10351,6 +10368,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 val elapsed = System.currentTimeMillis() - startedAt
                 outcome
                     .onSuccess { result ->
+                        runCatching { com.saney.musicvisualizer.export.PresetExportSpeedStore(this).record(result.presetTimings) }
                         CrashJournal.exportFinished(this, "готово · пакет · " + result.frameCount + " кадрів · " + result.totalMs + " мс")
                         // Render time of the clip itself (same number as the 3 s test window) — to compare runs.
                         results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.DONE, "відео " + result.totalMs + " мс", elapsed)
@@ -10360,6 +10378,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             CrashJournal.exportFinished(this, "скасовано (пакет)")
                             // V130: how far the stopped song got and how fast it went.
                             val stop = error as? ShortVideoExportProof.ExportCancelledException
+                            stop?.let { runCatching { com.saney.musicvisualizer.export.PresetExportSpeedStore(this).record(it.partial.presetTimings) } }
                             val detail = stop?.let { "зупинено · " + cancelledHeadline(it).substringAfter("СКАСОВАНО ").replace("\n", " · ") } ?: "зупинено"
                             results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.CANCELLED, detail)
                         } else {
@@ -12075,8 +12094,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     .takeIf { it.isNotEmpty() }
                     ?.let { timings ->
                         append("\n\nвізуалізації (мс на кадр, найповільніші вгорі):")
+                        val speeds = com.saney.musicvisualizer.export.PresetExportSpeedStore(this@MainActivity)
                         timings.take(6).forEach { t ->
                             append("\n")
+                            // V131: the remembered mark of this visualization (✓ / ? / !).
+                            append(speeds.markOf(t.path).sign)
+                            append(" ")
                             append(t.msPerFrame)
                             append(" мс · ")
                             append(t.frames / 30)

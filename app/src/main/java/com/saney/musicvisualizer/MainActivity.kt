@@ -5055,8 +5055,30 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun edgeEqSettings(): com.saney.musicvisualizer.ui.EdgeEqSettings =
         com.saney.musicvisualizer.ui.EdgeEqSettings.decode(layerPrefs().getString(PulseDeckEdgeEqActivity.KEY, null))
 
+    /** V142: the ticks of «Разом». */
+    private fun coverMix(): com.saney.musicvisualizer.ui.CoverMix =
+        com.saney.musicvisualizer.ui.CoverMix.decode(layerPrefs().getString(KEY_COVER_MIX, null))
+
+    private fun showCoverMixMenu() {
+        val mix = coverMix()
+        PulseDeckDialogs.showMultiChoice(
+            context = this,
+            title = "Що в рамці разом",
+            labels = listOf("Картинка (знизу)", "Історія пісні (поверх)", "Слова пісні (поверх, якщо нема історії)"),
+            checked = booleanArrayOf(mix.picture, mix.story, mix.lyrics),
+        ) { ticks ->
+            val next = com.saney.musicvisualizer.ui.CoverMix(ticks[0], ticks[1], ticks[2])
+            layerPrefs().edit()
+                .putString(KEY_COVER_MIX, next.encode())
+                .putInt(KEY_COVER_BOX_MODE, com.saney.musicvisualizer.ui.CoverBoxMode.MIX.ordinal)
+                .apply()
+            applyCoverStory()
+        }
+    }
+
     private fun applyCoverBoxSettings(view: PulseDeckMainSkinView) {
         view.edgeEq = edgeEqSettings()
+        view.coverMix = coverMix()
         view.coverMode = coverBoxMode()
         view.coverGlowBand = coverGlowBand()
         view.coverStory = com.saney.musicvisualizer.ui.StoryText.compose(currentStoryTags, storyLanguage())
@@ -5092,6 +5114,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             checkedIndex = coverBoxMode().ordinal,
         ) { index ->
             when {
+                // V142: «Разом» opens the ticks first.
+                index < modes.size && modes[index] == com.saney.musicvisualizer.ui.CoverBoxMode.MIX -> showCoverMixMenu()
                 index < modes.size -> {
                     layerPrefs().edit().putInt(KEY_COVER_BOX_MODE, index).apply()
                     applyCoverStory()
@@ -8793,6 +8817,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 coverArt,
             hudCoverArt = currentCoverArt,
             hudCoverMode = coverBoxMode(),
+            hudCoverMix = coverMix(),
             hudCoverStory = com.saney.musicvisualizer.ui.StoryText.compose(currentStoryTags, storyLanguage()),
             hudCoverLyrics = currentStoryTags.lyrics,
             hudCoverGlowBand = coverGlowBand(),
@@ -12624,6 +12649,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val UNKNOWN_ARTIST = "Невідомий виконавець"
         private const val KEY_COVER_BOX_FALLBACK = "pulsedeck.cover_box_fallback"
         private const val KEY_COVER_BOX_MODE = "pulsedeck.cover_box_mode"
+        private const val KEY_COVER_MIX = "pulsedeck.cover_mix"
         private const val KEY_COVER_GLOW_BAND = "pulsedeck.cover_glow_band"
         private const val KEY_STORY_LANGUAGE = "pulsedeck.story_language"
         private const val KEY_EXPORT_PAUSE_MUSIC = "pause_music_during_export"

@@ -70,4 +70,18 @@ class CoverBoxContentTest {
         assertFalse(CoverBoxContent.isHeading(parts[0]))
         assertTrue(CoverBoxContent.resolve(CoverBoxMode.LYRICS, true, null, "la").lyrics)
     }
+
+    @Test fun mixPutsTextOverThePicture() {
+        val m = CoverBoxMode.MIX
+        assertEquals(CoverBoxChoice(CoverBoxShow.TEXT, "s", false, pictureUnder = true), CoverBoxContent.resolve(m, true, "s", "l"))
+        // story not ticked → the words over the picture
+        assertEquals(CoverBoxChoice(CoverBoxShow.TEXT, "l", true, pictureUnder = true), CoverBoxContent.resolve(m, true, "s", "l", CoverMix(true, false, true)))
+        // no text in the song → just the picture; nothing → hidden
+        assertEquals(CoverBoxShow.PICTURE, CoverBoxContent.resolve(m, true, null, null).show)
+        assertEquals(CoverBoxShow.HIDDEN, CoverBoxContent.resolve(m, false, null, null).show)
+        // picture not ticked → text alone
+        assertEquals(CoverBoxChoice(CoverBoxShow.TEXT, "s"), CoverBoxContent.resolve(m, true, "s", null, CoverMix(false, true, false)))
+        assertEquals(CoverMix(true, false, true), CoverMix.decode(CoverMix(true, false, true).encode()))
+        assertEquals(CoverMix(), CoverMix.decode("x"))
+    }
 }

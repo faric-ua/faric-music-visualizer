@@ -80,6 +80,8 @@ data class CompositionStageTiming(
     val effectsMs: Long,
     val pulseDeckUpdateMs: Long,
     val pulseDeckDrawMs: Long,
+    /** V174: HUD draw split into parts (name, ms). */
+    val pulseDeckParts: List<Pair<String, Long>> = emptyList(),
 )
 
 class CompositionExportRenderer(
@@ -272,6 +274,7 @@ class CompositionExportRenderer(
                 pulseDeckUpdateNs / 1_000_000L,
             pulseDeckDrawMs =
                 pulseDeckDrawNs / 1_000_000L,
+            pulseDeckParts = pulseDeckView?.drawPartsMs().orEmpty(),
         )
 
     fun gpuCyberSharkGlow():

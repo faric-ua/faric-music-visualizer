@@ -13300,6 +13300,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             stages.pulseDeckDrawMs,
                         )
                         append(" ms")
+                        // V174: where the HUD time goes (the biggest first).
+                        stages.pulseDeckParts.filter { it.second > 0L }.sortedByDescending { it.second }.forEach { (name, ms) ->
+                            append("\n  · ").append(name).append(": ").append(ms).append(" ms")
+                        }
                     }
 
                 append("\n\n" + com.saney.musicvisualizer.export.ExportFolders.VIDEO)

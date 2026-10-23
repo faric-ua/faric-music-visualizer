@@ -227,6 +227,24 @@ class PulseDeckMainSkinView(
      * Draw [block] moved / resized as faric set the group; taps follow the drawing.
      * V123: a part can also be see-through ([LayoutAdjust.alpha]) or switched off ([LayoutAdjust.hidden]).
      */
+    /**
+     * V174 (замір 23.10 20:10: HUD draw у відео 38,8 мс/кадр, було 14–18): where the HUD's drawing time
+     * goes, part by part — added up over all frames, read by the export report.
+     */
+    private val drawPartNs = LongArray(DRAW_PART_NAMES.size)
+
+    private inline fun timedPart(
+        index: Int,
+        block: () -> Unit,
+    ) {
+        val started = System.nanoTime()
+        block()
+        drawPartNs[index] += System.nanoTime() - started
+    }
+
+    /** V174: (name, ms) of each HUD part since the view was made. */
+    fun drawPartsMs(): List<Pair<String, Long>> = DRAW_PART_NAMES.mapIndexed { i, name -> name to drawPartNs[i] / 1_000_000L }
+
     private inline fun withGroup(
         canvas: Canvas,
         groupId: String?,
@@ -491,11 +509,13 @@ class PulseDeckMainSkinView(
         if (group != null) canvas.concat(coverInverse)
         val alpha = coverAlpha
         val radius = minOf(panel.width(), panel.height()) * if (choice.show == CoverBoxShow.TEXT) 0.06f else 0.09f
-        drawCoverGlow(canvas, panel, radius, alpha)
+        timedPart(PART_GLOW) { drawCoverGlow(canvas, panel, radius, alpha) }
         // V141: the equalizer round the tile (under the tile — it grows outward from the edge).
-        edgeRenderer.draw(canvas, panel, radius, spectrumForEdge(), marqueeClockMs ?: SystemClock.uptimeMillis(), alpha, w)
+        timedPart(PART_EDGE) {
+            edgeRenderer.draw(canvas, panel, radius, spectrumForEdge(), marqueeClockMs ?: SystemClock.uptimeMillis(), alpha, w)
+        }
         when (choice.show) {
-            CoverBoxShow.PICTURE -> art?.let { drawCoverPicture(canvas, panel, radius, it, alpha) }
+            CoverBoxShow.PICTURE -> art?.let { timedPart(PART_PICTURE) { drawCoverPicture(canvas, panel, radius, it, alpha) } }
             CoverBoxShow.TEXT -> {
                 // V167 (скрін faric 23.10 18:48: «внутрішня частина з прямими кутами… закруглити й
                 // маленьку окантовку»): a thin dark border ring, and everything inside — picture, veil,
@@ -513,8 +533,8 @@ class PulseDeckMainSkinView(
                 canvas.drawPath(coverRingPath, coverPaint)
                 // V142: «Разом» — the picture underneath, the text going over it on a lighter veil.
                 val under = if (choice.pictureUnder) art else null
-                if (under != null) drawCoverPicture(canvas, inner, innerRadius, under, alpha)
-                drawCoverText(canvas, inner, innerRadius, w, choice, alpha)
+                if (under != null) timedPart(PART_PICTURE) { drawCoverPicture(canvas, inner, innerRadius, under, alpha) }
+                timedPart(PART_TEXT) { drawCoverText(canvas, inner, innerRadius, w, choice, alpha) }
             }
             else -> {
                 coverPaint.shader = null
@@ -1574,19 +1594,23 @@ class PulseDeckMainSkinView(
         hitTargets.clear()
         resolvedRects.clear()
 
-        drawSubsystemLayers(
-            canvas = canvas,
-            subsystem = PulseDeckSubsystem.ATMOSPHERE,
-            w = w,
-            h = h,
-        )
-        drawSubsystemLayers(
-            canvas = canvas,
-            subsystem = PulseDeckSubsystem.REACTOR,
-            w = w,
-            h = h,
-        )
+        timedPart(PART_BACK) {
+            drawSubsystemLayers(
+                canvas = canvas,
+                subsystem = PulseDeckSubsystem.ATMOSPHERE,
+                w = w,
+                h = h,
+            )
+            drawSubsystemLayers(
+                canvas = canvas,
+                subsystem = PulseDeckSubsystem.REACTOR,
+                w = w,
+                h = h,
+            )
+        }
 
+        val coverParts = drawPartNs[PART_GLOW] + drawPartNs[PART_EDGE] + drawPartNs[PART_PICTURE] + drawPartNs[PART_TEXT]
+        val coverStarted = System.nanoTime()
         withGroup(canvas, "cover", w, h) {
             drawCoverBox(
                 canvas = canvas,
@@ -1594,7 +1618,10 @@ class PulseDeckMainSkinView(
                 h = h,
             )
         }
+        val coverInside = drawPartNs[PART_GLOW] + drawPartNs[PART_EDGE] + drawPartNs[PART_PICTURE] + drawPartNs[PART_TEXT] - coverParts
+        drawPartNs[PART_COVER_REST] += (System.nanoTime() - coverStarted - coverInside).coerceAtLeast(0L)
 
+        val panelsStarted = System.nanoTime()
         drawSubsystemLayers(
             canvas = canvas,
             subsystem = PulseDeckSubsystem.TRACK_UI,
@@ -1619,28 +1646,33 @@ class PulseDeckMainSkinView(
             w = w,
             h = h,
         )
+        drawPartNs[PART_PANELS] += System.nanoTime() - panelsStarted
 
         if (controlsAlpha > 0.01f) {
-            drawDynamicText(
-                canvas = canvas,
-                w = w,
-                h = h,
-            )
-            withGroup(canvas, "progress", w, h) {
-                if (equalizerVisible) {
-                    drawFrequencySpectrum(
-                        canvas = canvas,
-                        w = w,
-                        h = h,
-                    )
-                }
-                drawProgressThumb(
+            timedPart(PART_TITLE) {
+                drawDynamicText(
                     canvas = canvas,
                     w = w,
                     h = h,
                 )
             }
-            withGroup(canvas, "info", w, h) { drawFileInfo(canvas, w, h) }
+            timedPart(PART_PROGRESS) {
+                withGroup(canvas, "progress", w, h) {
+                    if (equalizerVisible) {
+                        drawFrequencySpectrum(
+                            canvas = canvas,
+                            w = w,
+                            h = h,
+                        )
+                    }
+                    drawProgressThumb(
+                        canvas = canvas,
+                        w = w,
+                        h = h,
+                    )
+                }
+            }
+            timedPart(PART_INFO) { withGroup(canvas, "info", w, h) { drawFileInfo(canvas, w, h) } }
         }
         rememberGroupBounds()
 
@@ -3703,6 +3735,31 @@ class PulseDeckMainSkinView(
         const val COVER_DISLIKE_ID = "cover_dislike"
         const val COVER_MORE_ID = "cover_more"
         const val COVER_BOX_ID = "cover_box"
+
+        /** V174: the HUD parts timed for the export report (index = PART_*). */
+        val DRAW_PART_NAMES =
+            listOf(
+                "фон і реактор",
+                "рамка: світіння",
+                "рамка: окантовка-EQ",
+                "рамка: картинка",
+                "рамка: текст і затемнення",
+                "рамка: решта (бортик, 👍 👎 ⋮)",
+                "панелі й кнопки",
+                "назва й виконавець",
+                "смуга, час, спектр",
+                "інфо про файл",
+            )
+        private const val PART_BACK = 0
+        private const val PART_GLOW = 1
+        private const val PART_EDGE = 2
+        private const val PART_PICTURE = 3
+        private const val PART_TEXT = 4
+        private const val PART_COVER_REST = 5
+        private const val PART_PANELS = 6
+        private const val PART_TITLE = 7
+        private const val PART_PROGRESS = 8
+        private const val PART_INFO = 9
 
         /** V167: the transparent edge round the picture of the story text. */
         private const val TEXT_BITMAP_PAD = 2

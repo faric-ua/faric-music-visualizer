@@ -5651,7 +5651,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMPresetListCentred = current
         val rowHeight = dp(56)
         val offset = ((list.height - rowHeight) / 2).coerceAtLeast(0)
-        if (force) list.setSelectionFromTop(index, offset) else list.smoothScrollToPositionFromTop(index, offset, 350)
+        // V160 (faric 23.10 17:36: «крутиться, як барабан лотереї, не встигає»): far jumps (🔀 in a list of
+        // thousands) and AUTO 5 с — at once; 10 с — a short glide; 15 с and longer — a slower one.
+        val state = ProjectMStateStore(this)
+        val far = kotlin.math.abs(list.firstVisiblePosition - index) > 30
+        val fast = state.autoEnabled && state.autoSwitchSeconds <= 5
+        when {
+            force || far || fast -> list.setSelectionFromTop(index, offset)
+            state.autoEnabled && state.autoSwitchSeconds <= 10 -> list.smoothScrollToPositionFromTop(index, offset, 250)
+            else -> list.smoothScrollToPositionFromTop(index, offset, 600)
+        }
     }
 
     private fun updateLoadMeter(meter: com.saney.musicvisualizer.ui.LoadMeterView) {

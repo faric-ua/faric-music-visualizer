@@ -270,7 +270,12 @@ object CrashJournal {
                     description = info.description,
                     pssKb = info.pss,
                     rssKb = info.rss,
-                    trace = if (info.reason == ApplicationExitInfo.REASON_ANR) readTrace(info) else null,
+                    trace =
+                        when (info.reason) {
+                            ApplicationExitInfo.REASON_ANR -> readTrace(info)
+                            ApplicationExitInfo.REASON_CRASH_NATIVE -> readTombstone(info)
+                            else -> null
+                        },
                 )
             }
         }.getOrElse {
@@ -285,6 +290,22 @@ object CrashJournal {
                 val bytes = ByteArray(CrashReport.MAX_TRACE_CHARS)
                 val read = stream.read(bytes)
                 if (read > 0) String(bytes, 0, read, Charsets.UTF_8) else null
+            }
+        }.getOrNull()
+
+    /** V168: where a C++ crash happened — signal, thread and the first frames (Android 12+). */
+    private fun readTombstone(info: ApplicationExitInfo): String? =
+        runCatching {
+            if (android.os.Build.VERSION.SDK_INT < android.os.Build.VERSION_CODES.S) return@runCatching null
+            info.traceInputStream?.use { stream ->
+                val out = java.io.ByteArrayOutputStream()
+                val buffer = ByteArray(16 * 1024)
+                while (out.size() < 4 * 1024 * 1024) {
+                    val n = stream.read(buffer)
+                    if (n <= 0) break
+                    out.write(buffer, 0, n)
+                }
+                NativeTombstone.summary(out.toByteArray())
             }
         }.getOrNull()
 

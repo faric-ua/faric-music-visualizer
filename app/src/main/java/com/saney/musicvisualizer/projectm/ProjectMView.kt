@@ -148,6 +148,7 @@ class ProjectMView(
         get() = File(currentPresetPath)
 
     init {
+        GpuTimerGate.init(context)
         setEGLContextClientVersion(2)
         setRenderer(
             Renderer(

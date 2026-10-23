@@ -745,10 +745,6 @@ class PulseDeckMainSkinView(
     private var coverTextBitmap: Bitmap? = null
     private var coverTextBitmapKey: String? = null
     private val coverTextBitmapPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
-    private var coverTextShader: android.graphics.BitmapShader? = null
-    private var coverTextShaderBitmap: Bitmap? = null
-    private val coverTextMatrix = android.graphics.Matrix()
-    private val coverTextWindow = RectF()
     private val coverRingPath = android.graphics.Path()
 
     /**
@@ -798,23 +794,15 @@ class PulseDeckMainSkinView(
         if (bitmap != null) {
             // V148 (faric 23.10 02:54: «інколи ривками»): letters drawn straight snap to whole pixels, so a
             // slow crawl moved in 1-pixel hops; a filtered picture of the text glides between pixels.
-            // V167: drawn as a pattern inside a rounded window (no square clip, no square bitmap edge).
-            val shader =
-                coverTextShader?.takeIf { coverTextShaderBitmap === bitmap }
-                    ?: android.graphics.BitmapShader(bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also {
-                        coverTextShader = it
-                        coverTextShaderBitmap = bitmap
-                    }
-            coverTextMatrix.reset()
-            coverTextMatrix.setTranslate(panel.left + padX - TEXT_BITMAP_PAD, top - TEXT_BITMAP_PAD)
-            shader.setLocalMatrix(coverTextMatrix)
-            coverTextWindow.set(panel.left + padX * 0.5f, panel.top + padY * 0.5f, panel.right - padX * 0.5f, panel.bottom - padBottom)
-            val windowRadius = (radius - padX * 0.5f).coerceAtLeast(resources.displayMetrics.density * 4f)
-            coverTextBitmapPaint.shader = shader
+            // V168 (падіння v0.21.27 при переході на центр): back to the plain drawBitmap of V148 (the V167
+            // pattern-in-a-rounded-window was the only new drawing there). The text window lies well inside
+            // the rounded inner tile, so its straight edges never reach the corners.
+            val clip = canvas.save()
+            canvas.clipRect(panel.left + padX * 0.5f, panel.top + padY * 0.5f, panel.right - padX * 0.5f, panel.bottom - padBottom)
             coverTextBitmapPaint.color = Color.rgb(176, 216, 242)
             coverTextBitmapPaint.alpha = textAlpha
-            canvas.drawRoundRect(coverTextWindow, windowRadius, windowRadius, coverTextBitmapPaint)
-            coverTextBitmapPaint.shader = null
+            canvas.drawBitmap(bitmap, panel.left + padX - TEXT_BITMAP_PAD, top - TEXT_BITMAP_PAD, coverTextBitmapPaint)
+            canvas.restoreToCount(clip)
         } else {
             val clip = canvas.save()
             canvas.clipRect(panel.left + padX, panel.top + padY, panel.right - padX, panel.bottom - padBottom)
@@ -832,14 +820,15 @@ class PulseDeckMainSkinView(
         key: String,
     ): Bitmap? {
         coverTextBitmap?.takeIf { coverTextBitmapKey == key && !it.isRecycled }?.let { return it }
-        coverTextBitmap?.recycle()
+        // V168: no recycle() — the screen's drawing thread may still hold the old picture; the memory
+        // is freed by itself once nothing uses it.
         coverTextBitmap = null
         coverTextBitmapKey = key
         if (layout.width <= 0 || layout.height <= 0 || layout.height > 8_000) return null
         // V167: coloured letters on a fully transparent picture (no grey box on any phone), with a
         // transparent edge of TEXT_BITMAP_PAD px so the stretched edge of the pattern stays empty. Very
         // long texts keep the lighter alpha-only picture, tinted by the paint.
-        val full = layout.height <= 6_000
+        val full = layout.height <= 4_000
         return runCatching {
             Bitmap
                 .createBitmap(

@@ -22,6 +22,7 @@ internal class GpuFrameTimer {
     private var active = -1
     private var sumNs = 0L
     private var count = 0
+    private var goodResults = 0
 
     val isExact: Boolean
         get() = supported == true
@@ -79,12 +80,18 @@ internal class GpuFrameTimer {
             if (ns in 1L..MAX_SANE_NS) {
                 sumNs += ns
                 count++
+                if (++goodResults == GpuTimerGate.GOOD_RESULTS_FOR_OK) GpuTimerGate.markOk()
             }
         }
     }
 
     private fun ensureSupported(): Boolean {
         supported?.let { return it }
+        // V168: a phone where the timer once crashed the app never uses it again.
+        if (!GpuTimerGate.allowed) {
+            supported = false
+            return false
+        }
         val ok =
             runCatching {
                 val version = GLES20.glGetString(GLES20.GL_VERSION).orEmpty()
@@ -92,6 +99,7 @@ internal class GpuFrameTimer {
                 if (!version.contains("OpenGL ES 3") || !extensions.contains("GL_EXT_disjoint_timer_query")) {
                     return@runCatching false
                 }
+                GpuTimerGate.markTrying()
                 while (GLES20.glGetError() != GLES20.GL_NO_ERROR) {
                     // clear what projectM left, so the check below is only about the queries
                 }

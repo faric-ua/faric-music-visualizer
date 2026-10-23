@@ -48,22 +48,49 @@ RUN_ID=""
 BUILD_SHA=""
 ARTIFACT=""
 
-while IFS=$'\t' read -r candidate_run candidate_sha; do
-  [ -n "$candidate_run" ] || continue
-  [ -n "$candidate_sha" ] || continue
-
-  if ! git cat-file -e "$candidate_sha^{commit}" 2>/dev/null; then
-    git fetch -q origin "$candidate_sha" || true
+# The APK built from commit $1 is the APK of HEAD: same branch history, nothing in the app changed since.
+source_matches() {
+  local sha="$1"
+  if ! git cat-file -e "$sha^{commit}" 2>/dev/null; then
+    git fetch -q origin "$sha" || true
   fi
-
-  git merge-base --is-ancestor "$candidate_sha" "$HEAD_SHA" 2>/dev/null || continue
-
-  git diff --quiet "$candidate_sha" "$HEAD_SHA" -- \
+  git merge-base --is-ancestor "$sha" "$HEAD_SHA" 2>/dev/null || return 1
+  git diff --quiet "$sha" "$HEAD_SHA" -- \
     app \
     build.gradle.kts \
     settings.gradle.kts \
     gradle.properties \
-    .github/workflows/android.yml || continue
+    .github/workflows/android.yml || return 1
+  return 0
+}
+
+TMP_RELEASE="$PREFIX/tmp/faric-music-visualizer-apk-release"
+FROM_RELEASE=0
+
+# V177 (faric 23.10 21:00–21:03: «10 хвилин чекаю, поки він APK віддасть»): every main build also puts
+# the APK into the release «phone-build» — a plain file download (seconds), unlike the Actions artifact.
+# The release says which commit it was built from; the artifact stays as the fallback.
+release_sha="$(gh release view phone-build --repo "$REPO" --json body --jq '.body' 2>/dev/null | sed -n 's/.*commit \([0-9a-f]\{40\}\).*/\1/p' | head -n 1 || true)"
+if [ -n "$release_sha" ] && source_matches "$release_sha"; then
+  echo "Завантажую APK v$VERSION з релізу phone-build (швидко)…"
+  rm -rf "$TMP_RELEASE"
+  mkdir -p "$TMP_RELEASE"
+  if command -v timeout >/dev/null 2>&1; then rlimit="timeout 120"; else rlimit=""; fi
+  if $rlimit gh release download phone-build --repo "$REPO" --pattern "FARIC-Music-Visualizer-v${VERSION}-debug.apk*" --dir "$TMP_RELEASE" \
+    && [ -f "$TMP_RELEASE/FARIC-Music-Visualizer-v${VERSION}-debug.apk" ]; then
+    FROM_RELEASE=1
+    BUILD_SHA="$release_sha"
+    RUN_ID="реліз phone-build"
+  else
+    echo "З релізу не вийшло — беру з GitHub Actions."
+  fi
+fi
+
+while [ "$FROM_RELEASE" = 0 ] && IFS=$'\t' read -r candidate_run candidate_sha; do
+  [ -n "$candidate_run" ] || continue
+  [ -n "$candidate_sha" ] || continue
+
+  source_matches "$candidate_sha" || continue
 
   candidate_artifact="$(gh api "repos/$REPO/actions/runs/$candidate_run/artifacts" --jq '.artifacts[] | select(.expired == false) | .name' | grep "^FARIC-Music-Visualizer-v${VERSION}-Debug$" | head -n 1 || true)"
   [ -n "$candidate_artifact" ] || continue
@@ -89,6 +116,9 @@ if [ -z "$RUN_ID" ]; then
   exit 1
 fi
 
+if [ "$FROM_RELEASE" = 1 ]; then
+  TMP="$TMP_RELEASE"
+else
 echo "Знайдено Android run $RUN_ID"
 echo "Artifact: $ARTIFACT"
 echo
@@ -118,6 +148,7 @@ done
 if [ "$downloaded" != 1 ]; then
   echo "Не вдалось завантажити APK. Перевір інтернет і повтори пункт 8."
   exit 1
+fi
 fi
 
 APK="$TMP/FARIC-Music-Visualizer-v${VERSION}-debug.apk"

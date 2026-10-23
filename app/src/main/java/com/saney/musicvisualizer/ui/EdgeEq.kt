@@ -193,6 +193,18 @@ object EdgeEqMath {
         fall: Float = 0.15f,
     ): Float = if (target > old) old + (target - old) * 0.6f else old * (1f - fall) + target * fall
 
+    /**
+     * V181 (faric 23.10 22:28: «палочки навколо квадрата — щоб реагували так класно, як еквалайзер унизу,
+     * а то щось настраюю, а вони ніфіга»): the bars used to grow 0,6 % + 5 % × level and hit the frame's
+     * limit already at a medium level — most of the time all of them stood near the top, and «Реакція»
+     * changed nothing you could see. Now the same curve as the equalizer under the song: quiet stays
+     * short, peaks shoot up (level² × 0,72 + level × 0,28), and the whole room up to the limit is used.
+     */
+    fun shape(level: Float): Float {
+        val x = level.coerceIn(0f, 1f)
+        return x * x * 0.72f + x * 0.28f
+    }
+
     /** The turn for the clock: [scroll] 100 → one full turn every 10 s. Result 0…1. */
     fun turn(
         clockMs: Long,

@@ -6,6 +6,15 @@ import org.junit.Test
 import kotlin.math.abs
 
 class EdgeEqTest {
+    @Test fun barsUseTheBottomEqualizerCurve() {
+        assertEquals(0f, EdgeEqMath.shape(0f), 1e-5f)
+        assertEquals(1f, EdgeEqMath.shape(1f), 1e-5f)
+        assertEquals(1f, EdgeEqMath.shape(3f), 1e-5f)
+        // a medium level stays clearly below the top — room to jump on a peak
+        assertEquals(0.32f, EdgeEqMath.shape(0.5f), 1e-5f)
+        assertEquals(0.0582f, EdgeEqMath.shape(0.15f), 1e-4f)
+    }
+
     @Test fun solidColourStepsMatchTheSweep() {
         val c = intArrayOf(0xFF000000.toInt(), 0xFFFFFFFF.toInt(), 0xFF000000.toInt())
         assertEquals(0xFF000000.toInt(), EdgeEqMath.colorAt(c, 0f))

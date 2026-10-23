@@ -65,8 +65,10 @@ class EdgeEqRenderer {
             for (i in 0 until n) {
                 val u = i.toFloat() / n + turn
                 val raw = spectrum[EdgeEqMath.band(u, spectrum.size)] * s.bars.reaction / 100f
-                barLevels[i] = EdgeEqMath.smooth(barLevels[i], raw.coerceIn(0f, 1.4f))
-                val len = (unit * (0.006f + 0.05f * barLevels[i])).coerceAtMost(reach - gap)
+                barLevels[i] = EdgeEqMath.smooth(barLevels[i], raw.coerceIn(0f, 1f), 0.25f)
+                // V181: from a short stub to the frame's limit, with the bottom equalizer's curve.
+                val minLen = unit * 0.004f
+                val len = minLen + (reach - gap - minLen).coerceAtLeast(0f) * EdgeEqMath.shape(barLevels[i])
                 barTips[i] = gap + len
                 val x = ring[i * 4]
                 val y = ring[i * 4 + 1]
@@ -95,8 +97,8 @@ class EdgeEqRenderer {
             for (i in 0 until n) {
                 val u = i.toFloat() / n + turn
                 val raw = spectrum[EdgeEqMath.band(u, spectrum.size, 0.55f, 1f)] * s.dots.reaction / 100f
-                dotLevels[i] = EdgeEqMath.smooth(dotLevels[i], raw.coerceIn(0f, 1.4f), 0.22f)
-                val k = (dotLevels[i] * maxDots).toInt().coerceIn(0, maxDots)
+                dotLevels[i] = EdgeEqMath.smooth(dotLevels[i], raw.coerceIn(0f, 1f), 0.25f)
+                val k = (EdgeEqMath.shape(dotLevels[i]) * maxDots + 0.5f).toInt().coerceIn(0, maxDots)
                 val base =
                     barTips?.let { tips -> tips[(i.toLong() * tips.size / n).toInt().coerceIn(0, tips.lastIndex)] }
                         ?: gap
@@ -130,8 +132,8 @@ class EdgeEqRenderer {
             for (i in 0 until n) {
                 val u = i.toFloat() / n + turn
                 val raw = spectrum[EdgeEqMath.band(u, spectrum.size, 0.15f, 0.6f)] * s.wave.reaction / 100f
-                waveLevels[i] = EdgeEqMath.smooth(waveLevels[i], raw.coerceIn(0f, 1.4f), 0.08f)
-                val d = (gap + unit * 0.055f * waveLevels[i]).coerceAtMost(reach)
+                waveLevels[i] = EdgeEqMath.smooth(waveLevels[i], raw.coerceIn(0f, 1f), 0.12f)
+                val d = gap + (reach - gap).coerceAtLeast(0f) * EdgeEqMath.shape(waveLevels[i])
                 waveXy[i * 2] = ring[i * 4] + ring[i * 4 + 2] * d
                 waveXy[i * 2 + 1] = ring[i * 4 + 1] + ring[i * 4 + 3] * d
             }

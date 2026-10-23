@@ -45,6 +45,13 @@ class CoverBoxContentTest {
         assertEquals("Трек", StoryText.compose(SongStoryTags(trackUk = "Трек"), StoryLanguage.BOTH))
         assertEquals("Track", StoryText.compose(SongStoryTags(trackEn = "Track"), StoryLanguage.BOTH))
         assertEquals(StoryLanguage.BOTH, StoryLanguage.fromCode("both"))
+        // V173: swapped
+        assertEquals(
+            "Track\n\n— About the album —\n\nAlbum\n\n— Українською —\n\nТрек\n\n— Про альбом —\n\nАльбом",
+            StoryText.compose(tags, StoryLanguage.BOTH_EN_FIRST),
+        )
+        assertTrue(CoverBoxContent.isHeading(StoryText.UKRAINIAN_HEADER))
+        assertEquals(StoryLanguage.BOTH_EN_FIRST, StoryLanguage.fromCode("both_en"))
     }
 
     @Test fun storyComposesTrackThenAlbumAndFallsBackToOtherLanguage() {

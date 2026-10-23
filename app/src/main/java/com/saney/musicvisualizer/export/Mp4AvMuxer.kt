@@ -30,12 +30,13 @@ object Mp4AvMuxer {
         outputFile: File,
         shouldCancel: () -> Boolean = { false },
         tags: Mp4Tagger.Tags? = null,
+        onProgress: (Float) -> Unit = {},
     ) {
         val muxer = MediaMuxer(
             outputFile.absolutePath,
             MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
         )
-        muxTracks(videoFile, audioFile, muxer, shouldCancel)
+        muxTracks(videoFile, audioFile, muxer, shouldCancel, onProgress)
         if (tags != null && !tags.isEmpty) {
             runCatching {
                 java.io.RandomAccessFile(outputFile, "rw").use { Mp4Tagger.apply(it.channel, it.channel, tags) }
@@ -52,6 +53,7 @@ object Mp4AvMuxer {
         shouldCancel: () -> Boolean = { false },
         relativePath: String = DEFAULT_RELATIVE_PATH,
         tags: Mp4Tagger.Tags? = null,
+        onProgress: (Float) -> Unit = {},
     ): Uri {
         require(Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
             "MediaStore pending video requires Android Q+"
@@ -74,7 +76,7 @@ object Mp4AvMuxer {
                     it.fileDescriptor,
                     MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4,
                 )
-                muxTracks(videoFile, audioFile, muxer, shouldCancel)
+                muxTracks(videoFile, audioFile, muxer, shouldCancel, onProgress)
                 // V93: song tags (title, artist, album, cover) into the finished MP4. Streams over the
                 // MediaStore descriptor are not closed here — the ParcelFileDescriptor owns it.
                 if (tags != null && !tags.isEmpty) {
@@ -107,6 +109,7 @@ object Mp4AvMuxer {
         audioFile: File,
         muxer: MediaMuxer,
         shouldCancel: () -> Boolean,
+        onProgress: (Float) -> Unit,
     ) {
         val videoExtractor = MediaExtractor()
         val audioExtractor = MediaExtractor()
@@ -131,8 +134,10 @@ object Mp4AvMuxer {
             if (shouldCancel()) throw CancellationException("Export cancelled")
             muxer.start()
             muxerStarted = true
-            copyTrack(videoExtractor, muxer, videoMuxTrack, shouldCancel)
-            copyTrack(audioExtractor, muxer, audioMuxTrack, shouldCancel)
+            // V172: progress by bytes copied (the picture is almost all of them).
+            val total = (videoFile.length() + audioFile.length()).coerceAtLeast(1L).toFloat()
+            val videoBytes = copyTrack(videoExtractor, muxer, videoMuxTrack, shouldCancel) { bytes -> onProgress(bytes / total) }
+            copyTrack(audioExtractor, muxer, audioMuxTrack, shouldCancel) { bytes -> onProgress((videoBytes + bytes) / total) }
             if (shouldCancel()) throw CancellationException("Export cancelled")
             muxer.stop()
             muxerStarted = false
@@ -156,10 +161,12 @@ object Mp4AvMuxer {
         muxer: MediaMuxer,
         targetTrack: Int,
         shouldCancel: () -> Boolean,
-    ) {
+        onBytes: (Long) -> Unit = {},
+    ): Long {
         val buffer = ByteBuffer.allocateDirect(4 * 1024 * 1024)
         val info = MediaCodec.BufferInfo()
         var copied = 0L
+        var bytes = 0L
         while (true) {
             if (shouldCancel()) throw CancellationException("Export cancelled")
             buffer.clear()
@@ -174,8 +181,12 @@ object Mp4AvMuxer {
             buffer.limit(size)
             muxer.writeSampleData(targetTrack, buffer, info)
             copied++
+            bytes += size
+            if (copied % 30L == 0L) onBytes(bytes)
             if (!extractor.advance()) break
         }
         check(copied > 0L) { "MP4 mux input track had no samples" }
+        onBytes(bytes)
+        return bytes
     }
 }

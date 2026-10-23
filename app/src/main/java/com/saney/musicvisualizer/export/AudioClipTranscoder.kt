@@ -33,6 +33,8 @@ object AudioClipTranscoder {
         durationMs: Long,
         outputFile: File,
         shouldCancel: () -> Boolean = { false },
+        /** V172: 0–1, how much of the clip's sound is already encoded. */
+        onProgress: (Float) -> Unit = {},
     ): Result {
         val extractor = MediaExtractor()
         extractor.setDataSource(
@@ -201,6 +203,8 @@ object AudioClipTranscoder {
             // also while waiting for its input. A WAV decoder hands over big PCM buffers that
             // need several encoder inputs; if nobody empties the encoder output meanwhile, the
             // encoder never frees an input buffer and the export waits forever.
+            var firstOutputPtsUs = -1L
+            var writtenSamples = 0
             fun drainEncoderOutput() {
                 while (true) {
                     when (
@@ -266,6 +270,10 @@ object AudioClipTranscoder {
                                         outputBuffer,
                                         encoderInfo,
                                     )
+                                    if (firstOutputPtsUs < 0L) firstOutputPtsUs = encoderInfo.presentationTimeUs
+                                    if (++writtenSamples % 20 == 0 && durationMs > 0L) {
+                                        onProgress((encoderInfo.presentationTimeUs - firstOutputPtsUs) / (durationMs * 1000f))
+                                    }
                                 }
 
                                 encoderOutputDone =

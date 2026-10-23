@@ -10061,8 +10061,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 android.R.attr
                     .progressBarStyleHorizontal,
             ).apply {
+                // V172: tenths of a percent.
                 max =
-                    100
+                    1000
                 progress =
                     0
             }
@@ -10140,6 +10141,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
 
         var lastLoggedDecile = -1
+        fun updateProgressFine(
+            progress: Float,
+            status: String,
+        ) {
+            val whole = progress.toInt().coerceIn(0, 100)
+            CrashJournal.exportProgress(this, whole, status)
+            val decile = whole / 10
+            if (decile != lastLoggedDecile) {
+                lastLoggedDecile = decile
+                Log.i("FARIC-export", "Render progress " + decile * 10 + "%")
+            }
+            runOnUiThread {
+                if (!isFinishing) {
+                    // V172: the bar counts tenths of a percent — it moves every few seconds, not every 5.
+                    progressBar.progress = (progress * 10f).toInt().coerceIn(0, 1000)
+                    progressStatus.text = status
+                }
+            }
+        }
+
         fun updateProgress(
             progress: Int,
             status: String,
@@ -10157,7 +10178,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             .coerceIn(
                                 0,
                                 100,
-                            )
+                            ) * 10
                     progressStatus.text =
                         status
                 }
@@ -10465,6 +10486,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 val renderSpan =
                     100 -
                         pcmPrepWeight
+                val exportWorkStartedMs = android.os.SystemClock.uptimeMillis()
 
                 val projectMAvailableMs =
                     (
@@ -10846,20 +10868,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     },
                     onProgress = {
                             progress ->
-                        val mapped =
-                            pcmPrepWeight +
-                                progress *
-                                    renderSpan /
-                                    100
-                        val stage = when {
-                            progress < 78 -> "Рендерю відео"
-                            progress < 92 -> "Кодую аудіо"
-                            progress < 100 -> "Збираю та зберігаю MP4"
-                            else -> "MP4 успішно збережено"
-                        }
-                        updateProgress(
+                        // V172: tenths of a percent, each stage its share of the time, and «лишилось ~…».
+                        val mapped = pcmPrepWeight + progress * renderSpan / 100f
+                        val stage = com.saney.musicvisualizer.export.ExportProgress.stage(progress)
+                        val left =
+                            com.saney.musicvisualizer.export.ExportProgress.remaining(
+                                android.os.SystemClock.uptimeMillis() - exportWorkStartedMs,
+                                mapped,
+                                startPercent = pcmPrepWeight.toFloat(),
+                            )
+                        updateProgressFine(
                             mapped,
-                            stage + " · " + mapped + "%",
+                            stage + " · " + mapped.toInt() + "%" + (left?.let { " · $it" } ?: ""),
                         )
                     },
                 )

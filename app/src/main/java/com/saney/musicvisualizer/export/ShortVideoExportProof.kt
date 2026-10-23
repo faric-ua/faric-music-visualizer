@@ -140,7 +140,8 @@ object ShortVideoExportProof {
         shouldCancel: () -> Boolean = {
             false
         },
-        onProgress: (Int) -> Unit = {},
+        /** V172: 0–100 with tenths — [ExportProgress] shares (picture · sound · file). */
+        onProgress: (Float) -> Unit = {},
     ): Result {
         val totalStartedNs =
             System.nanoTime()
@@ -1338,16 +1339,7 @@ object ShortVideoExportProof {
                     System.nanoTime() -
                         encoderStartedNs
 
-                onProgress(
-                    (
-                        (frameIndex + 1) *
-                            75 /
-                            frameCount
-                        ).coerceIn(
-                        0,
-                        99,
-                    ),
-                )
+                onProgress(ExportProgress.render(frameIndex + 1, frameCount))
             }
             } catch (cancel: CancellationException) {
                 bookFrameTime(System.nanoTime())
@@ -1397,7 +1389,7 @@ object ShortVideoExportProof {
                 // Drain until EOS.
             }
 
-            onProgress(78)
+            onProgress(ExportProgress.RENDER_END)
         } finally {
             bitmap.recycle()
             overlayBitmap
@@ -1457,6 +1449,7 @@ object ShortVideoExportProof {
                 durationMs = durationMs,
                 outputFile = audioTemp,
                 shouldCancel = shouldCancel,
+                onProgress = { fraction -> onProgress(ExportProgress.audio(fraction)) },
             )
             check(audioTemp.length() > 0L) { "AAC transcode produced an empty file" }
             Log.i("FARIC-export", "AAC transcoding finished bytes=" + audioTemp.length())
@@ -1468,7 +1461,7 @@ object ShortVideoExportProof {
                     ) /
                     1_000_000L
 
-            onProgress(92)
+            onProgress(ExportProgress.AUDIO_END)
 
             val finalizingStartedNs = System.nanoTime()
             val displayName = exactDisplayName ?: "$displayNamePrefix-${System.currentTimeMillis()}.mp4"
@@ -1489,6 +1482,7 @@ object ShortVideoExportProof {
                     shouldCancel = shouldCancel,
                     relativePath = relativePath,
                     tags = tags,
+                    onProgress = { fraction -> onProgress(ExportProgress.mux(fraction)) },
                 )
                 muxMs = (System.nanoTime() - finalizingStartedNs) / 1_000_000L
                 publishMs = 0L // Direct FD mux also commits the MediaStore row.
@@ -1499,10 +1493,11 @@ object ShortVideoExportProof {
                     outputFile = muxedTemp,
                     shouldCancel = shouldCancel,
                     tags = tags,
+                    onProgress = { fraction -> onProgress(ExportProgress.mux(fraction) * 0.995f) },
                 )
                 muxMs = (System.nanoTime() - finalizingStartedNs) / 1_000_000L
                 if (shouldCancel()) throw CancellationException("Export cancelled")
-                onProgress(97)
+                onProgress(ExportProgress.MUX_END)
                 val publishingStartedNs = System.nanoTime()
                 uri = publishMp4(
                     context = context,
@@ -1514,7 +1509,7 @@ object ShortVideoExportProof {
             check(uri != null) { "MP4 was not published to ${ExportFolders.VIDEO}" }
             Log.i("FARIC-export", "Final MP4 published: uri=$uri elapsedMs=" +
                 ((System.nanoTime() - finalizingStartedNs) / 1_000_000L))
-            onProgress(100)
+            onProgress(100f)
 
             return Result(
                 uri = uri,

@@ -31,6 +31,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     timeout-minutes: 35
+    # V177: the main build also updates the «phone-build» release (needs write).
+    permissions:
+      contents: write
     env:
       VISUALIZER_DEV_KEYSTORE_B64: ${{ secrets.VISUALIZER_DEV_KEYSTORE_B64 }}
       VISUALIZER_DEV_STORE_PASSWORD: ${{ secrets.VISUALIZER_DEV_STORE_PASSWORD }}
@@ -152,3 +155,28 @@ jobs:
             ${{ env.APK_NAME }}
             ${{ env.APK_NAME }}.sha256
           retention-days: 3
+
+      # V177 (faric 23.10 21:00–21:03: «10 хвилин чекаю, поки він APK віддасть»): the Actions artifact
+      # downloads slowly on the phone; a release file is a plain download. One release, «phone-build»,
+      # always holds just the latest main APK; its notes say the commit (menu 8 checks it).
+      - name: Publish APK to the phone-build release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          TAG=phone-build
+          NOTES="PulseDeck ${APK_NAME} · commit ${GITHUB_SHA} · оновлюється сам після кожної збірки main (меню MUSIC VISUALIZER → 8)."
+          if ! gh release view "$TAG" >/dev/null 2>&1; then
+            gh release create "$TAG" --target "$GITHUB_SHA" --prerelease --title "PulseDeck — останній APK для телефона" --notes "$NOTES"
+          fi
+          gh release upload "$TAG" "$APK_NAME" "$APK_NAME.sha256" --clobber
+          gh release view "$TAG" --json assets --jq '.assets[].name' | while IFS= read -r old; do
+            case "$old" in
+              "$APK_NAME" | "$APK_NAME.sha256") ;;
+              *) gh release delete-asset "$TAG" "$old" -y ;;
+            esac
+          done
+          gh release edit "$TAG" --notes "$NOTES"

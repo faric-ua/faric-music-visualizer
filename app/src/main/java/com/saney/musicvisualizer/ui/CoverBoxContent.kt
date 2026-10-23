@@ -184,6 +184,23 @@ object CoverBoxContent {
         maxBack: Float,
     ): Float = if (target < shown && shown - target <= maxBack) shown else target
 
+    /**
+     * V150 (запис faric 23.10 03:38: «іде плавно, потім хоп — зупинився, далі йде»; кадри: зупинки по
+     * ~0,2 с кожні 2–3 с): the song position also comes in with old snapshots (a screen refresh re-sends
+     * the last one), so the clock was pulled back and the text waited. Now a new position only nudges
+     * the running clock (15 % of the difference); a big difference (seek, new song) or a stop/start
+     * resets it. Returns the clock's position for «now».
+     */
+    fun smoothClock(
+        predictedMs: Long,
+        sampleMs: Long,
+        runningBefore: Boolean,
+        runningNow: Boolean,
+    ): Long {
+        val error = sampleMs - predictedMs
+        return if (!runningBefore || !runningNow || kotlin.math.abs(error) > 1_500L) sampleMs else predictedMs + (error * 0.15f).toLong()
+    }
+
     fun crawlTop(
         fraction: Float,
         innerHeight: Float,

@@ -105,6 +105,21 @@ object EdgePalettes {
 }
 
 object EdgeEqMath {
+    /**
+     * V154 (faric 23.10 13:20, скріни Розкладки й головного: «квадратик не відповідає габаритам —
+     * більше розтягнутий»): the tile itself was the size from «Розкладка», but the equalizer grew
+     * OUTWARD from it (up to ~8 % of the screen width), so the whole thing looked bigger and covered
+     * the title. Now the equalizer lives inside the frame: the tile is made smaller by this much and
+     * every layer stays within it.
+     */
+    const val REACH = 0.055f
+
+    /** How much the tile gives up to the equalizer (0 when it is off). */
+    fun inset(
+        settings: EdgeEqSettings,
+        unit: Float,
+    ): Float = if (settings.on && (settings.bars.enabled || settings.dots.enabled || settings.wave.enabled)) unit * REACH else 0f
+
     /** How many points around the tile for a density 1–100. */
     fun sampleCount(density: Int): Int = 48 + density.coerceIn(1, 100) * 2
 

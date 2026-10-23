@@ -50,6 +50,9 @@ class EdgeEqPreviewView(context: Context) : View(context) {
         }
         val unit = minOf(w, h * 0.56f)
         tile.set(w * 0.22f, h * 0.18f, w * 0.78f, h * 0.82f)
+        // V154: as on the main screen — the equalizer inside the frame.
+        val eq = EdgeEqMath.inset(renderer.settings, unit)
+        tile.inset(eq, eq)
         val radius = minOf(tile.width(), tile.height()) * 0.08f
         renderer.draw(canvas, tile, radius, spectrum, SystemClock.uptimeMillis(), 255, unit)
         tilePaint.color = Color.argb(215, 8, 14, 20)

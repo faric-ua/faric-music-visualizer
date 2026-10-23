@@ -44,6 +44,8 @@ class EdgeEqRenderer {
         val cy = rect.centerY()
         shaderMatrix.setRotate(turn * 360f, cx, cy)
         val gap = unit * 0.004f
+        // V154: everything stays within REACH of the tile (the frame from «Розкладка»).
+        val reach = unit * EdgeEqMath.REACH
         var barTips: FloatArray? = null
 
         if (s.bars.enabled) {
@@ -56,7 +58,7 @@ class EdgeEqRenderer {
                 val u = i.toFloat() / n + turn
                 val raw = spectrum[EdgeEqMath.band(u, spectrum.size)] * s.bars.reaction / 100f
                 barLevels[i] = EdgeEqMath.smooth(barLevels[i], raw.coerceIn(0f, 1.4f))
-                val len = unit * (0.006f + 0.05f * barLevels[i])
+                val len = (unit * (0.006f + 0.05f * barLevels[i])).coerceAtMost(reach - gap)
                 barTips[i] = gap + len
                 val x = ring[i * 4]
                 val y = ring[i * 4 + 1]
@@ -81,7 +83,7 @@ class EdgeEqRenderer {
             val maxDots = 6
             if (points.size != n * maxDots * 2) points = FloatArray(n * maxDots * 2)
             var count = 0
-            val step = unit * 0.011f
+            val step = unit * 0.008f
             for (i in 0 until n) {
                 val u = i.toFloat() / n + turn
                 val raw = spectrum[EdgeEqMath.band(u, spectrum.size, 0.55f, 1f)] * s.dots.reaction / 100f
@@ -96,6 +98,7 @@ class EdgeEqRenderer {
                 val ny = ring[i * 4 + 3]
                 for (j in 0 until k) {
                     val d = base + step * (j + 1)
+                    if (d > reach) break
                     points[count++] = x + nx * d
                     points[count++] = y + ny * d
                 }
@@ -118,7 +121,7 @@ class EdgeEqRenderer {
                 val u = i.toFloat() / n + turn
                 val raw = spectrum[EdgeEqMath.band(u, spectrum.size, 0.15f, 0.6f)] * s.wave.reaction / 100f
                 waveLevels[i] = EdgeEqMath.smooth(waveLevels[i], raw.coerceIn(0f, 1.4f), 0.08f)
-                val d = gap + unit * 0.055f * waveLevels[i]
+                val d = (gap + unit * 0.055f * waveLevels[i]).coerceAtMost(reach)
                 val x = ring[i * 4] + ring[i * 4 + 2] * d
                 val y = ring[i * 4 + 1] + ring[i * 4 + 3] * d
                 if (i == 0) wavePath.moveTo(x, y) else wavePath.lineTo(x, y)

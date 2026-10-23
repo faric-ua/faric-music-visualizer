@@ -1227,7 +1227,7 @@ class PulseDeckMainSkinView(
             add(
                 ObjectInfo(
                     id = "track_artist",
-                    label = "Artist line",
+                    label = "Виконавець (під назвою пісні) · Artist line",
                     groupCode = PulseDeckSubsystem.TRACK_UI.code,
                     groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
                 ),
@@ -1236,7 +1236,7 @@ class PulseDeckMainSkinView(
             add(
                 ObjectInfo(
                     id = "track_status",
-                    label = "Status line",
+                    label = "Рядок стану (Відтворення · reactive · HUD) · Status line",
                     groupCode = PulseDeckSubsystem.TRACK_UI.code,
                     groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
                 ),
@@ -1302,6 +1302,14 @@ class PulseDeckMainSkinView(
      */
     /** Where an object (e.g. «back») was last drawn, in this view's coordinates. */
     fun objectRect(id: String): RectF? = resolvedRects[id]?.let { RectF(it) }
+
+    /** V184: where a part really is on screen — with faric's move / size from «Розкладка». */
+    fun objectScreenRect(id: String): RectF? {
+        val rect = objectRect(id) ?: return null
+        val group = LayoutGroups.ALL.firstOrNull { id in it.members } ?: return rect
+        matrixFor(group.id, width.toFloat(), height.toFloat())?.mapRect(rect)
+        return rect
+    }
 
     var favoriteActive: Boolean = false
         set(value) {

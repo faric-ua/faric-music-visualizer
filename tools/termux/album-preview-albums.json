@@ -3,7 +3,7 @@
   "updated": "2026-10-23",
   "note": "V144. Список альбомів для «Прев'ю альбому» (меню 21). match — слова, за якими впізнаємо альбом у тезі «Альбом» або в назві папки. story_id — ID файлу історії на Google Диску (папка FARIC — STORIES); null — історії ще нема. disc — ID круглої наклейки диска (PNG) для White / Black. Оновлює чат «Музика Claude», коли змінюються історії.",
   "albums": [
-    {"vol": 1, "album": "VOL. 1 — MIDNIGHT PULSE", "match": "MIDNIGHT PULSE", "story_file": "vol-01-midnight-pulse-v3.json", "story_id": "1HyqT9YYX564qT7Wf8BrRi6A85ZY0okYM", "story_version": 3,
+    {"vol": 1, "album": "VOL. 1 — MIDNIGHT PULSE", "match": "MIDNIGHT PULSE", "story_file": "vol-01-midnight-pulse-v4.json", "story_id": "10Smr4P-sLKRoplfqhl1inafYAwHyHPdD", "story_version": 4,
      "disc": {"white": "1s9pwgV2EZD6-sKxwrA1s8qq4O6VJ8xD2", "black": "1ubtAOXJaMWim_rZtZffrB1xuGP8xaDDj"}},
     {"vol": 2, "album": "VOL. 2 — NIGHT ENERGY", "match": "NIGHT ENERGY", "story_file": null, "story_id": null, "story_version": null,
      "disc": {"white": "16diDMemvwfCSd027bCF0CU6ZU9lBPFW6", "black": "19SIuzZqR3xTS28CwdYY9VLhcerwacRyg"}},

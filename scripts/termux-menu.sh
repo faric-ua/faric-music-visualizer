@@ -149,6 +149,7 @@ while true; do
   echo "8 — Завантажити APK і відкрити папку"
   echo "9 — Запустити Android build"
   echo "10 — Статус Android build"
+  echo "22 — Зібрати APK тут, на телефоні (без чекання GitHub)"
   echo
   echo "MASTER ASSETS"
   echo "11 — Підключити / відновити FARIC assets"
@@ -194,6 +195,7 @@ while true; do
     19) run_tool "$REPO/tools/termux/import-pulsedeck-master-plate.sh" ;;
     20) bash "$REPO/tools/termux/documentation-menu.sh" ;;
     21) run_tool "$REPO/tools/termux/album-preview.sh" ;;
+    22) run_tool "$REPO/tools/termux/phone-build-apk.sh" ;;
     0) clear; exit 0 ;;
     *) echo "Невідомий пункт."; sleep 1 ;;
   esac

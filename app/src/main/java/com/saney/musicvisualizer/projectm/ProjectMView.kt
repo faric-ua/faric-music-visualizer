@@ -1184,15 +1184,22 @@ class ProjectMView(
                 return
             }
 
-            val now0 = System.nanoTime()
+            var now0 = System.nanoTime()
             val measure = loadStartedNs != 0L && now0 - loadStartedNs >= 1_000_000_000L
+            val fps = if (measure) loadFrames * 1_000_000_000f / (now0 - loadStartedNs) else 0f
+            if (measure) {
+                // V159 (скрін faric 23.10 17:34: «GPU завжди 100 %», а FPS 61): one glFinish waited for the
+                // whole queue of frames the graphics still had (2–3 frames ≈ 31 ms), not for this one.
+                // Now the queue is emptied first, so the time is this frame's own.
+                GLES20.glFinish()
+                now0 = System.nanoTime()
+            }
             ProjectMBridge.render()
             if (measure) {
-                // Once a second: wait until the graphics finished this frame — its real cost.
                 GLES20.glFinish()
                 val done = System.nanoTime()
                 ProjectMLoadStats.gpuFrameMs = (done - now0) / 1_000_000f
-                ProjectMLoadStats.fps = loadFrames * 1_000_000_000f / (now0 - loadStartedNs)
+                ProjectMLoadStats.fps = fps
                 ProjectMLoadStats.updatedAtMs = android.os.SystemClock.uptimeMillis()
                 loadFrames = 0
                 loadStartedNs = done

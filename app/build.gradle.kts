@@ -7,6 +7,11 @@ val devStorePassword = providers.environmentVariable("VISUALIZER_DEV_STORE_PASSW
 val devKeyAlias = providers.environmentVariable("VISUALIZER_DEV_KEY_ALIAS").orNull
 val devKeyPassword = providers.environmentVariable("VISUALIZER_DEV_KEY_PASSWORD").orNull
 
+// V178 (faric 23.10 21:06: «збирати APK у себе на телефоні»): the phone has no Android NDK, so the
+// C++ part (projectM) comes ready-made from the last GitHub APK — a folder with arm64-v8a/*.so —
+// and only Kotlin and resources are built on the phone. GitHub builds keep compiling the C++ itself.
+val prebuiltNative = providers.gradleProperty("faricPrebuiltNative").orNull?.takeIf { it.isNotBlank() }
+
 android {
     namespace = "com.saney.musicvisualizer"
     compileSdk = 36
@@ -70,13 +75,23 @@ android {
             // Skin Engine v1 reads the modular PNG pack directly from the
             // repository-level skin/ directory. No duplicate drawable copies.
             assets.srcDir("../skin")
+            if (prebuiltNative != null) jniLibs.srcDir(prebuiltNative)
         }
     }
 
-    externalNativeBuild {
-        cmake {
-            path = file("src/main/cpp/CMakeLists.txt")
-            version = "3.22.1"
+    if (prebuiltNative == null) {
+        externalNativeBuild {
+            cmake {
+                path = file("src/main/cpp/CMakeLists.txt")
+                version = "3.22.1"
+            }
+        }
+    } else {
+        // The ready-made libraries are already stripped (taken from a release APK); no NDK to strip again.
+        packaging {
+            jniLibs {
+                keepDebugSymbols += "**/*.so"
+            }
         }
     }
 }

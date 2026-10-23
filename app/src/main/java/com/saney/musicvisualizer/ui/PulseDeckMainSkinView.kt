@@ -1631,6 +1631,22 @@ class PulseDeckMainSkinView(
             return
         }
 
+        // V179 (відео faric 23.10 21:47: «на центрі кубик спершу смужкою вгорі, потім розтягується»): a part
+        // moved / resized in «Розкладка» is scaled round its own place, and that place is only known after
+        // one frame has been drawn. The very first frame scaled the frame round the screen centre — it flew
+        // off the top and got squeezed into a strip — and stayed until the next redraw (~0,6 s). Now the
+        // first frame is worked out once on an empty canvas (nothing is shown), then drawn for real.
+        if (groupBounds.isEmpty()) {
+            drawFrame(Canvas(), w, h)
+        }
+        drawFrame(canvas, w, h)
+    }
+
+    private fun drawFrame(
+        canvas: Canvas,
+        w: Float,
+        h: Float,
+    ) {
         beat *=
             if (playing) {
                 0.90f

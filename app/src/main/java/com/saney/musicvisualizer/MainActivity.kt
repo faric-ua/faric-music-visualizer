@@ -10228,6 +10228,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     artist = displayArtist(snapshot) ?: songTags.artist.orEmpty(),
                     cancelled = cancelled,
                     updateProgress = { progress, status -> updateProgress(progress, status) },
+                    updateProgressFine = { progress, status -> updateProgressFine(progress, status) },
                     onPreviewFrame = { frame -> showExportPreviewFrame(previewImage, frame) },
                     presetSchedule = buildExportPresetSchedule(compositionConfig),
                     tags = songTags,
@@ -10365,6 +10366,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         artist: String,
         cancelled: AtomicBoolean,
         updateProgress: (Int, String) -> Unit,
+        /** V172: tenths of a percent for the single-export bar; the batch window keeps whole percents. */
+        updateProgressFine: (Float, String) -> Unit = { progress, status -> updateProgress(progress.toInt(), status) },
         onPreviewFrame: ((android.graphics.Bitmap) -> Unit)? = null,
         exactDisplayName: String? = null,
         relativePath: String = com.saney.musicvisualizer.export.Mp4AvMuxer.DEFAULT_RELATIVE_PATH,

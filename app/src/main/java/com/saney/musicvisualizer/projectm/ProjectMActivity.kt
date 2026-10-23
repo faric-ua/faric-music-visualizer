@@ -629,6 +629,13 @@ class ProjectMActivity : ComponentActivity() {
                                 ratings.ratingFor(it) == ProjectMPresetRating.UP
                             }
                         }
+
+                    // V161: the load lists live on the right page; the old setup screen shows all.
+                    ProjectMBackgroundMode.LIGHT,
+                    ProjectMBackgroundMode.MEDIUM,
+                    ProjectMBackgroundMode.HEAVY,
+                    ->
+                        ProjectMLibraryManager.allPresetFiles(this)
                 }
 
             val pool =

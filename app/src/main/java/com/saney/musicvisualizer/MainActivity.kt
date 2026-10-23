@@ -12989,6 +12989,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         headline: String? = null,
     ): String =
             buildString {
+                // V180 (faric 23.10 21:54): which app and which code made this video — no need to ask.
+                append("PulseDeck v").append(BuildConfig.VERSION_NAME).append(" · збірка ").append(BuildConfig.VERSION_CODE)
+                append(" · код ").append(BuildConfig.GIT_SHA).append("\n")
                 // V130: a cancelled export says how far it got and how long the whole would take.
                 headline?.let {
                     append(it)

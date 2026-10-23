@@ -10,6 +10,6 @@ import com.saney.musicvisualizer.diagnostics.CrashJournal
 class FaricApplication : Application() {
     override fun onCreate() {
         super.onCreate()
-        CrashJournal.install(this, BuildConfig.VERSION_NAME + " / build " + BuildConfig.VERSION_CODE)
+        CrashJournal.install(this, BuildConfig.VERSION_NAME + " / build " + BuildConfig.VERSION_CODE + " · код " + BuildConfig.GIT_SHA)
     }
 }

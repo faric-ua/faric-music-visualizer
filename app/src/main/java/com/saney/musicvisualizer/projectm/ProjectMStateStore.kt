@@ -9,6 +9,11 @@ enum class ProjectMBackgroundMode {
 
     /** V110 (faric 21.10 03:54): only the visualizations faric gave 👍. */
     LIKED,
+
+    /** V161: by the measured load (analysis on the right page). */
+    LIGHT,
+    MEDIUM,
+    HEAVY,
 }
 
 class ProjectMStateStore(context: Context) {

@@ -212,6 +212,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var projectMShuffleControl: TextView? = null
     private var projectMFocusBottomBar: View? = null
 
+    /** V161: the compact row's list button, and the old rows kept only as actions for «⋯». */
+    private var projectMFocusListControl: TextView? = null
+    private var projectMFocusHiddenRows: List<View> = emptyList()
+
     /** V157: the load meter on the right page and its once-a-second tick. */
     private var projectMLoadMeter: com.saney.musicvisualizer.ui.LoadMeterView? = null
     private var loadCpuTicks = -1L
@@ -4732,7 +4736,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         // V153: the name line opens the list of visualizations.
         status.isClickable = true
         status.contentDescription = "Список візуалізацій"
-        status.setOnClickListener { toggleProjectMPresetList() }
+        status.setOnClickListener { if (presetAnalysis != null) stopPresetAnalysis(finished = false) else toggleProjectMPresetList() }
 
         val back = ImageView(this).apply {
             contentDescription = "Назад"
@@ -4990,13 +4994,38 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMLoadMeter = loadMeter
         loadCpuTicks = -1L
         loadMeter.post(loadMeterTick)
+        // V161 (faric 23.10 17:52: «нижнє меню займає до хріна місця… переробити компактніше»): one row
+        // instead of four — the list, 🔀, NEXT, AUTO, 👍, 👎 and «⋯» for the rest (BG / CENTER / EDGE FX /
+        // FG / ⚙ FG / екран / сховати / аналіз / EXPORT). The old buttons stay as the actions behind «⋯».
+        val listControl =
+            legacyControl("") { showProjectMListChoice() }.apply {
+                maxLines = 2
+                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1.5f).apply {
+                    marginStart = dp(3)
+                    marginEnd = dp(3)
+                }
+            }
+        projectMFocusListControl = listControl
+        val compact =
+            controlRow(
+                6, 10,
+                listControl,
+                requireNotNull(projectMShuffleControl).also { (it.parent as? ViewGroup)?.removeView(it) },
+                legacyControl("NEXT") { advanceProjectMFocusPreset(manual = true) }.apply {
+                    textSize = 11f
+                    maxLines = 1
+                },
+                requireNotNull(projectMFocusAutoControl).also { (it.parent as? ViewGroup)?.removeView(it) },
+                legacyControl("👍") { rateProjectMFocusPreset(ProjectMPresetRating.UP) },
+                legacyControl("👎") { rateProjectMFocusPreset(ProjectMPresetRating.DOWN) },
+                legacyControl("⋯") { showProjectMMoreMenu() },
+            )
+        // keep the hidden rows referenced (their buttons are the actions of «⋯»)
+        projectMFocusHiddenRows = listOf(modes, foreground, settings, ratings)
         val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(loadMeter)
-            addView(modes)
-            addView(foreground)
-            addView(settings)
-            addView(ratings)
+            addView(compact)
         }
         projectMFocusBottomBar = bottom
         overlay.addView(
@@ -5039,6 +5068,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 "EDGE ${onOff(state.foregroundEdgeFxVisible)}"
         // V156: the open list follows what is on screen.
         centreProjectMPresetList()
+        projectMFocusListControl?.text = "Список\n✓ " + projectMModeLabel(state.backgroundMode) + " ▾"
+        presetAnalysis?.let { run ->
+            projectMFocusStatus?.text =
+                "АНАЛІЗ ${run.index + 1} з ${run.queue.size} · ${run.queue.getOrNull(run.index)?.nameWithoutExtension?.take(28) ?: ""}" +
+                    (run.lastLine?.let { " · попередня: $it" } ?: "") + " · тап — зупинити"
+        }
         projectMShuffleControl?.let { control ->
             val on = state.autoShuffle
             control.text = if (on) "✓ 🔀" else "🔀"
@@ -5300,6 +5335,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ProjectMLibraryManager.allPresetFiles(this)
                 com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED ->
                     ProjectMLibraryManager.allPresetFiles(this).filter { ratings.ratingFor(it) == ProjectMPresetRating.UP }
+                // V161: the lists made by «Аналіз візуалізацій».
+                com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIGHT,
+                com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.MEDIUM,
+                com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.HEAVY,
+                -> {
+                    val want = loadClassOf(mode)
+                    val loads = com.saney.musicvisualizer.projectm.PresetLoadStore(this)
+                    ProjectMLibraryManager.allPresetFiles(this).filter { loads.classOf(it) == want }
+                }
             }
         return files.filter { it.isFile && ratings.ratingFor(it) != ProjectMPresetRating.HIDDEN }
     }
@@ -5309,6 +5353,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP -> "ТОП"
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL -> "ВСІ"
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED -> "👍"
+            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIGHT -> "Легкі"
+            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.MEDIUM -> "Середні"
+            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.HEAVY -> "Важкі"
+        }
+
+    private fun loadClassOf(mode: com.saney.musicvisualizer.projectm.ProjectMBackgroundMode): com.saney.musicvisualizer.projectm.PresetLoadClass? =
+        when (mode) {
+            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIGHT -> com.saney.musicvisualizer.projectm.PresetLoadClass.LIGHT
+            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.MEDIUM -> com.saney.musicvisualizer.projectm.PresetLoadClass.MEDIUM
+            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.HEAVY -> com.saney.musicvisualizer.projectm.PresetLoadClass.HEAVY
+            else -> null
         }
 
     private fun loadProjectMFocusPresets(
@@ -5328,6 +5383,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 if (pool.isEmpty() && mode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED) {
                     // V110: nothing liked yet — stay on ТОП, say how to fill the list.
                     toast("Ще нема візуалізацій з 👍. Постав 👍 тим, що подобаються, — і вони крутитимуться в 👍.")
+                    loadProjectMFocusPresets(com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP, onLoaded)
+                    return@runOnUiThread
+                }
+                if (pool.isEmpty() && loadClassOf(mode) != null) {
+                    // V161: a load list is empty until the analysis has put something in it.
+                    toast("У списку «${projectMModeLabel(mode)}» ще нічого — спершу ⋯ → «Аналіз візуалізацій».")
                     loadProjectMFocusPresets(com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP, onLoaded)
                     return@runOnUiThread
                 }
@@ -5626,8 +5687,224 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         meter.update(gpu, cpu, line)
     }
 
+    /** V161: «Список ▾» — which visualizations go round (with the numbers of the load lists). */
+    private fun showProjectMListChoice() {
+        val modes = com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.entries
+        val counts = com.saney.musicvisualizer.projectm.PresetLoadStore(this).counts()
+        val labels =
+            modes.map { mode ->
+                val klass = loadClassOf(mode)
+                when {
+                    klass != null -> projectMModeLabel(mode) + " (за аналізом: " + (counts[klass] ?: 0) + ")"
+                    mode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP -> "ТОП — швидкі зі збірки"
+                    mode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL -> "ВСІ"
+                    else -> "👍 — мої вибрані"
+                }
+            }
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = "Які візуалізації крутити",
+            labels = labels,
+            checkedIndex = modes.indexOf(ProjectMStateStore(this).backgroundMode),
+        ) { index ->
+            loadProjectMFocusPresets(modes[index])
+            scheduleProjectMFocusAuto()
+        }
+    }
+
+    /** V161: «⋯» — everything that used to take three more rows. */
+    private fun showProjectMMoreMenu() {
+        val state = ProjectMStateStore(this)
+        val onOff = { on: Boolean -> if (on) "увімкнено" else "вимкнено" }
+        val items =
+            listOf(
+                "Фон (BG): " + onOff(state.backgroundVisible),
+                "Центр (CENTER): " + onOff(state.foregroundCenterVisible),
+                "Краї (EDGE FX): " + onOff(state.foregroundEdgeFxVisible),
+                "Передній шар (FG): " + state.foregroundSample.label + " → наступний",
+                "⚙ Налаштування переднього шару",
+                "Екран: " + if (state.lightMode) "легкий режим" else "звичайна якість",
+                "Сховати цю візуалізацію (−)",
+                "Аналіз візуалізацій: легкі / середні / важкі…",
+                "⇧ Export Lab",
+            )
+        PulseDeckDialogs.showActionList(
+            context = this,
+            title = "Візуалізація — ще",
+            items = items,
+            cancelLabel = "Закрити",
+        ) { which ->
+            when (which) {
+                0 -> projectMFocusBackgroundControl?.performClick()
+                1 -> projectMFocusCenterControl?.performClick()
+                2 -> projectMFocusEdgeControl?.performClick()
+                3 -> {
+                    state.foregroundSample = state.foregroundSample.next()
+                    projectMMainView?.setForegroundSample(state.foregroundSample)
+                    updateProjectMFocusStatus()
+                }
+                4 -> showProjectMSettingsPanel()
+                5 -> projectMFocusLightControl?.performClick()
+                6 -> rateProjectMFocusPreset(ProjectMPresetRating.HIDDEN)
+                7 -> askPresetAnalysis()
+                8 -> {
+                    closeProjectMFocusOverlay()
+                    openExportLabWithProjectMCapture()
+                }
+            }
+        }
+    }
+
+    /**
+     * V161 (faric 23.10 17:52): «вказую, скільки взяти з черги — напр. 50 — і провести аналіз». Each
+     * visualization is shown 4,5 s: 1,5 s to settle, then 3 s of frames per second, graphics time of a
+     * frame and the app's CPU; then it is saved as легка / середня / важка (PresetLoadMath.classify).
+     */
+    private class PresetAnalysisRun(
+        val queue: List<File>,
+        val restoreAuto: Boolean,
+        val restorePreset: String?,
+    ) {
+        var index = 0
+        val fps = mutableListOf<Float>()
+        val gpu = mutableListOf<Float>()
+        var cpuStartTicks = -1L
+        var cpuStartMs = 0L
+        var lastLine: String? = null
+        val results = mutableMapOf<com.saney.musicvisualizer.projectm.PresetLoadClass, Int>()
+    }
+
+    private var presetAnalysis: PresetAnalysisRun? = null
+    private val presetAnalysisHandler = android.os.Handler(android.os.Looper.getMainLooper())
+
+    private fun askPresetAnalysis() {
+        val pool = projectMFocusPresets
+        if (pool.isEmpty()) {
+            toast("Список ще завантажується")
+            return
+        }
+        val loads = com.saney.musicvisualizer.projectm.PresetLoadStore(this)
+        val left = pool.count { loads.loadOf(it) == null }
+        if (left == 0) {
+            PulseDeckDialogs.showMessage(this, "Усе вже перевірено", "У списку «${projectMModeLabel(ProjectMStateStore(this).backgroundMode)}» перевірено всі ${pool.size}. Вибери інший список (напр. ВСІ).")
+            return
+        }
+        val sizes = listOf(20, 50, 100, 200).filter { it < left } + left.coerceAtMost(500)
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = "Аналіз: скільки перевірити (ще не перевірено $left з ${pool.size})",
+            labels = sizes.distinct().map { n -> "$n — приблизно ${(n * 4.5 / 60).let { if (it < 1) "менше хвилини" else String.format(java.util.Locale.ROOT, "%.0f хв", it) }}" },
+        ) { index ->
+            val count = sizes.distinct()[index]
+            startPresetAnalysis(com.saney.musicvisualizer.projectm.PresetLoadMath.nextToMeasure(pool, { loads.loadOf(it) != null }, count))
+        }
+    }
+
+    private fun startPresetAnalysis(queue: List<File>) {
+        if (queue.isEmpty()) return
+        val state = ProjectMStateStore(this)
+        presetAnalysis = PresetAnalysisRun(queue, state.autoEnabled, state.lastPresetPath)
+        state.autoEnabled = false
+        stopProjectMAuto()
+        presetAnalysisStep(newPreset = true)
+    }
+
+    private fun presetAnalysisStep(newPreset: Boolean) {
+        val run = presetAnalysis ?: return
+        if (projectMFocusOverlay == null) {
+            stopPresetAnalysis(finished = false)
+            return
+        }
+        val file = run.queue.getOrNull(run.index) ?: return stopPresetAnalysis(finished = true)
+        if (newPreset) {
+            run.fps.clear()
+            run.gpu.clear()
+            run.cpuStartTicks = -1L
+            ProjectMStateStore(this).lastPresetPath = file.absolutePath
+            projectMMainView?.loadPreset(file, smoothTransition = false)
+            updateProjectMFocusStatus()
+            // 1,5 s to settle, then measure.
+            presetAnalysisHandler.postDelayed({ presetAnalysisMeasure(0) }, 1_500L)
+        }
+    }
+
+    private fun readCpuTicks(): Long? =
+        runCatching { com.saney.musicvisualizer.ui.LoadMeter.cpuTicks(java.io.File("/proc/self/stat").readText()) }.getOrNull()
+
+    private fun presetAnalysisMeasure(sample: Int) {
+        val run = presetAnalysis ?: return
+        val now = android.os.SystemClock.uptimeMillis()
+        if (sample == 0) {
+            run.cpuStartTicks = readCpuTicks() ?: -1L
+            run.cpuStartMs = now
+        } else {
+            val stats = com.saney.musicvisualizer.projectm.ProjectMLoadStats
+            if (now - stats.updatedAtMs < 1_500L) {
+                run.fps += stats.fps
+                run.gpu += stats.gpuFrameMs
+            }
+        }
+        if (sample < 3) {
+            presetAnalysisHandler.postDelayed({ presetAnalysisMeasure(sample + 1) }, 1_000L)
+            return
+        }
+        val file = run.queue[run.index]
+        val ticks = readCpuTicks()
+        val cpu =
+            if (ticks != null && run.cpuStartTicks >= 0L) {
+                val perSecond = runCatching { android.system.Os.sysconf(android.system.OsConstants._SC_CLK_TCK) }.getOrDefault(100L)
+                com.saney.musicvisualizer.ui.LoadMeter.cpuPercent(ticks - run.cpuStartTicks, perSecond, now - run.cpuStartMs, Runtime.getRuntime().availableProcessors())
+            } else {
+                0
+            }
+        if (run.fps.isNotEmpty()) {
+            val load =
+                com.saney.musicvisualizer.projectm.PresetLoad(
+                    com.saney.musicvisualizer.projectm.PresetLoadMath.average(run.fps),
+                    com.saney.musicvisualizer.projectm.PresetLoadMath.average(run.gpu),
+                    cpu,
+                )
+            com.saney.musicvisualizer.projectm.PresetLoadStore(this).save(file, load)
+            run.results[load.loadClass] = (run.results[load.loadClass] ?: 0) + 1
+            run.lastLine = load.loadClass.label + " (" + load.fps.toInt() + " к/с)"
+        }
+        run.index++
+        if (run.index >= run.queue.size) stopPresetAnalysis(finished = true) else presetAnalysisStep(newPreset = true)
+    }
+
+    private fun stopPresetAnalysis(finished: Boolean) {
+        val run = presetAnalysis ?: return
+        presetAnalysis = null
+        presetAnalysisHandler.removeCallbacksAndMessages(null)
+        val state = ProjectMStateStore(this)
+        state.autoEnabled = run.restoreAuto
+        run.restorePreset?.let { path ->
+            state.lastPresetPath = path
+            projectMFocusPresets.firstOrNull { it.absolutePath == path }?.let { projectMMainView?.loadPreset(it, smoothTransition = false) }
+        }
+        if (projectMFocusOverlay != null) {
+            scheduleProjectMFocusAuto()
+            updateProjectMFocusStatus()
+            val done = run.results.values.sum()
+            val l = run.results[com.saney.musicvisualizer.projectm.PresetLoadClass.LIGHT] ?: 0
+            val m = run.results[com.saney.musicvisualizer.projectm.PresetLoadClass.MEDIUM] ?: 0
+            val h = run.results[com.saney.musicvisualizer.projectm.PresetLoadClass.HEAVY] ?: 0
+            val total = com.saney.musicvisualizer.projectm.PresetLoadStore(this).counts()
+            PulseDeckDialogs.showMessage(
+                this,
+                if (finished) "Аналіз готовий" else "Аналіз зупинено",
+                "Перевірено зараз: $done — легких $l, середніх $m, важких $h.\n\n" +
+                    "Усього в списках: легких ${total[com.saney.musicvisualizer.projectm.PresetLoadClass.LIGHT] ?: 0}, " +
+                    "середніх ${total[com.saney.musicvisualizer.projectm.PresetLoadClass.MEDIUM] ?: 0}, " +
+                    "важких ${total[com.saney.musicvisualizer.projectm.PresetLoadClass.HEAVY] ?: 0}.\n\n" +
+                    "«Список ▾» → «Легкі» — крутити лише легкі; там ставиш 👍 тим, що подобаються.",
+            )
+        }
+    }
+
     private fun closeProjectMFocusOverlay() {
         val overlay = projectMFocusOverlay ?: return
+        presetAnalysis?.let { stopPresetAnalysis(finished = false) }
         stopProjectMAuto()
         projectMFocusCatalogGeneration++
         (overlay.parent as? ViewGroup)?.removeView(overlay)
@@ -5637,6 +5914,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMPresetListPanel = null
         projectMShuffleControl = null
         projectMFocusBottomBar = null
+        projectMFocusListControl = null
+        projectMFocusHiddenRows = emptyList()
         projectMLoadMeter?.removeCallbacks(loadMeterTick)
         projectMLoadMeter = null
         projectMPresetListView = null
@@ -12303,6 +12582,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMPresetListPanel = null
         projectMShuffleControl = null
         projectMFocusBottomBar = null
+        projectMFocusListControl = null
+        projectMFocusHiddenRows = emptyList()
         projectMLoadMeter?.removeCallbacks(loadMeterTick)
         projectMLoadMeter = null
         projectMPresetListView = null

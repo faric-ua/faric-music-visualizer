@@ -40,6 +40,29 @@ data class CoverBoxChoice(
     val pictureUnder: Boolean = false,
 )
 
+/**
+ * V148 (faric 23.10 02:54: «текст не дуже видно… він бере прозорість плитки 50 %… поставити йому
+ * окремо, скажімо, 70 %»): the text in the frame has its own look, apart from the tile's see-through.
+ */
+data class CoverTextSettings(
+    /** 10–100 %: how solid the letters are (not tied to the tile's «Розкладка» transparency). */
+    val opacity: Int = 100,
+    /** 0–90 %: the dark veil under the text (over the picture in «Разом»). */
+    val veil: Int = 60,
+    /** 70–160 %: letter size, 100 = a bit bigger than the song title. */
+    val size: Int = 100,
+) {
+    fun encode(): String = "$opacity,$veil,$size"
+
+    companion object {
+        fun decode(text: String?): CoverTextSettings {
+            val p = text?.split(',')?.map { it.trim().toIntOrNull() } ?: return CoverTextSettings()
+            if (p.size != 3 || p.any { it == null }) return CoverTextSettings()
+            return CoverTextSettings(p[0]!!.coerceIn(10, 100), p[1]!!.coerceIn(0, 90), p[2]!!.coerceIn(70, 160))
+        }
+    }
+}
+
 /** V142: the ticks of «Разом»: what goes into the frame together. */
 data class CoverMix(
     val picture: Boolean = true,
@@ -149,6 +172,17 @@ object CoverBoxContent {
     fun paragraphs(text: String): List<String> = text.split(Regex("\\n\\s*\\n")).map { it.trim() }.filter { it.isNotEmpty() }
 
     fun isHeading(paragraph: String): Boolean = paragraph.startsWith("— ") && paragraph.endsWith(" —") && paragraph.length <= 60
+
+    /**
+     * V148 (faric 23.10 02:54: «інколи текст ривками прокручується»): the live position arrives 4× a
+     * second and the guess between arrivals can run a hair ahead — the next arrival then pulled the
+     * text back a few pixels. A small step back is ignored (the text waits); a big one (seek) is taken.
+     */
+    fun steadyFraction(
+        shown: Float,
+        target: Float,
+        maxBack: Float,
+    ): Float = if (target < shown && shown - target <= maxBack) shown else target
 
     fun crawlTop(
         fraction: Float,

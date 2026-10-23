@@ -86,4 +86,14 @@ class CoverBoxContentTest {
         assertEquals(CoverMix(true, false, true), CoverMix.decode(CoverMix(true, false, true).encode()))
         assertEquals(CoverMix(), CoverMix.decode("x"))
     }
+
+    @Test fun textSettingsAndSteadyCrawl() {
+        val t = CoverTextSettings(70, 40, 120)
+        assertEquals(t, CoverTextSettings.decode(t.encode()))
+        assertEquals(CoverTextSettings(10, 90, 160), CoverTextSettings.decode("0,99,999"))
+        assertEquals(CoverTextSettings(), CoverTextSettings.decode("bad"))
+        assertEquals(0.5f, CoverBoxContent.steadyFraction(0.5f, 0.499f, 0.004f), 1e-6f)
+        assertEquals(0.2f, CoverBoxContent.steadyFraction(0.5f, 0.2f, 0.004f), 1e-6f)
+        assertEquals(0.51f, CoverBoxContent.steadyFraction(0.5f, 0.51f, 0.004f), 1e-6f)
+    }
 }

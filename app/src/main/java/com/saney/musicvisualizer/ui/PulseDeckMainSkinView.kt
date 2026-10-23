@@ -498,7 +498,7 @@ class PulseDeckMainSkinView(
                 // V142: «Разом» — the picture underneath, the text going over it on a lighter veil.
                 val under = if (choice.pictureUnder) art else null
                 if (under != null) drawCoverPicture(canvas, panel, radius, under, alpha)
-                drawCoverText(canvas, panel, radius, w, choice, alpha, veil = if (under != null) 0.5f else 0.78f)
+                drawCoverText(canvas, panel, radius, w, choice, alpha)
             }
             else -> {
                 coverPaint.shader = null
@@ -702,11 +702,28 @@ class PulseDeckMainSkinView(
         clockStampMs = SystemClock.uptimeMillis()
     }
 
+    private var crawlShown = -1f
+
     private fun crawlFraction(): Float {
         if (marqueeClockMs != null || clockDurationMs <= 0L) return progressFraction
         val moved = if (clockPlaying) SystemClock.uptimeMillis() - clockStampMs else 0L
-        return ((clockPositionMs + moved).toFloat() / clockDurationMs).coerceIn(0f, 1f)
+        val target = ((clockPositionMs + moved).toFloat() / clockDurationMs).coerceIn(0f, 1f)
+        // V148: never step back a hair (≤ 0,6 s of the song) — the text just waits a moment instead.
+        crawlShown = if (crawlShown < 0f) target else CoverBoxContent.steadyFraction(crawlShown, target, 600f / clockDurationMs)
+        return crawlShown
     }
+
+    /** V148: the text's own look (opacity, veil, size) — «Текст і окантовка». */
+    var coverText: CoverTextSettings = CoverTextSettings()
+        set(value) {
+            field = value
+            invalidate()
+        }
+
+    /** V148: the laid-out text as a soft (ALPHA_8) picture — moved by fractions of a pixel, smoothly. */
+    private var coverTextBitmap: Bitmap? = null
+    private var coverTextBitmapKey: String? = null
+    private val coverTextBitmapPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
 
     /**
      * V135 / V137: the story or the song's words as slow credits — enter at the bottom of the panel,
@@ -720,12 +737,13 @@ class PulseDeckMainSkinView(
         w: Float,
         choice: CoverBoxChoice,
         alpha: Int,
-        veil: Float = 0.78f,
     ) {
         val text = choice.text.orEmpty()
+        val look = coverText
         coverPaint.shader = null
         coverPaint.color = Color.rgb(8, 14, 20)
-        coverPaint.alpha = (alpha * veil).toInt()
+        // V148: the veil and the letters have their own see-through, not the tile's.
+        coverPaint.alpha = (255 * look.veil / 100f).toInt().coerceIn(0, 255)
         canvas.drawRoundRect(panel, radius, radius, coverPaint)
         val padX = w * 0.04f
         val padY = w * 0.03f
@@ -740,7 +758,7 @@ class PulseDeckMainSkinView(
             }
         val innerHeight = (panel.height() - padY - padBottom).coerceAtLeast(1f)
         // The song title's size (w × 0.031, with its own «Розкладка» size) and «a couple of points» more.
-        val size = w * 0.031f * 1.15f * (activeLayout["track"]?.scale ?: 1f).coerceIn(0.8f, 1.6f)
+        val size = w * 0.031f * 1.15f * (activeLayout["track"]?.scale ?: 1f).coerceIn(0.8f, 1.6f) * look.size / 100f
         val key = text.hashCode().toString() + "|" + choice.lyrics + "|" + innerWidth + "|" + size
         val layout =
             coverLayout?.takeIf { coverLayoutKey == key }
@@ -748,15 +766,44 @@ class PulseDeckMainSkinView(
                     coverLayout = it
                     coverLayoutKey = key
                 }
-        coverTextPaint.color = Color.rgb(176, 216, 242)
-        coverTextPaint.alpha = alpha
+        val textAlpha = (255 * look.opacity / 100f).toInt().coerceIn(0, 255)
         val top = panel.top + padY + CoverBoxContent.crawlTop(crawlFraction(), innerHeight, layout.height.toFloat())
         val clip = canvas.save()
         canvas.clipRect(panel.left + padX, panel.top + padY, panel.right - padX, panel.bottom - padBottom)
-        canvas.translate(panel.left + padX, top)
-        layout.draw(canvas)
+        val bitmap = coverTextBitmapFor(layout, key)
+        if (bitmap != null) {
+            // V148 (faric 23.10 02:54: «інколи ривками»): letters drawn straight snap to whole pixels, so a
+            // slow crawl moved in 1-pixel hops; a filtered picture of the text glides between pixels.
+            coverTextBitmapPaint.color = Color.rgb(176, 216, 242)
+            coverTextBitmapPaint.alpha = textAlpha
+            canvas.drawBitmap(bitmap, panel.left + padX, top, coverTextBitmapPaint)
+        } else {
+            coverTextPaint.color = Color.rgb(176, 216, 242)
+            coverTextPaint.alpha = textAlpha
+            canvas.translate(panel.left + padX, top)
+            layout.draw(canvas)
+        }
         canvas.restoreToCount(clip)
         if (marqueeClockMs == null && clockPlaying) postInvalidateOnAnimation()
+    }
+
+    private fun coverTextBitmapFor(
+        layout: android.text.StaticLayout,
+        key: String,
+    ): Bitmap? {
+        coverTextBitmap?.takeIf { coverTextBitmapKey == key && !it.isRecycled }?.let { return it }
+        coverTextBitmap?.recycle()
+        coverTextBitmap = null
+        coverTextBitmapKey = key
+        if (layout.width <= 0 || layout.height <= 0 || layout.height > 8_000) return null
+        return runCatching {
+            Bitmap.createBitmap(layout.width, layout.height, Bitmap.Config.ALPHA_8).also { bmp ->
+                coverTextPaint.color = Color.WHITE
+                coverTextPaint.alpha = 255
+                layout.draw(Canvas(bmp))
+                coverTextBitmap = bmp
+            }
+        }.getOrNull()
     }
 
     private fun buildCoverLayout(

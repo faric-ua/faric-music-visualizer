@@ -57,6 +57,7 @@ data class CompositionExportConfig(
     /** V135: what the frame shows (picture / story / words), the story text, the words and the neon. */
     val hudCoverMode: com.saney.musicvisualizer.ui.CoverBoxMode = com.saney.musicvisualizer.ui.CoverBoxMode.AUTO,
     val hudCoverMix: com.saney.musicvisualizer.ui.CoverMix = com.saney.musicvisualizer.ui.CoverMix(),
+    val hudCoverText: com.saney.musicvisualizer.ui.CoverTextSettings = com.saney.musicvisualizer.ui.CoverTextSettings(),
     val hudCoverStory: String? = null,
     val hudCoverLyrics: String? = null,
     val hudCoverGlowBand: com.saney.musicvisualizer.ui.CoverGlowBand = com.saney.musicvisualizer.ui.CoverGlowBand.BASS,
@@ -201,6 +202,7 @@ class CompositionExportRenderer(
                 view.coverArt = config.hudCoverArt
                 view.coverMode = config.hudCoverMode
                 view.coverMix = config.hudCoverMix
+                view.coverText = config.hudCoverText
                 view.coverStory = config.hudCoverStory
                 view.coverLyrics = config.hudCoverLyrics
                 view.coverGlowBand = config.hudCoverGlowBand

@@ -216,6 +216,12 @@ enum class StoryLanguage(
 ) {
     UK("uk", "Українська", "Про альбом"),
     EN("en", "English", "About the album"),
+
+    /** V171 (faric 23.10 20:11: «українською, а потім англійською… або то, або то, або обидва»). */
+    BOTH("both", "Обидві: українська → English", "Про альбом"),
+
+    /** V173 (faric 23.10 20:22: «поміняти містами — або англійська перша, або українська»). */
+    BOTH_EN_FIRST("both_en", "Обидві ⇄ English → українська", "About the album"),
     ;
 
     companion object {
@@ -257,11 +263,28 @@ data class SongStoryTags(
 }
 
 object StoryText {
+    /** V171: the line between the Ukrainian and the English story when both are shown. */
+    const val ENGLISH_HEADER = "— English —"
+
+    /** V173: the line before the Ukrainian story when English goes first. */
+    const val UKRAINIAN_HEADER = "— Українською —"
+
     /** Track story, then «Про альбом» and the album story. A missing language falls back to the other. */
     fun compose(
         tags: SongStoryTags,
         language: StoryLanguage,
     ): String? {
+        if (language == StoryLanguage.BOTH || language == StoryLanguage.BOTH_EN_FIRST) {
+            // Only when each language really has its own text; otherwise — one copy (no doubled story).
+            val uk = strict(tags.trackUk, tags.albumUk, StoryLanguage.UK)
+            val en = strict(tags.trackEn, tags.albumEn, StoryLanguage.EN)
+            val enFirst = language == StoryLanguage.BOTH_EN_FIRST
+            return when {
+                uk == null || en == null -> compose(tags, if (enFirst) StoryLanguage.EN else StoryLanguage.UK)
+                enFirst -> en + "\n\n" + UKRAINIAN_HEADER + "\n\n" + uk
+                else -> uk + "\n\n" + ENGLISH_HEADER + "\n\n" + en
+            }
+        }
         fun pick(
             uk: String?,
             en: String?,
@@ -275,6 +298,19 @@ object StoryText {
         return when {
             track != null && album != null -> track + "\n\n— " + language.albumHeader + " —\n\n" + album
             else -> track ?: album
+        }
+    }
+
+    private fun strict(
+        track: String?,
+        album: String?,
+        language: StoryLanguage,
+    ): String? {
+        val t = track?.trim()?.takeIf { it.isNotEmpty() }
+        val a = album?.trim()?.takeIf { it.isNotEmpty() }
+        return when {
+            t != null && a != null -> t + "\n\n— " + language.albumHeader + " —\n\n" + a
+            else -> t ?: a
         }
     }
 }

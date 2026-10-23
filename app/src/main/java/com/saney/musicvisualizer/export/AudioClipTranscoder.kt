@@ -16,7 +16,11 @@ import kotlin.math.roundToInt
 
 object AudioClipTranscoder {
     private const val AAC_MIME = "audio/mp4a-latm"
-    const val AUDIO_BITRATE = 160_000
+    /**
+     * V175 (faric 23.10 20:29: «чому у відео такий малий бітрейт звуку — пісня 320, а у відео 160?
+     * давай 320»). If the phone's AAC encoder cannot take that much, it gets its own maximum.
+     */
+    const val AUDIO_BITRATE = 320_000
     private const val TIMEOUT_US = 10_000L
     private const val STALL_LIMIT_MS = 20_000L
 
@@ -33,6 +37,8 @@ object AudioClipTranscoder {
         durationMs: Long,
         outputFile: File,
         shouldCancel: () -> Boolean = { false },
+        /** V172: 0–1, how much of the clip's sound is already encoded. */
+        onProgress: (Float) -> Unit = {},
     ): Result {
         val extractor = MediaExtractor()
         extractor.setDataSource(
@@ -134,7 +140,16 @@ object AudioClipTranscoder {
                 )
                 setInteger(
                     MediaFormat.KEY_BIT_RATE,
-                    AUDIO_BITRATE,
+                    runCatching {
+                        encoder.codecInfo
+                            .getCapabilitiesForType(AAC_MIME)
+                            .audioCapabilities
+                            ?.bitrateRange
+                            ?.upper
+                    }.getOrNull()
+                        ?.takeIf { it > 0 }
+                        ?.let { minOf(AUDIO_BITRATE, it) }
+                        ?: AUDIO_BITRATE,
                 )
                 setInteger(
                     MediaFormat.KEY_MAX_INPUT_SIZE,
@@ -201,6 +216,8 @@ object AudioClipTranscoder {
             // also while waiting for its input. A WAV decoder hands over big PCM buffers that
             // need several encoder inputs; if nobody empties the encoder output meanwhile, the
             // encoder never frees an input buffer and the export waits forever.
+            var firstOutputPtsUs = -1L
+            var writtenSamples = 0
             fun drainEncoderOutput() {
                 while (true) {
                     when (
@@ -266,6 +283,10 @@ object AudioClipTranscoder {
                                         outputBuffer,
                                         encoderInfo,
                                     )
+                                    if (firstOutputPtsUs < 0L) firstOutputPtsUs = encoderInfo.presentationTimeUs
+                                    if (++writtenSamples % 20 == 0 && durationMs > 0L) {
+                                        onProgress((encoderInfo.presentationTimeUs - firstOutputPtsUs) / (durationMs * 1000f))
+                                    }
                                 }
 
                                 encoderOutputDone =

@@ -1227,7 +1227,7 @@ class PulseDeckMainSkinView(
             add(
                 ObjectInfo(
                     id = "track_artist",
-                    label = "Artist line",
+                    label = "Виконавець (під назвою пісні) · Artist line",
                     groupCode = PulseDeckSubsystem.TRACK_UI.code,
                     groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
                 ),
@@ -1236,7 +1236,7 @@ class PulseDeckMainSkinView(
             add(
                 ObjectInfo(
                     id = "track_status",
-                    label = "Status line",
+                    label = "Рядок стану (Відтворення · reactive · HUD) · Status line",
                     groupCode = PulseDeckSubsystem.TRACK_UI.code,
                     groupLabel = subsystemLabel(PulseDeckSubsystem.TRACK_UI),
                 ),

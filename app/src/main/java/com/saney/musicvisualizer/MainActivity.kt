@@ -10093,6 +10093,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         topMargin = dp(14)
                     },
                 )
+                // V182 (faric 24.10 02:03, «Б»): a short line — tap it for the whole story.
+                addView(
+                    label(
+                        "ⓘ Не виходь з PulseDeck: у фоні експорт іде в 2–3 рази довше. Чому?",
+                        12f,
+                        Color.rgb(176, 216, 242),
+                        false,
+                    ).apply {
+                        isClickable = true
+                        minHeight = dp(48)
+                        gravity = Gravity.CENTER_VERTICAL
+                        setOnClickListener { showExportBackgroundHelp() }
+                    },
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply {
+                        topMargin = dp(8)
+                    },
+                )
                 if (fullSong) {
                     addView(
                         label(
@@ -10230,7 +10250,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     updateProgress = { progress, status -> updateProgress(progress, status) },
                     updateProgressFine = { progress, status -> updateProgressFine(progress, status) },
                     onPreviewFrame = { frame -> showExportPreviewFrame(previewImage, frame) },
-                    presetSchedule = buildExportPresetSchedule(compositionConfig),
+                    // V182 (faric 24.10 02:03, «А»): one song leaves out the «!» visualizations too, like a batch.
+                    presetSchedule = buildExportPresetSchedule(compositionConfig, skipTooSlow = true),
                     tags = songTags,
                     relativePath =
                         songTags.album
@@ -10906,6 +10927,31 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
             }
         }
+    }
+
+    /**
+     * V182 (faric 24.10 00:50–02:03: повна пісня 21 хв, бо з 5-ї хвилини він був у TikTok / Dorama —
+     * «напиши коротко, а по тапу — вікно, чому так»). Measured: on screen 42 ms a frame for the HUD,
+     * in the background 98.
+     */
+    private fun showExportBackgroundHelp() {
+        PulseDeckDialogs.showMessage(
+            context = this,
+            title = "Чому у фоні експорт довший",
+            scrollableMessage = true,
+            message =
+                "Відео малюється кадр за кадром: картинка візуалізації, рамка, текст, кнопки — 30 кадрів на кожну секунду пісні.\n\n" +
+                    "Поки PulseDeck на екрані, Android дає йому швидкі ядра процесора.\n\n" +
+                    "Коли ти йдеш в інший застосунок (TikTok, Dorama, чат) або гасиш екран, Android вважає PulseDeck «фоновим» " +
+                    "і переводить його на повільні енергозберігаючі ядра, щоб берегти батарею й не гальмувати те, що зараз на екрані. " +
+                    "Експорт не зупиняється, але кожен кадр рахується в 2–3 рази довше.\n\n" +
+                    "Замір 24.10: та сама пісня 3:44 — на екрані рамка й кнопки ~42 мс на кадр, у фоні ~98 мс; " +
+                    "уся пісня зайняла 21 хв замість ~9–10.\n\n" +
+                    "Що допомагає:\n" +
+                    "• лишати PulseDeck відкритим до кінця (екран не гасне сам, поки йде експорт);\n" +
+                    "• заряджати телефон і не грітися — гарячий телефон теж пригальмовує;\n" +
+                    "• коли AUTO міняє візуалізації, дуже повільні («!», у 3–10 разів важчі за звичайні) у відео не потрапляють.",
+        )
     }
 
     /**

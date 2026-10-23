@@ -497,10 +497,24 @@ class PulseDeckMainSkinView(
         when (choice.show) {
             CoverBoxShow.PICTURE -> art?.let { drawCoverPicture(canvas, panel, radius, it, alpha) }
             CoverBoxShow.TEXT -> {
+                // V167 (скрін faric 23.10 18:48: «внутрішня частина з прямими кутами… закруглити й
+                // маленьку окантовку»): a thin dark border ring, and everything inside — picture, veil,
+                // text — in a rounded inner tile.
+                val border = (resources.displayMetrics.density * 5f).coerceAtMost(minOf(panel.width(), panel.height()) * 0.05f)
+                val inner = RectF(panel).apply { inset(border, border) }
+                val innerRadius = (radius - border).coerceAtLeast(0f)
+                coverRingPath.reset()
+                coverRingPath.fillType = android.graphics.Path.FillType.EVEN_ODD
+                coverRingPath.addRoundRect(panel, radius, radius, android.graphics.Path.Direction.CW)
+                coverRingPath.addRoundRect(inner, innerRadius, innerRadius, android.graphics.Path.Direction.CW)
+                coverPaint.shader = null
+                coverPaint.color = Color.rgb(8, 14, 20)
+                coverPaint.alpha = (maxOf(200f, 255 * coverText.veil / 100f) * alpha / 255f).toInt().coerceIn(0, 255)
+                canvas.drawPath(coverRingPath, coverPaint)
                 // V142: «Разом» — the picture underneath, the text going over it on a lighter veil.
                 val under = if (choice.pictureUnder) art else null
-                if (under != null) drawCoverPicture(canvas, panel, radius, under, alpha)
-                drawCoverText(canvas, panel, radius, w, choice, alpha)
+                if (under != null) drawCoverPicture(canvas, inner, innerRadius, under, alpha)
+                drawCoverText(canvas, inner, innerRadius, w, choice, alpha)
             }
             else -> {
                 coverPaint.shader = null
@@ -731,6 +745,11 @@ class PulseDeckMainSkinView(
     private var coverTextBitmap: Bitmap? = null
     private var coverTextBitmapKey: String? = null
     private val coverTextBitmapPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
+    private var coverTextShader: android.graphics.BitmapShader? = null
+    private var coverTextShaderBitmap: Bitmap? = null
+    private val coverTextMatrix = android.graphics.Matrix()
+    private val coverTextWindow = RectF()
+    private val coverRingPath = android.graphics.Path()
 
     /**
      * V135 / V137: the story or the song's words as slow credits — enter at the bottom of the panel,
@@ -775,22 +794,36 @@ class PulseDeckMainSkinView(
                 }
         val textAlpha = (255 * look.opacity / 100f).toInt().coerceIn(0, 255)
         val top = panel.top + padY + CoverBoxContent.crawlTop(crawlFraction(), innerHeight, layout.height.toFloat())
-        val clip = canvas.save()
-        canvas.clipRect(panel.left + padX, panel.top + padY, panel.right - padX, panel.bottom - padBottom)
         val bitmap = coverTextBitmapFor(layout, key)
         if (bitmap != null) {
             // V148 (faric 23.10 02:54: «інколи ривками»): letters drawn straight snap to whole pixels, so a
             // slow crawl moved in 1-pixel hops; a filtered picture of the text glides between pixels.
+            // V167: drawn as a pattern inside a rounded window (no square clip, no square bitmap edge).
+            val shader =
+                coverTextShader?.takeIf { coverTextShaderBitmap === bitmap }
+                    ?: android.graphics.BitmapShader(bitmap, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also {
+                        coverTextShader = it
+                        coverTextShaderBitmap = bitmap
+                    }
+            coverTextMatrix.reset()
+            coverTextMatrix.setTranslate(panel.left + padX - TEXT_BITMAP_PAD, top - TEXT_BITMAP_PAD)
+            shader.setLocalMatrix(coverTextMatrix)
+            coverTextWindow.set(panel.left + padX * 0.5f, panel.top + padY * 0.5f, panel.right - padX * 0.5f, panel.bottom - padBottom)
+            val windowRadius = (radius - padX * 0.5f).coerceAtLeast(resources.displayMetrics.density * 4f)
+            coverTextBitmapPaint.shader = shader
             coverTextBitmapPaint.color = Color.rgb(176, 216, 242)
             coverTextBitmapPaint.alpha = textAlpha
-            canvas.drawBitmap(bitmap, panel.left + padX, top, coverTextBitmapPaint)
+            canvas.drawRoundRect(coverTextWindow, windowRadius, windowRadius, coverTextBitmapPaint)
+            coverTextBitmapPaint.shader = null
         } else {
+            val clip = canvas.save()
+            canvas.clipRect(panel.left + padX, panel.top + padY, panel.right - padX, panel.bottom - padBottom)
             coverTextPaint.color = Color.rgb(176, 216, 242)
             coverTextPaint.alpha = textAlpha
             canvas.translate(panel.left + padX, top)
             layout.draw(canvas)
+            canvas.restoreToCount(clip)
         }
-        canvas.restoreToCount(clip)
         if (marqueeClockMs == null && clockPlaying) postInvalidateOnAnimation()
     }
 
@@ -803,13 +836,25 @@ class PulseDeckMainSkinView(
         coverTextBitmap = null
         coverTextBitmapKey = key
         if (layout.width <= 0 || layout.height <= 0 || layout.height > 8_000) return null
+        // V167: coloured letters on a fully transparent picture (no grey box on any phone), with a
+        // transparent edge of TEXT_BITMAP_PAD px so the stretched edge of the pattern stays empty. Very
+        // long texts keep the lighter alpha-only picture, tinted by the paint.
+        val full = layout.height <= 6_000
         return runCatching {
-            Bitmap.createBitmap(layout.width, layout.height, Bitmap.Config.ALPHA_8).also { bmp ->
-                coverTextPaint.color = Color.WHITE
-                coverTextPaint.alpha = 255
-                layout.draw(Canvas(bmp))
-                coverTextBitmap = bmp
-            }
+            Bitmap
+                .createBitmap(
+                    layout.width + TEXT_BITMAP_PAD * 2,
+                    layout.height + TEXT_BITMAP_PAD * 2,
+                    if (full) Bitmap.Config.ARGB_8888 else Bitmap.Config.ALPHA_8,
+                ).also { bmp ->
+                    bmp.eraseColor(Color.TRANSPARENT)
+                    coverTextPaint.color = if (full) Color.rgb(176, 216, 242) else Color.WHITE
+                    coverTextPaint.alpha = 255
+                    val c = Canvas(bmp)
+                    c.translate(TEXT_BITMAP_PAD.toFloat(), TEXT_BITMAP_PAD.toFloat())
+                    layout.draw(c)
+                    coverTextBitmap = bmp
+                }
         }.getOrNull()
     }
 
@@ -3671,6 +3716,9 @@ class PulseDeckMainSkinView(
         const val COVER_DISLIKE_ID = "cover_dislike"
         const val COVER_MORE_ID = "cover_more"
         const val COVER_BOX_ID = "cover_box"
+
+        /** V167: the transparent edge round the picture of the story text. */
+        private const val TEXT_BITMAP_PAD = 2
 
         private const val SKIN_ROOT =
             "pulsedeck_hud"

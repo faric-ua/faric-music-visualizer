@@ -12,6 +12,16 @@ object LoadMeter {
 
     fun gpuPercent(frameMs: Float): Int = Math.round(frameMs / FRAME_BUDGET_MS * 100f).coerceIn(0, 999)
 
+    /**
+     * V165: without the chip's timer the glFinish measure also counts the CPU sending the frame, so it
+     * can say «18 ms» while the screen keeps 61 frames a second. The graphics cannot be slower than the
+     * frames it actually delivers — cap it by 1000 / fps.
+     */
+    fun fallbackFrameMs(
+        finishMs: Float,
+        fps: Float,
+    ): Float = if (fps > 1f) minOf(finishMs, 1000f / fps) else finishMs
+
     /** utime + stime (clock ticks) from a /proc/<pid>/stat line; the name in ( ) may hold spaces. */
     fun cpuTicks(statLine: String): Long? {
         val close = statLine.lastIndexOf(')')

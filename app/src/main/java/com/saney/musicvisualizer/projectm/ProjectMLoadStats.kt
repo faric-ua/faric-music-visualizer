@@ -10,5 +10,8 @@ object ProjectMLoadStats {
 
     @Volatile var gpuFrameMs: Float = 0f
 
+    /** V165: true — [gpuFrameMs] is the graphics chip's own timer; false — the glFinish estimate. */
+    @Volatile var gpuExact: Boolean = false
+
     @Volatile var updatedAtMs: Long = 0L
 }

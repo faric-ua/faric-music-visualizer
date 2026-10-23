@@ -20,6 +20,15 @@ class LoadMeterTest {
         assertEquals(0, LoadMeter.cpuPercent(80, 0, 1000, 8))
     }
 
+    @Test fun fallbackIsCappedByRealFrameRate() {
+        // V165: 18,8 ms by glFinish at 61 fps — the graphics kept up, so at most 16,4 ms
+        assertEquals(1000f / 61f, LoadMeter.fallbackFrameMs(18.8f, 61f), 0.01f)
+        assertEquals(9f, LoadMeter.fallbackFrameMs(9f, 61f), 0.01f)
+        // 8 fps at 242 ms — the measure stays, it is really heavy
+        assertEquals(125f, LoadMeter.fallbackFrameMs(242f, 8f), 0.01f)
+        assertEquals(30f, LoadMeter.fallbackFrameMs(30f, 0f), 0.01f)
+    }
+
     @Test fun levels() {
         assertEquals(LoadMeter.Level.LOW, LoadMeter.level(30))
         assertEquals(LoadMeter.Level.MEDIUM, LoadMeter.level(60))

@@ -12,6 +12,16 @@ val devKeyPassword = providers.environmentVariable("VISUALIZER_DEV_KEY_PASSWORD"
 // and only Kotlin and resources are built on the phone. GitHub builds keep compiling the C++ itself.
 val prebuiltNative = providers.gradleProperty("faricPrebuiltNative").orNull?.takeIf { it.isNotBlank() }
 
+// V180 (faric 23.10 21:54: «додай у звіт версію програми, щоб ти розумів, на якій версії, який код»):
+// the commit the APK is built from — GitHub gives it, on the phone (menu 22) git tells it.
+val gitShort: String =
+    providers.environmentVariable("GITHUB_SHA").orNull?.take(7)
+        ?: runCatching {
+            val process = ProcessBuilder("git", "rev-parse", "--short=7", "HEAD").directory(rootDir).redirectErrorStream(true).start()
+            process.inputStream.bufferedReader().readText().trim().also { process.waitFor() }
+        }.getOrNull()?.takeIf { it.matches(Regex("[0-9a-f]{7}")) }
+        ?: "local"
+
 android {
     namespace = "com.saney.musicvisualizer"
     compileSdk = 36
@@ -21,10 +31,11 @@ android {
         applicationId = "com.saney.musicvisualizer"
         minSdk = 26
         targetSdk = 36
-        versionCode = 230
-        versionName = "0.21.34"
+        versionCode = 231
+        versionName = "0.21.35"
         // v0.19.64: role-specific PNG imports visible on Board/Themes; responsive labels and gaps.
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        buildConfigField("String", "GIT_SHA", "\"$gitShort\"")
 
         ndk {
             abiFilters += listOf("arm64-v8a")

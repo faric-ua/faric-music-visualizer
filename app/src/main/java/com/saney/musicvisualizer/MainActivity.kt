@@ -4784,7 +4784,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     setColor(Color.argb(205, 5, 8, 12))
                 }
         }
-        top.addView(back, LinearLayout.LayoutParams(dp(44), dp(44)))
+        // V184 (faric 24.10 02:04: «кнопка „назад“ на правій сторінці — щоб у тому самому місці, що на
+        // головному, бо видно, як вона стрибає», як V84): the button is not part of the row any more — it
+        // sits exactly where (and as big as) the centre draws its «‹», and the dark bar is placed round it.
+        val skin = pulseDeckMainSkinView
+        val centreBack = skin?.objectScreenRect("back")
+        if (skin == null || centreBack == null) {
+            top.addView(back, LinearLayout.LayoutParams(dp(44), dp(44)))
+        }
         top.addView(status, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(8) })
         top.addView(timeLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44)).apply { marginStart = dp(6) })
         overlay.addView(
@@ -4795,6 +4802,30 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 Gravity.TOP,
             ).apply { setMargins(dp(6), dp(6), dp(6), 0) },
         )
+        if (skin != null && centreBack != null) {
+            back.scaleType = ImageView.ScaleType.FIT_XY
+            back.setPadding(0, 0, 0, 0)
+            overlay.addView(back, FrameLayout.LayoutParams(centreBack.width().toInt(), centreBack.height().toInt()))
+            back.visibility = View.INVISIBLE
+            top.visibility = View.INVISIBLE
+            overlay.post {
+                val overlayAt = IntArray(2).also(overlay::getLocationInWindow)
+                val skinAt = IntArray(2).also(skin::getLocationInWindow)
+                val bx = skinAt[0] - overlayAt[0] + centreBack.left
+                val by = skinAt[1] - overlayAt[1] + centreBack.top
+                back.x = bx
+                back.y = by
+                // The bar: from a little above the button to a little below, text right of it.
+                val barTop = (by - dp(6)).toInt().coerceAtLeast(0)
+                (top.layoutParams as FrameLayout.LayoutParams).topMargin = barTop
+                top.minimumHeight = centreBack.height().toInt() + dp(12)
+                top.setPadding((bx + centreBack.width() + dp(2)).toInt().coerceAtLeast(dp(6)) - dp(6), dp(6), dp(6), dp(6))
+                top.requestLayout()
+                top.visibility = View.VISIBLE
+                back.visibility = View.VISIBLE
+                back.bringToFront()
+            }
+        }
         projectMFocusTopBar = top
 
         fun controlRow(

@@ -210,6 +210,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var projectMFocusTopBar: View? = null
     private var projectMPresetListPanel: View? = null
     private var projectMShuffleControl: TextView? = null
+    private var projectMFocusBottomBar: View? = null
     private var projectMFocusCatalogGeneration = 0
     private var projectMFocusStatus: TextView? = null
     private var projectMFocusAutoControl: TextView? = null
@@ -4823,7 +4824,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             topControl,
             allControl,
             likedControl,
-            legacyControl("NEXT") { advanceProjectMFocusPreset(manual = true) },
+            // V155: «NEXT» broke into «NEX / T» once the row got 🔀 — a little smaller, one line.
+            legacyControl("NEXT") { advanceProjectMFocusPreset(manual = true) }.apply {
+                textSize = 11f
+                maxLines = 1
+            },
             // V152: «По черзі / Випадково».
             legacyControl("🔀") {
                 val state = ProjectMStateStore(this)
@@ -4965,6 +4970,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             addView(settings)
             addView(ratings)
         }
+        projectMFocusBottomBar = bottom
         overlay.addView(
             bottom,
             FrameLayout.LayoutParams(
@@ -5381,7 +5387,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 background =
                     android.graphics.drawable.GradientDrawable().apply {
                         cornerRadius = dp(10).toFloat()
-                        setColor(Color.argb(232, 6, 12, 18))
+                        setColor(Color.argb(250, 6, 12, 18))
                         setStroke(dp(1), Color.argb(150, 64, 200, 255))
                     }
                 isClickable = true
@@ -5508,14 +5514,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
             }
         list.adapter = adapter
-        panel.addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (resources.displayMetrics.heightPixels * 0.5f).toInt()))
+        // V155 (скрін faric 23.10 15:05: список налазив на кнопки внизу): the list ends above them.
+        panel.addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
         val currentIndex = pool.indexOfFirst { it.absolutePath == state.lastPresetPath }
         if (currentIndex > 2) list.setSelection(currentIndex - 2)
         val top = projectMFocusTopBar
         overlay.addView(
             panel,
-            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP).apply {
-                setMargins(dp(8), (top?.bottom ?: dp(56)) + dp(4), dp(8), 0)
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT).apply {
+                setMargins(dp(8), (top?.bottom ?: dp(56)) + dp(4), dp(8), (projectMFocusBottomBar?.height ?: dp(220)) + dp(6))
             },
         )
         projectMPresetListPanel = panel
@@ -5531,6 +5538,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusTopBar = null
         projectMPresetListPanel = null
         projectMShuffleControl = null
+        projectMFocusBottomBar = null
         projectMFocusAutoControl = null
         projectMFocusBackgroundControl = null
         projectMFocusCenterControl = null
@@ -12191,6 +12199,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusTopBar = null
         projectMPresetListPanel = null
         projectMShuffleControl = null
+        projectMFocusBottomBar = null
         projectMFocusAutoControl = null
         projectMFocusBackgroundControl = null
         projectMFocusCenterControl = null

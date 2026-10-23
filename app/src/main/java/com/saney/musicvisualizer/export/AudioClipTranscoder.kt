@@ -16,7 +16,11 @@ import kotlin.math.roundToInt
 
 object AudioClipTranscoder {
     private const val AAC_MIME = "audio/mp4a-latm"
-    const val AUDIO_BITRATE = 160_000
+    /**
+     * V175 (faric 23.10 20:29: «чому у відео такий малий бітрейт звуку — пісня 320, а у відео 160?
+     * давай 320»). If the phone's AAC encoder cannot take that much, it gets its own maximum.
+     */
+    const val AUDIO_BITRATE = 320_000
     private const val TIMEOUT_US = 10_000L
     private const val STALL_LIMIT_MS = 20_000L
 
@@ -136,7 +140,16 @@ object AudioClipTranscoder {
                 )
                 setInteger(
                     MediaFormat.KEY_BIT_RATE,
-                    AUDIO_BITRATE,
+                    runCatching {
+                        encoder.codecInfo
+                            .getCapabilitiesForType(AAC_MIME)
+                            .audioCapabilities
+                            ?.bitrateRange
+                            ?.upper
+                    }.getOrNull()
+                        ?.takeIf { it > 0 }
+                        ?.let { minOf(AUDIO_BITRATE, it) }
+                        ?: AUDIO_BITRATE,
                 )
                 setInteger(
                     MediaFormat.KEY_MAX_INPUT_SIZE,

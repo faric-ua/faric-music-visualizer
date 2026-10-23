@@ -8,7 +8,7 @@ package com.saney.musicvisualizer.export
  */
 object ExportStorageBudget {
     private const val MIB = 1024L * 1024L
-    private const val AAC_BIT_RATE = 160_000L
+    private const val AAC_BIT_RATE = 320_000L // V175: = AudioClipTranscoder.AUDIO_BITRATE
     private const val PCM_MONO_BYTES_PER_SECOND = 96_000L
     private const val MIN_VIDEO_BIT_RATE = 8_000_000L
     private const val MAX_VIDEO_BIT_RATE = 24_000_000L

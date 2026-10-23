@@ -335,6 +335,8 @@ class ProjectMStateStore(context: Context) {
                 5,
                 10,
                 15,
+                // V163 (faric 23.10 18:07: «5, 10, 15, 20 секунд»).
+                20,
             )
     }
 }

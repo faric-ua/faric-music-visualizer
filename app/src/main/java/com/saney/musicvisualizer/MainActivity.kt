@@ -214,6 +214,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     /** V161: the compact row's list button, and the old rows kept only as actions for «⋯». */
     private var projectMFocusListControl: TextView? = null
+    private var projectMFocusTimeControl: TextView? = null
+    private var projectMFocusTimeLabel: TextView? = null
+    private var projectMDropdown: View? = null
     private var projectMFocusHiddenRows: List<View> = emptyList()
 
     /** V157: the load meter on the right page and its once-a-second tick. */
@@ -4723,14 +4726,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
             }
 
+        // V166 (faric 23.10 18:11 / 18:49, макет «pulsedeck_right_page_top_bar»): one bar across the whole
+        // width — our «назад», the group and the place in it («17 з 303»), the name (tap — the list),
+        // and the switch time on the right.
         val status = TextView(this).apply {
-            textSize = 12f
-            setTextColor(Color.WHITE)
-            setBackgroundColor(Color.argb(145, 0, 0, 0))
-            setPadding(dp(14), dp(10), dp(14), dp(10))
-            gravity = Gravity.CENTER
-            textAlignment = View.TEXT_ALIGNMENT_CENTER
+            textSize = 13f
+            setTextColor(Color.rgb(176, 216, 242))
+            gravity = Gravity.START or Gravity.CENTER_VERTICAL
+            textAlignment = View.TEXT_ALIGNMENT_VIEW_START
+            maxLines = 2
+            ellipsize = android.text.TextUtils.TruncateAt.END
             includeFontPadding = false
+            setPadding(dp(4), dp(4), dp(4), dp(4))
+            minHeight = dp(44)
         }
         projectMFocusStatus = status
         // V153: the name line opens the list of visualizations.
@@ -4742,8 +4750,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             contentDescription = "Назад"
             isClickable = true
             isFocusable = true
-            scaleType = ImageView.ScaleType.CENTER_INSIDE
-            setPadding(dp(2), dp(2), dp(2), dp(2))
+            scaleType = ImageView.ScaleType.FIT_CENTER
             setImageBitmap(
                 runCatching {
                     assets.open("pulsedeck_hud/utility/back.png")
@@ -4752,54 +4759,41 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
             setOnClickListener { closeProjectMFocusOverlay() }
         }
-
+        val timeLabel =
+            TextView(this).apply {
+                textSize = 13f
+                gravity = Gravity.CENTER
+                minHeight = dp(44)
+                minWidth = dp(52)
+                setPadding(dp(8), 0, dp(8), 0)
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius = dp(8).toFloat()
+                        setColor(Color.argb(160, 15, 22, 31))
+                    }
+                setOnClickListener { showProjectMTimeMenu() }
+            }
+        projectMFocusTimeLabel = timeLabel
         val top = LinearLayout(this).apply {
             orientation = LinearLayout.HORIZONTAL
             gravity = Gravity.CENTER_VERTICAL
-            setPadding(dp(8), dp(4), dp(8), 0)
+            setPadding(dp(6), dp(6), dp(6), dp(6))
+            background =
+                android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = dp(12).toFloat()
+                    setColor(Color.argb(205, 5, 8, 12))
+                }
         }
-        // V84 (faric 20.10 05:36 / 06:03): the same size as the centre's «‹» (≈ 10 % of the
-        // width) AND in the same place — centred on where the centre screen draws its «back».
-        val backSize = (resources.displayMetrics.widthPixels * 0.10f).toInt().coerceAtLeast(dp(40))
-        val skin = pulseDeckMainSkinView
-        val centreBack = skin?.objectRect("back")
-        if (skin != null && centreBack != null) {
-            // 20.10 06:25 (video): the same picture as the centre draws, in exactly the
-            // rectangle it uses (10.5 % of the width, no padding) — was 10 % minus padding.
-            overlay.clipToPadding = false
-            back.setPadding(0, 0, 0, 0)
-            back.scaleType = ImageView.ScaleType.FIT_XY
-            overlay.addView(
-                back,
-                FrameLayout.LayoutParams(centreBack.width().toInt(), centreBack.height().toInt()),
-            )
-            back.visibility = View.INVISIBLE
-            overlay.post {
-                val overlayAt = IntArray(2).also(overlay::getLocationInWindow)
-                val skinAt = IntArray(2).also(skin::getLocationInWindow)
-                back.x = skinAt[0] - overlayAt[0] + centreBack.left
-                back.y = skinAt[1] - overlayAt[1] + centreBack.top
-                back.visibility = View.VISIBLE
-                back.bringToFront()
-            }
-            // The status text starts right of the button.
-            top.setPadding(centreBack.right.toInt() + dp(6), dp(4), dp(8), 0)
-        } else {
-            top.addView(back, LinearLayout.LayoutParams(backSize, backSize))
-        }
-        top.addView(
-            status,
-            LinearLayout.LayoutParams(
-                0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f,
-            ).apply { marginStart = dp(6) },
-        )
+        top.addView(back, LinearLayout.LayoutParams(dp(44), dp(44)))
+        top.addView(status, LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f).apply { marginStart = dp(8) })
+        top.addView(timeLabel, LinearLayout.LayoutParams(ViewGroup.LayoutParams.WRAP_CONTENT, dp(44)).apply { marginStart = dp(6) })
         overlay.addView(
             top,
             FrameLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT,
                 ViewGroup.LayoutParams.WRAP_CONTENT,
                 Gravity.TOP,
-            ),
+            ).apply { setMargins(dp(6), dp(6), dp(6), 0) },
         )
         projectMFocusTopBar = top
 
@@ -4925,10 +4919,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             // V44 / V90 / V102 (faric 21.10 02:20: «AUTO OFF не влазить — зроби списком»): all AUTO
             // choices in one list window instead of cycling through them on the button.
             val state = ProjectMStateStore(this)
-            val seconds = intArrayOf(5, 10, 15)
+            val seconds = intArrayOf(5, 10, 15, 20)
             val checked =
                 when {
-                    state.autoPerTrack -> 4
+                    state.autoPerTrack -> 5
                     !state.autoEnabled -> 0
                     else -> seconds.indexOf(state.autoSwitchSeconds).let { if (it < 0) 2 else it + 1 }
                 }
@@ -4941,6 +4935,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         "Кожні 5 секунд",
                         "Кожні 10 секунд",
                         "Кожні 15 секунд",
+                        "Кожні 20 секунд",
                         "Нова пісня — нова візуалізація",
                     ),
                 checkedIndex = checked,
@@ -4950,7 +4945,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         state.autoEnabled = false
                         state.autoPerTrack = false
                     }
-                    4 -> {
+                    5 -> {
                         state.autoEnabled = false
                         state.autoPerTrack = true
                     }
@@ -4994,38 +4989,51 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMLoadMeter = loadMeter
         loadCpuTicks = -1L
         loadMeter.post(loadMeterTick)
-        // V161 (faric 23.10 17:52: «нижнє меню займає до хріна місця… переробити компактніше»): one row
-        // instead of four — the list, 🔀, NEXT, AUTO, 👍, 👎 and «⋯» for the rest (BG / CENTER / EDGE FX /
-        // FG / ⚙ FG / екран / сховати / аналіз / EXPORT). The old buttons stay as the actions behind «⋯».
-        val listControl =
-            legacyControl("") { showProjectMListChoice() }.apply {
-                maxLines = 2
-                layoutParams = LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.MATCH_PARENT, 1.5f).apply {
+        // V163 (faric 23.10 18:03–18:07, макет «pulsedeck_right_page_compact_menu»): two low rows —
+        // Група ▾ · 🔀 · NEXT · час ▾ / 👍 · 👎 · Шари ▾ · Ще ⋯. The old buttons stay only as the actions
+        // behind the menus (the same behaviour as before).
+        fun lowControl(
+            title: String,
+            weight: Float = 1f,
+            onClick: () -> Unit,
+        ): TextView =
+            legacyControl(title, onClick).apply {
+                maxLines = 1
+                minHeight = dp(48)
+                setPadding(dp(4), 0, dp(4), 0)
+                layoutParams = LinearLayout.LayoutParams(0, dp(48), weight).apply {
                     marginStart = dp(3)
                     marginEnd = dp(3)
                 }
             }
+        val listControl = lowControl("", 1.7f) { showProjectMGroupMenu() }
         projectMFocusListControl = listControl
-        val compact =
+        val timeControl = lowControl("", 1.1f) { showProjectMTimeMenu() }
+        projectMFocusTimeControl = timeControl
+        val shuffle = requireNotNull(projectMShuffleControl).also { (it.parent as? ViewGroup)?.removeView(it) }
+        shuffle.layoutParams = LinearLayout.LayoutParams(0, dp(48), 0.9f).apply { marginStart = dp(3); marginEnd = dp(3) }
+        val row1 =
             controlRow(
-                6, 10,
+                6, 3,
                 listControl,
-                requireNotNull(projectMShuffleControl).also { (it.parent as? ViewGroup)?.removeView(it) },
-                legacyControl("NEXT") { advanceProjectMFocusPreset(manual = true) }.apply {
-                    textSize = 11f
-                    maxLines = 1
-                },
-                requireNotNull(projectMFocusAutoControl).also { (it.parent as? ViewGroup)?.removeView(it) },
-                legacyControl("👍") { rateProjectMFocusPreset(ProjectMPresetRating.UP) },
-                legacyControl("👎") { rateProjectMFocusPreset(ProjectMPresetRating.DOWN) },
-                legacyControl("⋯") { showProjectMMoreMenu() },
+                shuffle,
+                lowControl("NEXT", 1f) { advanceProjectMFocusPreset(manual = true) }.apply { textSize = 12f },
+                timeControl,
             )
-        // keep the hidden rows referenced (their buttons are the actions of «⋯»)
+        val row2 =
+            controlRow(
+                3, 8,
+                lowControl("👍") { rateProjectMFocusPreset(ProjectMPresetRating.UP) },
+                lowControl("👎") { rateProjectMFocusPreset(ProjectMPresetRating.DOWN) },
+                lowControl("Шари ▾", 1.3f) { showProjectMLayersMenu() },
+                lowControl("Ще ⋯", 1.1f) { showProjectMExtraMenu() },
+            )
         projectMFocusHiddenRows = listOf(modes, foreground, settings, ratings)
         val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
             addView(loadMeter)
-            addView(compact)
+            addView(row1)
+            addView(row2)
         }
         projectMFocusBottomBar = bottom
         overlay.addView(
@@ -5053,22 +5061,31 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ProjectMPresetRating.HIDDEN -> "−"
             ProjectMPresetRating.NONE -> "○"
         }
-        val auto = when {
-            state.autoPerTrack -> "AUTO ПІСНЯ"
-            state.autoEnabled -> "AUTO ${state.autoSwitchSeconds}s"
-            else -> "MANUAL"
-        }
-        val onOff = { active: Boolean -> if (active) "ON" else "OFF" }
+        // V166: «Вибрані · 17 з 303 · 🔀 · 👍» over the name.
+        val position = current?.let { file -> projectMFocusPresets.indexOfFirst { it.absolutePath == file.absolutePath } } ?: -1
+        val place = if (position >= 0) "${position + 1} з ${projectMFocusPresets.size}" else "— з ${projectMFocusPresets.size}"
         projectMFocusStatus?.text =
-            "$auto${if (state.autoShuffle) " 🔀" else ""} · ${projectMModeLabel(state.backgroundMode)} ${projectMFocusPresets.size} · " +
-                "$ratingIcon ${current?.nameWithoutExtension?.take(28) ?: "—"} · " +
-                "FG ${state.foregroundSample.label} · " +
-                "BG ${onOff(state.backgroundVisible)} · " +
-                "CENTER ${onOff(state.foregroundCenterVisible)} · " +
-                "EDGE ${onOff(state.foregroundEdgeFxVisible)}"
+            projectMModeLabel(state.backgroundMode) + " · " + place +
+                (if (state.autoShuffle) " · 🔀" else "") +
+                (if (rating == ProjectMPresetRating.NONE) "" else " · $ratingIcon") +
+                "\n" + (current?.nameWithoutExtension ?: "—") + " ▾"
+        val (timeText, timeColor) = projectMTimeLabel(state)
+        listOfNotNull(projectMFocusTimeLabel, projectMFocusTimeControl).forEach { label ->
+            label.text = timeText + if (label === projectMFocusTimeControl) " ▾" else ""
+            label.setTextColor(timeColor)
+        }
         // V156: the open list follows what is on screen.
         centreProjectMPresetList()
-        projectMFocusListControl?.text = "Список\n✓ " + projectMModeLabel(state.backgroundMode) + " ▾"
+        projectMFocusListControl?.let { control ->
+            control.text = "✓ " + projectMModeLabel(state.backgroundMode) + " ▾"
+            control.setTextColor(Color.rgb(230, 255, 240))
+            control.background =
+                android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = dp(6).toFloat()
+                    setColor(Color.argb(200, 16, 84, 48))
+                    setStroke(dp(2), Color.rgb(61, 220, 132))
+                }
+        }
         presetAnalysis?.let { run ->
             projectMFocusStatus?.text =
                 "АНАЛІЗ ${run.index + 1} з ${run.queue.size} · ${run.queue.getOrNull(run.index)?.nameWithoutExtension?.take(28) ?: ""}" +
@@ -5121,11 +5138,25 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             if (state.lightMode) "ЕКРАН\nлегкий" else "ЕКРАН\nзвичайний"
     }
 
+    /** V164: in the 👍 group a visualization that lost its 👍 leaves the round (and the screen) at once. */
+    private fun leaveLikedIfUnrated(file: File) {
+        val state = ProjectMStateStore(this)
+        if (state.backgroundMode != com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED) return
+        if (ProjectMPresetRatingsStore(this).ratingFor(file) == ProjectMPresetRating.UP) return
+        val wasOnScreen = state.lastPresetPath == file.absolutePath
+        projectMFocusPresets = projectMFocusPresets.filterNot { it.absolutePath == file.absolutePath }
+        if (wasOnScreen && projectMFocusPresets.isNotEmpty()) advanceProjectMFocusPreset(manual = false)
+    }
+
     private fun rateProjectMFocusPreset(rating: ProjectMPresetRating) {
         val state = ProjectMStateStore(this)
         val current = state.lastPresetFileOrNull() ?: return
         ProjectMPresetRatingsStore(this).setRating(current, rating)
-        if (rating == ProjectMPresetRating.HIDDEN) {
+        // V164 (faric 23.10 18:07–18:13: «палець вниз ставлю — не вбирається» — лише після виходу): in the 👍
+        // group a visualization without 👍 leaves the round at once.
+        val leavesLiked =
+            rating != ProjectMPresetRating.UP && state.backgroundMode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED
+        if (rating == ProjectMPresetRating.HIDDEN || leavesLiked) {
             projectMFocusPresets =
                 projectMFocusPresets.filterNot { it.absolutePath == current.absolutePath }
             advanceProjectMFocusPreset(manual = false)
@@ -5598,11 +5629,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     down.contentDescription = "Не подобається: " + file.nameWithoutExtension
                     up.setOnClickListener {
                         ratings.setRating(file, if (ratings.ratingFor(file) == ProjectMPresetRating.UP) ProjectMPresetRating.NONE else ProjectMPresetRating.UP)
+                        leaveLikedIfUnrated(file)
                         notifyDataSetChanged()
                         updateProjectMFocusStatus()
                     }
                     down.setOnClickListener {
                         ratings.setRating(file, if (ratings.ratingFor(file) == ProjectMPresetRating.DOWN) ProjectMPresetRating.NONE else ProjectMPresetRating.DOWN)
+                        leaveLikedIfUnrated(file)
                         notifyDataSetChanged()
                         updateProjectMFocusStatus()
                     }
@@ -5689,78 +5722,209 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             } ?: ""
         val line =
             if (fresh) {
-                "FPS ${stats.fps.toInt()} · кадр графіки " + String.format(java.util.Locale.ROOT, "%.1f", stats.gpuFrameMs).replace('.', ',') + " мс · $video"
+                "FPS ${stats.fps.toInt()} · кадр графіки " + (if (stats.gpuExact) "" else "≈ ") + String.format(java.util.Locale.ROOT, "%.1f", stats.gpuFrameMs).replace('.', ',') + " мс · $video"
             } else {
                 "Візуалізація не малюється — нема що міряти · $video"
             }
         meter.update(gpu, cpu, line)
     }
 
-    /** V161: «Список ▾» — which visualizations go round (with the numbers of the load lists). */
-    private fun showProjectMListChoice() {
-        val modes = com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.entries
-        val counts = com.saney.musicvisualizer.projectm.PresetLoadStore(this).counts()
-        val labels =
-            modes.map { mode ->
-                val klass = loadClassOf(mode)
-                when {
-                    klass != null -> projectMModeLabel(mode) + " (за аналізом: " + (counts[klass] ?: 0) + ")"
-                    mode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP -> "ТОП — швидкі зі збірки"
-                    mode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL -> "ВСІ"
-                    else -> "👍 — мої вибрані"
-                }
+    /** V163: a row of the drop-down menus on the right page. */
+    private enum class DropTick { NONE, GREY, GREEN }
+
+    private class DropRow(
+        val label: String,
+        val tick: DropTick,
+        val hint: String? = null,
+        val hintColor: Int? = null,
+        val keepOpen: Boolean = false,
+        val action: () -> Unit,
+    )
+
+    private fun closeProjectMDropdown() {
+        projectMDropdown?.let { (it.parent as? ViewGroup)?.removeView(it) }
+        projectMDropdown = null
+    }
+
+    /**
+     * V163: a small menu that drops above the bottom rows (like the mock-up), not a window; a tap outside
+     * closes it. Toggles keep it open and show the new state at once.
+     */
+    private fun showProjectMDropdown(rows: () -> List<DropRow>) {
+        val overlay = projectMFocusOverlay ?: return
+        closeProjectMDropdown()
+        val scrim = FrameLayout(this).apply { setOnClickListener { closeProjectMDropdown() } }
+        val panel =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(4), dp(4), dp(4), dp(4))
+                isClickable = true
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius = dp(10).toFloat()
+                        setColor(Color.argb(250, 8, 14, 20))
+                        setStroke(dp(1), Color.rgb(64, 200, 255))
+                    }
             }
-        PulseDeckDialogs.showSingleChoice(
-            context = this,
-            title = "Які візуалізації крутити",
-            labels = labels,
-            checkedIndex = modes.indexOf(ProjectMStateStore(this).backgroundMode),
-        ) { index ->
-            loadProjectMFocusPresets(modes[index])
-            scheduleProjectMFocusAuto()
+        fun fill() {
+            panel.removeAllViews()
+            rows().forEach { r ->
+                val line =
+                    LinearLayout(this).apply {
+                        orientation = LinearLayout.HORIZONTAL
+                        gravity = Gravity.CENTER_VERTICAL
+                        minimumHeight = dp(48)
+                        setPadding(dp(10), 0, dp(10), 0)
+                        isClickable = true
+                        setOnClickListener {
+                            r.action()
+                            if (r.keepOpen && projectMDropdown != null) fill() else closeProjectMDropdown()
+                        }
+                    }
+                if (r.tick != DropTick.NONE) {
+                    line.addView(
+                        TextView(this).apply {
+                            text = "✓"
+                            textSize = 13f
+                            gravity = Gravity.CENTER
+                            setTextColor(if (r.tick == DropTick.GREEN) Color.rgb(61, 220, 132) else Color.rgb(125, 139, 152))
+                            background =
+                                android.graphics.drawable.GradientDrawable().apply {
+                                    cornerRadius = dp(5).toFloat()
+                                    setColor(if (r.tick == DropTick.GREEN) Color.rgb(16, 58, 38) else Color.rgb(42, 53, 66))
+                                }
+                        },
+                        LinearLayout.LayoutParams(dp(24), dp(24)).apply { marginEnd = dp(10) },
+                    )
+                }
+                line.addView(
+                    TextView(this).apply {
+                        text = r.label
+                        textSize = 14f
+                        setTextColor(Color.rgb(176, 216, 242))
+                    },
+                    LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+                )
+                r.hint?.let { hint ->
+                    line.addView(
+                        TextView(this).apply {
+                            text = hint
+                            textSize = 12f
+                            setTextColor(r.hintColor ?: Color.rgb(111, 135, 153))
+                        },
+                    )
+                }
+                panel.addView(line)
+            }
+        }
+        fill()
+        scrim.addView(
+            panel,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM).apply {
+                setMargins(dp(8), 0, dp(8), (projectMFocusBottomBar?.height ?: dp(160)) + dp(6))
+            },
+        )
+        overlay.addView(scrim, FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.MATCH_PARENT))
+        projectMDropdown = scrim
+    }
+
+    /** V163 (faric 18:03): the group button — the chosen group is not in the list, the others with grey ticks. */
+    private fun showProjectMGroupMenu() {
+        val counts = com.saney.musicvisualizer.projectm.PresetLoadStore(this).counts()
+        showProjectMDropdown {
+            val current = ProjectMStateStore(this).backgroundMode
+            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.entries
+                .filter { it != current }
+                .map { mode ->
+                    val klass = loadClassOf(mode)
+                    val label =
+                        when (mode) {
+                            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP -> "ТОП — швидкі зі збірки"
+                            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL -> "ВСІ"
+                            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED -> "👍 — мої вибрані"
+                            else -> projectMModeLabel(mode)
+                        }
+                    DropRow(label, DropTick.GREY, hint = klass?.let { "за аналізом: ${counts[it] ?: 0}" }) {
+                        loadProjectMFocusPresets(mode)
+                        scheduleProjectMFocusAuto()
+                    }
+                }
         }
     }
 
-    /** V161: «⋯» — everything that used to take three more rows. */
-    private fun showProjectMMoreMenu() {
-        val state = ProjectMStateStore(this)
-        val onOff = { on: Boolean -> if (on) "увімкнено" else "вимкнено" }
-        val items =
+    /** V163 (faric 18:07): «5 с / 10 с / 15 с / 20 с»; вимкнено — червоний ⊘; нова пісня — ⇢. */
+    private fun projectMTimeLabel(state: ProjectMStateStore): Pair<String, Int> =
+        when {
+            state.autoPerTrack -> "⇢" to Color.rgb(176, 216, 242)
+            !state.autoEnabled -> "⊘" to Color.rgb(255, 90, 78)
+            else -> "${state.autoSwitchSeconds} с" to Color.rgb(176, 216, 242)
+        }
+
+    private fun showProjectMTimeMenu() {
+        showProjectMDropdown {
+            val state = ProjectMStateStore(this)
+            fun pick(
+                enabled: Boolean,
+                perTrack: Boolean,
+                seconds: Int? = null,
+            ) {
+                state.autoEnabled = enabled
+                state.autoPerTrack = perTrack
+                if (seconds != null) state.autoSwitchSeconds = seconds
+                scheduleProjectMFocusAuto()
+                updateProjectMFocusStatus()
+            }
+            val off = !state.autoEnabled && !state.autoPerTrack
             listOf(
-                "Фон (BG): " + onOff(state.backgroundVisible),
-                "Центр (CENTER): " + onOff(state.foregroundCenterVisible),
-                "Краї (EDGE FX): " + onOff(state.foregroundEdgeFxVisible),
-                "Передній шар (FG): " + state.foregroundSample.label + " → наступний",
-                "⚙ Налаштування переднього шару",
-                "Екран: " + if (state.lightMode) "легкий режим" else "звичайна якість",
-                "Сховати цю візуалізацію (−)",
-                "Аналіз візуалізацій: легкі / середні / важкі…",
-                "⇧ Export Lab",
-            )
-        PulseDeckDialogs.showActionList(
-            context = this,
-            title = "Візуалізація — ще",
-            items = items,
-            cancelLabel = "Закрити",
-        ) { which ->
-            when (which) {
-                0 -> projectMFocusBackgroundControl?.performClick()
-                1 -> projectMFocusCenterControl?.performClick()
-                2 -> projectMFocusEdgeControl?.performClick()
-                3 -> {
+                DropRow("Вимкнено — одна візуалізація", if (off) DropTick.GREEN else DropTick.GREY, hint = "⊘", hintColor = Color.rgb(255, 90, 78)) { pick(false, false) },
+            ) +
+                listOf(5, 10, 15, 20).map { sec ->
+                    val on = state.autoEnabled && !state.autoPerTrack && state.autoSwitchSeconds == sec
+                    DropRow("Кожні $sec с", if (on) DropTick.GREEN else DropTick.GREY, hint = "$sec с") { pick(true, false, sec) }
+                } +
+                DropRow("Нова пісня — нова візуалізація", if (state.autoPerTrack) DropTick.GREEN else DropTick.GREY, hint = "⇢") { pick(false, true) }
+        }
+    }
+
+    /** V163 (faric 18:03: «BG, CENTER, EDGE FX, FG, ⚙ FG — з однієї опери, згрупувати»). */
+    private fun showProjectMLayersMenu() {
+        showProjectMDropdown {
+            val state = ProjectMStateStore(this)
+            val tick = { on: Boolean -> if (on) DropTick.GREEN else DropTick.GREY }
+            listOf(
+                DropRow("Фон — сама візуалізація", tick(state.backgroundVisible), hint = "BG", keepOpen = true) {
+                    projectMFocusBackgroundControl?.performClick()
+                },
+                DropRow("Фігура в центрі", tick(state.foregroundCenterVisible), hint = "CENTER", keepOpen = true) {
+                    projectMFocusCenterControl?.performClick()
+                },
+                DropRow("Ефекти по краях", tick(state.foregroundEdgeFxVisible), hint = "EDGE FX", keepOpen = true) {
+                    projectMFocusEdgeControl?.performClick()
+                },
+                DropRow("Передній шар: " + state.foregroundSample.label, DropTick.NONE, hint = "наступний ›", keepOpen = true) {
                     state.foregroundSample = state.foregroundSample.next()
                     projectMMainView?.setForegroundSample(state.foregroundSample)
                     updateProjectMFocusStatus()
-                }
-                4 -> showProjectMSettingsPanel()
-                5 -> projectMFocusLightControl?.performClick()
-                6 -> rateProjectMFocusPreset(ProjectMPresetRating.HIDDEN)
-                7 -> askPresetAnalysis()
-                8 -> {
+                },
+                DropRow("Налаштувати передній шар", DropTick.NONE, hint = "⚙ FG") { showProjectMSettingsPanel() },
+            )
+        }
+    }
+
+    private fun showProjectMExtraMenu() {
+        showProjectMDropdown {
+            val state = ProjectMStateStore(this)
+            listOf(
+                DropRow("Екран: " + if (state.lightMode) "легкий режим" else "звичайна якість", DropTick.NONE, hint = "змінити ›") {
+                    projectMFocusLightControl?.performClick()
+                },
+                DropRow("Аналіз: легкі / середні / важкі…", DropTick.NONE) { askPresetAnalysis() },
+                DropRow("Сховати цю візуалізацію назавжди", DropTick.NONE, hint = "було «−»") { rateProjectMFocusPreset(ProjectMPresetRating.HIDDEN) },
+                DropRow("Зробити відео (Export Lab)", DropTick.NONE, hint = "було EXPORT") {
                     closeProjectMFocusOverlay()
                     openExportLabWithProjectMCapture()
-                }
-            }
+                },
+            )
         }
     }
 
@@ -5924,6 +6088,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMShuffleControl = null
         projectMFocusBottomBar = null
         projectMFocusListControl = null
+        projectMFocusTimeControl = null
+        projectMFocusTimeLabel = null
+        projectMDropdown = null
         projectMFocusHiddenRows = emptyList()
         projectMLoadMeter?.removeCallbacks(loadMeterTick)
         projectMLoadMeter = null
@@ -12592,6 +12759,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMShuffleControl = null
         projectMFocusBottomBar = null
         projectMFocusListControl = null
+        projectMFocusTimeControl = null
+        projectMFocusTimeLabel = null
+        projectMDropdown = null
         projectMFocusHiddenRows = emptyList()
         projectMLoadMeter?.removeCallbacks(loadMeterTick)
         projectMLoadMeter = null

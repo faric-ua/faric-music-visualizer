@@ -212,6 +212,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var projectMShuffleControl: TextView? = null
     private var projectMFocusBottomBar: View? = null
 
+    /** V157: the load meter on the right page and its once-a-second tick. */
+    private var projectMLoadMeter: com.saney.musicvisualizer.ui.LoadMeterView? = null
+    private var loadCpuTicks = -1L
+    private var loadCpuAtMs = 0L
+    private val loadMeterTick =
+        object : Runnable {
+            override fun run() {
+                val meter = projectMLoadMeter ?: return
+                updateLoadMeter(meter)
+                meter.postDelayed(this, 1_000L)
+            }
+        }
+
     /** V156: the open list follows the visualization on screen (highlight + centred). */
     private var projectMPresetListView: android.widget.ListView? = null
     private var projectMPresetListAdapter: android.widget.BaseAdapter? = null
@@ -4968,8 +4981,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 rateProjectMFocusPreset(ProjectMPresetRating.HIDDEN)
             },
         )
+        // V157: «шкала навантаження» above the buttons.
+        val loadMeter = com.saney.musicvisualizer.ui.LoadMeterView(this)
+        projectMLoadMeter = loadMeter
+        loadCpuTicks = -1L
+        loadMeter.post(loadMeterTick)
         val bottom = LinearLayout(this).apply {
             orientation = LinearLayout.VERTICAL
+            addView(loadMeter)
             addView(modes)
             addView(foreground)
             addView(settings)
@@ -5570,6 +5589,39 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         if (force) list.setSelectionFromTop(index, offset) else list.smoothScrollToPositionFromTop(index, offset, 350)
     }
 
+    private fun updateLoadMeter(meter: com.saney.musicvisualizer.ui.LoadMeterView) {
+        val stats = com.saney.musicvisualizer.projectm.ProjectMLoadStats
+        val fresh = android.os.SystemClock.uptimeMillis() - stats.updatedAtMs < 3_000L
+        val gpu = if (fresh) com.saney.musicvisualizer.ui.LoadMeter.gpuPercent(stats.gpuFrameMs) else 0
+        val now = android.os.SystemClock.uptimeMillis()
+        val ticks =
+            runCatching {
+                java.io.File("/proc/self/stat").readText().let { com.saney.musicvisualizer.ui.LoadMeter.cpuTicks(it) }
+            }.getOrNull()
+        var cpu = 0
+        if (ticks != null) {
+            if (loadCpuTicks >= 0L) {
+                val perSecond = runCatching { android.system.Os.sysconf(android.system.OsConstants._SC_CLK_TCK) }.getOrDefault(100L)
+                cpu = com.saney.musicvisualizer.ui.LoadMeter.cpuPercent(ticks - loadCpuTicks, perSecond, now - loadCpuAtMs, Runtime.getRuntime().availableProcessors())
+            }
+            loadCpuTicks = ticks
+            loadCpuAtMs = now
+        }
+        val current = ProjectMStateStore(this).lastPresetPath
+        val video =
+            current?.let {
+                val mark = com.saney.musicvisualizer.export.PresetExportSpeedStore(this).markOf(it)
+                "у відео: ${mark.sign} ${mark.label}"
+            } ?: ""
+        val line =
+            if (fresh) {
+                "FPS ${stats.fps.toInt()} · кадр графіки " + String.format(java.util.Locale.ROOT, "%.1f", stats.gpuFrameMs).replace('.', ',') + " мс · $video"
+            } else {
+                "Візуалізація не малюється — нема що міряти · $video"
+            }
+        meter.update(gpu, cpu, line)
+    }
+
     private fun closeProjectMFocusOverlay() {
         val overlay = projectMFocusOverlay ?: return
         stopProjectMAuto()
@@ -5581,6 +5633,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMPresetListPanel = null
         projectMShuffleControl = null
         projectMFocusBottomBar = null
+        projectMLoadMeter?.removeCallbacks(loadMeterTick)
+        projectMLoadMeter = null
         projectMPresetListView = null
         projectMPresetListAdapter = null
         projectMPresetListCentred = null
@@ -12245,6 +12299,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMPresetListPanel = null
         projectMShuffleControl = null
         projectMFocusBottomBar = null
+        projectMLoadMeter?.removeCallbacks(loadMeterTick)
+        projectMLoadMeter = null
         projectMPresetListView = null
         projectMPresetListAdapter = null
         projectMPresetListCentred = null

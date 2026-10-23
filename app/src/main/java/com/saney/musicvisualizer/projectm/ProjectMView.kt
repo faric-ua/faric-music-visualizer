@@ -1126,6 +1126,10 @@ class ProjectMView(
         private var frameCount = 0
         private var sampleStartedNs = 0L
 
+        // V157: the load meter — frames per second and one measured frame per second.
+        private var loadFrames = 0
+        private var loadStartedNs = 0L
+
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
             created = false
             frameCount = 0
@@ -1180,7 +1184,22 @@ class ProjectMView(
                 return
             }
 
+            val now0 = System.nanoTime()
+            val measure = loadStartedNs != 0L && now0 - loadStartedNs >= 1_000_000_000L
             ProjectMBridge.render()
+            if (measure) {
+                // Once a second: wait until the graphics finished this frame — its real cost.
+                GLES20.glFinish()
+                val done = System.nanoTime()
+                ProjectMLoadStats.gpuFrameMs = (done - now0) / 1_000_000f
+                ProjectMLoadStats.fps = loadFrames * 1_000_000_000f / (now0 - loadStartedNs)
+                ProjectMLoadStats.updatedAtMs = android.os.SystemClock.uptimeMillis()
+                loadFrames = 0
+                loadStartedNs = done
+            } else if (loadStartedNs == 0L) {
+                loadStartedNs = now0
+            }
+            loadFrames++
             if (frameCount == 0) {
                 Log.i(TAG, "first GL render frame after surface setup")
             }

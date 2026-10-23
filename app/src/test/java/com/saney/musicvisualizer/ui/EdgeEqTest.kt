@@ -52,4 +52,11 @@ class EdgeEqTest {
         assertTrue(abs(EdgeEqMath.turn(5_000L, -100) - 0.5f) < 1e-4f)
         assertEquals(48 + 200, EdgeEqMath.sampleCount(100))
     }
+
+    @Test fun equalizerFitsInsideTheFrame() {
+        assertEquals(1080f * EdgeEqMath.REACH, EdgeEqMath.inset(EdgeEqSettings.DEFAULT, 1080f), 1e-3f)
+        assertEquals(0f, EdgeEqMath.inset(EdgeEqSettings.DEFAULT.copy(on = false), 1080f), 1e-6f)
+        val allOff = EdgeEqSettings.DEFAULT.copy(bars = EdgeEqSettings.DEFAULT_BARS.copy(enabled = false), dots = EdgeEqSettings.DEFAULT_DOTS.copy(enabled = false), wave = EdgeEqSettings.DEFAULT_WAVE.copy(enabled = false))
+        assertEquals(0f, EdgeEqMath.inset(allOff, 1080f), 1e-6f)
+    }
 }

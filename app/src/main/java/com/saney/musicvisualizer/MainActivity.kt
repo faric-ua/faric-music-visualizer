@@ -202,6 +202,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var projectMFocusSavedVisibility:
         Map<PulseDeckLayerStack.Layer, Boolean>? = null
     private var projectMFocusPresets: List<File> = emptyList()
+
+    /** V152: the shuffled round (paths) for «Випадково». */
+    private var projectMShuffleOrder: List<String> = emptyList()
+
+    /** V153: the top bar of the right page and the visualization list opened from it. */
+    private var projectMFocusTopBar: View? = null
+    private var projectMPresetListPanel: View? = null
+    private var projectMShuffleControl: TextView? = null
     private var projectMFocusCatalogGeneration = 0
     private var projectMFocusStatus: TextView? = null
     private var projectMFocusAutoControl: TextView? = null
@@ -4698,6 +4706,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             includeFontPadding = false
         }
         projectMFocusStatus = status
+        // V153: the name line opens the list of visualizations.
+        status.isClickable = true
+        status.contentDescription = "Список візуалізацій"
+        status.setOnClickListener { toggleProjectMPresetList() }
 
         val back = ImageView(this).apply {
             contentDescription = "Назад"
@@ -4762,6 +4774,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 Gravity.TOP,
             ),
         )
+        projectMFocusTopBar = top
 
         fun controlRow(
             topPadding: Int,
@@ -4811,6 +4824,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             allControl,
             likedControl,
             legacyControl("NEXT") { advanceProjectMFocusPreset(manual = true) },
+            // V152: «По черзі / Випадково».
+            legacyControl("🔀") {
+                val state = ProjectMStateStore(this)
+                state.autoShuffle = !state.autoShuffle
+                projectMShuffleOrder = emptyList()
+                toast(if (state.autoShuffle) "Візуалізації — випадково" else "Візуалізації — по черзі")
+                updateProjectMFocusStatus()
+            }.also { projectMShuffleControl = it },
             legacyControl("FG") {
                 val state = ProjectMStateStore(this)
                 state.foregroundSample = state.foregroundSample.next()
@@ -4976,12 +4997,27 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         val onOff = { active: Boolean -> if (active) "ON" else "OFF" }
         projectMFocusStatus?.text =
-            "$auto · ${projectMModeLabel(state.backgroundMode)} ${projectMFocusPresets.size} · " +
+            "$auto${if (state.autoShuffle) " 🔀" else ""} · ${projectMModeLabel(state.backgroundMode)} ${projectMFocusPresets.size} · " +
                 "$ratingIcon ${current?.nameWithoutExtension?.take(28) ?: "—"} · " +
                 "FG ${state.foregroundSample.label} · " +
                 "BG ${onOff(state.backgroundVisible)} · " +
                 "CENTER ${onOff(state.foregroundCenterVisible)} · " +
                 "EDGE ${onOff(state.foregroundEdgeFxVisible)}"
+        projectMShuffleControl?.let { control ->
+            val on = state.autoShuffle
+            control.text = if (on) "✓ 🔀" else "🔀"
+            control.contentDescription = if (on) "Випадковий порядок — увімкнено" else "Випадковий порядок — вимкнено"
+            control.background =
+                android.graphics.drawable.GradientDrawable().apply {
+                    cornerRadius = dp(6).toFloat()
+                    if (on) {
+                        setColor(Color.argb(200, 16, 84, 48))
+                        setStroke(dp(2), Color.rgb(61, 220, 132))
+                    } else {
+                        setColor(Color.argb(150, 15, 22, 31))
+                    }
+                }
+        }
         // V112 (faric 21.10 14:49: «ніхрена не бачу, чи я вибрав»): the chosen list is marked.
         projectMFocusModeControls.forEach { (mode, control) ->
             val chosen = mode == state.backgroundMode
@@ -5284,8 +5320,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             return
         }
         val current = state.lastPresetPath
-        val index = pool.indexOfFirst { it.absolutePath == current }
-        val next = pool[(index + 1) % pool.size]
+        val next =
+            if (state.autoShuffle && pool.size > 1) {
+                // V152: a random round — every visualization once, then a new round.
+                val (path, round) = com.saney.musicvisualizer.projectm.PresetOrder.next(shuffleOrderFor(pool), current) { newShuffleRound(pool) }
+                projectMShuffleOrder = round
+                pool.firstOrNull { it.absolutePath == path } ?: pool.first()
+            } else {
+                val index = pool.indexOfFirst { it.absolutePath == current }
+                pool[(index + 1) % pool.size]
+            }
         if (next.absolutePath != current) {
             state.lastPresetPath = next.absolutePath
             projectMMainView?.loadPreset(next, smoothTransition = false)
@@ -5299,6 +5343,184 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         ensureProjectMAutoRunning()
     }
 
+    /** V152: the current random round for [pool] (a new one when the list changed). */
+    private fun shuffleOrderFor(pool: List<File>): List<String> {
+        val paths = pool.map { it.absolutePath }
+        if (projectMShuffleOrder.size != paths.size || projectMShuffleOrder.toSet() != paths.toSet()) {
+            projectMShuffleOrder = newShuffleRound(pool)
+        }
+        return projectMShuffleOrder
+    }
+
+    private fun newShuffleRound(pool: List<File>): List<String> =
+        com.saney.musicvisualizer.projectm.PresetOrder.shuffled(pool.map { it.absolutePath }, System.nanoTime())
+
+    /**
+     * V153 (faric 23.10 04:34): tap the name line at the top → the list of this page's visualizations
+     * drops down from the top: every name with 👍 / 👎 on the right. A tap on a name shows it at once
+     * and the list STAYS open (to rate it and try the next); it closes with ✕ or another tap on the name line.
+     */
+    private fun toggleProjectMPresetList() {
+        val overlay = projectMFocusOverlay ?: return
+        projectMPresetListPanel?.let { panel ->
+            overlay.removeView(panel)
+            projectMPresetListPanel = null
+            return
+        }
+        val pool = projectMFocusPresets
+        if (pool.isEmpty()) {
+            toast("Список ще завантажується")
+            return
+        }
+        val ratings = ProjectMPresetRatingsStore(this)
+        val state = ProjectMStateStore(this)
+        val panel =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setPadding(dp(8), dp(6), dp(8), dp(8))
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius = dp(10).toFloat()
+                        setColor(Color.argb(232, 6, 12, 18))
+                        setStroke(dp(1), Color.argb(150, 64, 200, 255))
+                    }
+                isClickable = true
+            }
+        val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
+        header.addView(
+            TextView(this).apply {
+                text = "Візуалізації · ${projectMModeLabel(state.backgroundMode)} · ${pool.size}"
+                textSize = 14f
+                setTextColor(Color.rgb(176, 216, 242))
+                typeface = android.graphics.Typeface.DEFAULT_BOLD
+                setPadding(dp(6), 0, 0, 0)
+            },
+            LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+        )
+        header.addView(
+            TextView(this).apply {
+                text = "✕ Закрити"
+                textSize = 14f
+                setTextColor(Color.rgb(176, 216, 242))
+                gravity = Gravity.CENTER
+                minHeight = dp(48)
+                setPadding(dp(14), 0, dp(14), 0)
+                background =
+                    android.graphics.drawable.GradientDrawable().apply {
+                        cornerRadius = dp(8).toFloat()
+                        setColor(Color.argb(160, 15, 22, 31))
+                    }
+                setOnClickListener { toggleProjectMPresetList() }
+            },
+        )
+        panel.addView(header)
+
+        val list = android.widget.ListView(this).apply {
+            divider = android.graphics.drawable.ColorDrawable(Color.argb(60, 120, 170, 210))
+            dividerHeight = 1
+            setBackgroundColor(Color.TRANSPARENT)
+            cacheColorHint = Color.TRANSPARENT
+        }
+        val adapter =
+            object : android.widget.BaseAdapter() {
+                override fun getCount(): Int = projectMFocusPresets.size
+
+                override fun getItem(position: Int): Any = projectMFocusPresets[position]
+
+                override fun getItemId(position: Int): Long = position.toLong()
+
+                override fun getView(
+                    position: Int,
+                    convertView: View?,
+                    parent: ViewGroup?,
+                ): View {
+                    val file = projectMFocusPresets[position]
+                    val row =
+                        (convertView as? LinearLayout) ?: LinearLayout(this@MainActivity).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            gravity = Gravity.CENTER_VERTICAL
+                            minimumHeight = dp(52)
+                            addView(
+                                TextView(this@MainActivity).apply {
+                                    textSize = 14f
+                                    maxLines = 2
+                                    setPadding(dp(8), dp(6), dp(6), dp(6))
+                                },
+                                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+                            )
+                            listOf("👍", "👎").forEach { icon ->
+                                addView(
+                                    TextView(this@MainActivity).apply {
+                                        text = icon
+                                        textSize = 18f
+                                        gravity = Gravity.CENTER
+                                        isClickable = true
+                                    },
+                                    LinearLayout.LayoutParams(dp(52), dp(48)).apply { marginStart = dp(4) },
+                                )
+                            }
+                        }
+                    val name = row.getChildAt(0) as TextView
+                    val up = row.getChildAt(1) as TextView
+                    val down = row.getChildAt(2) as TextView
+                    val isCurrent = file.absolutePath == ProjectMStateStore(this@MainActivity).lastPresetPath
+                    name.text = (if (isCurrent) "▶ " else "") + file.nameWithoutExtension
+                    name.setTextColor(if (isCurrent) Color.rgb(90, 220, 255) else Color.rgb(176, 216, 242))
+                    name.typeface = if (isCurrent) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+                    val rating = ratings.ratingFor(file)
+                    fun paint(
+                        view: TextView,
+                        on: Boolean,
+                        onColor: Int,
+                    ) {
+                        view.alpha = if (on) 1f else 0.35f
+                        view.background =
+                            android.graphics.drawable.GradientDrawable().apply {
+                                cornerRadius = dp(8).toFloat()
+                                setColor(if (on) onColor else Color.argb(90, 15, 22, 31))
+                            }
+                    }
+                    paint(up, rating == ProjectMPresetRating.UP, Color.argb(200, 16, 84, 48))
+                    paint(down, rating == ProjectMPresetRating.DOWN, Color.argb(200, 96, 40, 16))
+                    up.contentDescription = "Подобається: " + file.nameWithoutExtension
+                    down.contentDescription = "Не подобається: " + file.nameWithoutExtension
+                    up.setOnClickListener {
+                        ratings.setRating(file, if (ratings.ratingFor(file) == ProjectMPresetRating.UP) ProjectMPresetRating.NONE else ProjectMPresetRating.UP)
+                        notifyDataSetChanged()
+                        updateProjectMFocusStatus()
+                    }
+                    down.setOnClickListener {
+                        ratings.setRating(file, if (ratings.ratingFor(file) == ProjectMPresetRating.DOWN) ProjectMPresetRating.NONE else ProjectMPresetRating.DOWN)
+                        notifyDataSetChanged()
+                        updateProjectMFocusStatus()
+                    }
+                    name.setOnClickListener {
+                        // Show it now; AUTO stops (as with NEXT), the list stays open.
+                        val s = ProjectMStateStore(this@MainActivity)
+                        s.autoEnabled = false
+                        stopProjectMAuto()
+                        s.lastPresetPath = file.absolutePath
+                        projectMMainView?.loadPreset(file, smoothTransition = false)
+                        notifyDataSetChanged()
+                        updateProjectMFocusStatus()
+                    }
+                    return row
+                }
+            }
+        list.adapter = adapter
+        panel.addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, (resources.displayMetrics.heightPixels * 0.5f).toInt()))
+        val currentIndex = pool.indexOfFirst { it.absolutePath == state.lastPresetPath }
+        if (currentIndex > 2) list.setSelection(currentIndex - 2)
+        val top = projectMFocusTopBar
+        overlay.addView(
+            panel,
+            FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.TOP).apply {
+                setMargins(dp(8), (top?.bottom ?: dp(56)) + dp(4), dp(8), 0)
+            },
+        )
+        projectMPresetListPanel = panel
+    }
+
     private fun closeProjectMFocusOverlay() {
         val overlay = projectMFocusOverlay ?: return
         stopProjectMAuto()
@@ -5306,6 +5528,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         (overlay.parent as? ViewGroup)?.removeView(overlay)
         projectMFocusOverlay = null
         projectMFocusStatus = null
+        projectMFocusTopBar = null
+        projectMPresetListPanel = null
+        projectMShuffleControl = null
         projectMFocusAutoControl = null
         projectMFocusBackgroundControl = null
         projectMFocusCenterControl = null
@@ -10117,8 +10342,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             } else {
                 pool
             }
+        // V152: «Випадково» — the video goes through the same random round as the screen.
+        val orderedPaths =
+            if (state.autoShuffle && usablePool.size > 1) {
+                val usable = usablePool.map { it.absolutePath }.toSet()
+                shuffleOrderFor(pool).filter { it in usable }.ifEmpty { usablePool.map { it.absolutePath } }
+            } else {
+                usablePool.map { it.absolutePath }
+            }
         return com.saney.musicvisualizer.export.ExportPresetSchedule.createOrNull(
-            pool = usablePool.map { it.absolutePath },
+            pool = orderedPaths,
             current = state.lastPresetPath,
             autoEnabled = state.autoEnabled,
             autoSeconds = state.autoSwitchSeconds,
@@ -11955,6 +12188,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMFocusCatalogGeneration++
         projectMFocusOverlay = null
         projectMFocusStatus = null
+        projectMFocusTopBar = null
+        projectMPresetListPanel = null
+        projectMShuffleControl = null
         projectMFocusAutoControl = null
         projectMFocusBackgroundControl = null
         projectMFocusCenterControl = null

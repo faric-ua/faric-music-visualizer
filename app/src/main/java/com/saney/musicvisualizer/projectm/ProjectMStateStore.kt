@@ -32,6 +32,13 @@ class ProjectMStateStore(context: Context) {
             prefs.edit().putBoolean(KEY_AUTO_ENABLED, value).apply()
         }
 
+    /** V152: AUTO / NEXT go through the list in a random order (each once per round). */
+    var autoShuffle: Boolean
+        get() = prefs.getBoolean(KEY_AUTO_SHUFFLE, false)
+        set(value) {
+            prefs.edit().putBoolean(KEY_AUTO_SHUFFLE, value).apply()
+        }
+
     /** V90: «AUTO ПІСНЯ» — switch the preset when a new song starts (instead of a timer). */
     var autoPerTrack: Boolean
         get() = prefs.getBoolean(KEY_AUTO_PER_TRACK, false)
@@ -280,6 +287,7 @@ class ProjectMStateStore(context: Context) {
         private const val KEY_BACKGROUND_MODE = "background_mode"
         private const val KEY_AUTO_ENABLED = "auto_enabled"
         private const val KEY_AUTO_PER_TRACK = "auto_per_track"
+        private const val KEY_AUTO_SHUFFLE = "auto_shuffle"
         private const val KEY_LIGHT_MODE = "light_mode"
         private const val KEY_AUTO_SWITCH_SECONDS =
             "auto_switch_seconds"

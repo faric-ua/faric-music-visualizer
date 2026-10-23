@@ -34,6 +34,19 @@ class CoverBoxContentTest {
         assertEquals(-400f, CoverBoxContent.crawlTop(0.5f, 200f, 1000f), 1e-3f)
     }
 
+    @Test fun bothLanguagesUkrainianThenEnglish() {
+        val tags = SongStoryTags(trackUk = "Трек", trackEn = "Track", albumUk = "Альбом", albumEn = "Album")
+        assertEquals(
+            "Трек\n\n— Про альбом —\n\nАльбом\n\n— English —\n\nTrack\n\n— About the album —\n\nAlbum",
+            StoryText.compose(tags, StoryLanguage.BOTH),
+        )
+        assertTrue(CoverBoxContent.isHeading(StoryText.ENGLISH_HEADER))
+        // only one language in the tags — shown once, not twice
+        assertEquals("Трек", StoryText.compose(SongStoryTags(trackUk = "Трек"), StoryLanguage.BOTH))
+        assertEquals("Track", StoryText.compose(SongStoryTags(trackEn = "Track"), StoryLanguage.BOTH))
+        assertEquals(StoryLanguage.BOTH, StoryLanguage.fromCode("both"))
+    }
+
     @Test fun storyComposesTrackThenAlbumAndFallsBackToOtherLanguage() {
         val tags = SongStoryTags(trackUk = "Трек", albumUk = "Альбом", albumEn = "Album")
         assertEquals("Трек\n\n— Про альбом —\n\nАльбом", StoryText.compose(tags, StoryLanguage.UK))

@@ -211,6 +211,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private var projectMPresetListPanel: View? = null
     private var projectMShuffleControl: TextView? = null
     private var projectMFocusBottomBar: View? = null
+
+    /** V156: the open list follows the visualization on screen (highlight + centred). */
+    private var projectMPresetListView: android.widget.ListView? = null
+    private var projectMPresetListAdapter: android.widget.BaseAdapter? = null
+    private var projectMPresetListCentred: String? = null
     private var projectMFocusCatalogGeneration = 0
     private var projectMFocusStatus: TextView? = null
     private var projectMFocusAutoControl: TextView? = null
@@ -5009,6 +5014,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 "BG ${onOff(state.backgroundVisible)} · " +
                 "CENTER ${onOff(state.foregroundCenterVisible)} · " +
                 "EDGE ${onOff(state.foregroundEdgeFxVisible)}"
+        // V156: the open list follows what is on screen.
+        centreProjectMPresetList()
         projectMShuffleControl?.let { control ->
             val on = state.autoShuffle
             control.text = if (on) "✓ 🔀" else "🔀"
@@ -5371,6 +5378,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMPresetListPanel?.let { panel ->
             overlay.removeView(panel)
             projectMPresetListPanel = null
+            projectMPresetListView = null
+            projectMPresetListAdapter = null
+            projectMPresetListCentred = null
             return
         }
         val pool = projectMFocusPresets
@@ -5473,6 +5483,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     name.text = (if (isCurrent) "▶ " else "") + file.nameWithoutExtension
                     name.setTextColor(if (isCurrent) Color.rgb(90, 220, 255) else Color.rgb(176, 216, 242))
                     name.typeface = if (isCurrent) android.graphics.Typeface.DEFAULT_BOLD else android.graphics.Typeface.DEFAULT
+                    // V156 (faric 23.10 15:26: «цей рядочок виділяти окремою плиткою»): the one on screen
+                    // is its own tile.
+                    row.background =
+                        if (isCurrent) {
+                            android.graphics.drawable.GradientDrawable().apply {
+                                cornerRadius = dp(10).toFloat()
+                                setColor(Color.argb(235, 12, 44, 66))
+                                setStroke(dp(2), Color.rgb(64, 200, 255))
+                            }
+                        } else {
+                            null
+                        }
                     val rating = ratings.ratingFor(file)
                     fun paint(
                         view: TextView,
@@ -5514,10 +5536,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
             }
         list.adapter = adapter
+        projectMPresetListView = list
+        projectMPresetListAdapter = adapter
+        projectMPresetListCentred = null
         // V155 (скрін faric 23.10 15:05: список налазив на кнопки внизу): the list ends above them.
         panel.addView(list, LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f))
-        val currentIndex = pool.indexOfFirst { it.absolutePath == state.lastPresetPath }
-        if (currentIndex > 2) list.setSelection(currentIndex - 2)
+        list.post { centreProjectMPresetList(force = true) }
         val top = projectMFocusTopBar
         overlay.addView(
             panel,
@@ -5526,6 +5550,24 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
         )
         projectMPresetListPanel = panel
+    }
+
+    /**
+     * V156 (faric 23.10 15:26: «коли змінюється візуалізація — щоб у списку теж мінялась і ставала
+     * активна по центру»): refresh the marks and bring the one on screen to the middle of the list —
+     * only when it changed, so scrolling by hand is not pulled back on every other refresh.
+     */
+    private fun centreProjectMPresetList(force: Boolean = false) {
+        val list = projectMPresetListView ?: return
+        projectMPresetListAdapter?.notifyDataSetChanged()
+        val current = ProjectMStateStore(this).lastPresetPath ?: return
+        if (!force && current == projectMPresetListCentred) return
+        val index = projectMFocusPresets.indexOfFirst { it.absolutePath == current }
+        if (index < 0) return
+        projectMPresetListCentred = current
+        val rowHeight = dp(56)
+        val offset = ((list.height - rowHeight) / 2).coerceAtLeast(0)
+        if (force) list.setSelectionFromTop(index, offset) else list.smoothScrollToPositionFromTop(index, offset, 350)
     }
 
     private fun closeProjectMFocusOverlay() {
@@ -5539,6 +5581,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMPresetListPanel = null
         projectMShuffleControl = null
         projectMFocusBottomBar = null
+        projectMPresetListView = null
+        projectMPresetListAdapter = null
+        projectMPresetListCentred = null
         projectMFocusAutoControl = null
         projectMFocusBackgroundControl = null
         projectMFocusCenterControl = null
@@ -12200,6 +12245,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         projectMPresetListPanel = null
         projectMShuffleControl = null
         projectMFocusBottomBar = null
+        projectMPresetListView = null
+        projectMPresetListAdapter = null
+        projectMPresetListCentred = null
         projectMFocusAutoControl = null
         projectMFocusBackgroundControl = null
         projectMFocusCenterControl = null

@@ -101,7 +101,8 @@ object CrashReport {
                 append('\n')
                 exit.description?.takeIf { it.isNotBlank() }?.let { append("опис: ").append(it).append('\n') }
                 exit.trace?.takeIf { it.isNotBlank() }?.let {
-                    append("trace:\n").append(it.take(MAX_TRACE_CHARS)).append('\n')
+                    val label = if (exit.reason == ExitReasonText.REASON_CRASH_NATIVE) "де впало (C++):\n" else "trace:\n"
+                    append(label).append(it.take(MAX_TRACE_CHARS)).append('\n')
                 }
             }
             if (!crashText.isNullOrBlank()) {

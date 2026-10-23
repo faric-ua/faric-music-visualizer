@@ -97,7 +97,28 @@ TMP="$PREFIX/tmp/faric-music-visualizer-apk-${RUN_ID}"
 rm -rf "$TMP"
 mkdir -p "$TMP"
 
-gh run download "$RUN_ID" --repo "$REPO" --name "$ARTIFACT" --dir "$TMP"
+# V176 (faric 23.10 21:00: «дуже довго він мені APK віддає» — висів без жодного знаку): the APK is
+# ~12 MB; GitHub sometimes stalls the download. Each try gets 2,5 min, then a fresh try (up to 3).
+echo "Завантажую APK з GitHub (~12 МБ, зазвичай до хвилини)…"
+downloaded=0
+for attempt in 1 2 3; do
+  rm -rf "$TMP"
+  mkdir -p "$TMP"
+  if command -v timeout >/dev/null 2>&1; then
+    limit="timeout 150"
+  else
+    limit=""
+  fi
+  if $limit gh run download "$RUN_ID" --repo "$REPO" --name "$ARTIFACT" --dir "$TMP"; then
+    downloaded=1
+    break
+  fi
+  echo "GitHub не віддав APK за 2,5 хв (спроба $attempt з 3) — пробую ще раз…"
+done
+if [ "$downloaded" != 1 ]; then
+  echo "Не вдалось завантажити APK. Перевір інтернет і повтори пункт 8."
+  exit 1
+fi
 
 APK="$TMP/FARIC-Music-Visualizer-v${VERSION}-debug.apk"
 SHA_FILE="$APK.sha256"

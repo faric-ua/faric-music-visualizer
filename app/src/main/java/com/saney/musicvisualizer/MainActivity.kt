@@ -2552,6 +2552,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         "Журнал збоїв",
                                         // V104 (faric 21.10 23:43: «поки просто додамо Утиліти в PulseDeck tools»).
                                         "Утиліти",
+                                        // V158: the frame's menu also from here (the frame itself no longer takes taps).
+                                        "Рамка вгорі (що показувати)",
                                     ),
                                 cancelLabel = "Закрити",
                             ) { which ->
@@ -2607,6 +2609,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                                 PulseDeckUtilitiesActivity::class.java,
                                             ),
                                         )
+
+                                    9 -> showCoverBoxMenu()
                                 }
                             }
 

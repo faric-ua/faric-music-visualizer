@@ -482,10 +482,9 @@ class PulseDeckMainSkinView(
         // V154: the equalizer goes inside the frame — the tile gives up its width (only if it stays a tile).
         val eqInset = EdgeEqMath.inset(edgeRenderer.settings, w).coerceAtMost(minOf(frame.width(), frame.height()) * 0.2f)
         val panel = RectF(frame).apply { inset(eqInset, eqInset) }
-        // The tap zone stays even when the frame is hidden for a song without a picture —
-        // a tap opens the menu «що тут показувати» (faric 18:39). Zones are given in the group's
-        // space: withGroup maps them back onto the screen.
-        addCoverTarget(COVER_BOX_ID, 900, frame, group != null)
+        // V158 (faric 23.10 17:33: «хочу змахнути від центру на праву сторінку, а воно відкриває
+        // меню»): the frame itself takes no taps any more — only its ⋮ / 👍 / 👎 do, so a swipe that
+        // starts on the frame works like anywhere else. (Its menu is also in «PulseDeck tools».)
         if (choice.show == CoverBoxShow.HIDDEN) return
 
         val save = canvas.save()

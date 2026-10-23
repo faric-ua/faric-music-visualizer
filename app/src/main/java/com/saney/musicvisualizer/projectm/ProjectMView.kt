@@ -148,7 +148,6 @@ class ProjectMView(
         get() = File(currentPresetPath)
 
     init {
-        GpuTimerGate.init(context)
         setEGLContextClientVersion(2)
         setRenderer(
             Renderer(
@@ -1131,14 +1130,10 @@ class ProjectMView(
         private var loadFrames = 0
         private var loadStartedNs = 0L
 
-        // V165: the graphics chip's own timer (where the phone has it).
-        private val gpuTimer = GpuFrameTimer()
-
         override fun onSurfaceCreated(gl: GL10?, config: EGLConfig?) {
             created = false
             frameCount = 0
             sampleStartedNs = System.nanoTime()
-            gpuTimer.reset()
         }
 
         override fun onSurfaceChanged(gl: GL10?, width: Int, height: Int) {
@@ -1192,10 +1187,10 @@ class ProjectMView(
             var now0 = System.nanoTime()
             val measure = loadStartedNs != 0L && now0 - loadStartedNs >= 1_000_000_000L
             val fps = if (measure) loadFrames * 1_000_000_000f / (now0 - loadStartedNs) else 0f
-            val timed = gpuTimer.begin()
-            // V165: with the chip's timer no glFinish at all; without it — the V159 measure below.
-            val finishMeasure = measure && !gpuTimer.isExact
-            if (finishMeasure) {
+            // V169 (журнал падіння v0.21.28: SIGSEGV у libGLES_mali.so ← glGetQueryObjectuiv ←
+            // GpuFrameTimer.poll, при переході на центр): the V165 graphics-chip timer crashes the Mali
+            // driver here — removed. Only the V159 measure, capped by the real frame rate.
+            if (measure) {
                 // V159 (скрін faric 23.10 17:34: «GPU завжди 100 %», а FPS 61): one glFinish waited for the
                 // whole queue of frames the graphics still had (2–3 frames ≈ 31 ms), not for this one.
                 // Now the queue is emptied first, so the time is this frame's own.
@@ -1203,14 +1198,12 @@ class ProjectMView(
                 now0 = System.nanoTime()
             }
             ProjectMBridge.render()
-            if (timed) gpuTimer.end()
             if (measure) {
-                if (finishMeasure) GLES20.glFinish()
+                GLES20.glFinish()
                 val done = System.nanoTime()
-                val exact = gpuTimer.takeAverageMs()
-                ProjectMLoadStats.gpuExact = exact != null
+                ProjectMLoadStats.gpuExact = false
                 ProjectMLoadStats.gpuFrameMs =
-                    exact ?: com.saney.musicvisualizer.ui.LoadMeter.fallbackFrameMs((done - now0) / 1_000_000f, fps)
+                    com.saney.musicvisualizer.ui.LoadMeter.fallbackFrameMs((done - now0) / 1_000_000f, fps)
                 ProjectMLoadStats.fps = fps
                 ProjectMLoadStats.updatedAtMs = android.os.SystemClock.uptimeMillis()
                 loadFrames = 0

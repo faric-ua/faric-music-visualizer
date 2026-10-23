@@ -173,19 +173,22 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         restoreLastSession()
     }
 
-    private fun mediaItemOf(track: QueueTrack): MediaItem =
-        MediaItem.Builder()
+    private fun mediaItemOf(track: QueueTrack): MediaItem {
+        // V151: no «.mp3» in the name the screen and the shade show; the tag title replaces it later.
+        val name = TrackTitles.withoutAudioExtension(track.displayName).ifBlank { track.displayName }
+        return MediaItem.Builder()
             .setUri(track.uri)
             .setMediaId(track.uri.toString())
-            .setTag(track.displayName)
+            .setTag(name)
             .setMediaMetadata(
                 MediaMetadata.Builder()
-                    .setTitle(track.displayName)
+                    .setTitle(name)
                     .setArtist(track.artist)
                     .setAlbumTitle(track.album)
                     .build(),
             )
             .build()
+    }
 
     /** Once per process (this controller is an app-wide singleton): paused, same song, same place. */
     private fun restoreLastSession() {
@@ -299,6 +302,29 @@ class PlaybackController(application: Application) : AndroidViewModel(applicatio
         val updated =
             item.buildUpon()
                 .setMediaMetadata(item.mediaMetadata.buildUpon().setArtist(artist).build())
+                .build()
+        runCatching { player.replaceMediaItem(player.currentMediaItemIndex, updated) }
+        syncTrackFromPlayer()
+        emitCurrentState()
+    }
+
+    /**
+     * V151 (faric 23.10 03:57): the song's own title from its tags replaces the file name (no tag —
+     * the file name without the extension stays). Same URI → Media3 updates the item without a gap.
+     */
+    fun fillTitle(
+        uri: Uri,
+        tagTitle: String?,
+    ) {
+        val item = player.currentMediaItem ?: return
+        if (item.localConfiguration?.uri != uri) return
+        val current = item.localConfiguration?.tag as? String ?: item.mediaMetadata.title?.toString()
+        val title = TrackTitles.display(tagTitle, current)
+        if (title == current) return
+        val updated =
+            item.buildUpon()
+                .setTag(title)
+                .setMediaMetadata(item.mediaMetadata.buildUpon().setTitle(title).build())
                 .build()
         runCatching { player.replaceMediaItem(player.currentMediaItemIndex, updated) }
         syncTrackFromPlayer()

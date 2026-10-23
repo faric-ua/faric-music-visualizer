@@ -23,4 +23,13 @@ class TrackTitlesTest {
         assertEquals("song", TrackTitles.pick("", "song.wav"))
         assertEquals("Без назви", TrackTitles.pick(null, null))
     }
+
+    @Test fun displayPrefersTagThenFileNameWithoutExtension() {
+        assertEquals("IGNITION POINT", TrackTitles.display("IGNITION POINT", "IGNITION POINT.mp3"))
+        assertEquals("IGNITION POINT", TrackTitles.display(null, "IGNITION POINT.mp3"))
+        assertEquals("VOL. 1 — MIDNIGHT PULSE (2)", TrackTitles.display("", "VOL. 1 — MIDNIGHT PULSE (2).FLAC"))
+        // no audio extension → other dots stay
+        assertEquals("VOL. 1 — MIDNIGHT PULSE", TrackTitles.withoutAudioExtension("VOL. 1 — MIDNIGHT PULSE"))
+        assertEquals("Без назви", TrackTitles.display(null, null))
+    }
 }

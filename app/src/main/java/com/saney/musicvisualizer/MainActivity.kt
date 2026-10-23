@@ -11660,10 +11660,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val bitmap = com.saney.musicvisualizer.ui.CoverArtLoader.load(this, Uri.parse(uri))
             val story = com.saney.musicvisualizer.export.SongStoryReader.read(this, Uri.parse(uri))
             val sourceInfo = com.saney.musicvisualizer.export.SongSourceInfo.read(this, Uri.parse(uri), fileName)
-            val artist =
+            val songTags =
                 runCatching {
-                    com.saney.musicvisualizer.export.SongTags.read(this, Uri.parse(uri), null, null).artist
+                    com.saney.musicvisualizer.export.SongTags.read(this, Uri.parse(uri), null, null)
                 }.getOrNull()
+            val artist = songTags?.artist
             runOnUiThread {
                 if (coverArtUri == uri && !isDestroyed) {
                     currentCoverArt = bitmap
@@ -11671,6 +11672,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     pulseDeckMainSkinView?.coverArt = bitmap
                     tagArtistUri = uri
                     tagArtist = artist
+                    // V151: the title from the song's tags (not «… .mp3»).
+                    controller.fillTitle(Uri.parse(uri), songTags?.title)
                     currentStoryTags = story
                     applyCoverStory()
                     currentSourceInfo = sourceInfo

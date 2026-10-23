@@ -96,4 +96,14 @@ class CoverBoxContentTest {
         assertEquals(0.2f, CoverBoxContent.steadyFraction(0.5f, 0.2f, 0.004f), 1e-6f)
         assertEquals(0.51f, CoverBoxContent.steadyFraction(0.5f, 0.51f, 0.004f), 1e-6f)
     }
+
+    @Test fun clockOnlyNudgedByPositionUpdates() {
+        // an old position (250 ms behind) barely moves the running clock
+        assertEquals(10_000L - 37L, CoverBoxContent.smoothClock(10_000L, 9_750L, true, true))
+        // a seek resets
+        assertEquals(60_000L, CoverBoxContent.smoothClock(10_000L, 60_000L, true, true))
+        // start / stop take the real position
+        assertEquals(9_750L, CoverBoxContent.smoothClock(10_000L, 9_750L, false, true))
+        assertEquals(9_750L, CoverBoxContent.smoothClock(10_000L, 9_750L, true, false))
+    }
 }

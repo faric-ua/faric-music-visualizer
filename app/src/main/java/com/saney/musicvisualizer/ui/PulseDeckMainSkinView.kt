@@ -696,10 +696,14 @@ class PulseDeckMainSkinView(
         durationMs: Long,
         playing: Boolean,
     ) {
-        clockPositionMs = positionMs
+        val now = SystemClock.uptimeMillis()
+        val predicted = if (clockPlaying) clockPositionMs + (now - clockStampMs) else clockPositionMs
+        val sameSong = durationMs == clockDurationMs
+        // V150: a new position nudges the running clock instead of pulling it back.
+        clockPositionMs = CoverBoxContent.smoothClock(predicted, positionMs, clockPlaying && sameSong, playing)
         clockDurationMs = durationMs
         clockPlaying = playing
-        clockStampMs = SystemClock.uptimeMillis()
+        clockStampMs = now
     }
 
     private var crawlShown = -1f
@@ -708,8 +712,9 @@ class PulseDeckMainSkinView(
         if (marqueeClockMs != null || clockDurationMs <= 0L) return progressFraction
         val moved = if (clockPlaying) SystemClock.uptimeMillis() - clockStampMs else 0L
         val target = ((clockPositionMs + moved).toFloat() / clockDurationMs).coerceIn(0f, 1f)
-        // V148: never step back a hair (≤ 0,6 s of the song) — the text just waits a moment instead.
-        crawlShown = if (crawlShown < 0f) target else CoverBoxContent.steadyFraction(crawlShown, target, 600f / clockDurationMs)
+        // V148: never step back a hair — the text waits a moment instead. V150: only ≤ 0,12 s (the clock
+        // itself is smoothed now; 0,6 s made the text stop for ~0,2 s every few seconds).
+        crawlShown = if (crawlShown < 0f) target else CoverBoxContent.steadyFraction(crawlShown, target, 120f / clockDurationMs)
         return crawlShown
     }
 

@@ -6,6 +6,22 @@ import org.junit.Test
 import kotlin.math.abs
 
 class EdgeEqTest {
+    @Test fun solidColourStepsMatchTheSweep() {
+        val c = intArrayOf(0xFF000000.toInt(), 0xFFFFFFFF.toInt(), 0xFF000000.toInt())
+        assertEquals(0xFF000000.toInt(), EdgeEqMath.colorAt(c, 0f))
+        assertEquals(0xFFFFFFFF.toInt(), EdgeEqMath.colorAt(c, 0.5f))
+        assertEquals(0xFF808080.toInt(), EdgeEqMath.colorAt(c, 0.25f))
+        assertEquals(EdgeEqMath.colorAt(c, 0.25f), EdgeEqMath.colorAt(c, 1.25f))
+        assertEquals(0, EdgeEqMath.bucket(0f, 0f))
+        assertEquals(EdgeEqMath.COLOR_BUCKETS / 2, EdgeEqMath.bucket(0.5f, 0f))
+        // turned by a quarter: what was at 0,5 now shows the colour of 0,25
+        assertEquals(EdgeEqMath.COLOR_BUCKETS / 4, EdgeEqMath.bucket(0.5f, 0.25f))
+        assertEquals(EdgeEqMath.COLOR_BUCKETS - 1, EdgeEqMath.bucket(0f, 0.001f))
+        assertEquals(0f, EdgeEqMath.angle01(2f, 0f, 0f, 0f), 1e-4f)
+        assertEquals(0.25f, EdgeEqMath.angle01(0f, 2f, 0f, 0f), 1e-4f) // screen y goes down → clockwise
+        assertEquals(0.5f, EdgeEqMath.angle01(-2f, 0f, 0f, 0f), 1e-4f)
+    }
+
     @Test fun settingsRoundTripAndBrokenFallsBack() {
         val s = EdgeEqSettings(on = true, scroll = -40, bars = EdgeLayer(false, 3, 90, 10, 150))
         assertEquals(s, EdgeEqSettings.decode(s.encode()))

@@ -2,14 +2,12 @@ package com.saney.musicvisualizer.ui
 
 import android.graphics.Canvas
 import android.graphics.Paint
-import android.graphics.Path
 import android.graphics.RectF
-import android.graphics.SweepGradient
 
 /**
- * V141: draws [EdgeEqSettings] round a tile — bars (rhythm), dots (highs), wave (melody). Cheap enough
- * for every MP4 frame: one SweepGradient per layer (colours go round the tile and turn with
- * [EdgeEqSettings.scroll]), the bars in one drawLines, the dots in one drawPoints, the wave one Path;
+ * V141: draws [EdgeEqSettings] round a tile — bars (rhythm), dots (highs), wave (melody). Colours go
+ * round the tile and turn with [EdgeEqSettings.scroll] (V174: 48 solid colour steps, not a per-pixel
+ * sweep gradient); strokes of one step are drawn together;
  * the glow is the same shapes once more, wider and faint — no blur, no layers (lessons V127 / V132).
  * One renderer per view: it remembers the levels between frames (fast up, slower down).
  */
@@ -18,15 +16,26 @@ class EdgeEqRenderer {
 
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
     private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
-    private val wavePath = Path()
-    private val shaderMatrix = android.graphics.Matrix()
-    private val shaders = HashMap<String, SweepGradient>()
     private val rings = HashMap<String, FloatArray>()
+    private val ringAngles = HashMap<String, FloatArray>()
+    private val paletteSteps = HashMap<Int, IntArray>()
     private var barLevels = FloatArray(0)
     private var dotLevels = FloatArray(0)
     private var waveLevels = FloatArray(0)
     private var lines = FloatArray(0)
+    private var lineAngles = FloatArray(0)
     private var points = FloatArray(0)
+    private var pointAngles = FloatArray(0)
+    private var waveXy = FloatArray(0)
+
+    // V174 (замір 23.10 21:08: «рамка: окантовка-EQ» 15,9 мс на кадр відео): a SweepGradient is worked out
+    // for every pixel of every stroke. Now each stroke gets one solid colour from 48 steps round the
+    // tile, strokes of one step are drawn together — the same colours, a fraction of the work.
+    private val bucketCount = IntArray(EdgeEqMath.COLOR_BUCKETS)
+    private val bucketStart = IntArray(EdgeEqMath.COLOR_BUCKETS)
+    private val bucketCursor = IntArray(EdgeEqMath.COLOR_BUCKETS)
+    private var bucketOf = IntArray(0)
+    private var sorted = FloatArray(0)
 
     fun draw(
         canvas: Canvas,
@@ -40,9 +49,6 @@ class EdgeEqRenderer {
         val s = settings
         if (!s.on || spectrum.isEmpty() || rect.width() <= 0f) return
         val turn = EdgeEqMath.turn(clockMs, s.scroll)
-        val cx = rect.centerX()
-        val cy = rect.centerY()
-        shaderMatrix.setRotate(turn * 360f, cx, cy)
         val gap = unit * 0.004f
         // V154: everything stays within REACH of the tile (the frame from «Розкладка»).
         val reach = unit * EdgeEqMath.REACH
@@ -51,8 +57,10 @@ class EdgeEqRenderer {
         if (s.bars.enabled) {
             val n = EdgeEqMath.sampleCount(s.bars.density)
             val ring = ring(rect, radius, n)
+            val angles = angles(rect, radius, n, ring)
             if (barLevels.size != n) barLevels = FloatArray(n)
-            if (lines.size != n * 4) lines = FloatArray(n * 4)
+            if (lines.size < n * 4) lines = FloatArray(n * 4)
+            if (lineAngles.size < n) lineAngles = FloatArray(n)
             barTips = FloatArray(n)
             for (i in 0 until n) {
                 val u = i.toFloat() / n + turn
@@ -68,20 +76,20 @@ class EdgeEqRenderer {
                 lines[i * 4 + 1] = y + ny * gap
                 lines[i * 4 + 2] = x + nx * (gap + len)
                 lines[i * 4 + 3] = y + ny * (gap + len)
+                lineAngles[i] = angles[i]
             }
             val width = unit * (0.0012f + 0.006f * s.bars.thickness / 100f)
-            paint(glowPaint, s.bars.palette, cx, cy, width * 3f, alpha * 0.32f)
-            canvas.drawLines(lines, 0, n * 4, glowPaint)
-            paint(linePaint, s.bars.palette, cx, cy, width, alpha.toFloat())
-            canvas.drawLines(lines, 0, n * 4, linePaint)
+            drawSteps(canvas, lines, lineAngles, n, 4, turn, s.bars.palette, width * 3f, alpha * 0.32f, width, alpha.toFloat())
         }
 
         if (s.dots.enabled) {
             val n = EdgeEqMath.sampleCount(s.dots.density) / 2
             val ring = ring(rect, radius, n)
+            val angles = angles(rect, radius, n, ring)
             if (dotLevels.size != n) dotLevels = FloatArray(n)
             val maxDots = 6
-            if (points.size != n * maxDots * 2) points = FloatArray(n * maxDots * 2)
+            if (points.size < n * maxDots * 2) points = FloatArray(n * maxDots * 2)
+            if (pointAngles.size < n * maxDots) pointAngles = FloatArray(n * maxDots)
             var count = 0
             val step = unit * 0.008f
             for (i in 0 until n) {
@@ -99,60 +107,120 @@ class EdgeEqRenderer {
                 for (j in 0 until k) {
                     val d = base + step * (j + 1)
                     if (d > reach) break
-                    points[count++] = x + nx * d
-                    points[count++] = y + ny * d
+                    points[count * 2] = x + nx * d
+                    points[count * 2 + 1] = y + ny * d
+                    pointAngles[count] = angles[i]
+                    count++
                 }
             }
             if (count > 0) {
                 val size = unit * (0.0025f + 0.008f * s.dots.thickness / 100f)
-                paint(glowPaint, s.dots.palette, cx, cy, size * 2.4f, alpha * 0.3f)
-                canvas.drawPoints(points, 0, count, glowPaint)
-                paint(linePaint, s.dots.palette, cx, cy, size, alpha.toFloat())
-                canvas.drawPoints(points, 0, count, linePaint)
+                drawSteps(canvas, points, pointAngles, count, 2, turn, s.dots.palette, size * 2.4f, alpha * 0.3f, size, alpha.toFloat())
             }
         }
 
         if (s.wave.enabled) {
             val n = EdgeEqMath.sampleCount(s.wave.density)
             val ring = ring(rect, radius, n)
+            val angles = angles(rect, radius, n, ring)
             if (waveLevels.size != n) waveLevels = FloatArray(n)
-            wavePath.rewind()
+            if (waveXy.size < n * 2) waveXy = FloatArray(n * 2)
+            if (lines.size < n * 4) lines = FloatArray(n * 4)
+            if (lineAngles.size < n) lineAngles = FloatArray(n)
             for (i in 0 until n) {
                 val u = i.toFloat() / n + turn
                 val raw = spectrum[EdgeEqMath.band(u, spectrum.size, 0.15f, 0.6f)] * s.wave.reaction / 100f
                 waveLevels[i] = EdgeEqMath.smooth(waveLevels[i], raw.coerceIn(0f, 1.4f), 0.08f)
                 val d = (gap + unit * 0.055f * waveLevels[i]).coerceAtMost(reach)
-                val x = ring[i * 4] + ring[i * 4 + 2] * d
-                val y = ring[i * 4 + 1] + ring[i * 4 + 3] * d
-                if (i == 0) wavePath.moveTo(x, y) else wavePath.lineTo(x, y)
+                waveXy[i * 2] = ring[i * 4] + ring[i * 4 + 2] * d
+                waveXy[i * 2 + 1] = ring[i * 4 + 1] + ring[i * 4 + 3] * d
             }
-            wavePath.close()
+            // The closed wave as short segments (round ends join them), each with its own colour step.
+            for (i in 0 until n) {
+                val j = if (i + 1 == n) 0 else i + 1
+                lines[i * 4] = waveXy[i * 2]
+                lines[i * 4 + 1] = waveXy[i * 2 + 1]
+                lines[i * 4 + 2] = waveXy[j * 2]
+                lines[i * 4 + 3] = waveXy[j * 2 + 1]
+                lineAngles[i] = angles[i]
+            }
             val width = unit * (0.0015f + 0.006f * s.wave.thickness / 100f)
-            paint(glowPaint, s.wave.palette, cx, cy, width * 4f, alpha * 0.35f)
-            canvas.drawPath(wavePath, glowPaint)
-            paint(linePaint, s.wave.palette, cx, cy, width, alpha.toFloat())
-            canvas.drawPath(wavePath, linePaint)
+            drawSteps(canvas, lines, lineAngles, n, 4, turn, s.wave.palette, width * 4f, alpha * 0.35f, width, alpha.toFloat())
         }
     }
 
-    private fun paint(
-        p: Paint,
+    /** Lines (stride 4) or points (stride 2), grouped by colour step: the faint wide glow first, then the line. */
+    private fun drawSteps(
+        canvas: Canvas,
+        data: FloatArray,
+        angles: FloatArray,
+        count: Int,
+        stride: Int,
+        turn: Float,
         palette: Int,
-        cx: Float,
-        cy: Float,
+        glowWidth: Float,
+        glowAlpha: Float,
         width: Float,
-        alpha: Float,
+        lineAlpha: Float,
     ) {
-        val key = palette.toString() + "|" + cx.toInt() + "|" + cy.toInt()
-        val shader =
-            shaders.getOrPut(key) {
-                if (shaders.size > 24) shaders.clear()
-                SweepGradient(cx, cy, EdgePalettes.get(palette).colors, null)
+        if (count <= 0) return
+        val steps = steps(palette)
+        if (bucketOf.size < count) bucketOf = IntArray(count)
+        if (sorted.size < count * stride) sorted = FloatArray(count * stride)
+        bucketCount.fill(0)
+        for (i in 0 until count) {
+            val b = EdgeEqMath.bucket(angles[i], turn)
+            bucketOf[i] = b
+            bucketCount[b]++
+        }
+        var offset = 0
+        for (b in 0 until EdgeEqMath.COLOR_BUCKETS) {
+            bucketStart[b] = offset
+            bucketCursor[b] = offset
+            offset += bucketCount[b]
+        }
+        for (i in 0 until count) {
+            val dest = bucketCursor[bucketOf[i]]++ * stride
+            System.arraycopy(data, i * stride, sorted, dest, stride)
+        }
+        for (pass in 0..1) {
+            val p = if (pass == 0) glowPaint else linePaint
+            p.shader = null
+            p.strokeWidth = if (pass == 0) glowWidth else width
+            val a = (if (pass == 0) glowAlpha else lineAlpha).toInt().coerceIn(0, 255)
+            for (b in 0 until EdgeEqMath.COLOR_BUCKETS) {
+                val c = bucketCount[b]
+                if (c == 0) continue
+                p.color = steps[b]
+                p.alpha = a
+                if (stride == 4) {
+                    canvas.drawLines(sorted, bucketStart[b] * 4, c * 4, p)
+                } else {
+                    canvas.drawPoints(sorted, bucketStart[b] * 2, c * 2, p)
+                }
             }
-        shader.setLocalMatrix(shaderMatrix)
-        p.shader = shader
-        p.strokeWidth = width
-        p.alpha = alpha.toInt().coerceIn(0, 255)
+        }
+    }
+
+    private fun steps(palette: Int): IntArray =
+        paletteSteps.getOrPut(palette) {
+            val colors = EdgePalettes.get(palette).colors
+            IntArray(EdgeEqMath.COLOR_BUCKETS) { b -> EdgeEqMath.colorAt(colors, (b + 0.5f) / EdgeEqMath.COLOR_BUCKETS) }
+        }
+
+    private fun angles(
+        rect: RectF,
+        radius: Float,
+        n: Int,
+        ring: FloatArray,
+    ): FloatArray {
+        val key = "${rect.left.toInt()}|${rect.top.toInt()}|${rect.right.toInt()}|${rect.bottom.toInt()}|${radius.toInt()}|$n"
+        return ringAngles.getOrPut(key) {
+            if (ringAngles.size > 12) ringAngles.clear()
+            val cx = rect.centerX()
+            val cy = rect.centerY()
+            FloatArray(n) { i -> EdgeEqMath.angle01(ring[i * 4], ring[i * 4 + 1], cx, cy) }
+        }
     }
 
     private fun ring(

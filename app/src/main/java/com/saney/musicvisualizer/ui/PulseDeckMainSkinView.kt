@@ -772,12 +772,10 @@ class PulseDeckMainSkinView(
         val innerWidth = (panel.width() - padX * 2f).toInt().coerceAtLeast(1)
         // V141 (скрін faric 23.10 00:24: 👍 👎 ⋮ лежали поверх нижніх рядків): with the buttons on, the
         // text ends above them.
-        val padBottom =
-            if (isObjectVisible(COVER_MENU_ID)) {
-                (w * 0.085f).coerceAtMost(minOf(panel.width(), panel.height()) * 0.3f) * 1.36f
-            } else {
-                padY
-            }
+        // V170 (faric 23.10 20:10, скрін: «текст раніше виходив аж знизу, а зараз йде над кружечками…
+        // хай аж із самого низу виходить, як вверх заходить; а пальці наверху будуть»): the crawl uses the
+        // whole tile again — it comes in at the very bottom, under 👍 👎 ⋮ (they are drawn over it).
+        val padBottom = padY
         val innerHeight = (panel.height() - padY - padBottom).coerceAtLeast(1f)
         // The song title's size (w × 0.031, with its own «Розкладка» size) and «a couple of points» more.
         val size = w * 0.031f * 1.15f * (activeLayout["track"]?.scale ?: 1f).coerceIn(0.8f, 1.6f) * look.size / 100f

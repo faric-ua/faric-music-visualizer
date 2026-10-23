@@ -78,7 +78,7 @@ def test_end_to_end() -> None:
     outs = [p for p in album_dir.iterdir() if p.name.startswith("PREVIEW — ")]
     assert len(outs) == 1, outs
     out = outs[0]
-    assert out.name == "PREVIEW — TEST PULSE (White Side).mp3", out.name
+    assert out.name == "PREVIEW — TEST PULSE — White Side.mp3", out.name
     for name, size in before.items():  # оригінали не змінені
         assert (album_dir / name).stat().st_size == size
 
@@ -97,7 +97,7 @@ def test_end_to_end() -> None:
                  "CONVERTER": "Audio Converter 0.29.0 · лише теги",
                  "ENCODER": "Track Catcher; Audio Converter 0.24.1; PulseDeck Preview"}.items():
         assert tags.get(k) == v, (k, tags.get(k))
-    assert tags["TITLE"] == "PREVIEW — TEST PULSE (White Side)" and tags["TRACK"] == "0", tags
+    assert tags["TITLE"] == "PREVIEW — TEST PULSE — White Side" and tags["TRACK"] == "0", tags
     assert not any(k.startswith("LYRICS") for k in tags), tags.keys()
     order = [l.split(". ", 1)[1].split(" — ")[0] for l in tags["FARIC_PREVIEW_TRACKS"].splitlines()]
     assert order == ["FIRST ONE", "SECOND ONE", "LAST ONE", "SOMETHING ELSE"], order
@@ -110,7 +110,7 @@ def test_end_to_end() -> None:
 
     # повторний запуск не перезаписує, а робить «(2)»
     assert ap.main(["--folder", str(album_dir), "--config", str(cfg_path), "--yes"]) == 0
-    assert (album_dir / "PREVIEW — TEST PULSE (White Side) (2).mp3").exists()
+    assert (album_dir / "PREVIEW — TEST PULSE — White Side (2).mp3").exists()
     print(f"end-to-end PASS: {out.name}, {dur:.1f} s")
 
 

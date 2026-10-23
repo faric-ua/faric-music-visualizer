@@ -105,6 +105,52 @@ object EdgePalettes {
 }
 
 object EdgeEqMath {
+    /** V174: colour steps round the tile (instead of a per-pixel sweep gradient). */
+    const val COLOR_BUCKETS = 48
+
+    /**
+     * V174: the colour of an evenly spaced, wrapping palette at [t] (0–1 round the tile) — what a
+     * SweepGradient with these colours gives at that angle.
+     */
+    fun colorAt(
+        colors: IntArray,
+        t: Float,
+    ): Int {
+        if (colors.isEmpty()) return 0
+        if (colors.size == 1) return colors[0]
+        val u = (t - kotlin.math.floor(t)) * (colors.size - 1)
+        val i = u.toInt().coerceIn(0, colors.size - 2)
+        val f = u - i
+        val a = colors[i]
+        val b = colors[i + 1]
+        fun mix(shift: Int): Int {
+            val x = (a ushr shift) and 0xFF
+            val y = (b ushr shift) and 0xFF
+            return (x + (y - x) * f + 0.5f).toInt().coerceIn(0, 255)
+        }
+        return (mix(24) shl 24) or (mix(16) shl 16) or (mix(8) shl 8) or mix(0)
+    }
+
+    /** V174: which colour step a point at [t0] (its angle, 0–1) falls into when the ring is turned by [turn]. */
+    fun bucket(
+        t0: Float,
+        turn: Float,
+    ): Int {
+        val t = t0 - turn
+        return ((t - kotlin.math.floor(t)) * COLOR_BUCKETS).toInt().coerceIn(0, COLOR_BUCKETS - 1)
+    }
+
+    /** V174: 0–1 angle of (x, y) round (cx, cy), clockwise from the right — as SweepGradient counts. */
+    fun angle01(
+        x: Float,
+        y: Float,
+        cx: Float,
+        cy: Float,
+    ): Float {
+        val a = kotlin.math.atan2(y - cy, x - cx) / (2.0 * PI)
+        return (if (a < 0) a + 1.0 else a).toFloat()
+    }
+
     /**
      * V154 (faric 23.10 13:20, скріни Розкладки й головного: «квадратик не відповідає габаритам —
      * більше розтягнутий»): the tile itself was the size from «Розкладка», but the equalizer grew

@@ -25,6 +25,7 @@ import com.saney.musicvisualizer.R
 import com.saney.musicvisualizer.analysis.SceneSignal
 import org.json.JSONObject
 import kotlin.math.max
+import kotlin.math.roundToInt
 
 /**
  * Skin Engine v1 for the permanent PulseDeck main page.
@@ -533,8 +534,16 @@ class PulseDeckMainSkinView(
                 canvas.drawPath(coverRingPath, coverPaint)
                 // V142: «Разом» — the picture underneath, the text going over it on a lighter veil.
                 val under = if (choice.pictureUnder) art else null
-                if (under != null) timedPart(PART_PICTURE) { drawCoverPicture(canvas, inner, innerRadius, under, alpha) }
-                timedPart(PART_TEXT) { drawCoverText(canvas, inner, innerRadius, w, choice, alpha) }
+                // V174: with the picture under the text the veil is mixed into the picture itself (one pass
+                // over the tile instead of two) — the same colours while the tile is fully visible.
+                val veilAlpha = (255 * coverText.veil / 100f).toInt().coerceIn(0, 255)
+                val veilInPicture = under != null && alpha >= 255 && veilAlpha > 0
+                if (under != null) {
+                    timedPart(PART_PICTURE) {
+                        drawCoverPicture(canvas, inner, innerRadius, under, alpha, if (veilInPicture) veilAlpha else 0)
+                    }
+                }
+                timedPart(PART_TEXT) { drawCoverText(canvas, inner, innerRadius, w, choice, alpha, veilDone = veilInPicture) }
             }
             else -> {
                 coverPaint.shader = null
@@ -566,27 +575,68 @@ class PulseDeckMainSkinView(
         radius: Float,
         picture: Bitmap,
         alpha: Int,
+        /** V174: 0–255 of the dark veil mixed straight into the picture (instead of a second pass). */
+        veil: Int = 0,
     ) {
+        val fullScale = max(panel.width() / picture.width, panel.height() / picture.height)
+        // V174 (замір 23.10 21:08: «рамка: картинка» 4,8 мс на кадр відео): a big cover squeezed into the
+        // tile on every frame. Squeeze it once to the tile's size and keep that copy.
+        val source =
+            if (fullScale < 0.95f) {
+                val tw = (picture.width * fullScale).roundToInt().coerceAtLeast(1)
+                val th = (picture.height * fullScale).roundToInt().coerceAtLeast(1)
+                coverScaled?.takeIf { coverScaledFrom === picture && it.width == tw && it.height == th && !it.isRecycled }
+                    ?: runCatching { Bitmap.createScaledBitmap(picture, tw, th, true) }.getOrNull()?.also {
+                        coverScaled = it
+                        coverScaledFrom = picture
+                    }
+                    ?: picture
+            } else {
+                picture
+            }
         val shader =
-            coverShader?.takeIf { coverShaderBitmap === picture }
-                ?: android.graphics.BitmapShader(picture, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also {
+            coverShader?.takeIf { coverShaderBitmap === source }
+                ?: android.graphics.BitmapShader(source, Shader.TileMode.CLAMP, Shader.TileMode.CLAMP).also {
                     coverShader = it
-                    coverShaderBitmap = picture
+                    coverShaderBitmap = source
                 }
-        val scale = max(panel.width() / picture.width, panel.height() / picture.height)
+        val scale = max(panel.width() / source.width, panel.height() / source.height)
         coverShaderMatrix.reset()
         coverShaderMatrix.setScale(scale, scale)
         coverShaderMatrix.postTranslate(
-            panel.centerX() - picture.width * scale / 2f,
-            panel.centerY() - picture.height * scale / 2f,
+            panel.centerX() - source.width * scale / 2f,
+            panel.centerY() - source.height * scale / 2f,
         )
         shader.setLocalMatrix(coverShaderMatrix)
         coverPaint.shader = shader
         coverPaint.color = Color.WHITE
         coverPaint.alpha = alpha
+        if (veil > 0) {
+            // picture × (1 − v) + veil colour × v — exactly the old veil drawn over the picture.
+            coverPaint.colorFilter =
+                coverVeilFilter?.takeIf { coverVeilFilterAlpha == veil }
+                    ?: run {
+                        val keep = 1f - veil / 255f
+                        val k = (255 * keep).roundToInt().coerceIn(0, 255)
+                        val v = veil / 255f
+                        android.graphics.LightingColorFilter(
+                            Color.rgb(k, k, k),
+                            Color.rgb((8 * v).roundToInt(), (14 * v).roundToInt(), (20 * v).roundToInt()),
+                        ).also {
+                            coverVeilFilter = it
+                            coverVeilFilterAlpha = veil
+                        }
+                    }
+        }
         canvas.drawRoundRect(panel, radius, radius, coverPaint)
+        coverPaint.colorFilter = null
         coverPaint.shader = null
     }
+
+    private var coverScaled: Bitmap? = null
+    private var coverScaledFrom: Bitmap? = null
+    private var coverVeilFilter: android.graphics.ColorFilter? = null
+    private var coverVeilFilterAlpha = -1
 
     private fun addCoverTarget(
         action: String,
@@ -779,14 +829,17 @@ class PulseDeckMainSkinView(
         w: Float,
         choice: CoverBoxChoice,
         alpha: Int,
+        veilDone: Boolean = false,
     ) {
         val text = choice.text.orEmpty()
         val look = coverText
-        coverPaint.shader = null
-        coverPaint.color = Color.rgb(8, 14, 20)
-        // V148: the veil and the letters have their own see-through, not the tile's.
-        coverPaint.alpha = (255 * look.veil / 100f).toInt().coerceIn(0, 255)
-        canvas.drawRoundRect(panel, radius, radius, coverPaint)
+        if (!veilDone) {
+            coverPaint.shader = null
+            coverPaint.color = Color.rgb(8, 14, 20)
+            // V148: the veil and the letters have their own see-through, not the tile's.
+            coverPaint.alpha = (255 * look.veil / 100f).toInt().coerceIn(0, 255)
+            if (coverPaint.alpha > 0) canvas.drawRoundRect(panel, radius, radius, coverPaint)
+        }
         val padX = w * 0.04f
         val padY = w * 0.03f
         val innerWidth = (panel.width() - padX * 2f).toInt().coerceAtLeast(1)
@@ -808,7 +861,9 @@ class PulseDeckMainSkinView(
                 }
         val textAlpha = (255 * look.opacity / 100f).toInt().coerceIn(0, 255)
         val top = panel.top + padY + CoverBoxContent.crawlTop(crawlFraction(), innerHeight, layout.height.toFloat())
-        val bitmap = coverTextBitmapFor(layout, key)
+        // V174: the video (a software canvas) gets the light one-byte picture of the text — 4× less to read
+        // per pixel; the screen keeps the coloured one (V167: no grey box on the phone's graphics).
+        val bitmap = coverTextBitmapFor(layout, key, alphaOnly = !canvas.isHardwareAccelerated)
         if (bitmap != null) {
             // V148 (faric 23.10 02:54: «інколи ривками»): letters drawn straight snap to whole pixels, so a
             // slow crawl moved in 1-pixel hops; a filtered picture of the text glides between pixels.
@@ -835,8 +890,10 @@ class PulseDeckMainSkinView(
 
     private fun coverTextBitmapFor(
         layout: android.text.StaticLayout,
-        key: String,
+        layoutKey: String,
+        alphaOnly: Boolean = false,
     ): Bitmap? {
+        val key = layoutKey + if (alphaOnly) "|a8" else "|argb"
         coverTextBitmap?.takeIf { coverTextBitmapKey == key && !it.isRecycled }?.let { return it }
         // V168: no recycle() — the screen's drawing thread may still hold the old picture; the memory
         // is freed by itself once nothing uses it.
@@ -846,7 +903,7 @@ class PulseDeckMainSkinView(
         // V167: coloured letters on a fully transparent picture (no grey box on any phone), with a
         // transparent edge of TEXT_BITMAP_PAD px so the stretched edge of the pattern stays empty. Very
         // long texts keep the lighter alpha-only picture, tinted by the paint.
-        val full = layout.height <= 4_000
+        val full = !alphaOnly && layout.height <= 4_000
         return runCatching {
             Bitmap
                 .createBitmap(

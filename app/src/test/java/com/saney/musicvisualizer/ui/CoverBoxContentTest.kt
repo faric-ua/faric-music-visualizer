@@ -126,4 +126,11 @@ class CoverBoxContentTest {
         assertEquals(9_750L, CoverBoxContent.smoothClock(10_000L, 9_750L, false, true))
         assertEquals(9_750L, CoverBoxContent.smoothClock(10_000L, 9_750L, true, false))
     }
+
+    @Test fun previewTracklistGoesCentredLineByLine() {
+        assertTrue(CoverBoxContent.isLineBlock("TRACK 01 — 4:24–4:44\nIGNITION POINT"))
+        assertTrue(CoverBoxContent.isLineBlock("BONUS 03 — 5:30–5:50\nTWO VOICES, ONE ROAD."))
+        assertFalse(CoverBoxContent.isLineBlock("Про що диск. Один довгий абзац історії без переносів рядка."))
+        assertFalse(CoverBoxContent.isLineBlock("Короткий\n" + "дуже довгий рядок, що явно не схожий на рядок списку прев'ю, бо задовгий"))
+    }
 }

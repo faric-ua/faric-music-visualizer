@@ -1088,6 +1088,17 @@ class PulseDeckMainSkinView(
                     )
                     if (!lyrics) styled.setSpan(android.text.style.StyleSpan(Typeface.BOLD), start, end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
                 }
+                CoverBoxContent.isLineBlock(paragraph) -> {
+                    // V194: «TRACK 01 — 4:24–4:44» / «IGNITION POINT» — centred; the song's name (last line) bold.
+                    styled.setSpan(
+                        android.text.style.AlignmentSpan.Standard(android.text.Layout.Alignment.ALIGN_CENTER),
+                        start,
+                        end,
+                        android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE,
+                    )
+                    val lastLine = paragraph.lastIndexOf('\n') + 1
+                    styled.setSpan(android.text.style.StyleSpan(Typeface.BOLD), start + lastLine, end, android.text.Spanned.SPAN_EXCLUSIVE_EXCLUSIVE)
+                }
                 else ->
                     styled.setSpan(
                         android.text.style.LeadingMarginSpan.Standard((size * 1.6f).toInt(), 0),

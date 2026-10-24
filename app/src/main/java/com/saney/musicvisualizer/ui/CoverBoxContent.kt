@@ -174,6 +174,13 @@ object CoverBoxContent {
     fun isHeading(paragraph: String): Boolean = paragraph.startsWith("— ") && paragraph.endsWith(" —") && paragraph.length <= 60
 
     /**
+     * V194 (faric 24.10 23:21, скрін: «TRACK 05 — PULSE CONTROL — 4:18–4:38» переносився й розтягувався): a
+     * paragraph of short lines (the preview's «TRACK 01 — 4:24–4:44» / «IGNITION POINT») goes centred,
+     * line by line, without the first-line indent. Story paragraphs never have a line break inside.
+     */
+    fun isLineBlock(paragraph: String): Boolean = paragraph.contains('\n') && paragraph.lines().all { it.trim().length in 1..48 }
+
+    /**
      * V148 (faric 23.10 02:54: «інколи текст ривками прокручується»): the live position arrives 4× a
      * second and the guess between arrivals can run a hair ahead — the next arrival then pulled the
      * text back a few pixels. A small step back is ignored (the text waits); a big one (seek) is taken.

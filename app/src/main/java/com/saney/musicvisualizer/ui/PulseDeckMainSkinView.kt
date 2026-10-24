@@ -578,6 +578,67 @@ class PulseDeckMainSkinView(
         /** V174: 0–255 of the dark veil mixed straight into the picture (instead of a second pass). */
         veil: Int = 0,
     ) {
+        if (drawCoverPictureOnPixels(canvas, panel, radius, picture, alpha, veil)) return
+        drawCoverPictureDirect(canvas, panel, radius, picture, alpha, veil)
+    }
+
+    /**
+     * V174 крок 3: the video (software canvas) gets the cover already cut round, veiled and at the video's
+     * pixel size — made once, then copied 1:1 every frame instead of stretching it through a rounded mask.
+     */
+    private fun drawCoverPictureOnPixels(
+        canvas: Canvas,
+        panel: RectF,
+        radius: Float,
+        picture: Bitmap,
+        alpha: Int,
+        veil: Int,
+    ): Boolean {
+        val values = softwareAxisValues(canvas) ?: return false
+        // A round corner stays round only when both sides are stretched alike.
+        if (kotlin.math.abs(values[0] - values[4]) > 1e-3f) return false
+        val px = SoftwareBlitMath.deviceRect(values, panel.left, panel.top, panel.right, panel.bottom) ?: return false
+        if (SoftwareBlitMath.bytesOf(px.width, px.height, 4) > SoftwareBlitMath.MAX_ENTRY_BYTES) return false
+        val pixelRadius = radius * values[0]
+        val key = CoverCopyKey(picture, px.width, px.height, (pixelRadius * 4f).roundToInt(), veil)
+        val copy =
+            coverCopy?.takeIf { coverCopyKey == key && !it.isRecycled }
+                ?: runCatching {
+                    Bitmap.createBitmap(px.width, px.height, Bitmap.Config.ARGB_8888).also { out ->
+                        out.eraseColor(Color.TRANSPARENT)
+                        val tile = RectF(0f, 0f, px.width.toFloat(), px.height.toFloat())
+                        drawCoverPictureDirect(Canvas(out), tile, pixelRadius, picture, 255, veil)
+                    }
+                }.getOrNull()?.also {
+                    coverCopy = it
+                    coverCopyKey = key
+                }
+                ?: return false
+        pixelCopyPaint.alpha = alpha
+        drawOnPixels(canvas) { canvas.drawBitmap(copy, px.left.toFloat(), px.top.toFloat(), pixelCopyPaint) }
+        pixelCopyPaint.alpha = 255
+        return true
+    }
+
+    private data class CoverCopyKey(
+        val picture: Bitmap,
+        val width: Int,
+        val height: Int,
+        val radiusQuarterPx: Int,
+        val veil: Int,
+    )
+
+    private var coverCopy: Bitmap? = null
+    private var coverCopyKey: CoverCopyKey? = null
+
+    private fun drawCoverPictureDirect(
+        canvas: Canvas,
+        panel: RectF,
+        radius: Float,
+        picture: Bitmap,
+        alpha: Int,
+        veil: Int,
+    ) {
         val fullScale = max(panel.width() / picture.width, panel.height() / picture.height)
         // V174 (замір 23.10 21:08: «рамка: картинка» 4,8 мс на кадр відео): a big cover squeezed into the
         // tile on every frame. Squeeze it once to the tile's size and keep that copy.
@@ -863,6 +924,14 @@ class PulseDeckMainSkinView(
         val top = panel.top + padY + CoverBoxContent.crawlTop(crawlFraction(), innerHeight, layout.height.toFloat())
         // V174: the video (a software canvas) gets the light one-byte picture of the text — 4× less to read
         // per pixel; the screen keeps the coloured one (V167: no grey box on the phone's graphics).
+        val textClipLeft = panel.left + padX * 0.5f
+        val textClipTop = panel.top + padY * 0.5f
+        val textClipRight = panel.right - padX * 0.5f
+        val textClipBottom = panel.bottom - padBottom
+        if (drawCoverTextOnPixels(canvas, layout, key, panel.left + padX, top, textAlpha, textClipLeft, textClipTop, textClipRight, textClipBottom)) {
+            if (marqueeClockMs == null && clockPlaying) postInvalidateOnAnimation()
+            return
+        }
         val bitmap = coverTextBitmapFor(layout, key, alphaOnly = !canvas.isHardwareAccelerated)
         if (bitmap != null) {
             // V148 (faric 23.10 02:54: «інколи ривками»): letters drawn straight snap to whole pixels, so a
@@ -871,7 +940,7 @@ class PulseDeckMainSkinView(
             // pattern-in-a-rounded-window was the only new drawing there). The text window lies well inside
             // the rounded inner tile, so its straight edges never reach the corners.
             val clip = canvas.save()
-            canvas.clipRect(panel.left + padX * 0.5f, panel.top + padY * 0.5f, panel.right - padX * 0.5f, panel.bottom - padBottom)
+            canvas.clipRect(textClipLeft, textClipTop, textClipRight, textClipBottom)
             coverTextBitmapPaint.color = Color.rgb(176, 216, 242)
             coverTextBitmapPaint.alpha = textAlpha
             canvas.drawBitmap(bitmap, panel.left + padX - TEXT_BITMAP_PAD, top - TEXT_BITMAP_PAD, coverTextBitmapPaint)
@@ -887,6 +956,72 @@ class PulseDeckMainSkinView(
         }
         if (marqueeClockMs == null && clockPlaying) postInvalidateOnAnimation()
     }
+
+    /**
+     * V174 крок 3 (замір: «рамка: текст» 10–12 мс на кадр відео — найдорожча частина): the video gets the
+     * text drawn once at the video's own pixel size, in 4 (long texts — 2) copies shifted by a quarter
+     * (half) pixel, and each frame copies the right one 1:1 onto whole pixels. The crawl still glides
+     * (V148: no 1-pixel hops) and the letters are drawn sharp at the video's size instead of stretched.
+     * Too long a text (or a turned frame) keeps the old way.
+     */
+    private fun drawCoverTextOnPixels(
+        canvas: Canvas,
+        layout: android.text.StaticLayout,
+        layoutKey: String,
+        left: Float,
+        top: Float,
+        textAlpha: Int,
+        clipLeft: Float,
+        clipTop: Float,
+        clipRight: Float,
+        clipBottom: Float,
+    ): Boolean {
+        val values = softwareAxisValues(canvas) ?: return false
+        if (layout.width <= 0 || layout.height <= 0) return false
+        val sx = values[0]
+        val sy = values[4]
+        val pad = TEXT_BITMAP_PAD
+        val width = kotlin.math.ceil(layout.width * sx).toInt() + pad * 2
+        val height = kotlin.math.ceil(layout.height * sy).toInt() + pad * 2 + 1
+        val phases = SoftwareBlitMath.textPhases(SoftwareBlitMath.bytesOf(width, height, 1))
+        if (phases == 0) return false
+        val key = layoutKey + "|px|" + sx + "|" + sy + "|" + phases
+        val copies =
+            coverTextCopies?.takeIf { coverTextCopiesKey == key }
+                ?: run {
+                    coverTextCopies = null
+                    runCatching {
+                        List(phases) { phase ->
+                            Bitmap.createBitmap(width, height, Bitmap.Config.ALPHA_8).also { bmp ->
+                                bmp.eraseColor(Color.TRANSPARENT)
+                                coverTextPaint.color = Color.WHITE
+                                coverTextPaint.alpha = 255
+                                val c = Canvas(bmp)
+                                c.translate(pad.toFloat(), pad + phase.toFloat() / phases)
+                                c.scale(sx, sy)
+                                layout.draw(c)
+                            }
+                        }
+                    }.getOrNull()?.also {
+                        coverTextCopies = it
+                        coverTextCopiesKey = key
+                    }
+                }
+                ?: return false
+        val x = (left * sx + values[2] - pad).roundToInt()
+        val rowPhase = SoftwareBlitMath.rowPhase(top * sy + values[5] - pad, phases)
+        val clip = canvas.save()
+        canvas.clipRect(clipLeft, clipTop, clipRight, clipBottom)
+        coverTextBitmapPaint.color = Color.rgb(176, 216, 242)
+        coverTextBitmapPaint.alpha = textAlpha
+        val copy = copies[rowPhase.phase]
+        drawOnPixels(canvas) { canvas.drawBitmap(copy, x.toFloat(), rowPhase.row.toFloat(), coverTextBitmapPaint) }
+        canvas.restoreToCount(clip)
+        return true
+    }
+
+    private var coverTextCopies: List<Bitmap>? = null
+    private var coverTextCopiesKey: String? = null
 
     private fun coverTextBitmapFor(
         layout: android.text.StaticLayout,
@@ -1645,7 +1780,12 @@ class PulseDeckMainSkinView(
         // off the top and got squeezed into a strip — and stayed until the next redraw (~0,6 s). Now the
         // first frame is worked out once on an empty canvas (nothing is shown), then drawn for real.
         if (groupBounds.isEmpty()) {
-            drawFrame(Canvas(), w, h)
+            dryPass = true
+            try {
+                drawFrame(Canvas(), w, h)
+            } finally {
+                dryPass = false
+            }
         }
         drawFrame(canvas, w, h)
     }
@@ -1960,6 +2100,101 @@ class PulseDeckMainSkinView(
                     ),
                 )
             }
+    }
+
+    // V174 крок 3 — ready pixel copies for the video (software canvas); see [SoftwareBlitMath].
+    private val blitMatrix = android.graphics.Matrix()
+    private val blitValues = FloatArray(9)
+    private val pixelCopyPaint = Paint()
+    private val panelCopyMakePaint = Paint(Paint.FILTER_BITMAP_FLAG)
+
+    /**
+     * V174 крок 3: set only by the video export ([com.saney.musicvisualizer.export.CompositionExportRenderer]).
+     * The screen never keeps these copies (memory), even when something draws it on a software canvas.
+     */
+    var videoPixelCopies = false
+
+    private var dryPass = false
+
+    /** The software canvas's whole stretch-and-move, or null on the screen / when the picture is turned. */
+    private fun softwareAxisValues(canvas: Canvas): FloatArray? {
+        if (!videoPixelCopies || dryPass || canvas.isHardwareAccelerated) return null
+        @Suppress("DEPRECATION")
+        canvas.getMatrix(blitMatrix)
+        blitMatrix.getValues(blitValues)
+        return if (SoftwareBlitMath.isAxisAligned(blitValues)) blitValues else null
+    }
+
+    /** Draws in the picture's own pixels (the clip already set stays). */
+    private inline fun drawOnPixels(
+        canvas: Canvas,
+        block: () -> Unit,
+    ) {
+        val save = canvas.save()
+        canvas.setMatrix(null)
+        try {
+            block()
+        } finally {
+            canvas.restoreToCount(save)
+        }
+    }
+
+    private data class PanelCopyKey(
+        val from: Bitmap,
+        val left: Int,
+        val top: Int,
+        val right: Int,
+        val bottom: Int,
+        val width: Int,
+        val height: Int,
+    )
+
+    private val panelCopies = LinkedHashMap<PanelCopyKey, Bitmap>(32, 0.75f, true)
+    private var panelCopiesBytes = 0L
+    private val panelLastSize = HashMap<String, Long>()
+
+    /**
+     * V174 крок 3 (замір: «рамка: панелі» 7–8 мс на кадр відео): a PNG panel / button is stretched to its
+     * place once and then copied 1:1. Only when its size held still for two frames — a part that pulses
+     * with the beat keeps the old (smooth) way.
+     */
+    private fun drawLayerOnPixels(
+        canvas: Canvas,
+        layerId: String,
+        bitmap: Bitmap,
+        sourceRect: Rect,
+        drawRect: RectF,
+    ): Boolean {
+        val values = softwareAxisValues(canvas) ?: return false
+        val px = SoftwareBlitMath.deviceRect(values, drawRect.left, drawRect.top, drawRect.right, drawRect.bottom) ?: return false
+        val bytes = SoftwareBlitMath.bytesOf(px.width, px.height, 4)
+        if (bytes > SoftwareBlitMath.MAX_ENTRY_BYTES) return false
+        val size = (px.width.toLong() shl 32) or px.height.toLong()
+        val steady = panelLastSize.put(layerId, size) == size
+        val key = PanelCopyKey(bitmap, sourceRect.left, sourceRect.top, sourceRect.right, sourceRect.bottom, px.width, px.height)
+        var copy = panelCopies[key]?.takeIf { !it.isRecycled }
+        if (copy == null) {
+            if (!steady) return false
+            copy =
+                runCatching {
+                    Bitmap.createBitmap(px.width, px.height, Bitmap.Config.ARGB_8888).also { out ->
+                        out.eraseColor(Color.TRANSPARENT)
+                        Canvas(out).drawBitmap(bitmap, sourceRect, Rect(0, 0, px.width, px.height), panelCopyMakePaint)
+                    }
+                }.getOrNull() ?: return false
+            panelCopies[key] = copy
+            panelCopiesBytes += bytes
+            val oldest = panelCopies.entries.iterator()
+            while (panelCopiesBytes > SoftwareBlitMath.PANEL_BUDGET_BYTES && panelCopies.size > 1 && oldest.hasNext()) {
+                val entry = oldest.next()
+                if (entry.key == key) continue
+                panelCopiesBytes -= SoftwareBlitMath.bytesOf(entry.value.width, entry.value.height, 4)
+                oldest.remove()
+            }
+        }
+        val drawn: Bitmap = copy
+        drawOnPixels(canvas) { canvas.drawBitmap(drawn, px.left.toFloat(), px.top.toFloat(), bitmapPaint) }
+        return true
     }
 
     private fun drawLayer(
@@ -2458,12 +2693,14 @@ class PulseDeckMainSkinView(
             )
         }
 
-        canvas.drawBitmap(
-            bitmap,
-            sourceRect,
-            drawRect,
-            bitmapPaint,
-        )
+        if (!drawLayerOnPixels(canvas, layer.id, bitmap, sourceRect, drawRect)) {
+            canvas.drawBitmap(
+                bitmap,
+                sourceRect,
+                drawRect,
+                bitmapPaint,
+            )
+        }
 
         if (hasPressFeedback) {
             // Keep the existing ring and add only the requested stronger spring/glow.

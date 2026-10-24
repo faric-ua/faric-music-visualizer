@@ -262,7 +262,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     private fun projectMAutoCanRun(): Boolean =
-        projectMMainView != null && projectMMainResumed && !exportRunGate.isActive()
+        projectMMainView != null && projectMMainResumed && !exportRunGate.isActive() &&
+            // V190: the analysis shows its own queue — AUTO waits, without being switched off.
+            presetAnalysis == null
 
     private fun stopProjectMAuto() {
         projectMFocusHandler.removeCallbacks(projectMFocusAutoTick)
@@ -5517,10 +5519,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun advanceProjectMFocusPreset(manual: Boolean) {
         val state = ProjectMStateStore(this)
-        if (manual) {
-            state.autoEnabled = false
-            stopProjectMAuto()
-        }
+        // V190 (faric 24.10 05:05: «експорт — а візуалізації не міняються, AUTO не було ввімкнено»): NEXT used
+        // to switch AUTO off for good (V44), so after a few NEXTs the video had one visualization for the
+        // whole song. Now NEXT only skips: AUTO stays as it was and its timer starts anew.
+        if (manual) stopProjectMAuto()
         val pool = projectMFocusPresets
         if (pool.isEmpty()) {
             // V90: on the main screen the list may not be loaded yet — load, then switch.
@@ -5544,6 +5546,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             projectMMainView?.loadPreset(next, smoothTransition = false)
         }
         updateProjectMFocusStatus()
+        if (manual) ensureProjectMAutoRunning()
     }
 
     /** Restart the AUTO timer (after the AUTO button or opening the right page). */
@@ -6117,7 +6120,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         if (queue.isEmpty()) return
         val state = ProjectMStateStore(this)
         presetAnalysis = PresetAnalysisRun(queue, state.autoEnabled, state.lastPresetPath)
-        state.autoEnabled = false
+        // V190: the saved AUTO setting is not touched (it used to stay «off» when the analysis was cut).
         stopProjectMAuto()
         presetAnalysisStep(newPreset = true)
     }
@@ -6196,7 +6199,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         presetAnalysis = null
         presetAnalysisHandler.removeCallbacksAndMessages(null)
         val state = ProjectMStateStore(this)
-        state.autoEnabled = run.restoreAuto
         run.restorePreset?.let { path ->
             state.lastPresetPath = path
             projectMFocusPresets.firstOrNull { it.absolutePath == path }?.let { projectMMainView?.loadPreset(it, smoothTransition = false) }

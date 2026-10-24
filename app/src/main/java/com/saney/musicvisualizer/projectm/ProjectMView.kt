@@ -1202,8 +1202,9 @@ class ProjectMView(
                 GLES20.glFinish()
                 val done = System.nanoTime()
                 ProjectMLoadStats.gpuExact = false
-                ProjectMLoadStats.gpuFrameMs =
-                    com.saney.musicvisualizer.ui.LoadMeter.fallbackFrameMs((done - now0) / 1_000_000f, fps)
+                val workMs = (done - now0) / 1_000_000f
+                ProjectMLoadStats.frameWorkMs = workMs
+                ProjectMLoadStats.gpuFrameMs = com.saney.musicvisualizer.ui.LoadMeter.fallbackFrameMs(workMs, fps)
                 ProjectMLoadStats.fps = fps
                 ProjectMLoadStats.updatedAtMs = android.os.SystemClock.uptimeMillis()
                 loadFrames = 0

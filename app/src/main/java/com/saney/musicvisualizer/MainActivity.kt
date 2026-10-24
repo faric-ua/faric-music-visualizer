@@ -4808,6 +4808,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             overlay.addView(back, FrameLayout.LayoutParams(centreBack.width().toInt(), centreBack.height().toInt()))
             back.visibility = View.INVISIBLE
             top.visibility = View.INVISIBLE
+            // V185 (скрін faric 24.10 03:54: «верх кнопки зрізаний, панель нижче — підніми й відцентруй»):
+            // the overlay keeps the status-bar strip as its top padding — the button (placed in window
+            // terms) sat partly in that strip and was cut off, and the bar's margin counted from below it.
+            overlay.clipToPadding = false
+            overlay.clipChildren = false
             overlay.post {
                 val overlayAt = IntArray(2).also(overlay::getLocationInWindow)
                 val skinAt = IntArray(2).also(skin::getLocationInWindow)
@@ -4815,12 +4820,22 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 val by = skinAt[1] - overlayAt[1] + centreBack.top
                 back.x = bx
                 back.y = by
-                // The bar: from a little above the button to a little below, text right of it.
-                val barTop = (by - dp(6)).toInt().coerceAtLeast(0)
-                (top.layoutParams as FrameLayout.LayoutParams).topMargin = barTop
+                // The bar: centred on the button (6 dp above and below it), text right of it. Margins count
+                // from the overlay's padding, so take it off (may go negative — into the padding strip).
+                val lp = top.layoutParams as FrameLayout.LayoutParams
+                lp.topMargin = (by - dp(6) - overlay.paddingTop).toInt()
                 top.minimumHeight = centreBack.height().toInt() + dp(12)
-                top.setPadding((bx + centreBack.width() + dp(2)).toInt().coerceAtLeast(dp(6)) - dp(6), dp(6), dp(6), dp(6))
+                val barLeft = overlay.paddingLeft + lp.leftMargin
+                top.setPadding((bx + centreBack.width() + dp(2) - barLeft).toInt().coerceAtLeast(dp(6)), dp(4), dp(6), dp(4))
                 top.requestLayout()
+                // When the two lines of text make the bar taller than the button, keep the button in its middle.
+                top.post {
+                    val centred = (by + centreBack.height() / 2f - top.height / 2f - overlay.paddingTop).toInt()
+                    if (top.height > 0 && centred != lp.topMargin) {
+                        lp.topMargin = centred
+                        top.requestLayout()
+                    }
+                }
                 top.visibility = View.VISIBLE
                 back.visibility = View.VISIBLE
                 back.bringToFront()
@@ -5730,7 +5745,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun updateLoadMeter(meter: com.saney.musicvisualizer.ui.LoadMeterView) {
         val stats = com.saney.musicvisualizer.projectm.ProjectMLoadStats
         val fresh = android.os.SystemClock.uptimeMillis() - stats.updatedAtMs < 3_000L
-        val gpu = if (fresh) com.saney.musicvisualizer.ui.LoadMeter.gpuPercent(stats.gpuFrameMs) else 0
+        val gpu = if (fresh) com.saney.musicvisualizer.ui.LoadMeter.framePercent(stats.frameWorkMs) else 0
         val now = android.os.SystemClock.uptimeMillis()
         val ticks =
             runCatching {
@@ -5753,7 +5768,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             } ?: ""
         val line =
             if (fresh) {
-                "FPS ${stats.fps.toInt()} · кадр графіки " + (if (stats.gpuExact) "" else "≈ ") + String.format(java.util.Locale.ROOT, "%.1f", stats.gpuFrameMs).replace('.', ',') + " мс · $video"
+                "FPS ${stats.fps.toInt()} · робота кадру " + String.format(java.util.Locale.ROOT, "%.1f", stats.frameWorkMs).replace('.', ',') + " мс · $video"
             } else {
                 "Візуалізація не малюється — нема що міряти · $video"
             }
@@ -6045,7 +6060,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val stats = com.saney.musicvisualizer.projectm.ProjectMLoadStats
             if (now - stats.updatedAtMs < 1_500L) {
                 run.fps += stats.fps
-                run.gpu += stats.gpuFrameMs
+                run.gpu += stats.frameWorkMs
             }
         }
         if (sample < 3) {
@@ -6101,7 +6116,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     "Усього в списках: легких ${total[com.saney.musicvisualizer.projectm.PresetLoadClass.LIGHT] ?: 0}, " +
                     "середніх ${total[com.saney.musicvisualizer.projectm.PresetLoadClass.MEDIUM] ?: 0}, " +
                     "важких ${total[com.saney.musicvisualizer.projectm.PresetLoadClass.HEAVY] ?: 0}.\n\n" +
-                    "«Список ▾» → «Легкі» — крутити лише легкі; там ставиш 👍 тим, що подобаються.",
+                    "Кнопка групи (✓ … ▾) → «Легкі» — крутити лише легкі; там ставиш 👍 тим, що подобаються.",
             )
         }
     }

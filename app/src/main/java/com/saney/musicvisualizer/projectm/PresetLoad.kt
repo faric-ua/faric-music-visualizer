@@ -41,9 +41,11 @@ data class PresetLoad(
 /** Pure rules — PresetLoadTest. */
 object PresetLoadMath {
     /**
-     * Heavy: the screen drops frames (< 50 a second) or one frame takes ≥ 14 ms of the 16,7 ms, or the
-     * app eats ≥ 30 % of the whole processor. Light: full 57+ frames, frame ≤ 8 ms, CPU < 18 %.
-     * Everything between — medium.
+     * V185 (faric 24.10 03:54: «50 перевірив — 50 важких, а вони нормальні, 60 кадрів, 16 мс»): since
+     * V169 the «graphics ms» was capped by the frame rate — ~16 ms for every visualization that keeps
+     * 60 frames, and ≥ 14 ms made all of them heavy. Now [gpuMs] is the frame's whole work (not capped):
+     * heavy — the screen drops frames (< 50 a second), or a frame's work ≥ 25 ms, or CPU ≥ 30 %;
+     * light — 57+ frames, work ≤ 12 ms, CPU < 18 %; the rest — medium.
      */
     fun classify(
         fps: Float,
@@ -51,8 +53,8 @@ object PresetLoadMath {
         cpu: Int,
     ): PresetLoadClass =
         when {
-            fps < 50f || gpuMs >= 14f || cpu >= 30 -> PresetLoadClass.HEAVY
-            fps >= 57f && gpuMs <= 8f && cpu < 18 -> PresetLoadClass.LIGHT
+            fps < 50f || gpuMs >= 25f || cpu >= 30 -> PresetLoadClass.HEAVY
+            fps >= 57f && gpuMs <= 12f && cpu < 18 -> PresetLoadClass.LIGHT
             else -> PresetLoadClass.MEDIUM
         }
 
@@ -68,7 +70,8 @@ object PresetLoadMath {
 
 /** Saved results: preset id → «fps;gpu;cpu». */
 class PresetLoadStore(context: Context) {
-    private val prefs = context.applicationContext.getSharedPreferences("projectm_preset_load", Context.MODE_PRIVATE)
+    // V185: a new store — the old results (capped ~16 ms, all «heavy») are not comparable.
+    private val prefs = context.applicationContext.getSharedPreferences("projectm_preset_load_v2", Context.MODE_PRIVATE)
 
     fun loadOf(file: File): PresetLoad? = PresetLoad.decode(prefs.getString(ProjectMLibraryManager.presetId(file), null))
 

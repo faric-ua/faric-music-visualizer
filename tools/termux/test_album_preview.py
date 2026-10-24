@@ -42,6 +42,10 @@ def test_unit() -> None:
         e[i] = 50.0
     assert abs(ap.loudest_start(e, 100.0, 20.0) - 50.0) < 0.6, ap.loudest_start(e, 100.0, 20.0)
     assert ap.loudest_start(e, 22.0, 20.0) == 0.0
+    assert ap.fmt_long(4 * 3600 / 60 * 19 + 5) == "1:16:05", ap.fmt_long(4 * 3600 / 60 * 19 + 5)
+    assert ap.cd_fit(70 * 60).startswith("влазить на CD (і на 80")
+    assert "вільно 3:30" in ap.cd_fit(76 * 60 + 30)
+    assert "зайве 2:15" in ap.cd_fit(82 * 60 + 15)
     print("unit PASS")
 
 

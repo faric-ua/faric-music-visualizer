@@ -347,6 +347,24 @@ def fmt_time(sec: float) -> str:
     return f"{sec // 60}:{sec % 60:02d}"
 
 
+CD_MINUTES = 80  # звичайний CD-R (700 МБ); старі диски — 74 хв (650 МБ)
+
+
+def fmt_long(sec: float) -> str:
+    sec = int(round(sec))
+    h, m, s_ = sec // 3600, sec // 60 % 60, sec % 60
+    return f"{h}:{m:02d}:{s_:02d}" if h else f"{m}:{s_:02d}"
+
+
+def cd_fit(total_sec: float) -> str:
+    """V194: чи влазить сторона на один аудіо-CD."""
+    if total_sec <= 74 * 60:
+        return "влазить на CD (і на 80 хв, і на старий 74 хв)"
+    if total_sec <= CD_MINUTES * 60:
+        return f"влазить на CD 80 хв (вільно {fmt_time(CD_MINUTES * 60 - total_sec)}); на старий 74 хв — ні"
+    return f"НЕ влазить на CD 80 хв — зайве {fmt_time(total_sec - CD_MINUTES * 60)}"
+
+
 def unique_path(p: Path) -> Path:
     if not p.exists():
         return p
@@ -392,6 +410,8 @@ def build_preview(folder: Path, config: dict, seg: float, fade: float, assume_ye
         files = order_tracks(files, titles, story)
         if len(files) > 13:
             say(f"Пісень більше 13 ({len(files)}) — беру всі по порядку.")
+        total = sum(info[f]["duration"] for f in files)
+        say(f"Усього на стороні: {fmt_long(total)} ({len(files)} пісень) — {cd_fit(total)}")
 
         say("Шукаю найсильніше місце в кожній пісні…")
         parts = []

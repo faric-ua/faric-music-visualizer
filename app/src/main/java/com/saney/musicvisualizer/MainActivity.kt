@@ -5443,8 +5443,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     ProjectMLibraryManager.fastPresetFiles(this)
                 com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL ->
                     ProjectMLibraryManager.allPresetFiles(this)
+                // V192: a 👍 from any group lands here — the whole collection and the fast pack.
                 com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED ->
-                    ProjectMLibraryManager.allPresetFiles(this).filter { ratings.ratingFor(it) == ProjectMPresetRating.UP }
+                    (ProjectMLibraryManager.allPresetFiles(this) + ProjectMLibraryManager.fastPresetFiles(this))
+                        .distinctBy { ProjectMLibraryManager.presetId(it) }
+                        .filter { ratings.ratingFor(it) == ProjectMPresetRating.UP }
                 // V161: the lists made by «Аналіз візуалізацій».
                 com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIGHT,
                 com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.MEDIUM,
@@ -6056,6 +6059,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     projectMFocusLightControl?.performClick()
                 },
                 DropRow("Аналіз: легкі / середні / важкі…", DropTick.NONE) { askPresetAnalysis() },
+                DropRow("Підсумок аналізу (таблиця)", DropTick.NONE) { showAnalysisSummary("Підсумок аналізу") },
                 DropRow("Сховати цю візуалізацію назавжди", DropTick.NONE, hint = "було «−»") { rateProjectMFocusPreset(ProjectMPresetRating.HIDDEN) },
                 DropRow("Зробити відео (Export Lab)", DropTick.NONE, hint = "було EXPORT") {
                     closeProjectMFocusOverlay()
@@ -6211,21 +6215,61 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             run.results.clear()
             run.measured.forEach { f -> classOf(f)?.let { k -> run.results[k] = (run.results[k] ?: 0) + 1 } }
             val done = run.results.values.sum()
-            val l = run.results[com.saney.musicvisualizer.projectm.PresetLoadClass.LIGHT] ?: 0
-            val m = run.results[com.saney.musicvisualizer.projectm.PresetLoadClass.MEDIUM] ?: 0
-            val h = run.results[com.saney.musicvisualizer.projectm.PresetLoadClass.HEAVY] ?: 0
-            val ratingsForCount = ProjectMPresetRatingsStore(this)
-            val total = com.saney.musicvisualizer.projectm.PresetLoadStore(this).counts { ratingsForCount.isHiddenId(it) }
-            PulseDeckDialogs.showMessage(
-                this,
-                if (finished) "Аналіз готовий" else "Аналіз зупинено",
-                "Перевірено зараз: $done — легких $l, середніх $m, важких $h." +
-                    (if (run.unmeasured > 0) " З них ${run.unmeasured} не показали кадрів (зависали / чорні) — записані важкими." else "") + "\n\n" +
-                    "Усього в списках: легких ${total[com.saney.musicvisualizer.projectm.PresetLoadClass.LIGHT] ?: 0}, " +
-                    "середніх ${total[com.saney.musicvisualizer.projectm.PresetLoadClass.MEDIUM] ?: 0}, " +
-                    "важких ${total[com.saney.musicvisualizer.projectm.PresetLoadClass.HEAVY] ?: 0}.\n\n" +
-                    "Кнопка групи (✓ … ▾) → «Легкі» — крутити лише легкі; там ставиш 👍 тим, що подобаються.",
-            )
+            val thisRun =
+                "Цього разу перевірено: $done" +
+                    (if (run.unmeasured > 0) " (з них ${run.unmeasured} не показали кадрів — записані важкими)" else "")
+            showAnalysisSummary(if (finished) "Аналіз готовий" else "Аналіз зупинено", thisRun)
+        }
+    }
+
+    /**
+     * V192 (faric 24.10 15:34: «у кінці — табличку: скільки всього в бібліотеці, скільки перевірено, легкі,
+     * середні, важкі, з 👍, пропущено…»): the whole picture, counted on a worker thread (the library is big).
+     * Also from «Ще ⋯ → Підсумок аналізу».
+     */
+    private fun showAnalysisSummary(
+        title: String,
+        thisRun: String? = null,
+    ) {
+        thread(name = "analysis-summary") {
+            val text =
+                runCatching {
+                    val ratings = ProjectMPresetRatingsStore(this)
+                    val loads = com.saney.musicvisualizer.projectm.PresetLoadStore(this)
+                    val classOf = loads.classifier()
+                    val library =
+                        (ProjectMLibraryManager.allPresetFiles(this) + ProjectMLibraryManager.fastPresetFiles(this))
+                            .distinctBy { ProjectMLibraryManager.presetId(it) }
+                    val hidden = library.count { ratings.ratingFor(it) == ProjectMPresetRating.HIDDEN }
+                    val visible = library.filter { ratings.ratingFor(it) != ProjectMPresetRating.HIDDEN }
+                    val byClass = visible.groupBy { classOf(it) }
+                    val measured = visible.size - (byClass[null]?.size ?: 0)
+                    val liked = visible.count { ratings.ratingFor(it) == ProjectMPresetRating.UP }
+                    fun line(
+                        name: String,
+                        k: com.saney.musicvisualizer.projectm.PresetLoadClass,
+                    ): String {
+                        val list = byClass[k].orEmpty()
+                        val up = list.count { ratings.ratingFor(it) == ProjectMPresetRating.UP }
+                        return "• $name — ${list.size} (з них 👍 $up)"
+                    }
+                    val nf = java.text.NumberFormat.getIntegerInstance(java.util.Locale.forLanguageTag("uk"))
+                    buildString {
+                        thisRun?.let { append(it).append(".\n\n") }
+                        append("Бібліотека: ").append(nf.format(library.size)).append(" візуалізацій\n")
+                        append("Перевірено: ").append(nf.format(measured)).append(" · ще не перевірено: ").append(nf.format(visible.size - measured)).append('\n')
+                        append("Сховані («−»): ").append(nf.format(hidden)).append("\n\n")
+                        append(line("Легкі", com.saney.musicvisualizer.projectm.PresetLoadClass.LIGHT)).append('\n')
+                        append(line("Середні", com.saney.musicvisualizer.projectm.PresetLoadClass.MEDIUM)).append('\n')
+                        append(line("Важкі", com.saney.musicvisualizer.projectm.PresetLoadClass.HEAVY)).append("\n\n")
+                        append("👍 усього: ").append(nf.format(liked)).append(" — усі вони в групі «👍», хоч легкі, хоч важкі.\n\n")
+                        append("Аналіз перевіряє візуалізації з тієї групи, що вибрана зараз, і 👍 сам не ставить: 👍 ставиш ти. ")
+                        append("Кнопка групи (✓ … ▾) → «Легкі» — крутити лише легкі.")
+                    }
+                }.getOrElse { "Не вдалось порахувати: ${it.message}" }
+            runOnUiThread {
+                if (!isFinishing && !isDestroyed) PulseDeckDialogs.showMessage(this, title, text, scrollableMessage = true)
+            }
         }
     }
 

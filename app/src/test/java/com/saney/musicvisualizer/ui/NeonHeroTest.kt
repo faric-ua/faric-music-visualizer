@@ -10,7 +10,7 @@ import kotlin.math.abs
 
 class NeonHeroTest {
     @Test fun settingsSurviveSavingAndBadInput() {
-        val s = NeonHeroSettings(shape = 1, rubber = 30, rainOn = false, photoUri = "content://x/a;b", rippleSize = 90, fxGlitch = false)
+        val s = NeonHeroSettings(shape = 1, rubber = 30, rainOn = false, photoUri = "content://x/a;b", rippleSize = 90, fxGlitch = false, heroOn = false, heroAlpha = 40, lrOn = false)
         assertEquals(s, NeonHeroSettings.decode(s.encode()))
         assertEquals(NeonHeroSettings(), NeonHeroSettings.decode(null))
         assertEquals(NeonHeroSettings(), NeonHeroSettings.decode("garbage"))

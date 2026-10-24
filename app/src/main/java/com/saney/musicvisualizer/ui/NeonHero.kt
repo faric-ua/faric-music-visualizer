@@ -30,6 +30,11 @@ data class NeonHeroSettings(
     val auraOn: Boolean = true,
     val aura: Int = 100,
     val eqOn: Boolean = true,
+    /** V191 (faric 25.10 02:48: «кота не видно» — відключати героя, підписи L / R, альбом окремо). */
+    val heroOn: Boolean = true,
+    /** 10–100 %: how see-through the hero is (the photo shows through). */
+    val heroAlpha: Int = 100,
+    val lrOn: Boolean = true,
     val titleOn: Boolean = true,
     val albumOn: Boolean = true,
     /** The photo behind (content:// from the Android picker) — empty: a dark night. */
@@ -58,7 +63,7 @@ data class NeonHeroSettings(
     fun encode(): String =
         listOf(
             "shape" to shape, "rubber" to rubber, "dent" to dent, "pendulumOn" to pendulumOn, "pendulum" to pendulum,
-            "auraOn" to auraOn, "aura" to aura, "eqOn" to eqOn, "titleOn" to titleOn, "albumOn" to albumOn,
+            "auraOn" to auraOn, "aura" to aura, "eqOn" to eqOn, "heroOn" to heroOn, "heroAlpha" to heroAlpha, "lrOn" to lrOn, "titleOn" to titleOn, "albumOn" to albumOn,
             "photoOn" to photoOn, "photoAlpha" to photoAlpha, "fxJump" to fxJump, "fxShake" to fxShake, "fxGlitch" to fxGlitch,
             "ripplesOn" to ripplesOn, "rippleCount" to rippleCount, "rippleSize" to rippleSize, "rippleSpeed" to rippleSpeed,
             "rippleZoom" to rippleZoom, "rippleRefract" to rippleRefract,
@@ -86,6 +91,9 @@ data class NeonHeroSettings(
                 auraOn = b("auraOn", d.auraOn),
                 aura = i("aura", d.aura, 30, 150),
                 eqOn = b("eqOn", d.eqOn),
+                heroOn = b("heroOn", d.heroOn),
+                heroAlpha = i("heroAlpha", d.heroAlpha, 10, 100),
+                lrOn = b("lrOn", d.lrOn),
                 titleOn = b("titleOn", d.titleOn),
                 albumOn = b("albumOn", d.albumOn),
                 photoUri = m["photoUri"]?.replace("%3B", ";") ?: "",

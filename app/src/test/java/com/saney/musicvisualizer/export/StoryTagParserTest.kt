@@ -63,4 +63,25 @@ class StoryTagParserTest {
         assertEquals("Про диск", parsed["FARIC_ALBUM_STORY_UK"])
         assertEquals("Слова", parsed["LYRICS"])
     }
+
+    @Test fun anEmptyFrameDoesNotHideTheStoryAfterIt() {
+        // V193: Audio Converter «Лише теги» keeps old frames as they were (an empty one too) and adds the
+        // story at the END of the tag — the reader must step over the empty frame.
+        val story = "Смисл. Після порожнього кадру."
+        for (v4 in listOf(false, true)) {
+            val parsed =
+                StoryTagParser.parseId3(
+                    tag(v4, frame("TIT2", byteArrayOf(3) + "Song".toByteArray(), v4), frame("TPE1", ByteArray(0), v4), frame("TXXX", txxxUtf8("FARIC_STORY_UK", story), v4)),
+                )
+            assertEquals("v2." + (if (v4) 4 else 3), story, parsed["FARIC_STORY_UK"])
+        }
+    }
+
+    @Test fun aV24TagWithPlainSizesStillReads() {
+        val story = "Смисл. " + "довга історія ".repeat(20) // > 127 bytes: the sync-safe and plain sizes differ
+        val bad = frame("TXXX", txxxUtf8("FARIC_STORY_UK", story), v4 = false) // plain size in a v2.4 tag
+        val parsed = StoryTagParser.parseId3(tag(true, frame("TIT2", byteArrayOf(3) + "Song".toByteArray(), true), bad, frame("TXXX", txxxUtf8("FARIC_STORY_EN", "Meaning."), true)))
+        assertEquals(story.trim(), parsed["FARIC_STORY_UK"])
+        assertEquals("Meaning.", parsed["FARIC_STORY_EN"])
+    }
 }

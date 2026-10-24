@@ -23,11 +23,23 @@ object StoryTagParser {
         val out = linkedMapOf<String, String>()
         while (pos + 10 <= tagEnd) {
             val id = String(bytes, pos, 4, Charsets.ISO_8859_1)
-            if (id[0] == '\u0000') break
-            val size = if (major == 4) syncSafe(bytes, pos + 4) else int32(bytes, pos + 4)
+            if (!isFrameId(id)) break // padding (zeros) or the end of what we understand
+            var size = if (major == 4) syncSafe(bytes, pos + 4) else int32(bytes, pos + 4)
+            // V193: some writers put plain 32-bit sizes into a v2.4 tag — if the sync-safe one does not land on
+            // the next frame (or the end), the plain one is tried.
+            if (major == 4 && !landsWell(bytes, pos + 10 + size, tagEnd)) {
+                val plain = int32(bytes, pos + 4)
+                if (plain >= 0 && landsWell(bytes, pos + 10 + plain, tagEnd)) size = plain
+            }
             val start = pos + 10
             val end = start + size
-            if (size <= 0 || end > tagEnd) break
+            // V193 (faric 24.10: «історії не видно» — розбір: кадр розміром 0 зупиняв читання, а конвертер
+            // дописує історії в КІНЕЦЬ тегу): an empty frame is skipped, not the end of the tag.
+            if (size == 0) {
+                pos = start
+                continue
+            }
+            if (size < 0 || end > tagEnd) break
             when (id) {
                 "TXXX" -> parseTxxx(bytes, start, end)?.let { (key, value) -> out.putIfAbsent(key, value) }
                 "USLT" -> parseUslt(bytes, start, end)?.let { out.putIfAbsent("LYRICS", it) }
@@ -36,6 +48,22 @@ object StoryTagParser {
         }
         return out
     }
+
+    /** A frame id: 4 of A–Z / 0–9. */
+    private fun isFrameId(id: String): Boolean = id.length == 4 && id.all { it in 'A'..'Z' || it in '0'..'9' }
+
+    private fun landsWell(
+        b: ByteArray,
+        at: Int,
+        tagEnd: Int,
+    ): Boolean =
+        when {
+            at == tagEnd -> true
+            at > tagEnd || at < 0 -> false
+            at + 4 > tagEnd -> b.copyOfRange(at, tagEnd).all { it.toInt() == 0 }
+            b[at].toInt() == 0 -> true // padding
+            else -> isFrameId(String(b, at, 4, Charsets.ISO_8859_1))
+        }
 
     /** [block] — the body of a FLAC VORBIS_COMMENT block (or an Ogg comment packet without its header). */
     fun parseVorbisComments(block: ByteArray): Map<String, String> {

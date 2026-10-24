@@ -48,6 +48,10 @@ class EdgeEqRenderer {
     ) {
         val s = settings
         if (!s.on || spectrum.isEmpty() || rect.width() <= 0f) return
+        // V174 крок 4 (замір 24.10 16:50: окантовка-EQ 5,2 мс на кадр відео): in the video (software canvas)
+        // the faint wide glow under each stroke goes without edge smoothing — the costly part of drawing
+        // hundreds of thick strokes on the CPU; at a third of the alpha its edges are not seen. Lines stay smooth.
+        glowPaint.isAntiAlias = canvas.isHardwareAccelerated
         val turn = EdgeEqMath.turn(clockMs, s.scroll)
         val gap = unit * 0.004f
         // V154: everything stays within REACH of the tile (the frame from «Розкладка»).

@@ -737,6 +737,7 @@ class PulseDeckMainSkinView(
         }
         val level = coverGlowLevel
         val density = resources.displayMetrics.density
+        if (drawCoverGlowOnPixels(canvas, rect, radius, alpha, level, density)) return
         val rings = 4
         for (i in rings downTo 1) {
             val spread = density * (2f + i * (2.2f + 3.5f * level))
@@ -748,6 +749,82 @@ class PulseDeckMainSkinView(
             canvas.drawRoundRect(coverGlowRect, radius + spread / 2f, radius + spread / 2f, coverGlowPaint)
         }
     }
+
+    /**
+     * V174 крок 4 (замір 24.10 16:50: «рамка: світіння» 3,0 мс на кадр відео): in the video the 4 glow rings are
+     * drawn once per level step (16 steps) into a one-byte mask at the video's pixel size and then copied 1:1,
+     * tinted, with the tile itself cut out (nothing is drawn there). The screen keeps drawing them live.
+     */
+    private fun drawCoverGlowOnPixels(
+        canvas: Canvas,
+        rect: RectF,
+        radius: Float,
+        alpha: Int,
+        level: Float,
+        density: Float,
+    ): Boolean {
+        val values = softwareAxisValues(canvas) ?: return false
+        if (kotlin.math.abs(values[0] - values[4]) > 1e-3f) return false
+        val step = (level * GLOW_STEPS).roundToInt().coerceIn(0, GLOW_STEPS)
+        val l = step / GLOW_STEPS.toFloat()
+        val rings = 4
+        val maxSpread = density * (2f + rings * (2.2f + 3.5f * l))
+        val px =
+            SoftwareBlitMath.deviceRect(
+                values,
+                rect.left - maxSpread - 2f,
+                rect.top - maxSpread - 2f,
+                rect.right + maxSpread + 2f,
+                rect.bottom + maxSpread + 2f,
+            ) ?: return false
+        if (SoftwareBlitMath.bytesOf(px.width, px.height, 1) > SoftwareBlitMath.MAX_ENTRY_BYTES) return false
+        val key = GlowKey(step, alpha, px.width, px.height, (radius * values[0] * 4f).roundToInt())
+        val mask =
+            glowMasks[key]?.takeIf { !it.isRecycled }
+                ?: runCatching {
+                    Bitmap.createBitmap(px.width, px.height, Bitmap.Config.ALPHA_8).also { bmp ->
+                        bmp.eraseColor(Color.TRANSPARENT)
+                        val c = Canvas(bmp)
+                        // the same rings in the mask's pixels: move the rect's corner to the mask's corner
+                        c.translate(-(px.left.toFloat()), -(px.top.toFloat()))
+                        c.translate(values[2], values[5])
+                        c.scale(values[0], values[4])
+                        val paint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE }
+                        val ringRect = RectF()
+                        for (i in rings downTo 1) {
+                            val spread = density * (2f + i * (2.2f + 3.5f * l))
+                            ringRect.set(rect)
+                            ringRect.inset(-spread / 2f, -spread / 2f)
+                            paint.strokeWidth = spread
+                            paint.color = Color.argb((alpha * (0.05f + 0.16f * l) * (rings + 1 - i) / rings).toInt().coerceIn(0, 255), 255, 255, 255)
+                            c.drawRoundRect(ringRect, radius + spread / 2f, radius + spread / 2f, paint)
+                        }
+                    }
+                }.getOrNull()?.also {
+                    if (glowMasks.size >= GLOW_STEPS + 1) glowMasks.clear()
+                    glowMasks[key] = it
+                }
+                ?: return false
+        glowMaskPaint.color = Color.rgb(40 + (140 * l).toInt(), 190, 255)
+        val save = canvas.save()
+        // The rings start at the tile's edge: inside it nothing is drawn — skip those pixels.
+        val inner = RectF(rect).apply { inset(radius * 0.3f, radius * 0.3f) }
+        if (inner.width() > 0f && inner.height() > 0f) canvas.clipOutRect(inner)
+        drawOnPixels(canvas) { canvas.drawBitmap(mask, px.left.toFloat(), px.top.toFloat(), glowMaskPaint) }
+        canvas.restoreToCount(save)
+        return true
+    }
+
+    private data class GlowKey(
+        val step: Int,
+        val alpha: Int,
+        val width: Int,
+        val height: Int,
+        val radiusQuarterPx: Int,
+    )
+
+    private val glowMasks = HashMap<GlowKey, Bitmap>()
+    private val glowMaskPaint = Paint()
 
     private val coverInverse = android.graphics.Matrix()
     private val coverScreenMatrix = android.graphics.Matrix()
@@ -4092,6 +4169,9 @@ class PulseDeckMainSkinView(
 
         /** V167: the transparent edge round the picture of the story text. */
         private const val TEXT_BITMAP_PAD = 2
+
+        /** V174 крок 4: the glow's level steps in the video (one ready mask per step). */
+        private const val GLOW_STEPS = 16
 
         private const val SKIN_ROOT =
             "pulsedeck_hud"

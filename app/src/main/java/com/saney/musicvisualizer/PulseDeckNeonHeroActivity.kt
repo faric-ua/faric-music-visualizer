@@ -76,10 +76,8 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
             }
         val scroll =
             ScrollView(this).apply {
-                setBackgroundColor(UtilityUi.BG)
                 addView(content)
             }
-        UtilityUi.padForSystemBars(scroll)
         preview =
             HeroThemeView(this).apply {
                 setTheme(PlaybackThemeId.NEON_HERO)
@@ -87,8 +85,27 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
                 setMetadata("MIDNIGHT PULSE", "FARIC")
                 albumName = "VOL. 1 — MIDNIGHT PULSE"
             }
+        // V191 (faric 25.10 02:30, відео: «прев'ю має стояти, а налаштування — прокручуватись у віконці під
+        // ним, щоб я бачив, що змінюю»): the title and the live preview stay at the top; only the settings scroll.
+        val root =
+            LinearLayout(this).apply {
+                orientation = LinearLayout.VERTICAL
+                setBackgroundColor(UtilityUi.BG)
+            }
+        val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL; setPadding(dp(16), dp(8), dp(16), dp(4)) }
+        header.addView(UtilityUi.button(this, "‹") { finish() }.apply { contentDescription = "Назад" }, LinearLayout.LayoutParams(dp(48), dp(48)))
+        header.addView(UtilityUi.text(this, "Неон-герой", 22f, bold = true), LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(12) })
+        root.addView(header, LinearLayout.LayoutParams(-1, -2))
+        val previewHeight = (resources.displayMetrics.heightPixels * 0.40f).toInt()
+        root.addView(preview, LinearLayout.LayoutParams(-1, previewHeight))
+        root.addView(
+            android.view.View(this).apply { setBackgroundColor(UtilityUi.PANEL_EDGE) },
+            LinearLayout.LayoutParams(-1, dp(1)),
+        )
+        root.addView(scroll, LinearLayout.LayoutParams(-1, 0, 1f))
+        UtilityUi.padForSystemBars(root)
         build()
-        setContentView(scroll)
+        setContentView(root)
     }
 
     override fun onResume() {
@@ -103,16 +120,10 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
 
     private fun build() {
         content.removeAllViews()
-        val header = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }
-        header.addView(UtilityUi.button(this, "‹") { finish() }.apply { contentDescription = "Назад" }, LinearLayout.LayoutParams(dp(48), dp(48)))
-        header.addView(UtilityUi.text(this, "Неон-герой", 22f, bold = true), LinearLayout.LayoutParams(0, -2, 1f).apply { marginStart = dp(12) })
-        content.addView(header)
         content.addView(
             UtilityUi.text(this, "Угорі — живе прев'ю (музика уявна, 128 BPM). На головному екрані й у відео — так само, від справжнього звуку.", 13f, UtilityUi.MUTED),
-            block(8),
+            block(0),
         )
-        (preview.parent as? android.view.ViewGroup)?.removeView(preview)
-        content.addView(preview, LinearLayout.LayoutParams(-1, dp(460)).apply { topMargin = dp(10) })
 
         section("Герой у центрі")
         content.addView(
@@ -258,7 +269,7 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
         s = next
         NeonHeroStore.save(this, next)
         if (rebuild) {
-            val scroll = content.parent as? ScrollView
+            val scroll = content.parent as? ScrollView // only the settings rebuild; the preview stays
             val y = scroll?.scrollY ?: 0
             build()
             scroll?.post { scroll.scrollTo(0, y) }

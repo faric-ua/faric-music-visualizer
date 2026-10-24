@@ -155,7 +155,7 @@ class NeonHeroRenderer(private val context: Context) {
                         else -> rng.nextFloat() * rainW to rainH + 30f * u
                     }
                 val k = 0.022f * (0.6f + rng.nextFloat() * 0.6f)
-                blobs += Blob(bx, by, (rainW * 0.5f - bx) * k, (rainH * 0.43f - by) * k, (14f + rng.nextFloat() * 24f * st) * u, 1f, rng.nextFloat() * 6f)
+                blobs += Blob(bx, by, (rainW * 0.5f - bx) * k, (rainH * HERO_CENTER_Y - by) * k, (14f + rng.nextFloat() * 24f * st) * u, 1f, rng.nextFloat() * 6f)
             }
             while (blobs.size > 30) blobs.removeAt(0)
         }
@@ -287,9 +287,17 @@ class NeonHeroRenderer(private val context: Context) {
             }
         }
         val cx = w * 0.5f + px * heroR
-        val cy = h * 0.40f + py * heroR
+        // V191 (скрін faric 25.10 02:48: підписи під героєм лізли на назву пісні HUD): the hero sits higher.
+        val cy = h * HERO_CENTER_Y + py * heroR
         val k = 1f + kick * 0.04f
-        drawHero(canvas, s, cx, cy, heroR * k, f, nowMs / 1000f, title, album)
+        if (s.heroOn) {
+            val layer = s.heroAlpha < 100
+            val save = if (layer) canvas.saveLayerAlpha(0f, 0f, w, h, (s.heroAlpha * 255 / 100).coerceIn(0, 255)) else -1
+            drawHero(canvas, s, cx, cy, heroR * k, f, nowMs / 1000f, title, album)
+            if (layer) canvas.restoreToCount(save)
+        } else {
+            drawTexts(canvas, s, cx, cy, heroR, f, title, album, inside = false)
+        }
     }
 
     private fun drawBackground(
@@ -463,22 +471,39 @@ class NeonHeroRenderer(private val context: Context) {
                 }
             }
             canvas.restore()
-            textPaint.textSize = 12f * f
-            textPaint.color = Color.argb(204, 200, 230, 255)
-            canvas.drawText("L", cx - r + cw / 2f, cy + r + 18f * f, textPaint)
-            canvas.drawText("R", cx + r - cw / 2f, cy + r + 18f * f, textPaint)
+            if (s.lrOn) {
+                textPaint.textSize = 12f * f
+                textPaint.color = Color.argb(204, 200, 230, 255)
+                canvas.drawText("L", cx - r + cw / 2f, cy + r + 18f * f, textPaint)
+                canvas.drawText("R", cx + r - cw / 2f, cy + r + 18f * f, textPaint)
+            }
         }
         stroke.strokeWidth = 1.2f * f
         stroke.color = Color.argb(90, 150, 230, 255)
         canvas.drawPath(shapePath(cx, cy, r, s.shape) { 5f * f }, stroke)
 
-        // the title: one word per line inside; does not fit — below the hero with the album
+        drawTexts(canvas, s, cx, cy, r, f, title, album, inside = true)
+        if (s.auraOn && auraV > 0.03f) drawAura(canvas, s, cx, cy, r, f, tm)
+    }
+
+    /** The title — one word per line inside the hero; does not fit (or no hero) — below, with the album. */
+    private fun drawTexts(
+        canvas: Canvas,
+        s: NeonHeroSettings,
+        cx: Float,
+        cy: Float,
+        r: Float,
+        f: Float,
+        title: String,
+        album: String,
+        inside: Boolean,
+    ) {
         var belowY = cy + r * 1.25f + 24f * f
         if (s.titleOn && title.isNotBlank()) {
-            val lines = NeonHeroMath.titleLines(title)
-            val inside = lines?.let { fitTitle(it, r) }
-            if (lines != null && inside != null) {
-                drawTitleInside(canvas, lines, cx, cy, inside)
+            val lines = if (inside) NeonHeroMath.titleLines(title) else null
+            val size = lines?.let { fitTitle(it, r) }
+            if (lines != null && size != null) {
+                drawTitleInside(canvas, lines, cx, cy, size)
             } else {
                 textPaint.textSize = 17f * f
                 textPaint.color = Color.argb(235, 225, 245, 255)
@@ -491,7 +516,6 @@ class NeonHeroRenderer(private val context: Context) {
             textPaint.color = Color.argb(200, 170, 215, 245)
             canvas.drawText(ellipsize(album, 2.6f * r), cx, belowY, textPaint)
         }
-        if (s.auraOn && auraV > 0.03f) drawAura(canvas, s, cx, cy, r, f, tm)
     }
 
     /** The letter size so the longest word fits the hero's width and all lines its height; null — too small. */
@@ -635,6 +659,9 @@ class NeonHeroRenderer(private val context: Context) {
             context.contentResolver.openInputStream(u)?.use { BitmapFactory.decodeStream(it, null, BitmapFactory.Options().apply { inSampleSize = sample }) }
         }.getOrNull()
 }
+
+/** Where the hero's centre is, as a share of the screen height (above the HUD's song title). */
+private const val HERO_CENTER_Y = 0.29f
 
 /** V191: the «Неон-герой» settings — same file as MainActivity.layerPrefs(); [version] tells views to re-read. */
 object NeonHeroStore {

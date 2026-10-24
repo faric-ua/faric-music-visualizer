@@ -126,6 +126,8 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
         )
 
         section("Герой у центрі")
+        toggle("Герой", s.heroOn) { change(s.copy(heroOn = !s.heroOn), rebuild = true) }
+        slider("Видимість героя", 10, 100, s.heroAlpha) { change(s.copy(heroAlpha = it)) }
         content.addView(
             UtilityUi.button(this, "Форма: " + NeonHeroMath.SHAPE_NAMES[s.shape] + " ▾") {
                 PulseDeckDialogs.showSingleChoice(context = this, title = "Форма героя", labels = NeonHeroMath.SHAPE_NAMES, checkedIndex = s.shape) { i ->
@@ -141,6 +143,7 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
         toggle("Аура на ударі", s.auraOn) { change(s.copy(auraOn = !s.auraOn), rebuild = true) }
         slider("Сила аури", 30, 150, s.aura) { change(s.copy(aura = it)) }
         toggle("Еквалайзер і шкали L / R усередині", s.eqOn) { change(s.copy(eqOn = !s.eqOn), rebuild = true) }
+        toggle("Підписи L і R", s.lrOn) { change(s.copy(lrOn = !s.lrOn), rebuild = true) }
         toggle("Назва пісні (слово — рядок)", s.titleOn) { change(s.copy(titleOn = !s.titleOn), rebuild = true) }
         toggle("Альбом під героєм", s.albumOn) { change(s.copy(albumOn = !s.albumOn), rebuild = true) }
 

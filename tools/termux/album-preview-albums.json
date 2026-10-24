@@ -24,6 +24,8 @@
     {"vol": 10, "album": "VOL. 10 — PRISM VELOCITY", "match": "PRISM VELOCITY", "story_file": "vol-10-prism-velocity-v3.json", "story_id": "1K6pxvLB-NIrrIsEl_EnUAbh_6TonZLWV", "story_version": 3,
      "disc": {"white": "16wNEIA-oqthNMED3dJKL-MykJqlos-rI", "black": "1ba-SQNSeCVXYb9ZCfqKrmI8UDT5H8MdW"}},
     {"vol": 11, "album": "VOL. 11 — BINARY HORIZON", "match": "BINARY HORIZON", "story_file": "vol-11-binary-horizon-v7.json", "story_id": "13VGR44E-NaWW07dLfjPlGNcvKt_H1Q-N", "story_version": 7,
+     "disc": {"white": null, "black": null}},
+    {"vol": 12, "album": "VOL. 12 — MIDNIGHT TO DAWN", "match": "MIDNIGHT TO DAWN", "story_file": "vol-12-midnight-to-dawn-v4.json", "story_id": "1GwJ10BcU9lFZfjiI6G3Q_YQX2INhzxEW", "story_version": 4,
      "disc": {"white": null, "black": null}}
   ]
 }

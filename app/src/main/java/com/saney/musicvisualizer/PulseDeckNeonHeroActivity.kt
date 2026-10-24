@@ -166,7 +166,9 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
         toggle("Фото видно", s.photoOn) { change(s.copy(photoOn = !s.photoOn), rebuild = true) }
         slider("Видимість фото", 0, 100, s.photoAlpha) { change(s.copy(photoAlpha = it)) }
         toggle("Стрибок фото на ударі", s.fxJump) { change(s.copy(fxJump = !s.fxJump), rebuild = true) }
+        slider("Рух фото від ударів (ривки, як жива камера)", 0, 100, s.photoMove) { change(s.copy(photoMove = it)) }
         toggle("Тряска на сильному ударі", s.fxShake) { change(s.copy(fxShake = !s.fxShake), rebuild = true) }
+        slider("Сила тряски", 0, 150, s.shakePower) { change(s.copy(shakePower = it)) }
         toggle("Спотворення смугами (і напису)", s.fxGlitch) { change(s.copy(fxGlitch = !s.fxGlitch), rebuild = true) }
 
         section("Краплі й хвилі")

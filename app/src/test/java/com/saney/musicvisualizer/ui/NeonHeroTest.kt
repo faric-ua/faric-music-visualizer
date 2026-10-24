@@ -85,4 +85,17 @@ class NeonHeroTest {
         val (l2, r2) = NeonHeroMath.meters(0.8f, 0f)
         assertEquals(l2, r2, 1e-6f)
     }
+
+    @Test fun photoJerksWithTheBeat() {
+        val (dx, dy) = NeonHeroMath.photoKick(1f, -0.6f, 0.9f, 0.2f, 1f)
+        assertTrue("bass on the left — jerk left", dx < 0f)
+        assertTrue("bass — down", dy > 0f)
+        val (_, upY) = NeonHeroMath.photoKick(1f, 0f, 0.1f, 0.8f, 1f)
+        assertTrue("highs — up", upY < 0f)
+        val (sx, sy) = NeonHeroMath.photoKick(1f, 0.6f, 0.9f, 0.2f, 0f)
+        assertEquals("move 0 — still", 0f, sx + sy, 1e-6f)
+        val d = NeonHeroSettings.decode(NeonHeroSettings(photoMove = 70, shakePower = 130).encode())
+        assertEquals(70, d.photoMove)
+        assertEquals(130, d.shakePower)
+    }
 }

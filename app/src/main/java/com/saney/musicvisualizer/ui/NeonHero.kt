@@ -43,6 +43,14 @@ data class NeonHeroSettings(
     val photoAlpha: Int = 60,
     val fxJump: Boolean = true,
     val fxShake: Boolean = true,
+    /** 0–150 %: how hard the strong-beat shake is. */
+    val shakePower: Int = 100,
+    /**
+     * V191 (faric 25.10 02:50: «фото ривками в сторону, вверх, вниз від басів чи ударів… як жива, чи камера
+     * трясеться»): 0–100 % — the photo jerks on every beat (down on the bass, to the side the bass leans,
+     * up on the highs) and springs back; a little living sway with the bass between beats.
+     */
+    val photoMove: Int = 40,
     val fxGlitch: Boolean = true,
     val ripplesOn: Boolean = true,
     val rippleCount: Int = 55,
@@ -64,7 +72,7 @@ data class NeonHeroSettings(
         listOf(
             "shape" to shape, "rubber" to rubber, "dent" to dent, "pendulumOn" to pendulumOn, "pendulum" to pendulum,
             "auraOn" to auraOn, "aura" to aura, "eqOn" to eqOn, "heroOn" to heroOn, "heroAlpha" to heroAlpha, "lrOn" to lrOn, "titleOn" to titleOn, "albumOn" to albumOn,
-            "photoOn" to photoOn, "photoAlpha" to photoAlpha, "fxJump" to fxJump, "fxShake" to fxShake, "fxGlitch" to fxGlitch,
+            "photoOn" to photoOn, "photoAlpha" to photoAlpha, "fxJump" to fxJump, "fxShake" to fxShake, "shakePower" to shakePower, "photoMove" to photoMove, "fxGlitch" to fxGlitch,
             "ripplesOn" to ripplesOn, "rippleCount" to rippleCount, "rippleSize" to rippleSize, "rippleSpeed" to rippleSpeed,
             "rippleZoom" to rippleZoom, "rippleRefract" to rippleRefract,
             "rainOn" to rainOn, "rainCount" to rainCount, "rainAlpha" to rainAlpha, "rainSpeed" to rainSpeed, "rainLength" to rainLength,
@@ -101,6 +109,8 @@ data class NeonHeroSettings(
                 photoAlpha = i("photoAlpha", d.photoAlpha, 0, 100),
                 fxJump = b("fxJump", d.fxJump),
                 fxShake = b("fxShake", d.fxShake),
+                shakePower = i("shakePower", d.shakePower, 0, 150),
+                photoMove = i("photoMove", d.photoMove, 0, 100),
                 fxGlitch = b("fxGlitch", d.fxGlitch),
                 ripplesOn = b("ripplesOn", d.ripplesOn),
                 rippleCount = i("rippleCount", d.rippleCount, 10, 100),
@@ -147,6 +157,24 @@ object NeonHeroMath {
             }
             else -> 1f
         }
+    }
+
+    /**
+     * V191: the photo's jerk on a beat, in screen widths: down on the bass, to the side the bass leans, up when
+     * the highs are louder than the bass. [move] 0..1.
+     */
+    fun photoKick(
+        strength: Float,
+        stereoPan: Float,
+        bass: Float,
+        high: Float,
+        move: Float,
+    ): Pair<Float, Float> {
+        val side = pushSide(stereoPan)
+        val up = high > bass + 0.1f
+        val dx = side * 0.012f * strength * move
+        val dy = (if (up) -0.008f else 0.010f) * strength * move
+        return dx to dy
     }
 
     /** Where a beat hits: from the left / right when the bass leans there, else from below. */

@@ -82,6 +82,9 @@ class ProjectMPresetRatingsStore(context: Context) {
         return result
     }
 
+    /** V189: by preset id (as other stores keep it) — is it hidden? */
+    fun isHiddenId(id: String): Boolean = ratingForId(id) == ProjectMPresetRating.HIDDEN
+
     private fun ratingForId(id: String): ProjectMPresetRating {
         val stored =
             prefs.getString(

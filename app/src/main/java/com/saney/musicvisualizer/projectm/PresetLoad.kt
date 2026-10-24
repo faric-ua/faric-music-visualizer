@@ -128,9 +128,18 @@ class PresetLoadStore(context: Context) {
         prefs.edit().putString(ProjectMLibraryManager.presetId(file), load.encode()).apply()
     }
 
-    fun counts(): Map<PresetLoadClass, Int> {
-        val loads = allLoads()
-        val t = PresetLoadMath.thresholds(loads)
-        return loads.map { PresetLoadMath.classify(it, t) }.groupingBy { it }.eachCount()
+    /**
+     * V189 (faric 24.10 04:32: «у меню „Важкі 40“, а в списку „з 33“»): the menu counted every measured
+     * one, the list only those still there — hidden ones and files gone from the phone left out. [skipId]
+     * leaves out the same ones here (e.g. hidden).
+     */
+    fun counts(skipId: (String) -> Boolean = { false }): Map<PresetLoadClass, Int> {
+        val t = PresetLoadMath.thresholds(allLoads())
+        return prefs.all
+            .mapNotNull { (id, value) ->
+                if (skipId(id)) return@mapNotNull null
+                (value as? String)?.let(PresetLoad::decode)?.let { PresetLoadMath.classify(it, t) }
+            }.groupingBy { it }
+            .eachCount()
     }
 }

@@ -19,6 +19,8 @@ enum class PlaybackThemeId {
     CASSETTE,
     /** V91: the song's cover in a square at the top, instead of a hero. */
     COVER_ART,
+    /** V191: rain, waves on a photo and a rubber neon hero with an equalizer inside. */
+    NEON_HERO,
     GLASS_CORE,
     NEON_EMBLEM,
     ENERGY_CORE,
@@ -321,6 +323,18 @@ object PlaybackThemeRegistry {
                     ThemeCapability.TRACK_METADATA,
                 ),
                 previewOrder = 65,
+            ),
+            PlaybackThemeSpec(
+                id = PlaybackThemeId.NEON_HERO,
+                title = "Неон-герой",
+                subtitle = "Фото, дощ, хвилі, гумовий герой з еквалайзером · ⚙ налаштування",
+                family = ThemeFamily.HERO,
+                capabilities = setOf(
+                    ThemeCapability.BACKGROUND_IMAGE,
+                    ThemeCapability.TRACK_METADATA,
+                    ThemeCapability.REACTIVE_BANDS,
+                ),
+                previewOrder = 4,
             ),
             PlaybackThemeSpec(
                 id = PlaybackThemeId.COVER_ART,

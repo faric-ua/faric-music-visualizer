@@ -52,6 +52,8 @@ data class CompositionExportConfig(
     val standaloneTheme: PlaybackThemeId? = null,
     /** V91: the song's cover for the «Обкладинка» theme. */
     val coverArt: Bitmap? = null,
+    /** V191: the song's album under «Неон-герой»'s hero. */
+    val album: String? = null,
     /** V114: the song's picture for the HUD frame «Обкладинка вгорі» and what it shows without one. */
     val hudCoverArt: Bitmap? = null,
     /** V135: what the frame shows (picture / story / words), the story text, the words and the neon. */
@@ -139,6 +141,7 @@ class CompositionExportRenderer(
             HeroThemeView(context).also {
                 it.setTheme(theme)
                 it.coverArt = config.coverArt
+                it.albumName = config.album.orEmpty()
             }
         }
     private var standaloneHeroWidth = 0

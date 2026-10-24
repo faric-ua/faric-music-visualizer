@@ -37,6 +37,10 @@
         <activity
             android:name=".PulseDeckEdgeEqActivity"
             android:exported="false" />
+        <!-- V191: «Неон-герой» settings. -->
+        <activity
+            android:name=".PulseDeckNeonHeroActivity"
+            android:exported="false" />
         <activity
             android:name=".projectm.ProjectMActivity"
             android:exported="false" />

@@ -70,6 +70,17 @@ class HeroThemeView(context: Context) : View(context) {
     private val coverPaint = Paint(Paint.ANTI_ALIAS_FLAG or Paint.FILTER_BITMAP_FLAG)
     private val coverClip = Path()
 
+    /** V191: the album for «Неон-герой» (under the hero). */
+    var albumName: String = ""
+        set(value) {
+            field = value
+            postInvalidateOnAnimation()
+        }
+
+    private var neonRenderer: NeonHeroRenderer? = null
+
+    private fun neon(): NeonHeroRenderer = neonRenderer ?: NeonHeroRenderer(context).also { neonRenderer = it }
+
     fun setTheme(theme: PlaybackThemeId) {
         themeId = theme
         postInvalidateOnAnimation()
@@ -126,6 +137,7 @@ class HeroThemeView(context: Context) : View(context) {
         mid = max(mid, signal.mid * 0.96f)
         high = max(high, signal.high * 0.96f)
         beat = max(beat, signal.beatStrength)
+        if (themeId == PlaybackThemeId.NEON_HERO) neon().onSignal(signal, exportClockMs ?: SystemClock.elapsedRealtime())
 
         postInvalidateOnAnimation()
     }
@@ -158,6 +170,15 @@ class HeroThemeView(context: Context) : View(context) {
         val w = width.toFloat()
         val h = height.toFloat()
         if (w <= 0f || h <= 0f) return
+
+        if (themeId == PlaybackThemeId.NEON_HERO) {
+            // V191: a whole screen of its own (background, rain, hero) — the same view draws the video.
+            val renderer = neon()
+            renderer.loadPhotoNow = exportClockMs != null
+            renderer.draw(canvas, w, h, now, trackTitle.takeIf { it != "PulseDeck" } ?: "", albumName, playing)
+            postInvalidateOnAnimation()
+            return
+        }
 
         val cx = w * 0.5f
         val cy =

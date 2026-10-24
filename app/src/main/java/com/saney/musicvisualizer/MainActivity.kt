@@ -9816,6 +9816,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 standaloneTheme,
             coverArt =
                 coverArt,
+            album = tagAlbum,
             hudCoverArt = currentCoverArt,
             hudCoverMode = coverBoxMode(),
             hudCoverMix = coverMix(),
@@ -11595,6 +11596,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                                 compositionConfig.standaloneTheme == PlaybackThemeId.COVER_ART
                                             },
                                         hudCoverArt = songCover,
+                                        album = songTags.album,
                                     )
                                 },
                             projectMView = projectMView,
@@ -11780,6 +11782,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             PlaybackThemeId.VINYL,
             PlaybackThemeId.CASSETTE,
             PlaybackThemeId.COVER_ART,
+            PlaybackThemeId.NEON_HERO,
         )
 
     /**
@@ -12284,6 +12287,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     },
                 )
 
+                if (spec.id == PlaybackThemeId.NEON_HERO) {
+                    // V191: its many settings (photo, rain, waves, hero shape…) — own screen.
+                    addView(
+                        com.saney.musicvisualizer.ui.UtilityUi.button(this@MainActivity, "⚙ Налаштувати") {
+                            startActivity(Intent(this@MainActivity, PulseDeckNeonHeroActivity::class.java))
+                        },
+                        LinearLayout.LayoutParams(
+                            ViewGroup.LayoutParams.MATCH_PARENT,
+                            ViewGroup.LayoutParams.WRAP_CONTENT,
+                        ).apply { topMargin = dp(10) },
+                    )
+                }
+
                 setOnClickListener {
                     if (!installed) {
                         toast("Потрібен підготовлений пакет графіки героїв")
@@ -12441,6 +12457,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             PlaybackThemeId.VINYL,
             PlaybackThemeId.CASSETTE,
             PlaybackThemeId.COVER_ART,
+            PlaybackThemeId.NEON_HERO,
             -> true
 
             else -> false
@@ -12703,6 +12720,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
     private var tagArtist: String? = null
 
+    /** V191: the song's album from its tags (under «Неон-герой»'s hero; also in the video). */
+    private var tagAlbum: String? = null
+
     private fun displayArtist(snapshot: PlaybackSnapshot): String? =
         snapshot.trackArtist?.takeIf { it.isNotBlank() && it != "<unknown>" && it != "null" }
             ?: tagArtist?.takeIf { tagArtistUri != null && tagArtistUri == controller.currentTrackUri()?.toString() }
@@ -12716,6 +12736,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         pulseDeckMainSkinView?.coverArt = null
         tagArtistUri = null
         tagArtist = null
+        tagAlbum = null
+        heroThemeView?.albumName = ""
         currentStoryTags = com.saney.musicvisualizer.ui.SongStoryTags.EMPTY
         applyCoverStory()
         currentSourceInfo = null
@@ -12738,6 +12760,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     pulseDeckMainSkinView?.coverArt = bitmap
                     tagArtistUri = uri
                     tagArtist = artist
+                    tagAlbum = songTags?.album
+                    heroThemeView?.albumName = songTags?.album.orEmpty()
                     // V151: the title from the song's tags (not «… .mp3»).
                     controller.fillTitle(Uri.parse(uri), songTags?.title)
                     currentStoryTags = story

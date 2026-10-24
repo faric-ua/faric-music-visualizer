@@ -5451,7 +5451,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     val want = loadClassOf(mode)
                     val loads = com.saney.musicvisualizer.projectm.PresetLoadStore(this)
                     val classOf = loads.classifier()
-                    ProjectMLibraryManager.allPresetFiles(this).filter { classOf(it) == want }
+                    // V189: the whole collection and the fast «ТОП» pack — a measured one is found wherever it lives.
+                    (ProjectMLibraryManager.allPresetFiles(this) + ProjectMLibraryManager.fastPresetFiles(this))
+                        .distinctBy { ProjectMLibraryManager.presetId(it) }
+                        .filter { classOf(it) == want }
                 }
             }
         return files.filter { it.isFile && ratings.ratingFor(it) != ProjectMPresetRating.HIDDEN }
@@ -5916,7 +5919,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         showProjectMDropdown {
             // V188 (faric 24.10 04:26: «під час аналізу меню не оновлюється — треба закрити й відкрити»):
             // the numbers are read every time the menu is filled; the analysis refills an open menu.
-            val counts = com.saney.musicvisualizer.projectm.PresetLoadStore(this).counts()
+            val ratingsForCount = ProjectMPresetRatingsStore(this)
+            val counts = com.saney.musicvisualizer.projectm.PresetLoadStore(this).counts { ratingsForCount.isHiddenId(it) }
             val current = ProjectMStateStore(this).backgroundMode
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.entries
                 .filter { it != current }
@@ -6078,6 +6082,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         /** V188: measured in this run — counted at the end against the final limits. */
         val measured = mutableListOf<File>()
+
+        /** V189: gave no numbers (saved as heavy). */
+        var unmeasured = 0
     }
 
     private var presetAnalysis: PresetAnalysisRun? = null
@@ -6150,7 +6157,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 run.gpu += stats.frameWorkMs
             }
         }
-        if (sample < 3) {
+        // V189 (faric 24.10 04:30: «перевіряв 50, а записано 11»): a visualization that gave no fresh
+        // numbers in 3 s (a long load, frames standing) was silently not saved. Now it gets 3 s more,
+        // and if it still shows nothing it is saved as heavy (0 frames) — every one in the queue counts.
+        if (sample < 3 || (run.fps.isEmpty() && sample < 6)) {
             presetAnalysisHandler.postDelayed({ presetAnalysisMeasure(sample + 1) }, 1_000L)
             return
         }
@@ -6163,21 +6173,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             } else {
                 0
             }
-        if (run.fps.isNotEmpty()) {
-            val load =
-                com.saney.musicvisualizer.projectm.PresetLoad(
-                    com.saney.musicvisualizer.projectm.PresetLoadMath.average(run.fps),
-                    com.saney.musicvisualizer.projectm.PresetLoadMath.average(run.gpu),
-                    cpu,
-                )
-            val store = com.saney.musicvisualizer.projectm.PresetLoadStore(this)
-            store.save(file, load)
-            run.measured += file
-            val klass = store.classOf(file) ?: load.loadClass
-            run.lastLine = klass.label + " (" + load.fps.toInt() + " к/с)"
-            // V188: an open group menu shows the new numbers at once.
-            projectMDropdownRefresh?.invoke()
-        }
+        if (run.fps.isEmpty()) run.unmeasured++
+        val load =
+            com.saney.musicvisualizer.projectm.PresetLoad(
+                if (run.fps.isEmpty()) 0f else com.saney.musicvisualizer.projectm.PresetLoadMath.average(run.fps),
+                if (run.gpu.isEmpty()) 0f else com.saney.musicvisualizer.projectm.PresetLoadMath.average(run.gpu),
+                cpu,
+            )
+        val store = com.saney.musicvisualizer.projectm.PresetLoadStore(this)
+        store.save(file, load)
+        run.measured += file
+        val klass = store.classOf(file) ?: load.loadClass
+        run.lastLine = klass.label + " (" + load.fps.toInt() + " к/с)"
+        // V188: an open group menu shows the new numbers at once.
+        projectMDropdownRefresh?.invoke()
         run.index++
         if (run.index >= run.queue.size) stopPresetAnalysis(finished = true) else presetAnalysisStep(newPreset = true)
     }
@@ -6203,11 +6212,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val l = run.results[com.saney.musicvisualizer.projectm.PresetLoadClass.LIGHT] ?: 0
             val m = run.results[com.saney.musicvisualizer.projectm.PresetLoadClass.MEDIUM] ?: 0
             val h = run.results[com.saney.musicvisualizer.projectm.PresetLoadClass.HEAVY] ?: 0
-            val total = com.saney.musicvisualizer.projectm.PresetLoadStore(this).counts()
+            val ratingsForCount = ProjectMPresetRatingsStore(this)
+            val total = com.saney.musicvisualizer.projectm.PresetLoadStore(this).counts { ratingsForCount.isHiddenId(it) }
             PulseDeckDialogs.showMessage(
                 this,
                 if (finished) "Аналіз готовий" else "Аналіз зупинено",
-                "Перевірено зараз: $done — легких $l, середніх $m, важких $h.\n\n" +
+                "Перевірено зараз: $done — легких $l, середніх $m, важких $h." +
+                    (if (run.unmeasured > 0) " З них ${run.unmeasured} не показали кадрів (зависали / чорні) — записані важкими." else "") + "\n\n" +
                     "Усього в списках: легких ${total[com.saney.musicvisualizer.projectm.PresetLoadClass.LIGHT] ?: 0}, " +
                     "середніх ${total[com.saney.musicvisualizer.projectm.PresetLoadClass.MEDIUM] ?: 0}, " +
                     "важких ${total[com.saney.musicvisualizer.projectm.PresetLoadClass.HEAVY] ?: 0}.\n\n" +

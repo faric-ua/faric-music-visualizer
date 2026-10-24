@@ -81,7 +81,9 @@ def test_order_and_tracklist() -> None:
     assert lines == ["TRACK 01 — IGNITION POINT — 4:24–4:44", "TRACK 02 — NEON LANES — 4:24–4:44",
                      "TRACK 03 — AFTERGLOW V2 — 4:24–4:44", "BONUS 03 — TWO VOICES, ONE ROAD. — 5:30–5:50"], lines
     text = ap.story_with_tracklist("Про що диск. …", lines, "uk")
-    assert text.startswith("Про що диск. …\n\n" + ap.PREVIEW_NOTE["uk"] + "\nTRACK 01 — "), text
+    assert text == ("Про що диск. …\n\n— З чого складено це прев'ю —\n\n"
+                    "TRACK 01 — 4:24–4:44\nIGNITION POINT\n\nTRACK 02 — 4:24–4:44\nNEON LANES\n\n"
+                    "TRACK 03 — 4:24–4:44\nAFTERGLOW V2\n\nBONUS 03 — 5:30–5:50\nTWO VOICES, ONE ROAD."), text
     assert ap.story_with_tracklist("", lines, "en") == ""
     print("order + tracklist PASS")
 
@@ -130,7 +132,7 @@ def test_end_to_end() -> None:
     # V194: історія диска + у кінці список шматків (за порядком альбому, з хвилинами).
     assert tags["FARIC_ALBUM_STORY_UK"].startswith(story["album_story"]["uk"] + "\n\n" + ap.PREVIEW_NOTE["uk"]), tags["FARIC_ALBUM_STORY_UK"]
     assert tags["FARIC_ALBUM_STORY_EN"].startswith(story["album_story"]["en"] + "\n\n" + ap.PREVIEW_NOTE["en"])
-    assert tags["FARIC_ALBUM_STORY_UK"].endswith(tags["FARIC_PREVIEW_TRACKS"]), tags["FARIC_PREVIEW_TRACKS"]
+    assert tags["FARIC_ALBUM_STORY_UK"].endswith("BONUS 01 — 0:27–0:47\nLAST ONE\n\n04 — 0:17–0:37\nSOMETHING ELSE"), tags["FARIC_ALBUM_STORY_UK"]
     assert tags["FARIC_PREVIEW_TRACKS"].startswith("TRACK 01 — "), tags["FARIC_PREVIEW_TRACKS"]
     assert "FARIC_STORY_UK" not in tags and "FARIC_STORY_EN" not in tags
     assert "PREVIEW" in tags["FARIC_STORY_SOURCE"]

@@ -239,16 +239,23 @@ def tracklist_lines(parts: list, titles: dict, story: dict | None, track_tags: d
 
 
 PREVIEW_NOTE = {
-    "uk": "З чого складено це прев'ю — шматки пісень (хвилина:секунда):",
-    "en": "What this preview is made of — song excerpts (min:sec):",
+    "uk": "— З чого складено це прев'ю —",
+    "en": "— What this preview is made of —",
 }
 
 
 def story_with_tracklist(text: str, lines: list[str], lang: str) -> str:
-    """V194: історія диска + у кінці список шматків, з яких зроблене прев'ю."""
+    """V194: історія диска + у кінці список шматків, з яких зроблене прев'ю.
+    faric 24.10 23:21 (скрін: довгий рядок переносився й розтягувався): кожен шматок — окремий абзац з двох
+    коротких рядків «TRACK 01 — 4:24–4:44» / «IGNITION POINT»; заголовок «— … —» PulseDeck ставить по центру."""
     if not text or not lines:
         return text
-    return text.rstrip() + "\n\n" + PREVIEW_NOTE[lang] + "\n" + "\n".join(lines)
+    blocks = []
+    for line in lines:
+        label, _, rest = line.partition(" — ")
+        title, _, times = rest.rpartition(" — ")
+        blocks.append(f"{label} — {times}\n{title}" if title else line)
+    return text.rstrip() + "\n\n" + PREVIEW_NOTE[lang] + "\n\n" + "\n\n".join(blocks)
 
 
 # ---------- найсильніше місце ----------

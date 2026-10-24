@@ -185,6 +185,8 @@ class CompositionExportRenderer(
                 forceModularMode = true,
                 transparentBackground = true,
             ).also { view ->
+                // V174 крок 3: panels, cover and its text as ready copies at the video's pixel size.
+                view.videoPixelCopies = true
                 config
                     .pulseDeckObjectVisibility
                     .forEach { (id, visible) ->

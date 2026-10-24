@@ -17,6 +17,20 @@ class PresetLoadTest {
         assertEquals(PresetLoadClass.HEAVY, PresetLoadMath.classify(60f, 6f, 31))
     }
 
+    @Test fun limitsFromTheMeasuredOnes() {
+        // fewer than 9 — the fixed limits
+        assertEquals(PresetLoadMath.DEFAULT_THRESHOLDS, PresetLoadMath.thresholds(listOf(PresetLoad(60f, 20f, 10))))
+        val loads = (1..9).map { PresetLoad(62f, 18f + it * 2f, 10) } + PresetLoad(30f, 5f, 10)
+        val t = PresetLoadMath.thresholds(loads)
+        assertEquals(24f, t.lightUpTo, 1e-4f) // 20 22 24 | 26 28 30 | 32 34 36
+        assertEquals(30f, t.mediumUpTo, 1e-4f)
+        assertEquals(PresetLoadClass.LIGHT, PresetLoadMath.classify(PresetLoad(62f, 22f, 10), t))
+        assertEquals(PresetLoadClass.MEDIUM, PresetLoadMath.classify(PresetLoad(62f, 28.6f, 10), t))
+        assertEquals(PresetLoadClass.HEAVY, PresetLoadMath.classify(PresetLoad(62f, 35f, 10), t))
+        // dropping frames is always heavy, whatever its ms
+        assertEquals(PresetLoadClass.HEAVY, PresetLoadMath.classify(PresetLoad(30f, 5f, 10), t))
+    }
+
     @Test fun codecAndQueue() {
         val l = PresetLoad(58.3f, 7.42f, 13)
         assertEquals("58.3;7.4;13", l.encode())

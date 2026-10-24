@@ -5450,7 +5450,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 -> {
                     val want = loadClassOf(mode)
                     val loads = com.saney.musicvisualizer.projectm.PresetLoadStore(this)
-                    ProjectMLibraryManager.allPresetFiles(this).filter { loads.classOf(it) == want }
+                    val classOf = loads.classifier()
+                    ProjectMLibraryManager.allPresetFiles(this).filter { classOf(it) == want }
                 }
             }
         return files.filter { it.isFile && ratings.ratingFor(it) != ProjectMPresetRating.HIDDEN }
@@ -5821,7 +5822,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun closeProjectMDropdown() {
         projectMDropdown?.let { (it.parent as? ViewGroup)?.removeView(it) }
         projectMDropdown = null
+        projectMDropdownRefresh = null
     }
+
+    /** V188: refills the open drop-down (its rows read the numbers anew). */
+    private var projectMDropdownRefresh: (() -> Unit)? = null
 
     /**
      * V163: a small menu that drops above the bottom rows (like the mock-up), not a window; a tap outside
@@ -5895,6 +5900,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         }
         fill()
+        projectMDropdownRefresh = { if (projectMDropdown != null) fill() }
         scrim.addView(
             panel,
             FrameLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT, Gravity.BOTTOM).apply {
@@ -5907,8 +5913,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     /** V163 (faric 18:03): the group button — the chosen group is not in the list, the others with grey ticks. */
     private fun showProjectMGroupMenu() {
-        val counts = com.saney.musicvisualizer.projectm.PresetLoadStore(this).counts()
         showProjectMDropdown {
+            // V188 (faric 24.10 04:26: «під час аналізу меню не оновлюється — треба закрити й відкрити»):
+            // the numbers are read every time the menu is filled; the analysis refills an open menu.
+            val counts = com.saney.musicvisualizer.projectm.PresetLoadStore(this).counts()
             val current = ProjectMStateStore(this).backgroundMode
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.entries
                 .filter { it != current }
@@ -5925,7 +5933,52 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         loadProjectMFocusPresets(mode)
                         scheduleProjectMFocusAuto()
                     }
+                } +
+                run {
+                    // V187 (faric 24.10 04:16–04:27: «пункт, щоб повернути сховані — хай буде»).
+                    val hidden = ProjectMPresetRatingsStore(this).counts()[ProjectMPresetRating.HIDDEN] ?: 0
+                    if (hidden > 0) {
+                        listOf(DropRow("Сховані — повернути…", DropTick.NONE, hint = "$hidden") { showHiddenPresetsToRestore() })
+                    } else {
+                        emptyList()
+                    }
                 }
+        }
+    }
+
+    /** V187: the hidden visualizations, ticked ones come back (rating cleared). */
+    private fun showHiddenPresetsToRestore() {
+        thread(name = "hidden-presets") {
+            val ratings = ProjectMPresetRatingsStore(this)
+            val hidden =
+                runCatching { ProjectMLibraryManager.allPresetFiles(this) }.getOrDefault(emptyList())
+                    .filter { ratings.ratingFor(it) == ProjectMPresetRating.HIDDEN }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                if (hidden.isEmpty()) {
+                    toast("Схованих візуалізацій нема")
+                    return@runOnUiThread
+                }
+                PulseDeckDialogs.showMultiChoice(
+                    context = this,
+                    title = "Сховані (${hidden.size}) — що повернути",
+                    labels = hidden.map { it.nameWithoutExtension },
+                    checked = BooleanArray(hidden.size),
+                    positiveLabel = "Повернути",
+                ) { picked ->
+                    var back = 0
+                    hidden.forEachIndexed { i, file ->
+                        if (picked.getOrElse(i) { false }) {
+                            ratings.setRating(file, ProjectMPresetRating.NONE)
+                            back++
+                        }
+                    }
+                    if (back > 0) {
+                        toast("Повернуто: $back")
+                        loadProjectMFocusPresets(ProjectMStateStore(this).backgroundMode)
+                    }
+                }
+            }
         }
     }
 
@@ -6022,6 +6075,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         var cpuStartMs = 0L
         var lastLine: String? = null
         val results = mutableMapOf<com.saney.musicvisualizer.projectm.PresetLoadClass, Int>()
+
+        /** V188: measured in this run — counted at the end against the final limits. */
+        val measured = mutableListOf<File>()
     }
 
     private var presetAnalysis: PresetAnalysisRun? = null
@@ -6114,9 +6170,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     com.saney.musicvisualizer.projectm.PresetLoadMath.average(run.gpu),
                     cpu,
                 )
-            com.saney.musicvisualizer.projectm.PresetLoadStore(this).save(file, load)
-            run.results[load.loadClass] = (run.results[load.loadClass] ?: 0) + 1
-            run.lastLine = load.loadClass.label + " (" + load.fps.toInt() + " к/с)"
+            val store = com.saney.musicvisualizer.projectm.PresetLoadStore(this)
+            store.save(file, load)
+            run.measured += file
+            val klass = store.classOf(file) ?: load.loadClass
+            run.lastLine = klass.label + " (" + load.fps.toInt() + " к/с)"
+            // V188: an open group menu shows the new numbers at once.
+            projectMDropdownRefresh?.invoke()
         }
         run.index++
         if (run.index >= run.queue.size) stopPresetAnalysis(finished = true) else presetAnalysisStep(newPreset = true)
@@ -6135,6 +6195,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         if (projectMFocusOverlay != null) {
             scheduleProjectMFocusAuto()
             updateProjectMFocusStatus()
+            // V188: this run's classes against the final limits (they move while measuring).
+            val classOf = com.saney.musicvisualizer.projectm.PresetLoadStore(this).classifier()
+            run.results.clear()
+            run.measured.forEach { f -> classOf(f)?.let { k -> run.results[k] = (run.results[k] ?: 0) + 1 } }
             val done = run.results.values.sum()
             val l = run.results[com.saney.musicvisualizer.projectm.PresetLoadClass.LIGHT] ?: 0
             val m = run.results[com.saney.musicvisualizer.projectm.PresetLoadClass.MEDIUM] ?: 0

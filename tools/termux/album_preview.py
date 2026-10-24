@@ -151,17 +151,104 @@ def fallback_key(p: Path):
     return (2, 0, name)
 
 
-def order_tracks(files: list[Path], titles: dict[Path, str], story: dict | None) -> list[Path]:
+def number_of(name: str, track_tag: str = "") -> tuple[int, bool] | None:
+    """(номер, бонус) з назви («TRACK 03 — …», «BONUS TRACK 12 — …», «BONUS 02 …») або з тегу номера («3/13»)."""
+    up = name.upper()
+    m = re.search(r"BONUS\s*(?:TRACK)?\s*(\d+)", up)
+    if m:
+        return int(m.group(1)), True
+    m = re.search(r"TRACK\s*(\d+)", up)
+    if m:
+        return int(m.group(1)), False
+    m = re.match(r"\s*(\d+)", track_tag or "")
+    if m:
+        return int(m.group(1)), False
+    return None
+
+
+def story_position(story: dict, title: str, name: str, track_tag: str) -> int | None:
+    """V194: яка це пісня альбому (індекс у story["tracks"]): точна назва → назва починається з назви з
+    історії («AFTERGLOW V2» = AFTERGLOW) → номер (TRACK n; BONUS n; номер понад останній TRACK — бонус)."""
+    tracks = story.get("tracks", [])
+    key = norm_title(title or name)
+    for i, t in enumerate(tracks):
+        if norm_title(t["title"]) == key:
+            return i
+    best = None
+    for i, t in enumerate(tracks):
+        k = norm_title(t["title"])
+        if len(k) >= 4 and key.startswith(k) and (best is None or len(k) > len(norm_title(tracks[best]["title"]))):
+            best = i
+    if best is not None:
+        return best
+    num = number_of(title or "", "") or number_of(name, track_tag)
+    if not num:
+        return None
+    n, bonus = num
+    last = max((t["n"] for t in tracks if not t.get("bonus")), default=0)
+    if not bonus and last and n > last:
+        n, bonus = n - last, True
+    elif bonus and last and n > last:
+        n -= last  # «BONUS TRACK 12» після 10 треків — другий бонус
+    for i, t in enumerate(tracks):
+        if t["n"] == n and bool(t.get("bonus")) == bonus:
+            return i
+    return None
+
+
+def track_label(t: dict) -> str:
+    return f"{'BONUS' if t.get('bonus') else 'TRACK'} {t['n']:02d}"
+
+
+def display_title(title: str, name: str) -> str:
+    """Назва пісні без «TRACK 03 —» / «BONUS TRACK 11 —» і без «.mp3»."""
+    s = (title or Path(name).stem).strip()
+    s = re.sub(r"^\s*(BONUS\s+)?(TRACK\s*)?\d+\s*[—–-]\s*", "", s, flags=re.I)
+    return s.strip() or Path(name).stem
+
+
+def order_tracks(files: list[Path], titles: dict[Path, str], story: dict | None,
+                 track_tags: dict[Path, str] | None = None) -> list[Path]:
+    """V194 (faric 24.10 23:07: «по порядковому номеру: 01…10, бонус 1, 2, 3»): за історією альбому —
+    TRACK 01–10, потім BONUS 01–03; чого нема в історії — у кінці за назвою файлу."""
     if not story:
         return sorted(files, key=fallback_key)
-    order = {}
-    for i, t in enumerate(story.get("tracks", [])):
-        order.setdefault(norm_title(t["title"]), i)
+    tracks = story.get("tracks", [])
     matched, rest = [], []
     for f in files:
-        key = norm_title(titles.get(f) or f.name)
-        (matched if key in order else rest).append((order.get(key, 0), f))
-    return [f for _, f in sorted(matched, key=lambda x: x[0])] + sorted((f for _, f in rest), key=fallback_key)
+        pos = story_position(story, titles.get(f, ""), f.name, (track_tags or {}).get(f, ""))
+        if pos is None:
+            rest.append(f)
+        else:
+            t = tracks[pos]
+            matched.append(((1 if t.get("bonus") else 0, t["n"], f.name), f))
+    return [f for _, f in sorted(matched, key=lambda x: x[0])] + sorted(rest, key=fallback_key)
+
+
+def tracklist_lines(parts: list, titles: dict, story: dict | None, track_tags: dict | None = None) -> list[str]:
+    """V194: «TRACK 01 — IGNITION POINT — 4:24–4:44», за порядком у прев'ю."""
+    out = []
+    for i, (f, s, l) in enumerate(parts):
+        label = f"{i + 1:02d}"
+        if story:
+            pos = story_position(story, titles.get(f, ""), f.name, (track_tags or {}).get(f, ""))
+            if pos is not None:
+                label = track_label(story["tracks"][pos])
+        out.append(f"{label} — {display_title(titles.get(f, ''), f.name)} — {fmt_time(s)}–{fmt_time(s + l)}")
+    return out
+
+
+PREVIEW_NOTE = {
+    "uk": "З чого складено це прев'ю — шматки пісень (хвилина:секунда):",
+    "en": "What this preview is made of — song excerpts (min:sec):",
+}
+
+
+def story_with_tracklist(text: str, lines: list[str], lang: str) -> str:
+    """V194: історія диска + у кінці список шматків, з яких зроблене прев'ю."""
+    if not text or not lines:
+        return text
+    return text.rstrip() + "\n\n" + PREVIEW_NOTE[lang] + "\n" + "\n".join(lines)
 
 
 # ---------- найсильніше місце ----------
@@ -407,7 +494,8 @@ def build_preview(folder: Path, config: dict, seg: float, fade: float, assume_ye
             say("Для цього альбому історії ще нема — прев'ю без історії.")
 
         titles = {f: info[f]["tags"].get("title", "") for f in files}
-        files = order_tracks(files, titles, story)
+        track_tags = {f: info[f]["tags"].get("track", "") for f in files}
+        files = order_tracks(files, titles, story, track_tags)
         if len(files) > 13:
             say(f"Пісень більше 13 ({len(files)}) — беру всі по порядку.")
         total = sum(info[f]["duration"] for f in files)
@@ -487,9 +575,8 @@ def build_preview(folder: Path, config: dict, seg: float, fade: float, assume_ye
         cmd += ["-c:a", "libmp3lame", "-b:a", "320k", "-id3v2_version", "3", "-write_id3v1", "0",
                 "-fflags", "+bitexact"]
 
-        tracklist = "\n".join(
-            f"{i + 1:02d}. {titles.get(f) or f.stem} — {fmt_time(s)}–{fmt_time(s + l)}"
-            for i, (f, s, l) in enumerate(parts))
+        lines = tracklist_lines(parts, titles, story, track_tags)
+        tracklist = "\n".join(lines)
         # Спільні теги — з першої пісні альбому (уже в правильному порядку).
         ref_raw = info[parts[0][0]]["raw_tags"]
         meta = common_tags(ref_raw)
@@ -502,8 +589,8 @@ def build_preview(folder: Path, config: dict, seg: float, fade: float, assume_ye
             "FARIC_PREVIEW_TRACKS": tracklist,
         })
         if story:
-            meta["FARIC_ALBUM_STORY_UK"] = story.get("album_story", {}).get("uk", "")
-            meta["FARIC_ALBUM_STORY_EN"] = story.get("album_story", {}).get("en", "")
+            meta["FARIC_ALBUM_STORY_UK"] = story_with_tracklist(story.get("album_story", {}).get("uk", ""), lines, "uk")
+            meta["FARIC_ALBUM_STORY_EN"] = story_with_tracklist(story.get("album_story", {}).get("en", ""), lines, "en")
             meta["FARIC_STORY_SOURCE"] = (f"{album.get('story_file')} · v{story.get('version')} · "
                                           f"{story.get('updated', '')} · PREVIEW")
         for k, v in meta.items():

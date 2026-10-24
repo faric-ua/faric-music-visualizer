@@ -86,7 +86,7 @@ jobs:
             python3 - <<'PY'
           import sys; sys.path.insert(0, "tools/termux")
           import test_album_preview as t
-          t.test_unit(); t.test_real_config()
+          t.test_unit(); t.test_order_and_tracklist(); t.test_real_config()
           PY
           fi
 

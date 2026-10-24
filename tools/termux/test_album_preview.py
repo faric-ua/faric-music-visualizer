@@ -49,6 +49,43 @@ def test_unit() -> None:
     print("unit PASS")
 
 
+def test_order_and_tracklist() -> None:
+    """V194 (faric 24.10 23:07): порядок TRACK 01–10, BONUS 01–03 і список шматків у кінці історії диска.
+    Назви — як у справжньому прев'ю Black Side (там AFTERGLOW V2 стояв останнім)."""
+    story = {"tracks": [{"n": i + 1, "bonus": False, "title": t} for i, t in enumerate(
+        ["IGNITION POINT", "NEON LANES", "AFTERGLOW", "ELECTRIC RAIN", "PULSE CONTROL", "SKYBRIDGE",
+         "BLUE MIRAGE", "NIGHT SHIFT", "STARLIGHT RUN", "HORIZON ECHOES"])]
+        + [{"n": 1, "bonus": True, "title": "TEN ROADS, ONE HEART"},
+           {"n": 2, "bonus": True, "title": "TEN ROADS, ONE OATH"},
+           {"n": 3, "bonus": True, "title": "TWO VOICES, ONE ROAD"}]}
+    names = ["BONUS TRACK 11 — TEN ROADS, ONE HEART.mp3", "TRACK 02 — NEON LANES.mp3", "TRACK 03 — AFTERGLOW V2.mp3",
+             "TWO VOICES, ONE ROAD..mp3", "IGNITION POINT.mp3", "BONUS TRACK 12 — TEN ROADS, ONE OATH.mp3",
+             "TRACK 10 — HORIZON ECHOES.mp3", "TRACK 04 — ELECTRIC RAIN.mp3", "TRACK 05 — PULSE CONTROL.mp3",
+             "TRACK 06 — SKYBRIDGE.mp3", "TRACK 07 — BLUE MIRAGE.mp3", "TRACK 08 — NIGHT SHIFT.mp3",
+             "TRACK 09 — STARLIGHT RUN.mp3", "something else.mp3"]
+    files = [Path("/x") / n for n in names]
+    titles = {f: Path(f.name).stem for f in files}
+    titles[files[3]] = "TWO VOICES, ONE ROAD."
+    ordered = ap.order_tracks(files, titles, story, {})
+    got = [f.name for f in ordered]
+    assert got[0] == "IGNITION POINT.mp3" and got[2] == "TRACK 03 — AFTERGLOW V2.mp3", got
+    assert got[9] == "TRACK 10 — HORIZON ECHOES.mp3", got
+    assert got[10:13] == ["BONUS TRACK 11 — TEN ROADS, ONE HEART.mp3", "BONUS TRACK 12 — TEN ROADS, ONE OATH.mp3",
+                          "TWO VOICES, ONE ROAD..mp3"], got
+    assert got[13] == "something else.mp3", got
+    # Без назви в історії — за номером з тегу: 3 → AFTERGLOW; 12 після 10 треків → BONUS 02.
+    assert ap.story_position(story, "NEW NAME", "x.mp3", "3/13") == 2
+    assert ap.story_position(story, "NEW NAME", "x.mp3", "12") == 11
+    parts = [(f, 264.0, 20.0) for f in ordered[:3]] + [(ordered[12], 330.0, 20.0)]
+    lines = ap.tracklist_lines(parts, titles, story, {})
+    assert lines == ["TRACK 01 — IGNITION POINT — 4:24–4:44", "TRACK 02 — NEON LANES — 4:24–4:44",
+                     "TRACK 03 — AFTERGLOW V2 — 4:24–4:44", "BONUS 03 — TWO VOICES, ONE ROAD. — 5:30–5:50"], lines
+    text = ap.story_with_tracklist("Про що диск. …", lines, "uk")
+    assert text.startswith("Про що диск. …\n\n" + ap.PREVIEW_NOTE["uk"] + "\nTRACK 01 — "), text
+    assert ap.story_with_tracklist("", lines, "en") == ""
+    print("order + tracklist PASS")
+
+
 def test_end_to_end() -> None:
     tmp = Path(tempfile.mkdtemp())
     album_dir = tmp / "Music" / "Audio Converter" / "VOL. 99 — TEST PULSE" / "White Side"
@@ -90,8 +127,11 @@ def test_end_to_end() -> None:
     dur = float(info["format"]["duration"])
     assert abs(dur - (4 * 20 - 3 * 3)) < 1.5, dur
     tags = {k.upper(): v for k, v in info["format"]["tags"].items()}
-    assert tags["FARIC_ALBUM_STORY_UK"] == story["album_story"]["uk"], tags["FARIC_ALBUM_STORY_UK"]
-    assert tags["FARIC_ALBUM_STORY_EN"] == story["album_story"]["en"]
+    # V194: історія диска + у кінці список шматків (за порядком альбому, з хвилинами).
+    assert tags["FARIC_ALBUM_STORY_UK"].startswith(story["album_story"]["uk"] + "\n\n" + ap.PREVIEW_NOTE["uk"]), tags["FARIC_ALBUM_STORY_UK"]
+    assert tags["FARIC_ALBUM_STORY_EN"].startswith(story["album_story"]["en"] + "\n\n" + ap.PREVIEW_NOTE["en"])
+    assert tags["FARIC_ALBUM_STORY_UK"].endswith(tags["FARIC_PREVIEW_TRACKS"]), tags["FARIC_PREVIEW_TRACKS"]
+    assert tags["FARIC_PREVIEW_TRACKS"].startswith("TRACK 01 — "), tags["FARIC_PREVIEW_TRACKS"]
     assert "FARIC_STORY_UK" not in tags and "FARIC_STORY_EN" not in tags
     assert "PREVIEW" in tags["FARIC_STORY_SOURCE"]
     assert tags["ALBUM"] == "VOL. 99 — TEST PULSE — White Side"
@@ -103,7 +143,7 @@ def test_end_to_end() -> None:
         assert tags.get(k) == v, (k, tags.get(k))
     assert tags["TITLE"] == "PREVIEW — TEST PULSE — White Side" and tags["TRACK"] == "0", tags
     assert not any(k.startswith("LYRICS") for k in tags), tags.keys()
-    order = [l.split(". ", 1)[1].split(" — ")[0] for l in tags["FARIC_PREVIEW_TRACKS"].splitlines()]
+    order = [l.split(" — ")[1] for l in tags["FARIC_PREVIEW_TRACKS"].splitlines()]
     assert order == ["FIRST ONE", "SECOND ONE", "LAST ONE", "SOMETHING ELSE"], order
     # найгучніше місце: FIRST ONE гучна з 40 с; шматок починається на 3 с раніше (перехід — на наростанні)
     first_line = tags["FARIC_PREVIEW_TRACKS"].splitlines()[0]
@@ -173,6 +213,7 @@ def test_disc_cover() -> None:
 
 if __name__ == "__main__":
     test_unit()
+    test_order_and_tracklist()
     test_real_config()
     test_disc_cover()
     test_end_to_end()

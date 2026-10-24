@@ -58,6 +58,38 @@ object PresetLoadMath {
             else -> PresetLoadClass.MEDIUM
         }
 
+    /** V188: where «легка» ends and «важка» begins — in ms of a frame's work. */
+    data class Thresholds(
+        val lightUpTo: Float,
+        val mediumUpTo: Float,
+    )
+
+    val DEFAULT_THRESHOLDS = Thresholds(12f, 25f)
+
+    /**
+     * V188 (скрін faric 24.10 04:26: 0 легких · 20 середніх · 35 важких — при 62 к/с і 28 мс «роботи
+     * кадру»; «вони нормальні, а є ще поважчі»): on this phone the frame-work measure runs high for
+     * everything, so fixed limits put most into «важкі». The limits now come from the measured ones
+     * themselves (those that keep 50+ frames): the lightest third — легкі, the middle third — середні,
+     * the rest — важкі. Fewer than 9 measured — the fixed limits.
+     */
+    fun thresholds(loads: Collection<PresetLoad>): Thresholds {
+        val ms = loads.filter { it.fps >= 50f && it.cpu < 30 }.map { it.gpuMs }.sorted()
+        if (ms.size < 9) return DEFAULT_THRESHOLDS
+        return Thresholds(ms[ms.size / 3 - 1], ms[ms.size * 2 / 3 - 1])
+    }
+
+    fun classify(
+        load: PresetLoad,
+        t: Thresholds,
+    ): PresetLoadClass =
+        when {
+            load.fps < 50f || load.cpu >= 30 -> PresetLoadClass.HEAVY
+            load.gpuMs <= t.lightUpTo -> PresetLoadClass.LIGHT
+            load.gpuMs <= t.mediumUpTo -> PresetLoadClass.MEDIUM
+            else -> PresetLoadClass.HEAVY
+        }
+
     /** The next [count] visualizations of [pool] not measured yet, in the list's order. */
     fun <T> nextToMeasure(
         pool: List<T>,
@@ -75,7 +107,19 @@ class PresetLoadStore(context: Context) {
 
     fun loadOf(file: File): PresetLoad? = PresetLoad.decode(prefs.getString(ProjectMLibraryManager.presetId(file), null))
 
-    fun classOf(file: File): PresetLoadClass? = loadOf(file)?.loadClass
+    private fun allLoads(): List<PresetLoad> = prefs.all.values.mapNotNull { (it as? String)?.let(PresetLoad::decode) }
+
+    /** V188: the class against everything measured so far (thresholds from the measured themselves). */
+    fun classOf(file: File): PresetLoadClass? {
+        val load = loadOf(file) ?: return null
+        return PresetLoadMath.classify(load, PresetLoadMath.thresholds(allLoads()))
+    }
+
+    /** V188: many files at once (one read of the thresholds). */
+    fun classifier(): (File) -> PresetLoadClass? {
+        val t = PresetLoadMath.thresholds(allLoads())
+        return { file -> loadOf(file)?.let { PresetLoadMath.classify(it, t) } }
+    }
 
     fun save(
         file: File,
@@ -84,9 +128,9 @@ class PresetLoadStore(context: Context) {
         prefs.edit().putString(ProjectMLibraryManager.presetId(file), load.encode()).apply()
     }
 
-    fun counts(): Map<PresetLoadClass, Int> =
-        prefs.all.values
-            .mapNotNull { (it as? String)?.let(PresetLoad::decode)?.loadClass }
-            .groupingBy { it }
-            .eachCount()
+    fun counts(): Map<PresetLoadClass, Int> {
+        val loads = allLoads()
+        val t = PresetLoadMath.thresholds(loads)
+        return loads.map { PresetLoadMath.classify(it, t) }.groupingBy { it }.eachCount()
+    }
 }

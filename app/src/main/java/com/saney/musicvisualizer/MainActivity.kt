@@ -5189,9 +5189,42 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val state = ProjectMStateStore(this)
         if (state.backgroundMode != com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED) return
         if (ProjectMPresetRatingsStore(this).ratingFor(file) == ProjectMPresetRating.UP) return
-        val wasOnScreen = state.lastPresetPath == file.absolutePath
-        projectMFocusPresets = projectMFocusPresets.filterNot { it.absolutePath == file.absolutePath }
-        if (wasOnScreen && projectMFocusPresets.isNotEmpty()) advanceProjectMFocusPreset(manual = false)
+        if (state.lastPresetPath == file.absolutePath) {
+            removeFromRoundAndStepBack(file.absolutePath)
+        } else {
+            projectMFocusPresets = projectMFocusPresets.filterNot { it.absolutePath == file.absolutePath }
+            projectMShuffleOrder = projectMShuffleOrder.filterNot { it == file.absolutePath }
+        }
+    }
+
+    /**
+     * V186 (faric 24.10 04:16: «дійшов до 15-ї, сховав — кидає на першу; чому не повертає на 14-ту?»):
+     * the list lost one, so the shuffle round was made anew and «next» started from its beginning.
+     * Now the visualization leaves the list AND the round, and the screen goes one step back — the one
+     * shown just before it (by the list, or by the random round when 🔀 is on).
+     */
+    private fun removeFromRoundAndStepBack(path: String) {
+        val state = ProjectMStateStore(this)
+        val pool = projectMFocusPresets
+        val listIndex = pool.indexOfFirst { it.absolutePath == path }
+        val roundIndex = projectMShuffleOrder.indexOf(path)
+        projectMFocusPresets = pool.filterNot { it.absolutePath == path }
+        projectMShuffleOrder = projectMShuffleOrder.filterNot { it == path }
+        val rest = projectMFocusPresets
+        if (rest.isEmpty()) {
+            updateProjectMFocusStatus()
+            return
+        }
+        val target =
+            if (state.autoShuffle && rest.size > 1 && roundIndex >= 0 && projectMShuffleOrder.isNotEmpty()) {
+                val back = projectMShuffleOrder[(roundIndex - 1).coerceIn(0, projectMShuffleOrder.lastIndex)]
+                rest.firstOrNull { it.absolutePath == back } ?: rest.first()
+            } else {
+                rest[(listIndex - 1).coerceIn(0, rest.lastIndex)]
+            }
+        state.lastPresetPath = target.absolutePath
+        projectMMainView?.loadPreset(target, smoothTransition = false)
+        updateProjectMFocusStatus()
     }
 
     private fun rateProjectMFocusPreset(rating: ProjectMPresetRating) {
@@ -5203,9 +5236,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val leavesLiked =
             rating != ProjectMPresetRating.UP && state.backgroundMode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED
         if (rating == ProjectMPresetRating.HIDDEN || leavesLiked) {
-            projectMFocusPresets =
-                projectMFocusPresets.filterNot { it.absolutePath == current.absolutePath }
-            advanceProjectMFocusPreset(manual = false)
+            removeFromRoundAndStepBack(current.absolutePath)
         }
         updateProjectMFocusStatus()
     }

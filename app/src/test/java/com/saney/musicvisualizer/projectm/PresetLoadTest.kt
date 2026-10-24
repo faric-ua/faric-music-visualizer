@@ -7,10 +7,13 @@ import org.junit.Test
 class PresetLoadTest {
     @Test fun classes() {
         assertEquals(PresetLoadClass.LIGHT, PresetLoadMath.classify(60f, 5f, 10))
-        assertEquals(PresetLoadClass.MEDIUM, PresetLoadMath.classify(59f, 11f, 12))
+        assertEquals(PresetLoadClass.LIGHT, PresetLoadMath.classify(61f, 11f, 12))
+        // V185: 60 frames and a frame's work of 16–19 ms is fine — medium, not heavy
+        assertEquals(PresetLoadClass.MEDIUM, PresetLoadMath.classify(62f, 16.1f, 10))
+        assertEquals(PresetLoadClass.MEDIUM, PresetLoadMath.classify(61f, 18.8f, 10))
         assertEquals(PresetLoadClass.MEDIUM, PresetLoadMath.classify(60f, 6f, 22))
         assertEquals(PresetLoadClass.HEAVY, PresetLoadMath.classify(42f, 6f, 10))
-        assertEquals(PresetLoadClass.HEAVY, PresetLoadMath.classify(60f, 15f, 10))
+        assertEquals(PresetLoadClass.HEAVY, PresetLoadMath.classify(60f, 26f, 10))
         assertEquals(PresetLoadClass.HEAVY, PresetLoadMath.classify(60f, 6f, 31))
     }
 

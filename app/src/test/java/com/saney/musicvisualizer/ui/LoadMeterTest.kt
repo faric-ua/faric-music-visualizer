@@ -29,6 +29,12 @@ class LoadMeterTest {
         assertEquals(30f, LoadMeter.fallbackFrameMs(30f, 0f), 0.01f)
     }
 
+    @Test fun frameBarAgainstTwoFrames() {
+        assertEquals(50, LoadMeter.framePercent(16.65f))
+        assertEquals(18, LoadMeter.framePercent(6f))
+        assertEquals(100, LoadMeter.framePercent(33.3f))
+    }
+
     @Test fun levels() {
         assertEquals(LoadMeter.Level.LOW, LoadMeter.level(30))
         assertEquals(LoadMeter.Level.MEDIUM, LoadMeter.level(60))

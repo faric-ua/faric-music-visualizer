@@ -13,6 +13,15 @@ object LoadMeter {
     fun gpuPercent(frameMs: Float): Int = Math.round(frameMs / FRAME_BUDGET_MS * 100f).coerceIn(0, 999)
 
     /**
+     * V185 (faric 24.10 03:54: «50 перевірив — усі 50 важкі, а вони нормальні»): the bar «Кадр» —
+     * a frame's whole work against 33 ms (two screen frames): a light one ~5–10 ms is short and
+     * green, a heavy one ≥ 25 ms long and red; it no longer stands at ~97 % for everything.
+     */
+    const val FRAME_SCALE_MS = 33.3f
+
+    fun framePercent(workMs: Float): Int = Math.round(workMs / FRAME_SCALE_MS * 100f).coerceIn(0, 999)
+
+    /**
      * V165: without the chip's timer the glFinish measure also counts the CPU sending the frame, so it
      * can say «18 ms» while the screen keeps 61 frames a second. The graphics cannot be slower than the
      * frames it actually delivers — cap it by 1000 / fps.

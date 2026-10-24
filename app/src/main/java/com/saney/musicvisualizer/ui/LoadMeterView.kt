@@ -50,7 +50,8 @@ class LoadMeterView(context: Context) : View(context) {
         val left = 8f * d
         val labelW = 42f * d
         val right = width - 8f * d
-        drawRow(canvas, "GPU", gpu, 6f * d, left, labelW, right, d)
+        // V185: a frame's whole work (projectM sending + the graphics), not the graphics alone.
+        drawRow(canvas, "Кадр", gpu, 6f * d, left, labelW, right, d)
         drawRow(canvas, "CPU", cpu, 24f * d, left, labelW, right, d)
         label.textSize = 11f * d
         canvas.drawText(info, left, 56f * d, label)

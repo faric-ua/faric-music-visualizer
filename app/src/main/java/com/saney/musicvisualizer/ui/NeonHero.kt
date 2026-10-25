@@ -41,6 +41,14 @@ data class NeonHeroSettings(
     val photoUri: String = "",
     val photoOn: Boolean = true,
     val photoAlpha: Int = 60,
+    /**
+     * V191 (faric 25.10 14:51: «картинка велика, бере по центру — хочу пунктирну рамку телефона й посунути, яку
+     * частину взяти»): the part of the photo on the screen — its centre (0–1000 of the photo's width / height)
+     * and zoom (100 = the biggest phone-shaped part that fits, 400 = 4× closer).
+     */
+    val photoCx: Int = 500,
+    val photoCy: Int = 500,
+    val photoZoom: Int = 100,
     val fxJump: Boolean = true,
     /** V191 (faric 25.10 13:33: «забагато стрибків») 0–150 %: how much the photo grows on a beat; 0 — off. */
     val jumpPower: Int = 50,
@@ -74,7 +82,7 @@ data class NeonHeroSettings(
         listOf(
             "shape" to shape, "rubber" to rubber, "dent" to dent, "pendulumOn" to pendulumOn, "pendulum" to pendulum,
             "auraOn" to auraOn, "aura" to aura, "eqOn" to eqOn, "heroOn" to heroOn, "heroAlpha" to heroAlpha, "lrOn" to lrOn, "titleOn" to titleOn, "albumOn" to albumOn,
-            "photoOn" to photoOn, "photoAlpha" to photoAlpha, "fxJump" to fxJump, "jumpPower" to jumpPower, "fxShake" to fxShake, "shakePower" to shakePower, "photoMove" to photoMove, "fxGlitch" to fxGlitch,
+            "photoOn" to photoOn, "photoAlpha" to photoAlpha, "photoCx" to photoCx, "photoCy" to photoCy, "photoZoom" to photoZoom, "fxJump" to fxJump, "jumpPower" to jumpPower, "fxShake" to fxShake, "shakePower" to shakePower, "photoMove" to photoMove, "fxGlitch" to fxGlitch,
             "ripplesOn" to ripplesOn, "rippleCount" to rippleCount, "rippleSize" to rippleSize, "rippleSpeed" to rippleSpeed,
             "rippleZoom" to rippleZoom, "rippleRefract" to rippleRefract,
             "rainOn" to rainOn, "rainCount" to rainCount, "rainAlpha" to rainAlpha, "rainSpeed" to rainSpeed, "rainLength" to rainLength,
@@ -109,6 +117,9 @@ data class NeonHeroSettings(
                 photoUri = m["photoUri"]?.replace("%3B", ";") ?: "",
                 photoOn = b("photoOn", d.photoOn),
                 photoAlpha = i("photoAlpha", d.photoAlpha, 0, 100),
+                photoCx = i("photoCx", d.photoCx, 0, 1000),
+                photoCy = i("photoCy", d.photoCy, 0, 1000),
+                photoZoom = i("photoZoom", d.photoZoom, 100, 400),
                 fxJump = b("fxJump", d.fxJump),
                 jumpPower = i("jumpPower", d.jumpPower, 0, 150),
                 fxShake = b("fxShake", d.fxShake),
@@ -191,6 +202,34 @@ object NeonHeroMath {
         val dx = side * 0.012f * strength * move
         val dy = (if (up) -0.008f else 0.010f) * strength * move
         return dx to dy
+    }
+
+    /**
+     * V191: the phone-shaped part of a [photoW] × [photoH] photo for a screen of [aspect] = width / height,
+     * centred at ([cx], [cy]) (0–1 of the photo) and [zoom] (1 = biggest that fits). The centre is moved so the
+     * part never leaves the photo. Returns left, top, width, height in photo pixels.
+     */
+    fun cropRect(
+        photoW: Float,
+        photoH: Float,
+        aspect: Float,
+        cx: Float,
+        cy: Float,
+        zoom: Float,
+    ): FloatArray {
+        if (photoW <= 0f || photoH <= 0f || aspect <= 0f) return floatArrayOf(0f, 0f, max(photoW, 1f), max(photoH, 1f))
+        var w = photoW
+        var h = w / aspect
+        if (h > photoH) {
+            h = photoH
+            w = h * aspect
+        }
+        val z = zoom.coerceIn(1f, 4f)
+        w /= z
+        h /= z
+        val left = (cx * photoW - w / 2f).coerceIn(0f, photoW - w)
+        val top = (cy * photoH - h / 2f).coerceIn(0f, photoH - h)
+        return floatArrayOf(left, top, w, h)
     }
 
     /** Where a beat hits: from the left / right when the bass leans there, else from below. */

@@ -42,6 +42,9 @@
             android:name=".PulseDeckNeonHeroActivity"
             android:exported="false" />
         <activity
+            android:name=".PulseDeckPhotoCropActivity"
+            android:exported="false" />
+        <activity
             android:name=".projectm.ProjectMActivity"
             android:exported="false" />
         <service

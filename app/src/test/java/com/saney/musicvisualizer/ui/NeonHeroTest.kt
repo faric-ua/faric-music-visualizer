@@ -159,4 +159,24 @@ class NeonHeroTest {
         }
         assertTrue("about 21 kicks in 10 s: $beats", beats in 17..23)
     }
+
+    @Test fun phoneFrameOnABigPhoto() {
+        // a landscape photo 4000 × 3000, phone 9 : 19,5
+        val a = 1080f / 2340f
+        val c = NeonHeroMath.cropRect(4000f, 3000f, a, 0.5f, 0.5f, 1f)
+        assertEquals(3000f, c[3], 0.5f) // full height
+        assertEquals(3000f * a, c[2], 0.5f)
+        assertEquals((4000f - c[2]) / 2f, c[0], 0.5f) // centred
+        // moved to the far left — stops at the edge
+        val l = NeonHeroMath.cropRect(4000f, 3000f, a, 0f, 0.5f, 1f)
+        assertEquals(0f, l[0], 1e-3f)
+        // 2× closer — half the size, still inside
+        val z = NeonHeroMath.cropRect(4000f, 3000f, a, 0.9f, 0.9f, 2f)
+        assertEquals(1500f, z[3], 0.5f)
+        assertTrue(z[0] + z[2] <= 4000.01f && z[1] + z[3] <= 3000.01f)
+        val d = NeonHeroSettings.decode(NeonHeroSettings(photoCx = 120, photoCy = 800, photoZoom = 250).encode())
+        assertEquals(120, d.photoCx)
+        assertEquals(800, d.photoCy)
+        assertEquals(250, d.photoZoom)
+    }
 }

@@ -285,11 +285,18 @@ object NeonHeroMath {
  */
 class BeatOnset {
     private var average = 0f
+    private var spread = 0.05f
     private var wasAbove = false
     private var lastMs = Long.MIN_VALUE
     private var lastBeatMs = Long.MIN_VALUE / 2
     private var started = false
 
+    /**
+     * V191 крок 2 (відео експорту faric 25.10 14:05 — ударів у MP4 так і нема): у відео бас від офлайн-
+     * аналізатора високий і «стиснений» (0,65–0,85 між ударами й на ударі), тож «вище середнього на 18 %»
+     * не траплялось ніколи. Тепер поріг — середнє + звичайний розмах коливань (свій для кожної пісні й
+     * кожного аналізатора): удар — коли енергія перескакує його знизу вгору.
+     */
     fun update(
         bass: Float,
         amplitude: Float,
@@ -304,15 +311,19 @@ class BeatOnset {
         }
         val dt = ((nowMs - lastMs).coerceIn(1L, 200L)) / 1000f
         lastMs = nowMs
-        val line = average * 1.18f + 0.03f
+        val dev = max(spread, 0.015f)
+        val line = average + dev
         val above = energy > line
         var out = 0f
         if (above && !wasAbove && nowMs - lastBeatMs >= MIN_GAP_MS) {
             lastBeatMs = nowMs
-            out = ((energy - average) / (0.12f + average * 0.5f)).coerceIn(0.25f, 1.3f)
+            val z = (energy - average) / dev
+            out = (0.2f + 0.2f * (z - 1f) + 0.38f * energy).coerceIn(0.25f, 1.3f)
         }
         wasAbove = above
-        average += (energy - average) * (1f - exp(-dt / 0.45f))
+        val k = 1f - exp(-dt / 0.45f)
+        average += (energy - average) * k
+        spread += (abs(energy - average) - spread) * (1f - exp(-dt / 1.2f))
         return out
     }
 

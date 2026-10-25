@@ -261,6 +261,7 @@ class NeonHeroRenderer(private val context: Context) {
         playing: Boolean,
     ) {
         reloadSettings()
+        clockMs = nowMs
         val s = settings
         if (rainW != w || rainH != h) {
             rainW = w
@@ -526,15 +527,55 @@ class NeonHeroRenderer(private val context: Context) {
             } else {
                 textPaint.textSize = 17f * f
                 textPaint.color = Color.argb(235, 225, 245, 255)
-                canvas.drawText(ellipsize(title, 2.6f * r), cx, belowY, textPaint)
+                drawSliding(canvas, title, cx, belowY, 2.6f * r)
                 belowY += 20f * f
             }
         }
         if (s.albumOn && album.isNotBlank()) {
             textPaint.textSize = 13f * f
             textPaint.color = Color.argb(200, 170, 215, 245)
-            canvas.drawText(ellipsize(album, 2.6f * r), cx, belowY, textPaint)
+            drawSliding(canvas, album, cx, belowY, 2.6f * r)
         }
+    }
+
+    /** Song time for the sliding lines (set each frame). */
+    private var clockMs = 0L
+
+    /**
+     * V191 (faric 25.10 14:05: «назва альбому не влазить — хай прокручується вперед-назад, як там»): a line wider
+     * than [width] slides from its start to its end and back, with a pause at each end; a short one stays still.
+     */
+    private fun drawSliding(
+        canvas: Canvas,
+        text: String,
+        cx: Float,
+        y: Float,
+        width: Float,
+    ) {
+        val full = textPaint.measureText(text)
+        if (full <= width) {
+            canvas.drawText(text, cx, y, textPaint)
+            return
+        }
+        val extra = full - width
+        val travelMs = (extra / textPaint.textSize * 280f).toLong().coerceAtLeast(800L)
+        val pauseMs = 1200L
+        val period = 2 * (travelMs + pauseMs)
+        val t = clockMs % period
+        val shift =
+            when {
+                t < pauseMs -> 0f
+                t < pauseMs + travelMs -> extra * (t - pauseMs) / travelMs
+                t < 2 * pauseMs + travelMs -> extra
+                else -> extra * (1f - (t - 2 * pauseMs - travelMs).toFloat() / travelMs)
+            }
+        canvas.save()
+        canvas.clipRect(cx - width / 2f, y - textPaint.textSize * 1.2f, cx + width / 2f, y + textPaint.textSize * 0.5f)
+        val align = textPaint.textAlign
+        textPaint.textAlign = Paint.Align.LEFT
+        canvas.drawText(text, cx - width / 2f - shift, y, textPaint)
+        textPaint.textAlign = align
+        canvas.restore()
     }
 
     /** The letter size so the longest word fits the hero's width and all lines its height; null — too small. */
@@ -577,16 +618,6 @@ class NeonHeroRenderer(private val context: Context) {
                 canvas.restore()
             }
         }
-    }
-
-    private fun ellipsize(
-        text: String,
-        width: Float,
-    ): String {
-        if (textPaint.measureText(text) <= width) return text
-        var t = text
-        while (t.length > 1 && textPaint.measureText("$t…") > width) t = t.dropLast(1)
-        return "$t…"
     }
 
     private fun drawAura(

@@ -177,6 +177,11 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
             )
         }
         toggle("Фото видно", s.photoOn) { change(s.copy(photoOn = !s.photoOn), rebuild = true) }
+        toggle("Візуалізація (projectM) під фото", s.seeThrough) { change(s.copy(seeThrough = !s.seeThrough), rebuild = true) }
+        content.addView(
+            UtilityUi.text(this, "Увімкнено — крізь фото видно візуалізацію з правої сторінки (менша «Видимість фото» — більше візуалізації). Вимкнено — під фото темна ніч.", 12f, UtilityUi.MUTED),
+            block(2),
+        )
         slider("Видимість фото", 0, 100, s.photoAlpha) { change(s.copy(photoAlpha = it)) }
         toggle("Стрибок фото на ударі", s.fxJump) { change(s.copy(fxJump = !s.fxJump), rebuild = true) }
         slider("Сила стрибка", 0, 150, s.jumpPower) { change(s.copy(jumpPower = it)) }

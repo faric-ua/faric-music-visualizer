@@ -325,12 +325,20 @@ class NeonHeroRenderer(private val context: Context) {
             bgShader = LinearGradient(0f, 0f, 0f, h, intArrayOf(Color.rgb(6, 9, 26), Color.rgb(20, 10, 36), Color.rgb(4, 5, 10)), floatArrayOf(0f, 0.55f, 1f), Shader.TileMode.CLAMP)
             bgShaderH = h
         }
-        fill.shader = bgShader
-        canvas.drawRect(0f, 0f, w, h, fill)
-        fill.shader = null
-        for (b in bokeh) {
-            fill.color = Color.argb((b[3] * 255).toInt(), 90, 140, 200)
-            canvas.drawCircle(b[0] * w, b[1] * h, b[2] * w, fill)
+        // V195 (faric 25.10 20:49: «на екрані під котом була наша візуалізація projectM, а у відео — нема»):
+        // «Візуалізація під фото» — no night of our own: whatever is under the theme (projectM, layers) shows
+        // through the see-through photo, on the screen and in the video alike. Off — our dark night, fully solid
+        // (before, the paint kept a faint alpha from the last drawing, so projectM leaked through by chance).
+        if (!settings.seeThrough) {
+            fill.color = Color.WHITE
+            fill.alpha = 255
+            fill.shader = bgShader
+            canvas.drawRect(0f, 0f, w, h, fill)
+            fill.shader = null
+            for (b in bokeh) {
+                fill.color = Color.argb((b[3] * 255).toInt(), 90, 140, 200)
+                canvas.drawCircle(b[0] * w, b[1] * h, b[2] * w, fill)
+            }
         }
         if (photoBmp == null) return
         val s = settings

@@ -54,6 +54,8 @@ data class CompositionExportConfig(
     val coverArt: Bitmap? = null,
     /** V191: the song's album under «Неон-герой»'s hero. */
     val album: String? = null,
+    /** V195: the standalone theme lets what is under it show through (projectM under «Неон-герой»'s photo). */
+    val standaloneSeeThrough: Boolean = false,
     /** V114: the song's picture for the HUD frame «Обкладинка вгорі» and what it shows without one. */
     val hudCoverArt: Bitmap? = null,
     /** V135: what the frame shows (picture / story / words), the story text, the words and the neon. */
@@ -161,7 +163,8 @@ class CompositionExportRenderer(
         val view = standaloneHeroView ?: return
         val startedNs = System.nanoTime()
         // Fit mode (16:9 …): the theme background covers only the screen area — keep the rest black.
-        canvas.drawColor(Color.BLACK)
+        // V195: a see-through theme keeps what was drawn under it (projectM), as on the screen.
+        if (!config.standaloneSeeThrough) canvas.drawColor(Color.BLACK)
         onScreen(canvas, width, height) { vw, vh ->
             if (standaloneHeroWidth != vw || standaloneHeroHeight != vh) {
                 view.measure(

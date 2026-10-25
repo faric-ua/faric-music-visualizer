@@ -165,6 +165,31 @@ class CompositionExportRenderer(
         // Fit mode (16:9 …): the theme background covers only the screen area — keep the rest black.
         // V195: a see-through theme keeps what was drawn under it (projectM), as on the screen.
         if (!config.standaloneSeeThrough) canvas.drawColor(Color.BLACK)
+        if (config.standaloneTheme == PlaybackThemeId.NEON_HERO) {
+            // V195 (MP4 faric 25.10 23:18: «фото не відповідає формату відео»): «Неон-герой» on the whole picture —
+            // the photo, rain and waves fill it; the hero and texts stay at their place on the phone screen.
+            if (standaloneHeroWidth != width || standaloneHeroHeight != height) {
+                view.measure(
+                    View.MeasureSpec.makeMeasureSpec(width, View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(height, View.MeasureSpec.EXACTLY),
+                )
+                view.layout(0, 0, width, height)
+                standaloneHeroWidth = width
+                standaloneHeroHeight = height
+            }
+            val p = placementFor(width, height)
+            view.neonScreen = android.graphics.RectF(p.dx, p.dy, p.dx + p.virtualWidth * p.scale, p.dy + p.virtualHeight * p.scale)
+            view.exportClockMs = timeMs
+            view.setPlaying(playing)
+            view.setMetadata(title = title, artist = artist)
+            view.updateSignal(signal)
+            val save = canvas.save()
+            canvas.clipRect(0f, 0f, width.toFloat(), height.toFloat())
+            view.draw(canvas)
+            canvas.restoreToCount(save)
+            cyberSharkNs += System.nanoTime() - startedNs
+            return
+        }
         onScreen(canvas, width, height) { vw, vh ->
             if (standaloneHeroWidth != vw || standaloneHeroHeight != vh) {
                 view.measure(

@@ -79,6 +79,9 @@ class HeroThemeView(context: Context) : View(context) {
 
     private var neonRenderer: NeonHeroRenderer? = null
 
+    /** V195: in the video «Неон-герой» fills the whole picture; this is where the phone screen is in it. */
+    var neonScreen: android.graphics.RectF? = null
+
     private fun neon(): NeonHeroRenderer = neonRenderer ?: NeonHeroRenderer(context).also { neonRenderer = it }
 
     fun setTheme(theme: PlaybackThemeId) {
@@ -175,7 +178,7 @@ class HeroThemeView(context: Context) : View(context) {
             // V191: a whole screen of its own (background, rain, hero) — the same view draws the video.
             val renderer = neon()
             renderer.loadPhotoNow = exportClockMs != null
-            renderer.draw(canvas, w, h, now, trackTitle.takeIf { it != "PulseDeck" } ?: "", albumName, playing)
+            renderer.draw(canvas, w, h, now, trackTitle.takeIf { it != "PulseDeck" } ?: "", albumName, playing, neonScreen)
             postInvalidateOnAnimation()
             return
         }

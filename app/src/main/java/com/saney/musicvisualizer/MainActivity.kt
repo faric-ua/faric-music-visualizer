@@ -9817,7 +9817,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val standaloneTheme =
             selectedThemeId.takeIf { isStandaloneHeroTheme(it) }
         val coverArt = currentCoverArt.takeIf { standaloneTheme == PlaybackThemeId.COVER_ART }
-        val belowHeroVisible = standaloneTheme == null
+        // V195: «Неон-герой» with «Візуалізація під фото» shows projectM and the layers under it (on the screen they
+        // show through it too); the GF Board stays hidden as on the screen.
+        val standaloneSeeThrough =
+            standaloneTheme == PlaybackThemeId.NEON_HERO &&
+                com.saney.musicvisualizer.ui.NeonHeroStore.load(this).seeThrough
+        val belowHeroVisible = standaloneTheme == null || standaloneSeeThrough
         val projectMVisible =
             belowHeroVisible &&
                 projectMSurfaceVisible() &&
@@ -9833,6 +9838,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             coverArt =
                 coverArt,
             album = tagAlbum,
+            standaloneSeeThrough = standaloneSeeThrough,
             hudCoverArt = currentCoverArt,
             hudCoverMode = coverBoxMode(),
             hudCoverMix = coverMix(),
@@ -9870,7 +9876,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 ),
             // The GF Board is hidden on screen while a standalone theme is shown.
             graphicFiguresVisible =
-                belowHeroVisible &&
+                standaloneTheme == null &&
                 layerVisible(
                     PulseDeckLayerStack.Layer.GRAPHIC_FIGURES,
                 ),

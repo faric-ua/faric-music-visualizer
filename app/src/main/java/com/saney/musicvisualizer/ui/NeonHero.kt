@@ -40,6 +40,11 @@ data class NeonHeroSettings(
     /** The photo behind (content:// from the Android picker) — empty: a dark night. */
     val photoUri: String = "",
     val photoOn: Boolean = true,
+    /**
+     * V195: the visualisation (projectM and the layers under the theme) shows through the photo; the photo's
+     * «Видимість» decides how much. Off — a dark night of our own under the photo.
+     */
+    val seeThrough: Boolean = true,
     val photoAlpha: Int = 60,
     /**
      * V191 (faric 25.10 14:51: «картинка велика, бере по центру — хочу пунктирну рамку телефона й посунути, яку
@@ -82,7 +87,7 @@ data class NeonHeroSettings(
         listOf(
             "shape" to shape, "rubber" to rubber, "dent" to dent, "pendulumOn" to pendulumOn, "pendulum" to pendulum,
             "auraOn" to auraOn, "aura" to aura, "eqOn" to eqOn, "heroOn" to heroOn, "heroAlpha" to heroAlpha, "lrOn" to lrOn, "titleOn" to titleOn, "albumOn" to albumOn,
-            "photoOn" to photoOn, "photoAlpha" to photoAlpha, "photoCx" to photoCx, "photoCy" to photoCy, "photoZoom" to photoZoom, "fxJump" to fxJump, "jumpPower" to jumpPower, "fxShake" to fxShake, "shakePower" to shakePower, "photoMove" to photoMove, "fxGlitch" to fxGlitch,
+            "photoOn" to photoOn, "seeThrough" to seeThrough, "photoAlpha" to photoAlpha, "photoCx" to photoCx, "photoCy" to photoCy, "photoZoom" to photoZoom, "fxJump" to fxJump, "jumpPower" to jumpPower, "fxShake" to fxShake, "shakePower" to shakePower, "photoMove" to photoMove, "fxGlitch" to fxGlitch,
             "ripplesOn" to ripplesOn, "rippleCount" to rippleCount, "rippleSize" to rippleSize, "rippleSpeed" to rippleSpeed,
             "rippleZoom" to rippleZoom, "rippleRefract" to rippleRefract,
             "rainOn" to rainOn, "rainCount" to rainCount, "rainAlpha" to rainAlpha, "rainSpeed" to rainSpeed, "rainLength" to rainLength,
@@ -116,6 +121,7 @@ data class NeonHeroSettings(
                 albumOn = b("albumOn", d.albumOn),
                 photoUri = m["photoUri"]?.replace("%3B", ";") ?: "",
                 photoOn = b("photoOn", d.photoOn),
+                seeThrough = b("seeThrough", d.seeThrough),
                 photoAlpha = i("photoAlpha", d.photoAlpha, 0, 100),
                 photoCx = i("photoCx", d.photoCx, 0, 1000),
                 photoCy = i("photoCy", d.photoCy, 0, 1000),

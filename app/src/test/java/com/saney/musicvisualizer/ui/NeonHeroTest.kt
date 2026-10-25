@@ -114,4 +114,36 @@ class NeonHeroTest {
         assertEquals(0, z.heroAlpha)
         assertEquals(0, z.jumpPower)
     }
+
+    /** A kick every 469 ms (128 BPM): bass jumps up for ~80 ms, then falls back. */
+    private fun kicks(
+        stepMs: Long,
+        seconds: Int,
+        peak: Float,
+    ): Int {
+        val d = BeatOnset()
+        var beats = 0
+        var t = 0L
+        while (t < seconds * 1000L) {
+            val inKick = (t % 469L) < 80L
+            val bass = if (inKick) peak else 0.18f
+            if (d.update(bass, 0.4f, t) > 0f) beats++
+            t += stepMs
+        }
+        return beats
+    }
+
+    @Test fun beatsAreFoundTheSameOnScreenAndInTheVideo() {
+        val screen = kicks(16L, 10, 0.9f) // 60 updates a second
+        val video = kicks(33L, 10, 0.9f) // 30 frames a second
+        assertTrue("about 21 kicks in 10 s on screen: $screen", screen in 18..23)
+        assertTrue("and the same in the video: $video", video in 18..23)
+        // soft export-like values (the offline analyser gives smaller numbers) still give beats
+        assertTrue(kicks(33L, 10, 0.45f) >= 15)
+        // a steady loud sound is not a beat every frame
+        val d = BeatOnset()
+        var n = 0
+        for (t in 0 until 300) if (d.update(0.8f, 0.6f, t * 33L) > 0f) n++
+        assertTrue("steady: $n", n <= 1)
+    }
 }

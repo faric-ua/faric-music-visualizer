@@ -146,4 +146,17 @@ class NeonHeroTest {
         for (t in 0 until 300) if (d.update(0.8f, 0.6f, t * 33L) > 0f) n++
         assertTrue("steady: $n", n <= 1)
     }
+
+    @Test fun videoLikeSqueezedBassStillGivesBeats() {
+        // 25.10 14:05: in the MP4 the offline analyser's bass swings only between ~0,65 and ~0,85
+        val d = BeatOnset()
+        var beats = 0
+        for (f in 0 until 300) {
+            val t = f * 33L
+            val phase = (t % 469L) / 469f
+            val bass = 0.65f + 0.2f * kotlin.math.exp(-phase * 6f)
+            if (d.update(bass, 0.7f, t) > 0f) beats++
+        }
+        assertTrue("about 21 kicks in 10 s: $beats", beats in 17..23)
+    }
 }

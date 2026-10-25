@@ -146,12 +146,12 @@ class NeonHeroRenderer(private val context: Context) {
         camVy += ky
         slices = if (st > 0.75f) 8 else 0
         if (s.ripplesOn && rainW > 0f) {
-            val n = max(1, ((if (st > 0.75f) 3f else 1.4f) * s.rippleCount / 100f * 1.8f).roundToInt())
+            val n = NeonHeroMath.countFor((if (st > 0.75f) 3f else 1.4f) * s.rippleCount / 100f * 1.8f, rng.nextFloat())
             repeat(n) { ripples += Ripple(rainW * (0.06f + rng.nextFloat() * 0.88f), rainH * (0.17f + rng.nextFloat() * 0.8f), 0f, 8, 1f) }
             while (ripples.size > 24) ripples.removeAt(0)
         }
         if (s.blobsOn && rainW > 0f) {
-            val n = ((if (st > 0.75f) 3f else 1f) * s.blobCount / 100f * 1.6f).roundToInt()
+            val n = NeonHeroMath.countFor((if (st > 0.75f) 3f else 1f) * s.blobCount / 100f * 1.6f, rng.nextFloat())
             val u = rainW / 340f
             repeat(n) {
                 val (bx, by) =
@@ -343,7 +343,7 @@ class NeonHeroRenderer(private val context: Context) {
         // a jerk must not show the black edge: the photo is a hair bigger while it moves
         val edge = 1f + (kotlin.math.abs(camX) + kotlin.math.abs(camY)) * 2.2f + if (s.fxShake) shake * power * 0.04f else 0f
         if (edge > 1.0005f) canvas.scale(edge, edge, w / 2f, h / 2f)
-        if (s.fxJump && jump > 0.01f) canvas.scale(1f + jump * 0.05f, 1f + jump * 0.05f, w / 2f, h / 2f)
+        if (s.fxJump && jump > 0.01f && s.jumpPower > 0) canvas.scale(1f + jump * 0.05f * s.jumpPower / 100f, 1f + jump * 0.05f * s.jumpPower / 100f, w / 2f, h / 2f)
         if (s.fxGlitch && slices > 0) {
             val strip = (h / 26f).coerceAtLeast(4f)
             var y = 0f
@@ -503,7 +503,7 @@ class NeonHeroRenderer(private val context: Context) {
         canvas.drawPath(shapePath(cx, cy, r, s.shape) { 5f * f }, stroke)
 
         drawTexts(canvas, s, cx, cy, r, f, title, album, inside = true)
-        if (s.auraOn && auraV > 0.03f) drawAura(canvas, s, cx, cy, r, f, tm)
+        if (s.auraOn && s.aura > 0 && auraV > 0.03f) drawAura(canvas, s, cx, cy, r, f, tm)
     }
 
     /** The title — one word per line inside the hero; does not fit (or no hero) — below, with the album. */

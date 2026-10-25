@@ -42,6 +42,8 @@ data class NeonHeroSettings(
     val photoOn: Boolean = true,
     val photoAlpha: Int = 60,
     val fxJump: Boolean = true,
+    /** V191 (faric 25.10 13:33: «забагато стрибків») 0–150 %: how much the photo grows on a beat; 0 — off. */
+    val jumpPower: Int = 50,
     val fxShake: Boolean = true,
     /** 0–150 %: how hard the strong-beat shake is. */
     val shakePower: Int = 100,
@@ -50,10 +52,10 @@ data class NeonHeroSettings(
      * трясеться»): 0–100 % — the photo jerks on every beat (down on the bass, to the side the bass leans,
      * up on the highs) and springs back; a little living sway with the bass between beats.
      */
-    val photoMove: Int = 40,
+    val photoMove: Int = 25,
     val fxGlitch: Boolean = true,
     val ripplesOn: Boolean = true,
-    val rippleCount: Int = 55,
+    val rippleCount: Int = 30,
     val rippleSize: Int = 60,
     val rippleSpeed: Int = 45,
     val rippleZoom: Int = 60,
@@ -72,7 +74,7 @@ data class NeonHeroSettings(
         listOf(
             "shape" to shape, "rubber" to rubber, "dent" to dent, "pendulumOn" to pendulumOn, "pendulum" to pendulum,
             "auraOn" to auraOn, "aura" to aura, "eqOn" to eqOn, "heroOn" to heroOn, "heroAlpha" to heroAlpha, "lrOn" to lrOn, "titleOn" to titleOn, "albumOn" to albumOn,
-            "photoOn" to photoOn, "photoAlpha" to photoAlpha, "fxJump" to fxJump, "fxShake" to fxShake, "shakePower" to shakePower, "photoMove" to photoMove, "fxGlitch" to fxGlitch,
+            "photoOn" to photoOn, "photoAlpha" to photoAlpha, "fxJump" to fxJump, "jumpPower" to jumpPower, "fxShake" to fxShake, "shakePower" to shakePower, "photoMove" to photoMove, "fxGlitch" to fxGlitch,
             "ripplesOn" to ripplesOn, "rippleCount" to rippleCount, "rippleSize" to rippleSize, "rippleSpeed" to rippleSpeed,
             "rippleZoom" to rippleZoom, "rippleRefract" to rippleRefract,
             "rainOn" to rainOn, "rainCount" to rainCount, "rainAlpha" to rainAlpha, "rainSpeed" to rainSpeed, "rainLength" to rainLength,
@@ -92,15 +94,15 @@ data class NeonHeroSettings(
             fun b(k: String, def: Boolean) = m[k]?.toBooleanStrictOrNull() ?: def
             return NeonHeroSettings(
                 shape = i("shape", d.shape, 0, 2),
-                rubber = i("rubber", d.rubber, 20, 100),
+                rubber = i("rubber", d.rubber, 10, 100),
                 dent = i("dent", d.dent, 0, 150),
                 pendulumOn = b("pendulumOn", d.pendulumOn),
-                pendulum = i("pendulum", d.pendulum, 20, 150),
+                pendulum = i("pendulum", d.pendulum, 0, 150),
                 auraOn = b("auraOn", d.auraOn),
-                aura = i("aura", d.aura, 30, 150),
+                aura = i("aura", d.aura, 0, 150),
                 eqOn = b("eqOn", d.eqOn),
                 heroOn = b("heroOn", d.heroOn),
-                heroAlpha = i("heroAlpha", d.heroAlpha, 10, 100),
+                heroAlpha = i("heroAlpha", d.heroAlpha, 0, 100),
                 lrOn = b("lrOn", d.lrOn),
                 titleOn = b("titleOn", d.titleOn),
                 albumOn = b("albumOn", d.albumOn),
@@ -108,24 +110,25 @@ data class NeonHeroSettings(
                 photoOn = b("photoOn", d.photoOn),
                 photoAlpha = i("photoAlpha", d.photoAlpha, 0, 100),
                 fxJump = b("fxJump", d.fxJump),
+                jumpPower = i("jumpPower", d.jumpPower, 0, 150),
                 fxShake = b("fxShake", d.fxShake),
                 shakePower = i("shakePower", d.shakePower, 0, 150),
                 photoMove = i("photoMove", d.photoMove, 0, 100),
                 fxGlitch = b("fxGlitch", d.fxGlitch),
                 ripplesOn = b("ripplesOn", d.ripplesOn),
-                rippleCount = i("rippleCount", d.rippleCount, 10, 100),
-                rippleSize = i("rippleSize", d.rippleSize, 20, 100),
-                rippleSpeed = i("rippleSpeed", d.rippleSpeed, 20, 100),
+                rippleCount = i("rippleCount", d.rippleCount, 0, 100),
+                rippleSize = i("rippleSize", d.rippleSize, 10, 100),
+                rippleSpeed = i("rippleSpeed", d.rippleSpeed, 10, 100),
                 rippleZoom = i("rippleZoom", d.rippleZoom, 0, 100),
                 rippleRefract = i("rippleRefract", d.rippleRefract, 0, 100),
                 rainOn = b("rainOn", d.rainOn),
-                rainCount = i("rainCount", d.rainCount, 10, 100),
-                rainAlpha = i("rainAlpha", d.rainAlpha, 10, 100),
-                rainSpeed = i("rainSpeed", d.rainSpeed, 20, 150),
-                rainLength = i("rainLength", d.rainLength, 30, 200),
+                rainCount = i("rainCount", d.rainCount, 0, 100),
+                rainAlpha = i("rainAlpha", d.rainAlpha, 0, 100),
+                rainSpeed = i("rainSpeed", d.rainSpeed, 10, 150),
+                rainLength = i("rainLength", d.rainLength, 10, 200),
                 blobsOn = b("blobsOn", d.blobsOn),
-                blobCount = i("blobCount", d.blobCount, 10, 100),
-                blobAlpha = i("blobAlpha", d.blobAlpha, 10, 100),
+                blobCount = i("blobCount", d.blobCount, 0, 100),
+                blobAlpha = i("blobAlpha", d.blobAlpha, 0, 100),
             )
         }
     }
@@ -157,6 +160,19 @@ object NeonHeroMath {
             }
             else -> 1f
         }
+    }
+
+    /**
+     * V191 (faric 25.10 13:33: «забагато крапель… мінімум 10–20 % — не можу менше»): how many to start on a
+     * beat — the whole part always, the rest by chance; so a small setting gives a ripple only now and then.
+     */
+    fun countFor(
+        expected: Float,
+        chance: Float,
+    ): Int {
+        if (expected <= 0f) return 0
+        val whole = expected.toInt()
+        return whole + if (chance < expected - whole) 1 else 0
     }
 
     /**

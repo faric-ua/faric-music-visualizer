@@ -56,8 +56,6 @@ class NeonHeroRenderer(private val context: Context) {
     private var camVy = 0f
     private var slices = 0
     private var lastStepMs = -1L
-    private var lastBeatMs = -10_000L
-    private var prevBeat = 0f
     private val rng = Random(191)
 
     // the latest sound
@@ -113,13 +111,14 @@ class NeonHeroRenderer(private val context: Context) {
         high = signal.high
         stereoPan = signal.stereoPan
         spectrum = signal.spectrum
-        val b = signal.beatStrength
-        if (NeonHeroMath.isBeat(prevBeat, b, nowMs - lastBeatMs)) {
-            lastBeatMs = nowMs
-            beat(max(b, bass).coerceIn(0f, 1.3f), stereoPan)
-        }
-        prevBeat = b
+        // V191 (відео faric 25.10 13:41: у MP4 «Неон-герой» не реагував на удари — у відео «сила удару» з
+        // іншого аналізатора, слабша й плавна): the beat is found here, from the bass, the same way on the
+        // screen and in the video.
+        val st = onset.update(signal.bass, signal.amplitude, nowMs)
+        if (st > 0f) beat(st, stereoPan)
     }
+
+    private val onset = BeatOnset()
 
     /** A beat of strength [st] (0..1.3), [pan] where the bass leans (−1 left … 1 right). */
     fun beat(

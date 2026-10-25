@@ -278,6 +278,50 @@ object NeonHeroMath {
 }
 
 /**
+ * V191 (відео faric 25.10 13:41: на екрані реагує, у відео — ні): the beat from the sound itself — the low
+ * energy jumps over its own recent average (≈0,45 s). The screen (≈30–60 updates a second) and the video
+ * (30 a second, from the offline analyser) feed the same bass, so both find the same beats.
+ * Returns the beat's strength 0,25–1,3, or 0 — no beat now.
+ */
+class BeatOnset {
+    private var average = 0f
+    private var wasAbove = false
+    private var lastMs = Long.MIN_VALUE
+    private var lastBeatMs = Long.MIN_VALUE / 2
+    private var started = false
+
+    fun update(
+        bass: Float,
+        amplitude: Float,
+        nowMs: Long,
+    ): Float {
+        val energy = (bass * 0.72f + amplitude * 0.28f).coerceIn(0f, 1.5f)
+        if (!started) {
+            started = true
+            average = energy
+            lastMs = nowMs
+            return 0f
+        }
+        val dt = ((nowMs - lastMs).coerceIn(1L, 200L)) / 1000f
+        lastMs = nowMs
+        val line = average * 1.18f + 0.03f
+        val above = energy > line
+        var out = 0f
+        if (above && !wasAbove && nowMs - lastBeatMs >= MIN_GAP_MS) {
+            lastBeatMs = nowMs
+            out = ((energy - average) / (0.12f + average * 0.5f)).coerceIn(0.25f, 1.3f)
+        }
+        wasAbove = above
+        average += (energy - average) * (1f - exp(-dt / 0.45f))
+        return out
+    }
+
+    companion object {
+        const val MIN_GAP_MS = 180L
+    }
+}
+
+/**
  * V191: the rubber edge of the hero — [n] points round it, each pulled back to its place and to its
  * neighbours. A beat pushes the points near the hit inwards and the far side out; the wave runs round,
  * overshoots and settles (faric 25.10 01:26: «ефект резинки… по інерції перетягнулась вгору й зайшла назад»).

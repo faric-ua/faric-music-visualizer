@@ -74,6 +74,8 @@ class NeonHeroRenderer(private val context: Context) {
 
     private class Ripple(val x: Float, val y: Float, var r: Float, var fall: Int, var life: Float)
 
+    private var heroCenterX = 0f
+    private var heroCenterY = 0f
     private val rain = ArrayList<Drop>()
     private val blobs = ArrayList<Blob>()
     private val ripples = ArrayList<Ripple>()
@@ -160,7 +162,7 @@ class NeonHeroRenderer(private val context: Context) {
                         else -> rng.nextFloat() * rainW to rainH + 30f * u
                     }
                 val k = 0.022f * (0.6f + rng.nextFloat() * 0.6f)
-                blobs += Blob(bx, by, (rainW * 0.5f - bx) * k, (rainH * HERO_CENTER_Y - by) * k, (14f + rng.nextFloat() * 24f * st) * u, 1f, rng.nextFloat() * 6f)
+                blobs += Blob(bx, by, (heroCenterX - bx) * k, (heroCenterY - by) * k, (14f + rng.nextFloat() * 24f * st) * u, 1f, rng.nextFloat() * 6f)
             }
             while (blobs.size > 30) blobs.removeAt(0)
         }
@@ -258,9 +260,18 @@ class NeonHeroRenderer(private val context: Context) {
         title: String,
         album: String,
         playing: Boolean,
+        /**
+         * V195 (MP4 faric 25.10 23:18: у «вміщається весь» фото лише в смузі екрана, по боках — порожньо): the
+         * phone screen's place in the picture. The photo, rain, waves and ovals fill the whole picture; the hero
+         * and its texts stay where they are on the phone. Null — the whole picture is the screen.
+         */
+        screen: RectF? = null,
     ) {
         reloadSettings()
         clockMs = nowMs
+        val area = screen ?: RectF(0f, 0f, w, h)
+        heroCenterX = area.centerX()
+        heroCenterY = area.top + area.height() * HERO_CENTER_Y
         val s = settings
         if (rainW != w || rainH != h) {
             rainW = w
@@ -281,7 +292,7 @@ class NeonHeroRenderer(private val context: Context) {
         repeat(steps) { step() }
 
         val u = w / 340f
-        val minSide = min(w, h)
+        val minSide = min(area.width(), area.height())
         val heroR = minSide * 0.25f
         val f = heroR / 74f
         val photoBmp = if (s.photoOn) photoFor(s.photoUri, w, h) else null
@@ -300,9 +311,9 @@ class NeonHeroRenderer(private val context: Context) {
                 canvas.restore()
             }
         }
-        val cx = w * 0.5f + px * heroR
+        val cx = heroCenterX + px * heroR
         // V191 (скрін faric 25.10 02:48: підписи під героєм лізли на назву пісні HUD): the hero sits higher.
-        val cy = h * HERO_CENTER_Y + py * heroR
+        val cy = heroCenterY + py * heroR
         val k = 1f + kick * 0.04f
         if (s.heroOn) {
             val layer = s.heroAlpha < 100

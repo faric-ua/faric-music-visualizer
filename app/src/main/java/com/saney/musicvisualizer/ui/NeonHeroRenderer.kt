@@ -6,7 +6,6 @@ import android.graphics.BitmapFactory
 import android.graphics.Canvas
 import android.graphics.Color
 import android.graphics.LinearGradient
-import android.graphics.Matrix
 import android.graphics.Paint
 import android.graphics.Path
 import android.graphics.Rect
@@ -682,16 +681,16 @@ class NeonHeroRenderer(private val context: Context) {
             if (photoKey != uri) return null
         }
         val p = photo ?: return null
-        val key = "$uri|${w.toInt()}|${h.toInt()}"
+        val st = settings
+        val key = "$uri|${w.toInt()}|${h.toInt()}|${st.photoCx}|${st.photoCy}|${st.photoZoom}"
         photoScaled?.takeIf { photoScaledKey == key && !it.isRecycled }?.let { return it }
         val out =
             runCatching {
                 Bitmap.createBitmap(w.toInt().coerceAtLeast(1), h.toInt().coerceAtLeast(1), Bitmap.Config.ARGB_8888).also { b ->
-                    val scale = max(w / p.width, h / p.height)
-                    val m = Matrix()
-                    m.setScale(scale, scale)
-                    m.postTranslate((w - p.width * scale) / 2f, (h - p.height * scale) / 2f)
-                    Canvas(b).drawBitmap(p, m, Paint(Paint.FILTER_BITMAP_FLAG))
+                    // V191: the part chosen with the phone frame in the settings (centre crop by default)
+                    val c = NeonHeroMath.cropRect(p.width.toFloat(), p.height.toFloat(), w / h, st.photoCx / 1000f, st.photoCy / 1000f, st.photoZoom / 100f)
+                    val srcRect = Rect(c[0].toInt(), c[1].toInt(), (c[0] + c[2]).toInt().coerceAtMost(p.width), (c[1] + c[3]).toInt().coerceAtMost(p.height))
+                    Canvas(b).drawBitmap(p, srcRect, RectF(0f, 0f, w, h), Paint(Paint.FILTER_BITMAP_FLAG))
                 }
             }.getOrNull()
         photoScaled = out

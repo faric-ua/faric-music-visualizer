@@ -110,6 +110,12 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
 
     override fun onResume() {
         super.onResume()
+        // back from «Область фото» — show what was chosen there
+        val saved = NeonHeroStore.load(this)
+        if (saved != s) {
+            s = saved
+            build()
+        }
         handler.post(pretendSong)
     }
 
@@ -163,6 +169,13 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
             photoRow.addView(UtilityUi.button(this, "Без фото") { change(s.copy(photoUri = ""), rebuild = true) }, UtilityUi.weighted(context = this))
         }
         content.addView(photoRow, block(6))
+        if (s.photoUri.isNotBlank()) {
+            // V191 (faric 25.10 14:51): which part of a big photo is on the screen — a dashed phone frame.
+            content.addView(
+                UtilityUi.button(this, "Область фото (рамка телефона) ›") { startActivity(Intent(this, PulseDeckPhotoCropActivity::class.java)) },
+                block(6),
+            )
+        }
         toggle("Фото видно", s.photoOn) { change(s.copy(photoOn = !s.photoOn), rebuild = true) }
         slider("Видимість фото", 0, 100, s.photoAlpha) { change(s.copy(photoAlpha = it)) }
         toggle("Стрибок фото на ударі", s.fxJump) { change(s.copy(fxJump = !s.fxJump), rebuild = true) }

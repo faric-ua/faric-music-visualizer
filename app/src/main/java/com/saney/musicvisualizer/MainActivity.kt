@@ -13476,13 +13476,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             stages.bigEqualizerMs,
                         )
                         append(" ms")
-                        append("\nGraphic Figure · ")
-                        append(
-                            GraphicFigureCatalog
-                                .title(
-                                    currentGraphicFigureThemeId(),
-                                ),
-                        )
+                        // V191 (faric 25.10 14:52: «Cyber Shark 13 тисяч мс, а я його не використовую»): a standalone
+                        // theme (Неон-герой, Обкладинка, Вініл…) is drawn in the same slot — name it by the theme.
+                        val standalone = selectedThemeId.takeIf { isStandaloneHeroTheme(it) }
+                        if (standalone != null) {
+                            append("\nТема · ")
+                            append(PlaybackThemeRegistry.byId(standalone).title)
+                        } else {
+                            append("\nGraphic Figure · ")
+                            append(
+                                GraphicFigureCatalog
+                                    .title(
+                                        currentGraphicFigureThemeId(),
+                                    ),
+                            )
+                        }
                         append(": ")
                         append(
                             stages.cyberSharkMs,

@@ -127,7 +127,7 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
 
         section("Герой у центрі")
         toggle("Герой", s.heroOn) { change(s.copy(heroOn = !s.heroOn), rebuild = true) }
-        slider("Видимість героя", 10, 100, s.heroAlpha) { change(s.copy(heroAlpha = it)) }
+        slider("Видимість героя", 0, 100, s.heroAlpha) { change(s.copy(heroAlpha = it)) }
         content.addView(
             UtilityUi.button(this, "Форма: " + NeonHeroMath.SHAPE_NAMES[s.shape] + " ▾") {
                 PulseDeckDialogs.showSingleChoice(context = this, title = "Форма героя", labels = NeonHeroMath.SHAPE_NAMES, checkedIndex = s.shape) { i ->
@@ -136,12 +136,12 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
             },
             block(6),
         )
-        slider("Гумовість", 20, 100, s.rubber) { change(s.copy(rubber = it)) }
+        slider("Гумовість", 10, 100, s.rubber) { change(s.copy(rubber = it)) }
         slider("Вм'ятина від удару", 0, 150, s.dent) { change(s.copy(dent = it)) }
         toggle("Маятник (відлітає в бік басу)", s.pendulumOn) { change(s.copy(pendulumOn = !s.pendulumOn), rebuild = true) }
-        slider("Сила маятника", 20, 150, s.pendulum) { change(s.copy(pendulum = it)) }
+        slider("Сила маятника", 0, 150, s.pendulum) { change(s.copy(pendulum = it)) }
         toggle("Аура на ударі", s.auraOn) { change(s.copy(auraOn = !s.auraOn), rebuild = true) }
-        slider("Сила аури", 30, 150, s.aura) { change(s.copy(aura = it)) }
+        slider("Сила аури", 0, 150, s.aura) { change(s.copy(aura = it)) }
         toggle("Еквалайзер і шкали L / R усередині", s.eqOn) { change(s.copy(eqOn = !s.eqOn), rebuild = true) }
         toggle("Підписи L і R", s.lrOn) { change(s.copy(lrOn = !s.lrOn), rebuild = true) }
         toggle("Назва пісні (слово — рядок)", s.titleOn) { change(s.copy(titleOn = !s.titleOn), rebuild = true) }
@@ -166,6 +166,7 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
         toggle("Фото видно", s.photoOn) { change(s.copy(photoOn = !s.photoOn), rebuild = true) }
         slider("Видимість фото", 0, 100, s.photoAlpha) { change(s.copy(photoAlpha = it)) }
         toggle("Стрибок фото на ударі", s.fxJump) { change(s.copy(fxJump = !s.fxJump), rebuild = true) }
+        slider("Сила стрибка", 0, 150, s.jumpPower) { change(s.copy(jumpPower = it)) }
         slider("Рух фото від ударів (ривки, як жива камера)", 0, 100, s.photoMove) { change(s.copy(photoMove = it)) }
         toggle("Тряска на сильному ударі", s.fxShake) { change(s.copy(fxShake = !s.fxShake), rebuild = true) }
         slider("Сила тряски", 0, 150, s.shakePower) { change(s.copy(shakePower = it)) }
@@ -173,23 +174,23 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
 
         section("Краплі й хвилі")
         toggle("Хвилі від крапель", s.ripplesOn) { change(s.copy(ripplesOn = !s.ripplesOn), rebuild = true) }
-        slider("Кількість хвиль", 10, 100, s.rippleCount) { change(s.copy(rippleCount = it)) }
-        slider("Розмір хвилі", 20, 100, s.rippleSize) { change(s.copy(rippleSize = it)) }
-        slider("Швидкість розпливання", 20, 100, s.rippleSpeed) { change(s.copy(rippleSpeed = it)) }
+        slider("Кількість хвиль", 0, 100, s.rippleCount) { change(s.copy(rippleCount = it)) }
+        slider("Розмір хвилі", 10, 100, s.rippleSize) { change(s.copy(rippleSize = it)) }
+        slider("Швидкість розпливання", 10, 100, s.rippleSpeed) { change(s.copy(rippleSpeed = it)) }
         slider("Збільшення (лінза)", 0, 100, s.rippleZoom) { change(s.copy(rippleZoom = it)) }
         slider("Переломлення фото", 0, 100, s.rippleRefract) { change(s.copy(rippleRefract = it)) }
 
         section("Дощ")
         toggle("Дощ", s.rainOn) { change(s.copy(rainOn = !s.rainOn), rebuild = true) }
-        slider("Кількість", 10, 100, s.rainCount) { change(s.copy(rainCount = it)) }
-        slider("Прозорість", 10, 100, s.rainAlpha) { change(s.copy(rainAlpha = it)) }
-        slider("Швидкість", 20, 150, s.rainSpeed) { change(s.copy(rainSpeed = it)) }
-        slider("Довжина крапель", 30, 200, s.rainLength) { change(s.copy(rainLength = it)) }
+        slider("Кількість", 0, 100, s.rainCount) { change(s.copy(rainCount = it)) }
+        slider("Прозорість", 0, 100, s.rainAlpha) { change(s.copy(rainAlpha = it)) }
+        slider("Швидкість", 10, 150, s.rainSpeed) { change(s.copy(rainSpeed = it)) }
+        slider("Довжина крапель", 10, 200, s.rainLength) { change(s.copy(rainLength = it)) }
 
         section("Краплі-овали з країв")
         toggle("Овали", s.blobsOn) { change(s.copy(blobsOn = !s.blobsOn), rebuild = true) }
-        slider("Кількість", 10, 100, s.blobCount) { change(s.copy(blobCount = it)) }
-        slider("Прозорість", 10, 100, s.blobAlpha) { change(s.copy(blobAlpha = it)) }
+        slider("Кількість", 0, 100, s.blobCount) { change(s.copy(blobCount = it)) }
+        slider("Прозорість", 0, 100, s.blobAlpha) { change(s.copy(blobAlpha = it)) }
 
         content.addView(
             UtilityUi.button(this, "Скинути все до стандартних", UtilityUi.Kind.WARNING) {
@@ -228,7 +229,8 @@ class PulseDeckNeonHeroActivity : ComponentActivity() {
         value: Int,
         onChange: (Int) -> Unit,
     ) {
-        fun label(v: Int) = "$name: $v %"
+        // V191 (faric 25.10 13:33): 0 — the same as switched off, and says so.
+        fun label(v: Int) = if (v == 0) "$name: 0 — вимкнено" else "$name: $v %"
         val caption: TextView = UtilityUi.text(this, label(value), 13f, UtilityUi.MUTED)
         content.addView(caption, block(8))
         val row = LinearLayout(this).apply { orientation = LinearLayout.HORIZONTAL; gravity = Gravity.CENTER_VERTICAL }

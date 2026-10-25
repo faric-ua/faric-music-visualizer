@@ -98,4 +98,20 @@ class NeonHeroTest {
         assertEquals(70, d.photoMove)
         assertEquals(130, d.shakePower)
     }
+
+    @Test fun smallSettingsGiveRareDropsAndZeroIsOff() {
+        assertEquals(0, NeonHeroMath.countFor(0f, 0f))
+        assertEquals(0, NeonHeroMath.countFor(0.2f, 0.5f)) // 20 % chance — this time not
+        assertEquals(1, NeonHeroMath.countFor(0.2f, 0.1f))
+        assertEquals(2, NeonHeroMath.countFor(2.3f, 0.9f))
+        assertEquals(3, NeonHeroMath.countFor(2.3f, 0.2f))
+        val z = NeonHeroSettings.decode("rippleCount=0;rainCount=0;blobCount=0;aura=0;pendulum=0;heroAlpha=0;jumpPower=0")
+        assertEquals(0, z.rippleCount)
+        assertEquals(0, z.rainCount)
+        assertEquals(0, z.blobCount)
+        assertEquals(0, z.aura)
+        assertEquals(0, z.pendulum)
+        assertEquals(0, z.heroAlpha)
+        assertEquals(0, z.jumpPower)
+    }
 }

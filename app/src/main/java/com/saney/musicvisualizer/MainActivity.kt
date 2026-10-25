@@ -3425,6 +3425,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     "appVersion",
                     BuildConfig.VERSION_NAME,
                 )
+                // V191 (faric 25.10 14:53: «створив сет — не завантажується з Неон-героєм»): the set kept only the
+                // GF hero; now also a standalone theme on screen (Неон-герой, Обкладинка, Вініл…) and the
+                // «Неон-герой» settings.
+                selectedThemeId.takeIf { isStandaloneHeroTheme(it) }?.let { put("standaloneTheme", it.name) }
+                put("neonHero", com.saney.musicvisualizer.ui.NeonHeroStore.load(this@MainActivity).encode())
             }
 
         val layersJson =
@@ -4128,6 +4133,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             gfTheme,
         )
 
+        // V191: a set saved with a standalone theme brings it back (after the GF hero, which it replaces on screen).
+        root.optString("neonHero", "").takeIf { it.isNotBlank() }?.let { encoded ->
+            com.saney.musicvisualizer.ui.NeonHeroStore.save(this, com.saney.musicvisualizer.ui.NeonHeroSettings.decode(encoded))
+        }
+        val savedStandalone =
+            root.optString("standaloneTheme", "").takeIf { it.isNotBlank() }
+                ?.let { name -> runCatching { PlaybackThemeId.valueOf(name) }.getOrNull() }
+                ?.takeIf { isStandaloneHeroTheme(it) }
+
         val layerEditor =
             layerPrefs()
                 .edit()
@@ -4639,6 +4653,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         projectMExportSnapshot =
             null
+        // last, after the layers: the standalone theme shows over them (it is opaque).
+        savedStandalone?.let { theme -> activateLivePlaybackTheme(theme) }
         showNowPlaying()
     }
 

@@ -50,6 +50,10 @@ class NeonHeroRenderer(private val context: Context) {
     private var auraShape = 0
     private var jump = 0f
     private var shake = 0f
+    private var camX = 0f
+    private var camY = 0f
+    private var camVx = 0f
+    private var camVy = 0f
     private var slices = 0
     private var lastStepMs = -1L
     private var lastBeatMs = -10_000L
@@ -137,6 +141,9 @@ class NeonHeroRenderer(private val context: Context) {
         }
         jump = st
         shake = if (st > 0.75f) st else 0f
+        val (kx, ky) = NeonHeroMath.photoKick(st, pan, bass, high, s.photoMove / 100f)
+        camVx += kx
+        camVy += ky
         slices = if (st > 0.75f) 8 else 0
         if (s.ripplesOn && rainW > 0f) {
             val n = max(1, ((if (st > 0.75f) 3f else 1.4f) * s.rippleCount / 100f * 1.8f).roundToInt())
@@ -175,6 +182,14 @@ class NeonHeroRenderer(private val context: Context) {
         auraV *= 0.9f
         jump *= 0.82f
         shake *= 0.8f
+        // the photo's «camera»: a spring back to the middle + a little living sway with the bass
+        val move = s.photoMove / 100f
+        camVx += -camX * 0.12f + (rng.nextFloat() - 0.5f) * 0.0006f * bass * move
+        camVy += -camY * 0.12f + (rng.nextFloat() - 0.5f) * 0.0006f * bass * move
+        camVx *= 0.82f
+        camVy *= 0.82f
+        camX += camVx
+        camY += camVy
         if (slices > 0) slices--
         ring.step(s.rubber / 100f)
         pvx += -px * 0.08f
@@ -322,7 +337,12 @@ class NeonHeroRenderer(private val context: Context) {
         val s = settings
         photoPaint.alpha = (alpha * 255f).toInt().coerceIn(0, 255)
         canvas.save()
-        if (s.fxShake && shake > 0.01f) canvas.translate((rng.nextFloat() - 0.5f) * 12f * shake * w / 340f, (rng.nextFloat() - 0.5f) * 8f * shake * w / 340f)
+        val power = s.shakePower / 100f
+        if (s.fxShake && shake > 0.01f) canvas.translate((rng.nextFloat() - 0.5f) * 12f * shake * power * w / 340f, (rng.nextFloat() - 0.5f) * 8f * shake * power * w / 340f)
+        if (camX != 0f || camY != 0f) canvas.translate(camX * w, camY * w)
+        // a jerk must not show the black edge: the photo is a hair bigger while it moves
+        val edge = 1f + (kotlin.math.abs(camX) + kotlin.math.abs(camY)) * 2.2f + if (s.fxShake) shake * power * 0.04f else 0f
+        if (edge > 1.0005f) canvas.scale(edge, edge, w / 2f, h / 2f)
         if (s.fxJump && jump > 0.01f) canvas.scale(1f + jump * 0.05f, 1f + jump * 0.05f, w / 2f, h / 2f)
         if (s.fxGlitch && slices > 0) {
             val strip = (h / 26f).coerceAtLeast(4f)

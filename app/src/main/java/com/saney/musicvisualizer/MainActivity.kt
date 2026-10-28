@@ -10474,6 +10474,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     // V182 (faric 24.10 02:03, «А»): one song leaves out the «!» visualizations too, like a batch.
                     presetSchedule = buildExportPresetSchedule(compositionConfig, skipTooSlow = true),
                     tags = songTags,
+                    // V196 (faric 28.10 17:04): a whole song → «TRACK 01 — Song.mp4», not «PulseDeck-Full-…».
+                    exactDisplayName =
+                        if (fullSong) {
+                            com.saney.musicvisualizer.export.BatchPlan.songVideoFileName(
+                                title = songTags.title,
+                                trackTag = songTags.track,
+                                songDisplayName = resolveDisplayName(sourceUri),
+                            )
+                        } else {
+                            null
+                        },
                     relativePath =
                         songTags.album
                             ?.takeIf { fullSong }
@@ -11502,7 +11513,6 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val albumFolders = linkedSetOf<String>()
             for ((index, song) in songs.withIndex()) {
                 if (cancelled.get()) break
-                val fileName = plan.videoFileName(song.name)
                 val title = plan.songTitle(song.name)
                 val position = "Пісня ${index + 1} з ${songs.size}"
                 fun ui(
@@ -11539,7 +11549,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         }
                         ?: relativePath
                 if (songPath != relativePath) albumFolders += songPath
-                if (!testMode && mediaStoreHasVideo(songPath, fileName, alsoLegacyFolder = true)) {
+                // V196 (faric 28.10 17:04): «TRACK 01 — Song.mp4»; videos made before keep their old name
+                // («01 - Song.mp4») and still count as «уже є».
+                val fileName = plan.songVideoFileName(songTags.title, songTags.track, song.name)
+                val oldFileName = plan.videoFileName(song.name)
+                val alreadyDone =
+                    !testMode && mediaStoreHasVideo(songPath, fileName, alsoLegacyFolder = true) ||
+                        !testMode && mediaStoreHasVideo(songPath, oldFileName, alsoLegacyFolder = true)
+                if (alreadyDone) {
                     results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.SKIPPED_EXISTS, "відео вже є")
                     ui(100, "Уже є — пропускаю")
                     continue

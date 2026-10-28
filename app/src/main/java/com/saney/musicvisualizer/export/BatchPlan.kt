@@ -31,6 +31,46 @@ object BatchPlan {
         return clean(base, fallback = "track") + ".mp4"
     }
 
+    private val TRACK_TAG = Regex("^\\s*(\\d{1,3})")
+    private val FILE_NUMBER = Regex("^\\s*(?:track\\s*)?(\\d{1,3})\\s*(?:[-–—._)]\\s*|\\s+)(\\S.*)$", RegexOption.IGNORE_CASE)
+    private val TRACK_PREFIX = Regex("^\\s*track\\s*\\d{1,3}\\s*[-–—._:]\\s*", RegexOption.IGNORE_CASE)
+
+    /**
+     * V196 (faric 28.10 17:04: «щоб ім'я писалось: трек 01 … і ім'я пісні», не «PulseDeck-Full-…»).
+     * The song's number: the track tag («3», «03», «3/12») first, else the file name «01 - Song.mp3».
+     */
+    fun trackNumber(
+        trackTag: String?,
+        songDisplayName: String,
+    ): Int? {
+        trackTag?.let { tag -> TRACK_TAG.find(tag)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it > 0 }?.let { return it } }
+        val base = songDisplayName.substringBeforeLast('.').ifBlank { songDisplayName }
+        return FILE_NUMBER.find(base)?.groupValues?.get(1)?.toIntOrNull()?.takeIf { it > 0 }
+    }
+
+    /**
+     * V196: the video of a whole song → «TRACK 01 — Song.mp4» (number from the tag or the file name,
+     * name from the title tag, else the file name without its number). No number → «Song.mp4».
+     */
+    fun songVideoFileName(
+        title: String?,
+        trackTag: String?,
+        songDisplayName: String,
+    ): String {
+        val number = trackNumber(trackTag, songDisplayName)
+        val base = songDisplayName.substringBeforeLast('.').ifBlank { songDisplayName }
+        // «01 - Song» as a title (no title tag → the file name) loses its number: it goes in front as «TRACK 01».
+        fun withoutNumber(raw: String): String {
+            val m = FILE_NUMBER.find(raw) ?: return raw
+            return if (m.groupValues[1].toIntOrNull() == number) m.groupValues[2].trim() else raw
+        }
+        val name =
+            title?.replace(TRACK_PREFIX, "")?.trim()?.takeIf { it.isNotBlank() }?.let(::withoutNumber)
+                ?: withoutNumber(base)
+        val shown = if (number != null) String.format(java.util.Locale.ROOT, "TRACK %02d — %s", number, name) else name
+        return clean(shown, fallback = "track") + ".mp4"
+    }
+
     /** Folder name → Movies/PulseDeck/<folder>/ (MediaStore relative path, trailing slash). */
     fun relativePath(folderName: String): String = ExportFolders.VIDEO + "/" + clean(folderName, fallback = "Batch") + "/"
 

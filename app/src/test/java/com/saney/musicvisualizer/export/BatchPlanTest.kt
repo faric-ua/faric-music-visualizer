@@ -22,6 +22,27 @@ class BatchPlanTest {
     }
 
     @Test
+    fun wholeSongVideoIsNamedTrackNumberAndTitle() {
+        // V196 (faric 28.10 17:04): «TRACK 01 — назва пісні», not «PulseDeck-Full-…»
+        assertEquals("TRACK 01 — IGNITION POINT.mp4", BatchPlan.songVideoFileName("IGNITION POINT", "1/12", "IGNITION POINT.mp3"))
+        assertEquals("TRACK 07 — Neon Horizon.mp4", BatchPlan.songVideoFileName("Neon Horizon", "07", "x.flac"))
+        // no tags — number and name from the file, the number not twice
+        assertEquals("TRACK 03 — Midnight Pulse.mp4", BatchPlan.songVideoFileName(null, null, "03 - Midnight Pulse.mp3"))
+        assertEquals("TRACK 03 — Midnight Pulse.mp4", BatchPlan.songVideoFileName("03 - Midnight Pulse", null, "03 - Midnight Pulse.mp3"))
+        assertEquals("TRACK 12 — Afterglow.mp4", BatchPlan.songVideoFileName("TRACK 12 — Afterglow", "12", "a.mp3"))
+        // no number anywhere — just the song's name
+        assertEquals("Пісня faric.mp4", BatchPlan.songVideoFileName("Пісня faric", null, "Пісня faric.flac"))
+        assertEquals("Song.mp4", BatchPlan.songVideoFileName(null, "", "Song.wav"))
+        // a year-like name is not a track number
+        assertEquals("1979.mp4", BatchPlan.songVideoFileName(null, null, "1979.mp3"))
+        // the title's own number stays when it is not the track number
+        assertEquals("TRACK 05 — 2 Become 1.mp4", BatchPlan.songVideoFileName("2 Become 1", "5", "x.mp3"))
+        assertEquals("TRACK 02 — AC DC Back.mp4", BatchPlan.songVideoFileName("AC/DC: Back?", "2/9", "x.mp3"))
+        assertEquals(3, BatchPlan.trackNumber("3/12", "x.mp3"))
+        assertEquals(null, BatchPlan.trackNumber("0", "x.mp3"))
+    }
+
+    @Test
     fun illegalCharactersAreReplaced() {
         assertEquals("AC DC Back.mp4", BatchPlan.videoFileName("AC/DC: Back?.mp3"))
         assertEquals("track.mp4", BatchPlan.videoFileName("???.mp3"))

@@ -21,6 +21,8 @@ object Mp4Tagger {
         val genre: String? = null,
         val cover: ByteArray? = null,
         val tool: String = "PulseDeck",
+        /** V196: the song's track tag («3», «3/12») — only for the video's file name, not written into the MP4. */
+        val track: String? = null,
     ) {
         val isEmpty: Boolean
             get() = listOf(title, artist, album, year, genre).all { it.isNullOrBlank() } && cover == null

@@ -320,6 +320,68 @@ def fetch(file_id: str, dest: Path) -> bool:
     return True
 
 
+STORIES_FOLDER = "1mLIN4o2ROwrbf0ftyLumCRlNf1zm3mXt"
+
+
+def parse_listing(html: str) -> list[tuple[str, str]]:
+    """V196: files of an open Drive folder page («embeddedfolderview»): (id, name) — like Audio Converter."""
+    out, seen = [], set()
+    for chunk in html.split('id="entry-')[1:]:
+        m = re.match(r"[A-Za-z0-9_-]+", chunk)
+        if not m or len(m.group(0)) < 20:
+            continue
+        fid = m.group(0)
+        t = re.search(r'flip-entry-title"?\s*>([^<]*)<', chunk)
+        if not t or fid in seen:
+            continue
+        seen.add(fid)
+        name = (t.group(1).replace("&amp;", "&").replace("&quot;", '"').replace("&#39;", "'")
+                .replace("&lt;", "<").replace("&gt;", ">").strip())
+        out.append((fid, name))
+    return out
+
+
+def fetch_index() -> dict | None:
+    """V196: the current «index.json» of the FARIC — STORIES folder (the same one Audio Converter reads)."""
+    offline = os.environ.get("FARIC_PREVIEW_OFFLINE_DIR")
+    try:
+        if offline:
+            p = Path(offline) / "folder.html"
+            html = p.read_text(encoding="utf-8") if p.exists() else ""
+        else:
+            req = urllib.request.Request(f"https://drive.google.com/embeddedfolderview?id={STORIES_FOLDER}",
+                                         headers={"User-Agent": "Mozilla/5.0 PulseDeck-preview"})
+            with urllib.request.urlopen(req, timeout=30) as r:
+                html = r.read().decode("utf-8", "replace")
+    except Exception as e:  # мережа
+        say(f"   ! не вдалося прочитати папку історій: {e}")
+        return None
+    ids = [fid for fid, name in parse_listing(html) if name == "index.json"]
+    if not ids:
+        return None
+    tmp = Path(tempfile.mkdtemp(prefix="pulsedeck-index-"))
+    try:
+        dest = tmp / "index.json"
+        if not fetch(ids[0], dest):
+            return None
+        return json.loads(dest.read_text(encoding="utf-8"))
+    except ValueError:
+        return None
+    finally:
+        shutil.rmtree(tmp, ignore_errors=True)
+
+
+def story_from_index(index: dict | None, album: dict | None) -> dict | None:
+    """V196: this album's story file in the index — by its «match» words (the index may be newer than the list)."""
+    if not index or not album:
+        return None
+    key = album.get("match", "").upper()
+    for a in index.get("albums", []):
+        if key and key in (a.get("album", "") + " " + a.get("album_print", "")).upper() and a.get("file_id"):
+            return {"story_file": a.get("file", ""), "story_id": a["file_id"], "story_version": a.get("version")}
+    return None
+
+
 def make_cover(src: Path, out: Path) -> bool:
     try:
         run(["ffmpeg", "-nostdin", "-v", "error", "-y", "-i", str(src), "-frames:v", "1", "-vf",
@@ -489,6 +551,14 @@ def build_preview(folder: Path, config: dict, seg: float, fade: float, assume_ye
     tmp = Path(tempfile.mkdtemp(prefix="pulsedeck-preview-"))
     try:
         story = None
+        if album:
+            # V196 (faric 28.10 16:33: VOL. 3 «історія не записалась»): the stories are looked up in the live
+            # index.json on Drive first — a story written after this list was updated is found too.
+            say("Шукаю історію альбому в папці історій на Диску…")
+            fresh = story_from_index(fetch_index(), album)
+            if fresh and fresh["story_id"] != album.get("story_id"):
+                album = {**album, **fresh}
+                say(f"   знайдено: {fresh['story_file']} · v{fresh['story_version']}")
         if album and album.get("story_id"):
             say("Качаю історію альбому з Диска…")
             sp = tmp / "story.json"
@@ -498,7 +568,8 @@ def build_preview(folder: Path, config: dict, seg: float, fade: float, assume_ye
                 except ValueError:
                     say("   ! файл історії зіпсований — без історії")
         elif album:
-            say("Для цього альбому історії ще нема — прев'ю без історії.")
+            say("Для цього альбому історії ще нема на Диску (у index.json папки «FARIC — STORIES») — прев'ю без історії.")
+            say("   Попроси чат «Музика Claude» написати історію цього альбому, потім зроби прев'ю ще раз.")
 
         titles = {f: info[f]["tags"].get("title", "") for f in files}
         track_tags = {f: info[f]["tags"].get("track", "") for f in files}

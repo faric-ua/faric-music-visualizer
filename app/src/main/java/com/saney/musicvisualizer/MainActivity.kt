@@ -11553,12 +11553,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 // («01 - Song.mp4») and still count as «уже є».
                 val fileName = plan.songVideoFileName(songTags.title, songTags.track, song.name)
                 val oldFileName = plan.videoFileName(song.name)
-                if (!testMode &&
-                    (
-                        mediaStoreHasVideo(songPath, fileName, alsoLegacyFolder = true) ||
-                            mediaStoreHasVideo(songPath, oldFileName, alsoLegacyFolder = true)
-                    )
-                ) {
+                val alreadyDone =
+                    !testMode && mediaStoreHasVideo(songPath, fileName, alsoLegacyFolder = true) ||
+                        !testMode && mediaStoreHasVideo(songPath, oldFileName, alsoLegacyFolder = true)
+                if (alreadyDone) {
                     results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.SKIPPED_EXISTS, "відео вже є")
                     ui(100, "Уже є — пропускаю")
                     continue

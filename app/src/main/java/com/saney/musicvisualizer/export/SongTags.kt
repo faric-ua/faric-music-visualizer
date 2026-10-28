@@ -37,6 +37,7 @@ object SongTags {
                         ?: tag(MediaMetadataRetriever.METADATA_KEY_DATE)?.take(4)?.takeIf { it.all(Char::isDigit) },
                 genre = tag(MediaMetadataRetriever.METADATA_KEY_GENRE),
                 cover = runCatching { retriever.embeddedPicture }.getOrNull()?.takeIf { it.size in 9..MAX_COVER_BYTES },
+                track = tag(MediaMetadataRetriever.METADATA_KEY_CD_TRACK_NUMBER),
             )
         } catch (_: Throwable) {
             Mp4Tagger.Tags(title = fallbackTitle, artist = fallbackArtist?.takeIf { it.isNotBlank() })

@@ -5045,7 +5045,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 rateProjectMFocusPreset(ProjectMPresetRating.DOWN)
             },
             legacyControl("−") {
-                rateProjectMFocusPreset(ProjectMPresetRating.HIDDEN)
+                confirmHideProjectMFocusPreset()
             },
         )
         // V157: «шкала навантаження» above the buttons.
@@ -5245,9 +5245,57 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         updateProjectMFocusStatus()
     }
 
-    private fun rateProjectMFocusPreset(rating: ProjectMPresetRating) {
+    /**
+     * V197 (faric 28.10 18:25: «коли кажу видалити — вікно підтвердження: лише цю, як зараз, або галочка
+     * — сховати всі з 👎 з усіх»). Hiding is not deleting: the file stays, «Сховані — повернути…» brings it back.
+     */
+    private fun confirmHideProjectMFocusPreset() {
+        val current = ProjectMStateStore(this).lastPresetFileOrNull() ?: return
+        thread(name = "hide-preset-confirm") {
+            val ratings = ProjectMPresetRatingsStore(this)
+            val disliked =
+                runCatching { ProjectMLibraryManager.allPresetFiles(this) }.getOrDefault(emptyList())
+                    .filter { it.absolutePath != current.absolutePath && ratings.ratingFor(it) == ProjectMPresetRating.DOWN }
+            runOnUiThread {
+                if (isFinishing || isDestroyed) return@runOnUiThread
+                val title = "Сховати «${current.nameWithoutExtension}»?"
+                if (disliked.isEmpty()) {
+                    PulseDeckDialogs.showConfirm(
+                        context = this,
+                        title = title,
+                        message = "Зникне зі списків і з AUTO. Файл лишається — повернути: група → «Сховані — повернути…».",
+                        positiveLabel = "Сховати",
+                        destructive = true,
+                    ) { rateProjectMFocusPreset(ProjectMPresetRating.HIDDEN, current) }
+                    return@runOnUiThread
+                }
+                PulseDeckDialogs.showMultiChoice(
+                    context = this,
+                    title = title,
+                    labels = listOf("І всі з 👎 — з усіх груп (${disliked.size})"),
+                    checked = booleanArrayOf(false),
+                    positiveLabel = "Сховати",
+                ) { ticks ->
+                    if (ticks.getOrElse(0) { false }) {
+                        val gone = disliked.mapTo(HashSet()) { it.absolutePath }
+                        disliked.forEach { ratings.setRating(it, ProjectMPresetRating.HIDDEN) }
+                        projectMFocusPresets = projectMFocusPresets.filterNot { it.absolutePath in gone }
+                        projectMShuffleOrder = projectMShuffleOrder.filterNot { it in gone }
+                        toast("Сховано: ${disliked.size + 1} · повернути — «Сховані — повернути…»")
+                    }
+                    rateProjectMFocusPreset(ProjectMPresetRating.HIDDEN, current)
+                    projectMPresetListAdapter?.notifyDataSetChanged()
+                }
+            }
+        }
+    }
+
+    private fun rateProjectMFocusPreset(
+        rating: ProjectMPresetRating,
+        file: File? = null,
+    ) {
         val state = ProjectMStateStore(this)
-        val current = state.lastPresetFileOrNull() ?: return
+        val current = file ?: state.lastPresetFileOrNull() ?: return
         ProjectMPresetRatingsStore(this).setRating(current, rating)
         // V164 (faric 23.10 18:07–18:13: «палець вниз ставлю — не вбирається» — лише після виходу): in the 👍
         // group a visualization without 👍 leaves the round at once.
@@ -6076,7 +6124,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 },
                 DropRow("Аналіз: легкі / середні / важкі…", DropTick.NONE) { askPresetAnalysis() },
                 DropRow("Підсумок аналізу (таблиця)", DropTick.NONE) { showAnalysisSummary("Підсумок аналізу") },
-                DropRow("Сховати цю візуалізацію назавжди", DropTick.NONE, hint = "було «−»") { rateProjectMFocusPreset(ProjectMPresetRating.HIDDEN) },
+                DropRow("Сховати цю візуалізацію назавжди…", DropTick.NONE, hint = "було «−»") { confirmHideProjectMFocusPreset() },
                 DropRow("Зробити відео (Export Lab)", DropTick.NONE, hint = "було EXPORT") {
                     closeProjectMFocusOverlay()
                     openExportLabWithProjectMCapture()

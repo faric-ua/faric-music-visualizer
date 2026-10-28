@@ -213,9 +213,26 @@ def test_disc_cover() -> None:
         print(f"disc cover PASS ({name}): hole r={hole}px, {out.stat().st_size // 1024} KB")
 
 
+def test_live_index() -> None:
+    """V196: the folder page → index.json → this album's story file."""
+    html = ('<div id="entry-1h-_7ysLWgWQ79XsmzTfxzpkLD30axJhn"><div class="flip-entry-title">index.json</div></div>'
+            '<div id="entry-1xksRzIZTv8Q9nITZVvsAqv93TiFpvxyM"><div class="flip-entry-title">index-OLD-v6.json</div></div>'
+            '<div id="entry-short"><div class="flip-entry-title">x</div></div>')
+    listing = ap.parse_listing(html)
+    assert listing == [("1h-_7ysLWgWQ79XsmzTfxzpkLD30axJhn", "index.json"), ("1xksRzIZTv8Q9nITZVvsAqv93TiFpvxyM", "index-OLD-v6.json")], listing
+    index = {"albums": [{"album": "VOL. 3 — COSMIC JOURNEY", "album_print": "FARIC — COSMIC JOURNEY VOL. 3",
+                         "file": "vol-03-cosmic-journey.json", "file_id": "ID3", "version": 1}]}
+    got = ap.story_from_index(index, {"match": "COSMIC JOURNEY", "story_id": None})
+    assert got == {"story_file": "vol-03-cosmic-journey.json", "story_id": "ID3", "story_version": 1}, got
+    assert ap.story_from_index(index, {"match": "FREESTYLE NIGHTS"}) is None
+    assert ap.story_from_index(None, {"match": "COSMIC JOURNEY"}) is None
+    print("live index PASS")
+
+
 if __name__ == "__main__":
     test_unit()
     test_order_and_tracklist()
+    test_live_index()
     test_real_config()
     test_disc_cover()
     test_end_to_end()

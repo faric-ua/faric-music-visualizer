@@ -1,0 +1,152 @@
+> guard
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+> launch
+  bash arg: -p
+  bash arg: com.saney.musicvisualizer
+  bash arg: -c
+  bash arg: android.intent.category.LAUNCHER
+  bash arg: 1
+Events injected: 1
+## Network stats: elapsed time=43ms (0ms mobile, 0ms wifi, 43ms not connected)
+args: [-p, com.saney.musicvisualizer, -c, android.intent.category.LAUNCHER, 1]
+ arg: "-p"
+ arg: "com.saney.musicvisualizer"
+ arg: "-c"
+ arg: "android.intent.category.LAUNCHER"
+ arg: "1"
+data="com.saney.musicvisualizer"
+data="android.intent.category.LAUNCHER"
+
+> sleep 8
+> tapt Альбоми
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+dump _tapt: UI hierchary dumped to: /sdcard/ui.xml
+tapt Альбоми -> 286,1806
+> sleep 3
+> tapt MIDNIGHT PULSE — White
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+dump _tapt: UI hierchary dumped to: /sdcard/ui.xml
+tapt MIDNIGHT PULSE — White -> 567,951
+> sleep 3
+> tapt IGNITION POINT
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+dump _tapt: UI hierchary dumped to: /sdcard/ui.xml
+tapt IGNITION POINT -> 567,751
+> sleep 8
+> swipe 540 600 540 1300 300
+> sleep 6
+> swipe 540 1900 540 700 500
+> sleep 2
+> swipe 540 1900 540 700 500
+> sleep 2
+> swipe 540 1900 540 700 500
+> sleep 2
+> swipe 540 1900 540 700 500
+> sleep 2
+> tapt Тест 3 с
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+dump _tapt: UI hierchary dumped to: /sdcard/ui.xml
+tapt Тест 3 с -> 540,934
+> sleep 75
+> shot d01-export-done
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+shot d01-export-done: 558584 bytes, top=com.saney.musicvisualizer/.MainActivity
+> tapt OK
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+dump _tapt: UI hierchary dumped to: /sdcard/ui.xml
+tapt OK -> 540,2028
+> sleep 3
+> sh ls -la /sdcard/Movies/PulseDeck /sdcard/Movies/PulseDeck/*
+
+-rwxrwx--- 1 u0_a181 media_rw 7696661 2026-10-29 20:50 /sdcard/Movies/PulseDeck/PulseDeck-preview-1793307054805.mp4
+
+/sdcard/Movies/PulseDeck:
+total 7528
+-rwxrwx--- 1 u0_a181 media_rw 7696661 2026-10-29 20:50 PulseDeck-preview-1793307054805.mp4
+
+> pull /sdcard/Movies/PulseDeck
+/sdcard/Movies/PulseDeck/: 1 file pulled, 0 skipped. 27.5 MB/s (7696661 bytes in 0.267s)
+
+> key BACK
+> sleep 3
+> shot d02-player
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+shot d02-player: 3950174 bytes, top=com.saney.musicvisualizer/.MainActivity
+> tap 168 2100
+> sleep 4
+> shot d03-palette
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+shot d03-palette: 168489 bytes, top=com.saney.musicvisualizer/.MainActivity
+> dump d03-palette
+dump d03-palette: UI hierchary dumped to: /sdcard/ui.xml
+> key BACK
+> sleep 3
+> swipe 200 800 900 800 300
+> sleep 4
+> tapt Scene Lab
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+dump _tapt: UI hierchary dumped to: /sdcard/ui.xml
+tapt Scene Lab -> 952,565
+> sleep 4
+> swipe 540 1900 540 800 500
+> sleep 2
+> swipe 540 1900 540 800 500
+> sleep 2
+> tapt Vinyl
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+dump _tapt: UI hierchary dumped to: /sdcard/ui.xml
+tapt Vinyl: NOT FOUND
+> sleep 8
+> shot d04-vinyl
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+shot d04-vinyl: 222547 bytes, top=com.saney.musicvisualizer/.MainActivity
+> sleep 3
+> shot d04-vinyl-b
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+shot d04-vinyl-b: 222487 bytes, top=com.saney.musicvisualizer/.MainActivity
+> swipe 200 800 900 800 300
+> sleep 4
+> tapt Scene Lab
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+dump _tapt: UI hierchary dumped to: /sdcard/ui.xml
+tapt Scene Lab: NOT FOUND
+> sleep 4
+> swipe 540 1900 540 800 500
+> sleep 2
+> swipe 540 1900 540 800 500
+> sleep 2
+> tapt Cassette
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+dump _tapt: UI hierchary dumped to: /sdcard/ui.xml
+tapt Cassette -> 540,1442
+> sleep 8
+> shot d05-cassette
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+shot d05-cassette: 3329962 bytes, top=com.saney.musicvisualizer/.MainActivity
+> sleep 3
+> shot d05-cassette-b
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+shot d05-cassette-b: 3331065 bytes, top=com.saney.musicvisualizer/.MainActivity
+> swipe 200 800 900 800 300
+> sleep 4
+> tapt Scene Lab
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+dump _tapt: UI hierchary dumped to: /sdcard/ui.xml
+tapt Scene Lab -> 952,565
+> sleep 4
+> swipe 540 1900 540 800 500
+> sleep 2
+> swipe 540 1900 540 800 500
+> sleep 2
+> tapt Обкладинка
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+dump _tapt: UI hierchary dumped to: /sdcard/ui.xml
+tapt Обкладинка -> 540,1993
+> sleep 8
+> shot d06-cover
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+shot d06-cover: 2386708 bytes, top=com.saney.musicvisualizer/.MainActivity
+> sleep 3
+> shot d06-cover-b
+dump _guard: UI hierchary dumped to: /sdcard/ui.xml
+shot d06-cover-b: 2381713 bytes, top=com.saney.musicvisualizer/.MainActivity

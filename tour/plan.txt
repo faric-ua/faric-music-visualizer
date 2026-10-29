@@ -1,0 +1,20 @@
+# Прохід 1: розвідка — що на екрані після запуску й після свайпів.
+launch
+sleep 12
+shot 01-start
+dump 01-start
+swipe 60 1200 1020 1200 400
+sleep 4
+shot 02-swipe-right
+dump 02-swipe-right
+swipe 1020 1200 60 1200 400
+sleep 4
+shot 03-back-center
+swipe 1020 1200 60 1200 400
+sleep 6
+shot 04-swipe-left
+dump 04-swipe-left
+swipe 60 1200 1020 1200 400
+sleep 4
+shot 05-center-again
+dump 05-center-again

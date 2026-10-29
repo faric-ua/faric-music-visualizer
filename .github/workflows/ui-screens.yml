@@ -1,0 +1,56 @@
+name: UI screens (presentation)
+
+# Знімки екранів PulseDeck на емуляторі для відео-показу (faric 29.10).
+# Push у diag/ui-screens* → PNG / XML комітяться в гілку diag/ui-screens-out
+# (сесія Claude не вміє завантажувати артефакти Actions).
+on:
+  push:
+    branches:
+      - 'diag/ui-screens*'
+
+permissions:
+  contents: write
+
+jobs:
+  screens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 40
+    steps:
+      - uses: actions/checkout@v6
+      - name: Enable KVM acceleration
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+      - name: Download phone-build APK
+        run: |
+          set -euo pipefail
+          gh release download phone-build --pattern '*.apk' --dir apk --repo "$GITHUB_REPOSITORY"
+          ls -la apk
+        env:
+          GH_TOKEN: ${{ github.token }}
+      - name: Screens on emulator
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: 34
+          target: google_apis
+          arch: x86_64
+          profile: pixel_6
+          disable-animations: false
+          emulator-options: -no-window -no-boot-anim -gpu swiftshader_indirect -camera-back none
+          script: bash tour/run.sh
+      - name: Commit screens to diag/ui-screens-out
+        if: always()
+        run: |
+          set -euo pipefail
+          git config user.name "pulsedeck-screens-bot"
+          git config user.email "actions@users.noreply.github.com"
+          mkdir -p out
+          git switch --orphan screens-tmp
+          git rm -rf --cached . >/dev/null 2>&1 || true
+          find . -mindepth 1 -maxdepth 1 ! -name out ! -name .git -exec rm -rf {} +
+          mv out/* . && rmdir out
+          echo "source: ${GITHUB_SHA}" > SOURCE.txt
+          git add -A
+          git commit -m "UI screens from ${GITHUB_SHA::7}"
+          git push -f origin HEAD:diag/ui-screens-out

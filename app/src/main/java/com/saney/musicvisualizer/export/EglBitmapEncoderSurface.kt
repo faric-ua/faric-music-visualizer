@@ -521,11 +521,15 @@ class EglBitmapEncoderSurface(
     }
 
     /** V94: AUTO in the video — switch the offline projectM to another visualization. */
-    fun loadOfflinePreset(path: String) {
+    fun loadOfflinePreset(
+        path: String,
+        /** V198: blend seconds (null — hard cut, as before). */
+        blendSeconds: Double? = null,
+    ) {
         check(directProjectMActive) { "Direct GPU projectM is not initialized" }
         makeCurrent()
         ProjectMBridge.beginOfflineExport()
-        ProjectMBridge.loadPreset(path = path, smoothTransition = false)
+        ProjectMBridge.loadPreset(path = path, smoothTransition = blendSeconds != null, softCutSeconds = blendSeconds)
     }
 
     fun renderOfflineProjectM(

@@ -245,6 +245,7 @@ class ProjectMView(
         file: File,
         smoothTransition: Boolean = true,
         onLoaded: ((Long) -> Unit)? = null,
+        softCutSeconds: Double? = null,
     ) {
         if (!file.isFile) return
         currentPresetPath = file.absolutePath
@@ -254,6 +255,7 @@ class ProjectMView(
                 ProjectMBridge.loadPreset(
                     path = file.absolutePath,
                     smoothTransition = smoothTransition,
+                    softCutSeconds = softCutSeconds,
                 )
 
             if (onLoaded != null) {

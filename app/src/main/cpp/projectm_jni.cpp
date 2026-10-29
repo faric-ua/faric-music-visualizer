@@ -1609,6 +1609,22 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetSignal(
         );
 }
 
+// V198: the blend length of the next switch («плавно 1 с / 2 с»).
+extern "C" JNIEXPORT void JNICALL
+Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetSoftCutDuration(
+        JNIEnv*,
+        jclass,
+        jdouble seconds) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+
+    if (g_projectm) {
+        projectm_set_soft_cut_duration(
+            g_projectm,
+            std::clamp(static_cast<double>(seconds), 0.1, 5.0)
+        );
+    }
+}
+
 extern "C" JNIEXPORT jlong JNICALL
 Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeLoadPreset(
         JNIEnv* env,

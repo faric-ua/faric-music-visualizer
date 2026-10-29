@@ -27,6 +27,16 @@ data class ProjectMPerformanceProfile(
             softCutSeconds = 1.2,
         )
 
+        /** V198: «легка 50 %» — projectM in the video at half size (faster export). */
+        val LIGHT_EXPORT = ProjectMPerformanceProfile(
+            name = "LIGHT",
+            renderScale = 0.5f,
+            meshX = 48,
+            meshY = 32,
+            targetFps = 60,
+            softCutSeconds = 0.70,
+        )
+
         val ECO = ProjectMPerformanceProfile(
             name = "ECO",
             renderScale = 0.62f,

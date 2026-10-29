@@ -5610,7 +5610,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
         if (next.absolutePath != current) {
             state.lastPresetPath = next.absolutePath
-            projectMMainView?.loadPreset(next, smoothTransition = false)
+            // V198: AUTO / NEXT may blend into the next one (setting «Зміна візуалізацій»).
+            val blend = com.saney.musicvisualizer.projectm.PresetBlend.secondsFor(state.blendMs)
+            projectMMainView?.loadPreset(next, smoothTransition = blend != null, softCutSeconds = blend)
         }
         updateProjectMFocusStatus()
         if (manual) ensureProjectMAutoRunning()
@@ -6121,6 +6123,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             listOf(
                 DropRow("Екран: " + if (state.lightMode) "легкий режим" else "звичайна якість", DropTick.NONE, hint = "змінити ›") {
                     projectMFocusLightControl?.performClick()
+                },
+                DropRow(presetBlendLabel(), DropTick.NONE, hint = "змінити ›", keepOpen = true) {
+                    state.blendMs = com.saney.musicvisualizer.projectm.PresetBlend.next(state.blendMs)
                 },
                 DropRow("Аналіз: легкі / середні / важкі…", DropTick.NONE) { askPresetAnalysis() },
                 DropRow("Підсумок аналізу (таблиця)", DropTick.NONE) { showAnalysisSummary("Підсумок аналізу") },
@@ -8989,20 +8994,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
-    /** V103: projectM quality in the MP4 — normal (78 %, as before) or high (100 %, sharper, slower). */
-    private fun exportProjectMProfile(): ProjectMPerformanceProfile =
-        if (exportPrefs().getBoolean(KEY_EXPORT_PROJECTM_HIGH, false)) {
-            ProjectMPerformanceProfile.QUALITY
-        } else {
-            ProjectMPerformanceProfile.BALANCED_BACKGROUND
-        }
+    /** V103 / V198: projectM quality in the MP4 — light 50 %, normal 78 % (as before) or high 100 %. */
+    private fun exportProjectMLevel(): com.saney.musicvisualizer.projectm.ExportProjectMLevel =
+        com.saney.musicvisualizer.projectm.ExportProjectMLevel.from(
+            exportPrefs().getInt(KEY_EXPORT_PROJECTM_LEVEL, -1),
+            exportPrefs().getBoolean(KEY_EXPORT_PROJECTM_HIGH, false),
+        )
 
-    private fun exportQualityLabel(): String =
-        if (exportPrefs().getBoolean(KEY_EXPORT_PROJECTM_HIGH, false)) {
-            "Візуалізація у відео: висока якість (100 %)"
-        } else {
-            "Візуалізація у відео: звичайна (78 %)"
-        }
+    private fun exportProjectMProfile(): ProjectMPerformanceProfile = exportProjectMLevel().profile
+
+    private fun exportQualityLabel(): String = "Візуалізація у відео: " + exportProjectMLevel().label
+
+    /** V198: «Зміна візуалізацій: різко / плавно 1 с / плавно 2 с» — the same on screen and in the video. */
+    private fun presetBlendLabel(): String =
+        "Зміна візуалізацій: " + com.saney.musicvisualizer.projectm.PresetBlend.label(ProjectMStateStore(this).blendMs)
 
     private fun exportPrefs() =
         getSharedPreferences("faric_export_options_v1", android.content.Context.MODE_PRIVATE)
@@ -9355,9 +9360,30 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ) {}.apply {
                 // V85: the switch changes only itself — the screen is not re-drawn.
                 setOnClickListener {
-                    val now = !exportPrefs().getBoolean(KEY_EXPORT_PROJECTM_HIGH, false)
-                    exportPrefs().edit().putBoolean(KEY_EXPORT_PROJECTM_HIGH, now).apply()
+                    // V198: 50 % → 78 % → 100 % → 50 % …
+                    exportPrefs().edit().putInt(KEY_EXPORT_PROJECTM_LEVEL, exportProjectMLevel().next().ordinal).apply()
                     text = exportQualityLabel()
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+            },
+        )
+
+        // V198 (faric 29.10 14:43: «переключається дуже різко — хоча б секунду наплива»): the same setting
+        // as on the right page; the video's first frame always starts clean.
+        content.addView(
+            exportPill(
+                text = presetBlendLabel(),
+                accent = false,
+            ) {}.apply {
+                setOnClickListener {
+                    val state = ProjectMStateStore(this@MainActivity)
+                    state.blendMs = com.saney.musicvisualizer.projectm.PresetBlend.next(state.blendMs)
+                    text = presetBlendLabel()
                 }
             },
             LinearLayout.LayoutParams(
@@ -11150,7 +11176,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     presetForVideoTime =
                         presetSchedule?.let { schedule -> { videoMs: Long -> schedule.presetAt(videoMs) } },
                     loadPresetOnView =
-                        projectMView?.let { view -> { path: String -> view.loadPreset(java.io.File(path), smoothTransition = false) } },
+                        projectMView?.let { view ->
+                            { path: String, blend: Double? ->
+                                view.loadPreset(java.io.File(path), smoothTransition = blend != null, softCutSeconds = blend)
+                            }
+                        },
+                    presetBlendMs = ProjectMStateStore(this).blendMs,
                     requestedDurationMs =
                         requestedDurationMs,
                     fps =
@@ -13511,7 +13542,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 append("\n\nсписок: ")
                 append(projectMModeLabel(ProjectMStateStore(this@MainActivity).backgroundMode))
                 append(" · візуалізація: ")
-                append(if (exportPrefs().getBoolean(KEY_EXPORT_PROJECTM_HIGH, false)) "висока 100 %" else "звичайна 78 %")
+                append(exportProjectMLevel().label)
+                append(" · зміна: ")
+                append(com.saney.musicvisualizer.projectm.PresetBlend.label(ProjectMStateStore(this@MainActivity).blendMs))
                 append("\nнагрів: старт ")
                 append(exportHeatAtStart ?: "—")
                 append(" → кінець ")
@@ -13812,6 +13845,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val KEY_BATCH_TEST_MODE = "test_mode"
         private const val KEY_EXPORT_TEST_CLIP_MS = "test_clip_ms"
         private const val KEY_EXPORT_PROJECTM_HIGH = "projectm_high_quality"
+        private const val KEY_EXPORT_PROJECTM_LEVEL = "projectm_export_level"
         private const val PROJECTM_EXPORT_FPS =
             30
 

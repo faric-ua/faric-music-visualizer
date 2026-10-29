@@ -54,8 +54,11 @@ object ProjectMBridge {
     fun loadPreset(
         path: String,
         smoothTransition: Boolean = true,
+        /** V198: the blend's length for this switch (null — keep the one set at start). */
+        softCutSeconds: Double? = null,
     ): Long {
         if (!active || path.isBlank()) return -1L
+        if (smoothTransition && softCutSeconds != null) nativeSetSoftCutDuration(softCutSeconds)
         return nativeLoadPreset(
             path,
             smoothTransition,
@@ -236,6 +239,7 @@ object ProjectMBridge {
         smoothTransition: Boolean,
     ): Long
     private external fun nativeSetAutoPresetSwitching(enabled: Boolean)
+    private external fun nativeSetSoftCutDuration(seconds: Double)
     private external fun nativeSetBackgroundVisible(
         visible: Boolean,
     )

@@ -1,69 +1,91 @@
-# Прохід 2: головна → альбоми → альбом → плеєр → ліво / право → Export → меню; потім Scene Lab, Tone Lab.
+# Прохід 3: плеєр і його кнопки, projectM (свайп ←), Export Lab (свайп ↓), Scene Lab, Tone Lab.
 launch
-sleep 10
-shot h01-home
+sleep 8
+shot a01-home
 tapt Альбоми
-sleep 4
-shot h02-albums
-dump h02-albums
-tapt MIDNIGHT PULSE
-sleep 4
-shot h03-album
-dump h03-album
+sleep 3
+shot a02-albums
+tapt MIDNIGHT PULSE — White
+sleep 3
+shot a03-album
+dump a03-album
 tapt IGNITION POINT
-sleep 9
-shot h04-player
-dump h04-player
-sleep 5
-shot h05-player-b
-swipe 250 1300 900 1300 350
-sleep 5
-shot h06-left
-dump h06-left
-swipe 900 1300 250 1300 350
-sleep 4
-shot h07-center
-swipe 900 1300 250 1300 350
-sleep 7
-shot h08-right
-dump h08-right
-sleep 4
-shot h08-right-b
-swipe 250 1300 900 1300 350
-sleep 4
-shot h09-center
-dump h09-center
-tapt ⇧
-sleep 5
-shot h10-export
-dump h10-export
-key BACK
+sleep 10
+shot a04-player
 sleep 3
-shot h11-after-back
-dump h11-after-back
-tapt ⋮
+shot a04b-player
+tap 980 1290
 sleep 3
-shot h12-menu
-dump h12-menu
+shot a05-song-menu
+dump a05-song-menu
 key BACK
 sleep 2
+tap 168 2100
+sleep 4
+shot a06-theme
+dump a06-theme
 key BACK
 sleep 3
-shot h13-back
-dump h13-back
+tap 416 2100
+sleep 4
+shot a07-tree
+dump a07-tree
+key BACK
+sleep 3
+tap 664 2100
+sleep 4
+shot a08-eq
+dump a08-eq
+key BACK
+sleep 3
+tap 980 272
+sleep 3
+shot a09-menu
+dump a09-menu
+key BACK
+sleep 2
+shot a10-check
+swipe 900 800 200 800 300
+sleep 7
+shot a11-projectm
+dump a11-projectm
+sleep 4
+shot a11b-projectm
+key BACK
+sleep 4
+shot a12-after
+swipe 540 600 540 1300 300
+sleep 6
+shot a13-export
+dump a13-export
+swipe 540 1800 540 700 500
+sleep 2
+shot a13b-export
+dump a13b-export
+key BACK
+sleep 4
+shot a14-after
+swipe 200 800 900 800 300
+sleep 4
+shot a15-library
+dump a15-library
 tapt Scene Lab
 sleep 4
-shot h14-scenelab
-dump h14-scenelab
+shot a16-scenelab
+dump a16-scenelab
 key BACK
 sleep 3
 tapt Tone Lab
 sleep 4
-shot h15-tonelab
-dump h15-tonelab
+shot a17-tonelab
+dump a17-tonelab
 key BACK
 sleep 3
 tapt Усі треки
 sleep 4
-shot h16-alltracks
-dump h16-alltracks
+shot a18-alltracks
+key BACK
+sleep 3
+tapt Виконавці
+sleep 3
+shot a19-artists

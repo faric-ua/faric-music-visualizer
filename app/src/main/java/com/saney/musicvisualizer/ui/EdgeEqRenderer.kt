@@ -14,6 +14,15 @@ import android.graphics.RectF
 class EdgeEqRenderer {
     var settings: EdgeEqSettings = EdgeEqSettings.DEFAULT
 
+    /**
+     * V200: «Окантовка у відео: швидка (тест)» — each layer as one triangle mesh ([EdgeEqMesh]) instead of
+     * hundreds of strokes. Set only by the video export, used only on a software canvas.
+     */
+    var fastMesh = false
+
+    private val mesh = EdgeEqMesh()
+    private val meshPaint = Paint().apply { color = android.graphics.Color.WHITE }
+
     private val linePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
     private val glowPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply { style = Paint.Style.STROKE; strokeCap = Paint.Cap.ROUND }
     private val rings = HashMap<String, FloatArray>()
@@ -169,6 +178,10 @@ class EdgeEqRenderer {
     ) {
         if (count <= 0) return
         val steps = steps(palette)
+        if (fastMesh && !canvas.isHardwareAccelerated) {
+            drawMesh(canvas, data, angles, count, stride, turn, steps, glowWidth, glowAlpha, width, lineAlpha)
+            return
+        }
         if (bucketOf.size < count) bucketOf = IntArray(count)
         if (sorted.size < count * stride) sorted = FloatArray(count * stride)
         bucketCount.fill(0)
@@ -204,6 +217,53 @@ class EdgeEqRenderer {
                 }
             }
         }
+    }
+
+    /** V200: the same strokes as one mesh — one draw call for the whole layer. */
+    private fun drawMesh(
+        canvas: Canvas,
+        data: FloatArray,
+        angles: FloatArray,
+        count: Int,
+        stride: Int,
+        turn: Float,
+        steps: IntArray,
+        glowWidth: Float,
+        glowAlpha: Float,
+        width: Float,
+        lineAlpha: Float,
+    ) {
+        mesh.begin()
+        val coreHalf = width / 2f
+        val glowHalf = glowWidth / 2f
+        // The glow fades out instead of ending flat — a little stronger at its start keeps the same light.
+        val glowA = (glowAlpha * 1.6f).toInt().coerceIn(0, 255)
+        val lineA = lineAlpha.toInt().coerceIn(0, 255)
+        val feather = maxOf(0.35f, coreHalf * 0.5f)
+        for (i in 0 until count) {
+            val rgb = steps[EdgeEqMath.bucket(angles[i], turn)]
+            val o = i * stride
+            if (stride == 4) {
+                mesh.addStroke(data[o], data[o + 1], data[o + 2], data[o + 3], coreHalf, glowHalf, feather, rgb, lineA, glowA)
+            } else {
+                mesh.addStroke(data[o], data[o + 1], data[o], data[o + 1], coreHalf, glowHalf, feather, rgb, lineA, glowA)
+            }
+        }
+        if (mesh.vertexCount == 0) return
+        canvas.drawVertices(
+            Canvas.VertexMode.TRIANGLES,
+            mesh.vertexCount * 2,
+            mesh.verts,
+            0,
+            null,
+            0,
+            mesh.colors,
+            0,
+            mesh.indices,
+            0,
+            mesh.indexCount,
+            meshPaint,
+        )
     }
 
     private fun steps(palette: Int): IntArray =

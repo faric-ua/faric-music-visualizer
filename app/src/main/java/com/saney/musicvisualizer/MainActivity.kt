@@ -9006,6 +9006,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun exportQualityLabel(): String = "Візуалізація у відео: " + exportProjectMLevel().label
 
+    /** V200: «Окантовка у відео: звичайна / швидка (тест)» — default «звичайна» (as before). */
+    private fun exportFastEdge(): Boolean = exportPrefs().getBoolean(KEY_EXPORT_FAST_EDGE, false)
+
+    private fun exportFastEdgeLabel(): String =
+        "Окантовка у відео: " + if (exportFastEdge()) "швидка (тест)" else "звичайна"
+
     /** V199: «Розмір відео: 1080p / 720p» (test: 1080p by default). */
     private fun exportVideo720(): Boolean = exportPrefs().getBoolean(KEY_EXPORT_VIDEO_720, false)
 
@@ -9392,6 +9398,25 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 setOnClickListener {
                     exportPrefs().edit().putBoolean(KEY_EXPORT_VIDEO_720, !exportVideo720()).apply()
                     text = exportVideoSizeLabel()
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+            },
+        )
+
+        // V200 (faric 29.10 19:30: «окантовку — той самий вигляд, тест»): the edge equalizer as one mesh.
+        content.addView(
+            exportPill(
+                text = exportFastEdgeLabel(),
+                accent = false,
+            ) {}.apply {
+                setOnClickListener {
+                    exportPrefs().edit().putBoolean(KEY_EXPORT_FAST_EDGE, !exportFastEdge()).apply()
+                    text = exportFastEdgeLabel()
                 }
             },
             LinearLayout.LayoutParams(
@@ -9942,6 +9967,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 coverArt,
             album = tagAlbum,
             standaloneSeeThrough = standaloneSeeThrough,
+            edgeFastMesh = exportFastEdge(),
             hudCoverArt = currentCoverArt,
             hudCoverMode = coverBoxMode(),
             hudCoverMix = coverMix(),
@@ -13579,6 +13605,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 append(exportProjectMLevel().label)
                 append(" · зміна: ")
                 append(com.saney.musicvisualizer.projectm.PresetBlend.label(ProjectMStateStore(this@MainActivity).blendMs))
+                append(" · окантовка: ")
+                append(if (exportFastEdge()) "швидка (тест)" else "звичайна")
                 append("\nнагрів: старт ")
                 append(exportHeatAtStart ?: "—")
                 append(" → кінець ")
@@ -13881,6 +13909,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val KEY_EXPORT_PROJECTM_HIGH = "projectm_high_quality"
         private const val KEY_EXPORT_PROJECTM_LEVEL = "projectm_export_level"
         private const val KEY_EXPORT_VIDEO_720 = "video_720p"
+        private const val KEY_EXPORT_FAST_EDGE = "edge_fast_mesh"
         private const val PROJECTM_EXPORT_FPS =
             30
 

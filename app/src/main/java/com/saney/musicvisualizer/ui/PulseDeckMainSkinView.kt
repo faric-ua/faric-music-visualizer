@@ -2202,6 +2202,13 @@ class PulseDeckMainSkinView(
      */
     var videoPixelCopies = false
 
+    /** V200: «Окантовка у відео: швидка (тест)» — the edge equalizer as one mesh per layer (video only). */
+    var videoFastEdge: Boolean
+        get() = edgeRenderer.fastMesh
+        set(value) {
+            edgeRenderer.fastMesh = value
+        }
+
     private var dryPass = false
 
     /** The software canvas's whole stretch-and-move, or null on the screen / when the picture is turned. */

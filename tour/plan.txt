@@ -1,79 +1,104 @@
-# Прохід 5: інший диск у плеєрі, шари, герої, теми «Неон-герой» і «Обкладинка», експорт 3 с.
+# Прохід 6: пісня грає → теми (Неон-герой, Neon Emblem, Обкладинка, Vinyl, Cassette) → назад Visualizer → Export Lab і тест.
 guard
 launch
 sleep 8
 tapt Альбоми
 sleep 3
-tapt FREESTYLE NIGHTS — White
+tapt MIDNIGHT PULSE — White
 sleep 3
-tapt MIDNIGHT FREQUENCY
-sleep 10
-shot b01-player4
-tap 980 272
-sleep 3
-tapt Шари / Layers
-sleep 4
-shot b02-layers
-dump b02-layers
-key BACK
-sleep 3
-shot b02b-after
+tapt IGNITION POINT
+sleep 8
+shot c00-player
 swipe 200 800 900 800 300
 sleep 4
-tapt Scene Lab
-sleep 4
-shot b03-themes
-tapt Герої · 1
-sleep 3
-shot b04-heroes
-dump b04-heroes
-swipe 540 1900 540 700 500
-sleep 2
-shot b05-themes-more
-dump b05-themes-more
-swipe 540 1900 540 700 500
-sleep 2
-shot b05b-themes-more
-dump b05b-themes-more
-key BACK
-sleep 3
 tapt Scene Lab
 sleep 4
 tapt Неон-герой
 sleep 8
-shot b06-neon
-sleep 4
-shot b06b-neon
-dump b06-neon
-key BACK
+shot c01-neon
 sleep 3
-shot b06c-after
+shot c01-neon-b
 swipe 200 800 900 800 300
 sleep 4
 tapt Scene Lab
 sleep 4
-swipe 540 1900 540 700 500
+tapt Neon Emblem
+sleep 8
+shot c02-emblem
+sleep 3
+shot c02-emblem-b
+swipe 200 800 900 800 300
+sleep 4
+tapt Scene Lab
+sleep 4
+swipe 540 1900 540 800 500
 sleep 2
-swipe 540 1900 540 700 500
+swipe 540 1900 540 800 500
 sleep 2
 tapt Обкладинка
 sleep 8
-shot b07-cover-theme
-dump b07-cover-theme
+shot c03-cover
+sleep 3
+shot c03-cover-b
+swipe 200 800 900 800 300
+sleep 4
+tapt Scene Lab
+sleep 4
+swipe 540 1900 540 800 500
+sleep 2
+swipe 540 1900 540 800 500
+sleep 2
+tapt Vinyl
+sleep 8
+shot c04-vinyl
+sleep 3
+shot c04-vinyl-b
+swipe 200 800 900 800 300
+sleep 4
+tapt Scene Lab
+sleep 4
+swipe 540 1900 540 800 500
+sleep 2
+swipe 540 1900 540 800 500
+sleep 2
+tapt Cassette
+sleep 8
+shot c05-cassette
+sleep 3
+shot c05-cassette-b
+swipe 200 800 900 800 300
+sleep 4
+tapt Scene Lab
+sleep 4
+swipe 540 1900 540 800 500
+sleep 2
+swipe 540 1900 540 800 500
+sleep 2
+swipe 540 1900 540 800 500
+sleep 2
+swipe 540 1900 540 800 500
+sleep 2
+tapt Visualizer
+sleep 8
+shot c06-back-viz
 swipe 540 600 540 1300 300
 sleep 6
-swipe 540 1900 540 600 500
+shot c07-export
+dump c07-export
+swipe 540 1900 540 700 500
 sleep 2
-swipe 540 1900 540 600 500
+swipe 540 1900 540 700 500
 sleep 2
-swipe 540 1900 540 600 500
+swipe 540 1900 540 700 500
 sleep 2
-shot b08-export-bottom
-dump b08-export-bottom
-tapt 3 с
+swipe 540 1900 540 700 500
+sleep 2
+shot c08-export-bottom
+dump c08-export-bottom
+tapt Тест
+sleep 90
+shot c09-export-run
+dump c09-export-run
 sleep 60
-shot b09-export
-dump b09-export
-sleep 40
-shot b10-export
-dump b10-export
+shot c10-export-run
+dump c10-export-run

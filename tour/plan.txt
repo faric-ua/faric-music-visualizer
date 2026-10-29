@@ -1,4 +1,4 @@
-# Прохід 6: пісня грає → теми (Неон-герой, Neon Emblem, Обкладинка, Vinyl, Cassette) → назад Visualizer → Export Lab і тест.
+# Прохід 7: експорт 3 с і забрати MP4; теми Vinyl, Cassette, Обкладинка.
 guard
 launch
 sleep 8
@@ -8,38 +8,32 @@ tapt MIDNIGHT PULSE — White
 sleep 3
 tapt IGNITION POINT
 sleep 8
-shot c00-player
-swipe 200 800 900 800 300
-sleep 4
-tapt Scene Lab
-sleep 4
-tapt Неон-герой
-sleep 8
-shot c01-neon
-sleep 3
-shot c01-neon-b
-swipe 200 800 900 800 300
-sleep 4
-tapt Scene Lab
-sleep 4
-tapt Neon Emblem
-sleep 8
-shot c02-emblem
-sleep 3
-shot c02-emblem-b
-swipe 200 800 900 800 300
-sleep 4
-tapt Scene Lab
-sleep 4
-swipe 540 1900 540 800 500
+swipe 540 600 540 1300 300
+sleep 6
+swipe 540 1900 540 700 500
 sleep 2
-swipe 540 1900 540 800 500
+swipe 540 1900 540 700 500
 sleep 2
-tapt Обкладинка
-sleep 8
-shot c03-cover
+swipe 540 1900 540 700 500
+sleep 2
+swipe 540 1900 540 700 500
+sleep 2
+tapt Тест 3 с
+sleep 75
+shot d01-export-done
+tapt OK
 sleep 3
-shot c03-cover-b
+sh ls -la /sdcard/Movies/PulseDeck /sdcard/Movies/PulseDeck/*
+pull /sdcard/Movies/PulseDeck
+key BACK
+sleep 3
+shot d02-player
+tap 168 2100
+sleep 4
+shot d03-palette
+dump d03-palette
+key BACK
+sleep 3
 swipe 200 800 900 800 300
 sleep 4
 tapt Scene Lab
@@ -50,9 +44,9 @@ swipe 540 1900 540 800 500
 sleep 2
 tapt Vinyl
 sleep 8
-shot c04-vinyl
+shot d04-vinyl
 sleep 3
-shot c04-vinyl-b
+shot d04-vinyl-b
 swipe 200 800 900 800 300
 sleep 4
 tapt Scene Lab
@@ -63,9 +57,9 @@ swipe 540 1900 540 800 500
 sleep 2
 tapt Cassette
 sleep 8
-shot c05-cassette
+shot d05-cassette
 sleep 3
-shot c05-cassette-b
+shot d05-cassette-b
 swipe 200 800 900 800 300
 sleep 4
 tapt Scene Lab
@@ -74,31 +68,8 @@ swipe 540 1900 540 800 500
 sleep 2
 swipe 540 1900 540 800 500
 sleep 2
-swipe 540 1900 540 800 500
-sleep 2
-swipe 540 1900 540 800 500
-sleep 2
-tapt Visualizer
+tapt Обкладинка
 sleep 8
-shot c06-back-viz
-swipe 540 600 540 1300 300
-sleep 6
-shot c07-export
-dump c07-export
-swipe 540 1900 540 700 500
-sleep 2
-swipe 540 1900 540 700 500
-sleep 2
-swipe 540 1900 540 700 500
-sleep 2
-swipe 540 1900 540 700 500
-sleep 2
-shot c08-export-bottom
-dump c08-export-bottom
-tapt Тест
-sleep 90
-shot c09-export-run
-dump c09-export-run
-sleep 60
-shot c10-export-run
-dump c10-export-run
+shot d06-cover
+sleep 3
+shot d06-cover-b

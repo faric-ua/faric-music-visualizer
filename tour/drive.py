@@ -16,7 +16,10 @@ def adb(*a, timeout=60, binary=False):
 last_xml = ''
 def dump(name):
     global last_xml
-    o = adb('shell', 'uiautomator', 'dump', '/sdcard/ui.xml', timeout=25)
+    for _ in range(4):
+        o = adb('shell', 'uiautomator', 'dump', '/sdcard/ui.xml', timeout=25)
+        if 'dumped' in o: break
+        time.sleep(1.5)
     x = adb('shell', 'cat', '/sdcard/ui.xml', timeout=20)
     if '<hierarchy' in x:
         last_xml = x; open(f'{OUT}/{name}.xml', 'w').write(x)
@@ -70,6 +73,7 @@ for line in open(sys.argv[1], encoding='utf-8'):
     elif cmd == 'sleep': time.sleep(float(rest))
     elif cmd == 'tapt': tapt(rest)
     elif cmd == 'launch': log.write(adb('shell', 'monkey', '-p', PKG, '-c', 'android.intent.category.LAUNCHER', '1') + '\n')
+    elif cmd == 'pull': log.write(adb('pull', rest, OUT + '/pulled', timeout=120) + '\n')
     elif cmd == 'sh': log.write(adb('shell', rest) + '\n')
     log.flush()
 log.close()

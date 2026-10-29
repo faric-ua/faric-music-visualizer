@@ -1,4 +1,5 @@
 # Прохід 3: плеєр і його кнопки, projectM (свайп ←), Export Lab (свайп ↓), Scene Lab, Tone Lab.
+guard
 launch
 sleep 8
 shot a01-home

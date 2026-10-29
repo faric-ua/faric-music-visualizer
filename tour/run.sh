@@ -9,6 +9,8 @@ sleep 8
 adb shell content query --uri content://media/external/audio/media --projection _display_name:album > out/mediastore.txt 2>&1 || true
 adb shell settings put system screen_off_timeout 1800000
 adb shell svc power stayon true
+sleep 45
+adb shell am broadcast -a android.intent.action.CLOSE_SYSTEM_DIALOGS || true
 python3 tour/drive.py tour/plan.txt
 adb logcat -d -t 3000 > out/logcat.txt 2>&1 || true
 adb shell dumpsys activity activities | head -80 > out/activities.txt 2>&1 || true

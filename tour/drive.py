@@ -27,7 +27,25 @@ def shot(name):
     top = adb('shell', 'dumpsys', 'activity', 'activities', timeout=20)
     m = re.search(r'topResumedActivity=.*?\{[^ ]+ [^ ]+ ([^ }]+)', top)
     log.write(f'shot {name}: {len(png)} bytes, top={m.group(1) if m else "?"}\n')
+def guard():
+    # Системне вікно «… isn't responding» (емулятор повільний) — натиснути «Wait».
+    for _ in range(3):
+        dump('_guard')
+        if "isn't responding" in last_xml or 'не відповідає' in last_xml:
+            log.write('guard: ANR dialog -> Wait\n'); tapt_xml('Wait'); time.sleep(3)
+        else:
+            return
+def tapt_xml(text):
+    for m in re.finditer(r'<node [^>]*>', last_xml):
+        n = m.group(0)
+        t = html.unescape(re.search(r'text="([^"]*)"', n).group(1)); d = html.unescape(re.search(r'content-desc="([^"]*)"', n).group(1))
+        if text in t or text in d:
+            b = re.search(r'bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"', n)
+            x = (int(b.group(1)) + int(b.group(3))) // 2; y = (int(b.group(2)) + int(b.group(4))) // 2
+            adb('shell', 'input', 'tap', str(x), str(y)); log.write(f'tap {text} -> {x},{y}\n'); return True
+    return False
 def tapt(text):
+    guard()
     dump('_tapt')
     for m in re.finditer(r'<node [^>]*>', last_xml):
         n = m.group(0)
@@ -42,7 +60,8 @@ for line in open(sys.argv[1], encoding='utf-8'):
     if not line or line.startswith('#'): continue
     cmd, _, rest = line.partition(' ')
     log.write(f'> {line}\n'); log.flush()
-    if cmd == 'shot': shot(rest)
+    if cmd == 'shot': guard(); shot(rest)
+    elif cmd == 'guard': guard()
     elif cmd == 'dump': dump(rest)
     elif cmd == 'tap': adb('shell', 'input', 'tap', *rest.split())
     elif cmd == 'swipe':

@@ -1,20 +1,69 @@
-# Прохід 1: розвідка — що на екрані після запуску й після свайпів.
+# Прохід 2: головна → альбоми → альбом → плеєр → ліво / право → Export → меню; потім Scene Lab, Tone Lab.
 launch
-sleep 12
-shot 01-start
-dump 01-start
-swipe 60 1200 1020 1200 400
+sleep 10
+shot h01-home
+tapt Альбоми
 sleep 4
-shot 02-swipe-right
-dump 02-swipe-right
-swipe 1020 1200 60 1200 400
+shot h02-albums
+dump h02-albums
+tapt MIDNIGHT PULSE
 sleep 4
-shot 03-back-center
-swipe 1020 1200 60 1200 400
-sleep 6
-shot 04-swipe-left
-dump 04-swipe-left
-swipe 60 1200 1020 1200 400
+shot h03-album
+dump h03-album
+tapt IGNITION POINT
+sleep 9
+shot h04-player
+dump h04-player
+sleep 5
+shot h05-player-b
+swipe 250 1300 900 1300 350
+sleep 5
+shot h06-left
+dump h06-left
+swipe 900 1300 250 1300 350
 sleep 4
-shot 05-center-again
-dump 05-center-again
+shot h07-center
+swipe 900 1300 250 1300 350
+sleep 7
+shot h08-right
+dump h08-right
+sleep 4
+shot h08-right-b
+swipe 250 1300 900 1300 350
+sleep 4
+shot h09-center
+dump h09-center
+tapt ⇧
+sleep 5
+shot h10-export
+dump h10-export
+key BACK
+sleep 3
+shot h11-after-back
+dump h11-after-back
+tapt ⋮
+sleep 3
+shot h12-menu
+dump h12-menu
+key BACK
+sleep 2
+key BACK
+sleep 3
+shot h13-back
+dump h13-back
+tapt Scene Lab
+sleep 4
+shot h14-scenelab
+dump h14-scenelab
+key BACK
+sleep 3
+tapt Tone Lab
+sleep 4
+shot h15-tonelab
+dump h15-tonelab
+key BACK
+sleep 3
+tapt Усі треки
+sleep 4
+shot h16-alltracks
+dump h16-alltracks

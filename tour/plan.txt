@@ -1,92 +1,79 @@
-# Прохід 3: плеєр і його кнопки, projectM (свайп ←), Export Lab (свайп ↓), Scene Lab, Tone Lab.
+# Прохід 5: інший диск у плеєрі, шари, герої, теми «Неон-герой» і «Обкладинка», експорт 3 с.
 guard
 launch
 sleep 8
-shot a01-home
 tapt Альбоми
 sleep 3
-shot a02-albums
-tapt MIDNIGHT PULSE — White
+tapt FREESTYLE NIGHTS — White
 sleep 3
-shot a03-album
-dump a03-album
-tapt IGNITION POINT
+tapt MIDNIGHT FREQUENCY
 sleep 10
-shot a04-player
-sleep 3
-shot a04b-player
-tap 980 1290
-sleep 3
-shot a05-song-menu
-dump a05-song-menu
-key BACK
-sleep 2
-tap 168 2100
-sleep 4
-shot a06-theme
-dump a06-theme
-key BACK
-sleep 3
-tap 416 2100
-sleep 4
-shot a07-tree
-dump a07-tree
-key BACK
-sleep 3
-tap 664 2100
-sleep 4
-shot a08-eq
-dump a08-eq
-key BACK
-sleep 3
+shot b01-player4
 tap 980 272
 sleep 3
-shot a09-menu
-dump a09-menu
-key BACK
-sleep 2
-shot a10-check
-swipe 900 800 200 800 300
-sleep 7
-shot a11-projectm
-dump a11-projectm
+tapt Шари / Layers
 sleep 4
-shot a11b-projectm
+shot b02-layers
+dump b02-layers
 key BACK
-sleep 4
-shot a12-after
-swipe 540 600 540 1300 300
-sleep 6
-shot a13-export
-dump a13-export
-swipe 540 1800 540 700 500
-sleep 2
-shot a13b-export
-dump a13b-export
-key BACK
-sleep 4
-shot a14-after
+sleep 3
+shot b02b-after
 swipe 200 800 900 800 300
 sleep 4
-shot a15-library
-dump a15-library
 tapt Scene Lab
 sleep 4
-shot a16-scenelab
-dump a16-scenelab
+shot b03-themes
+tapt Герої · 1
+sleep 3
+shot b04-heroes
+dump b04-heroes
+swipe 540 1900 540 700 500
+sleep 2
+shot b05-themes-more
+dump b05-themes-more
+swipe 540 1900 540 700 500
+sleep 2
+shot b05b-themes-more
+dump b05b-themes-more
 key BACK
 sleep 3
-tapt Tone Lab
+tapt Scene Lab
 sleep 4
-shot a17-tonelab
-dump a17-tonelab
-key BACK
-sleep 3
-tapt Усі треки
+tapt Неон-герой
+sleep 8
+shot b06-neon
 sleep 4
-shot a18-alltracks
+shot b06b-neon
+dump b06-neon
 key BACK
 sleep 3
-tapt Виконавці
-sleep 3
-shot a19-artists
+shot b06c-after
+swipe 200 800 900 800 300
+sleep 4
+tapt Scene Lab
+sleep 4
+swipe 540 1900 540 700 500
+sleep 2
+swipe 540 1900 540 700 500
+sleep 2
+tapt Обкладинка
+sleep 8
+shot b07-cover-theme
+dump b07-cover-theme
+swipe 540 600 540 1300 300
+sleep 6
+swipe 540 1900 540 600 500
+sleep 2
+swipe 540 1900 540 600 500
+sleep 2
+swipe 540 1900 540 600 500
+sleep 2
+shot b08-export-bottom
+dump b08-export-bottom
+tapt 3 с
+sleep 60
+shot b09-export
+dump b09-export
+sleep 40
+shot b10-export
+dump b10-export

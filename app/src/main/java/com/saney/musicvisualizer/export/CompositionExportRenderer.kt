@@ -56,6 +56,8 @@ data class CompositionExportConfig(
     val album: String? = null,
     /** V195: the standalone theme lets what is under it show through (projectM under «Неон-герой»'s photo). */
     val standaloneSeeThrough: Boolean = false,
+    /** V200: «Окантовка у відео: швидка (тест)». */
+    val edgeFastMesh: Boolean = false,
     /** V114: the song's picture for the HUD frame «Обкладинка вгорі» and what it shows without one. */
     val hudCoverArt: Bitmap? = null,
     /** V135: what the frame shows (picture / story / words), the story text, the words and the neon. */
@@ -218,6 +220,8 @@ class CompositionExportRenderer(
             ).also { view ->
                 // V174 крок 3: panels, cover and its text as ready copies at the video's pixel size.
                 view.videoPixelCopies = true
+                // V200: the edge equalizer as one mesh per layer when «швидка (тест)» is chosen.
+                view.videoFastEdge = config.edgeFastMesh
                 config
                     .pulseDeckObjectVisibility
                     .forEach { (id, visible) ->

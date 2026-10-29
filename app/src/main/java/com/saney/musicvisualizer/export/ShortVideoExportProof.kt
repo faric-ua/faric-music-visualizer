@@ -121,9 +121,11 @@ object ShortVideoExportProof {
         /** V94: visualization for a time of THIS video (ms from its start); null = keep the one loaded. */
         presetForVideoTime:
             ((Long) -> String?)? = null,
-        /** V94, path B (projectM on its own view): load a visualization there. */
+        /** V94, path B (projectM on its own view): load a visualization there (V198: + blend seconds or null). */
         loadPresetOnView:
-            ((String) -> Unit)? = null,
+            ((String, Double?) -> Unit)? = null,
+        /** V198: how long one visualization flows into the next (0 = hard cut, as before). */
+        presetBlendMs: Int = 0,
         requestedDurationMs: Long =
             DEFAULT_DURATION_MS,
         fps: Int =
@@ -625,10 +627,13 @@ object ShortVideoExportProof {
                     ?.let { wanted ->
                         if (wanted != loadedPresetPath) {
                             loadedPresetPath = wanted
+                            // V198: the first frame always starts clean; later switches may blend.
+                            val blend =
+                                com.saney.musicvisualizer.projectm.PresetBlend.secondsFor(presetBlendMs, firstFrame = frameIndex == 0)
                             if (projectMGpuDirect) {
-                                encoderSurface?.loadOfflinePreset(wanted)
+                                encoderSurface?.loadOfflinePreset(wanted, blend)
                             } else {
-                                loadPresetOnView?.invoke(wanted)
+                                loadPresetOnView?.invoke(wanted, blend)
                             }
                         }
                     }

@@ -55,6 +55,13 @@ class ProjectMStateStore(context: Context) {
      * V98 (faric 20.10 23:48: старий M30s «туго гальмує»): live projectM on the light profile
      * (ECO: 62 % picture, 48×32 mesh, 30 frames/s). MP4 export is not affected.
      */
+    /** V198: how the visualizations change — 0 = hard cut (as before), 1000 / 2000 = blend, ms. */
+    var blendMs: Int
+        get() = PresetBlend.safe(prefs.getInt(KEY_BLEND_MS, 0))
+        set(value) {
+            prefs.edit().putInt(KEY_BLEND_MS, PresetBlend.safe(value)).apply()
+        }
+
     var lightMode: Boolean
         get() = prefs.getBoolean(KEY_LIGHT_MODE, false)
         set(value) {
@@ -327,6 +334,7 @@ class ProjectMStateStore(context: Context) {
             "fg_edge_bass"
         private const val KEY_FG_EDGE_HIGH =
             "fg_edge_high"
+        private const val KEY_BLEND_MS = "preset_blend_ms"
         private const val KEY_FG_EDGE_BEAT =
             "fg_edge_beat"
 

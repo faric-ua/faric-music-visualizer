@@ -144,14 +144,17 @@ object ShortVideoExportProof {
         },
         /** V172: 0–100 with tenths — [ExportProgress] shares (picture · sound · file). */
         onProgress: (Float) -> Unit = {},
+        /** V199: 720p frame (short edge 720) instead of 1080p. */
+        video720: Boolean = false,
     ): Result {
         val totalStartedNs =
             System.nanoTime()
 
         val (width, height) =
-            proofSize(
+            ExportVideoSize.fit(
                 project.aspectRatio.width,
                 project.aspectRatio.height,
+                video720,
             )
 
         val availableMs =
@@ -1633,39 +1636,6 @@ object ShortVideoExportProof {
                         )
                 }.getOrDefault(false)
             }
-    }
-
-    private fun proofSize(
-        width: Int,
-        height: Int,
-    ): Pair<Int, Int> {
-        val longEdge =
-            max(
-                width,
-                height,
-            )
-
-        if (longEdge <= 1920) {
-            return width.even() to
-                height.even()
-        }
-
-        val scale =
-            1920f /
-                longEdge
-
-        return (
-            width *
-                scale
-            )
-            .toInt()
-            .even() to
-            (
-                height *
-                    scale
-                )
-                .toInt()
-                .even()
     }
 
     private fun publishMp4(

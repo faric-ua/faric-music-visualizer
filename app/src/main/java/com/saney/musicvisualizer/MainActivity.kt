@@ -8956,10 +8956,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     state.foregroundTuning(),
                 onTapNext = {},
                 manualFrameMode = true,
+                // V199: 720p — projectM drawn at the video's smaller size too.
                 manualRenderWidth =
-                    exportAspectRatio.width,
+                    (exportAspectRatio.width * exportVideoScale(exportAspectRatio)).roundToInt(),
                 manualRenderHeight =
-                    exportAspectRatio.height,
+                    (exportAspectRatio.height * exportVideoScale(exportAspectRatio)).roundToInt(),
             )
 
         projectMExportLiveView =
@@ -9004,6 +9005,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun exportProjectMProfile(): ProjectMPerformanceProfile = exportProjectMLevel().profile
 
     private fun exportQualityLabel(): String = "Візуалізація у відео: " + exportProjectMLevel().label
+
+    /** V199: «Розмір відео: 1080p / 720p» (test: 1080p by default). */
+    private fun exportVideo720(): Boolean = exportPrefs().getBoolean(KEY_EXPORT_VIDEO_720, false)
+
+    private fun exportVideoScale(ratio: ExportAspectRatio): Float =
+        com.saney.musicvisualizer.export.ExportVideoSize.scaleOf(ratio.width, ratio.height, exportVideo720())
+
+    private fun exportVideoSizeLabel(): String =
+        "Розмір відео: " + com.saney.musicvisualizer.export.ExportVideoSize.label(exportVideo720())
 
     /** V198: «Зміна візуалізацій: різко / плавно 1 с / плавно 2 с» — the same on screen and in the video. */
     private fun presetBlendLabel(): String =
@@ -9363,6 +9373,25 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     // V198: 50 % → 78 % → 100 % → 50 % …
                     exportPrefs().edit().putInt(KEY_EXPORT_PROJECTM_LEVEL, exportProjectMLevel().next().ordinal).apply()
                     text = exportQualityLabel()
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+            },
+        )
+
+        // V199 (faric 29.10 17:25: після замірів — «відео 720p, тест»): smaller frame, faster export.
+        content.addView(
+            exportPill(
+                text = exportVideoSizeLabel(),
+                accent = false,
+            ) {}.apply {
+                setOnClickListener {
+                    exportPrefs().edit().putBoolean(KEY_EXPORT_VIDEO_720, !exportVideo720()).apply()
+                    text = exportVideoSizeLabel()
                 }
             },
             LinearLayout.LayoutParams(
@@ -10884,7 +10913,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 renderWidth =
                                     (
                                         ratio.width *
-                                            profile.renderScale
+                                            profile.renderScale *
+                                            exportVideoScale(ratio)
                                         )
                                         .roundToInt()
                                         .coerceAtLeast(
@@ -10893,7 +10923,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 renderHeight =
                                     (
                                         ratio.height *
-                                            profile.renderScale
+                                            profile.renderScale *
+                                            exportVideoScale(ratio)
                                         )
                                         .roundToInt()
                                         .coerceAtLeast(
@@ -11182,6 +11213,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             }
                         },
                     presetBlendMs = ProjectMStateStore(this).blendMs,
+                    video720 = exportVideo720(),
                     requestedDurationMs =
                         requestedDurationMs,
                     fps =
@@ -12816,7 +12848,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun fileInfoLines(source: String?): List<String> =
         listOfNotNull(
             source,
-            com.saney.musicvisualizer.export.SongSourceInfo.videoLine(exportAspectRatio.width, exportAspectRatio.height, PROJECTM_EXPORT_FPS),
+            com.saney.musicvisualizer.export.ExportVideoSize.fit(exportAspectRatio.width, exportAspectRatio.height, exportVideo720()).let { (w, h) ->
+                com.saney.musicvisualizer.export.SongSourceInfo.videoLine(w, h, PROJECTM_EXPORT_FPS)
+            },
         )
 
     private fun applyFileInfo() {
@@ -13846,6 +13880,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val KEY_EXPORT_TEST_CLIP_MS = "test_clip_ms"
         private const val KEY_EXPORT_PROJECTM_HIGH = "projectm_high_quality"
         private const val KEY_EXPORT_PROJECTM_LEVEL = "projectm_export_level"
+        private const val KEY_EXPORT_VIDEO_720 = "video_720p"
         private const val PROJECTM_EXPORT_FPS =
             30
 

@@ -140,12 +140,29 @@ object BatchPlan {
         val outcome: Outcome,
         val detail: String = "",
         val elapsedMs: Long = 0L,
-    )
+        /** V201: how long the song (or the test piece) is — for «×» (time to make ÷ length). */
+        val songMs: Long = 0L,
+        /** V201: the sound analysis before the picture. */
+        val analysisMs: Long = 0L,
+        /** V201: battery temperature when this song was done, °C. */
+        val heatC: Float? = null,
+    ) {
+        /** Time to make ÷ length of the song: 1,10 = 10 % longer than the song plays. */
+        val ratio: Double? get() = if (elapsedMs > 0 && songMs > 0) elapsedMs.toDouble() / songMs else null
+    }
 
+    /**
+     * V201 (faric 30.10 19:59, перший пакет на 14 пісень: «подивись на температуру, час… чи є більш докладний
+     * аналіз?»): the whole run — time against the music, the fastest and slowest song, warmth from start to
+     * end, what the videos were made with.
+     */
     fun summary(
         folder: String,
         results: List<SongResult>,
         total: Int,
+        settings: String? = null,
+        heatStart: String? = null,
+        heatEnd: String? = null,
     ): String =
         buildString {
             val done = results.count { it.outcome == Outcome.DONE }
@@ -159,6 +176,31 @@ object BatchPlan {
             if (notReached > 0) append(" · не дійшли: ").append(notReached)
             append('\n')
             append("Відео: ").append(relativePath(folder)).append('\n')
+            val timed = results.filter { it.outcome == Outcome.DONE && it.ratio != null }
+            if (timed.isNotEmpty()) {
+                val work = timed.sumOf { it.elapsedMs }
+                val music = timed.sumOf { it.songMs }
+                append("Час: ").append(formatMinutes(work)).append(" на ").append(formatMinutes(music)).append(" музики · ")
+                append(formatRatio(work.toDouble() / music))
+                val analysis = timed.sumOf { it.analysisMs }
+                if (analysis > 0) append(" · з них аналіз звуку ").append(formatMinutes(analysis))
+                append('\n')
+                if (timed.size > 1) {
+                    val fast = timed.minByOrNull { it.ratio!! }!!
+                    val slow = timed.maxByOrNull { it.ratio!! }!!
+                    append("Найшвидше: ").append(formatRatio(fast.ratio!!)).append(" · найповільніше: ").append(formatRatio(slow.ratio!!))
+                    append(" (").append(slow.name).append(")\n")
+                }
+            }
+            val heats = results.mapNotNull { it.heatC }
+            if (heatStart != null || heatEnd != null || heats.isNotEmpty()) {
+                append("Нагрів: ")
+                heatStart?.let { append("старт ").append(it) }
+                heatEnd?.let { append(" → кінець ").append(it) }
+                heats.maxOrNull()?.let { append(" · найгарячіше ").append(formatHeat(it)) }
+                append('\n')
+            }
+            settings?.takeIf { it.isNotBlank() }?.let { append("Як: ").append(it).append('\n') }
             results.forEachIndexed { index, r ->
                 append('\n').append(index + 1).append(". ")
                 append(
@@ -171,12 +213,23 @@ object BatchPlan {
                 )
                 append(r.name)
                 if (r.elapsedMs > 0) append(" · ").append(formatMinutes(r.elapsedMs))
+                if (r.songMs > 0 && r.elapsedMs > 0) {
+                    append(" на ").append(formatMinutes(r.songMs)).append(" · ").append(formatRatio(r.ratio!!))
+                }
+                if (r.analysisMs > 0) append(" · аналіз ").append(formatMinutes(r.analysisMs))
+                r.heatC?.let { append(" · ").append(formatHeat(it)) }
                 if (r.detail.isNotBlank()) append(" · ").append(r.detail)
             }
         }
 
     fun formatMinutes(ms: Long): String {
         val s = (ms.coerceAtLeast(0L) + 500L) / 1000L
+        if (s >= 3600) return "%d:%02d:%02d".format(s / 3600, s / 60 % 60, s % 60)
         return "%d:%02d".format(s / 60, s % 60)
     }
+
+    /** «×1,12» — Ukrainian decimal comma. */
+    fun formatRatio(r: Double): String = "×" + String.format(java.util.Locale.ROOT, "%.2f", r).replace('.', ',')
+
+    fun formatHeat(c: Float): String = String.format(java.util.Locale.ROOT, "%.1f", c).replace('.', ',') + " °C"
 }

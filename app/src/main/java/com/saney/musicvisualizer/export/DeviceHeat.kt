@@ -13,6 +13,15 @@ import android.os.PowerManager
  * so a slow export can be told apart: «телефон гарячий» vs «важка візуалізація».
  */
 object DeviceHeat {
+    /** V201: the battery's temperature, °C, or null. */
+    fun batteryC(context: Context): Float? =
+        runCatching {
+            context.registerReceiver(null, IntentFilter(Intent.ACTION_BATTERY_CHANGED))
+                ?.getIntExtra(BatteryManager.EXTRA_TEMPERATURE, Int.MIN_VALUE)
+                ?.takeIf { it != Int.MIN_VALUE }
+                ?.let { tenths -> tenths / 10f }
+        }.getOrNull()
+
     fun read(context: Context): String {
         val battery =
             runCatching {

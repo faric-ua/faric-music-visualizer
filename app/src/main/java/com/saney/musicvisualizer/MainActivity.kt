@@ -9006,6 +9006,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun exportQualityLabel(): String = "Візуалізація у відео: " + exportProjectMLevel().label
 
+    /** V201: how the videos are made, one line (batch summary). */
+    private fun exportSettingsLine(): String =
+        com.saney.musicvisualizer.export.ExportVideoSize.fit(exportAspectRatio.width, exportAspectRatio.height, exportVideo720()).let { (w, h) -> "${w}×$h" } +
+            " · візуалізація " + exportProjectMLevel().label +
+            " · зміна " + com.saney.musicvisualizer.projectm.PresetBlend.label(ProjectMStateStore(this).blendMs) +
+            " · окантовка " + (if (exportFastEdge()) "швидка (тест)" else "звичайна") +
+            " · список " + projectMModeLabel(ProjectMStateStore(this).backgroundMode)
+
     /** V200: «Окантовка у відео: звичайна / швидка (тест)» — default «звичайна» (as before). */
     private fun exportFastEdge(): Boolean = exportPrefs().getBoolean(KEY_EXPORT_FAST_EDGE, false)
 
@@ -11647,6 +11655,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val results = mutableListOf<com.saney.musicvisualizer.export.BatchPlan.SongResult>()
             // V94: one schedule for the whole batch — song 2 goes on after the last visualization of song 1.
             val presetSchedule = buildExportPresetSchedule(compositionConfig, skipTooSlow = true)
+            // V201: warmth at the start and how the videos are made — into the summary.
+            val batchHeatStart = com.saney.musicvisualizer.export.DeviceHeat.read(this)
+            val batchSettings = exportSettingsLine()
             val albumFolders = linkedSetOf<String>()
             for ((index, song) in songs.withIndex()) {
                 if (cancelled.get()) break
@@ -11699,6 +11710,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     continue
                 }
                 val startedAt = System.currentTimeMillis()
+                var analysisMs = 0L
+                var songMs = song.durationMs
                 CrashJournal.exportStarted(
                     context = this,
                     fullSong = !testMode,
@@ -11742,12 +11755,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 )
                             }
                         if (cancelled.get()) throw CancellationException("Batch cancelled")
+                        analysisMs = System.currentTimeMillis() - startedAt
                         val (clipStartMs, clipLengthMs) =
                             when {
                                 testClip != null -> testClip
                                 testMode -> plan.testWindow(analysis.durationMs, testClipMs())
                                 else -> 0L to analysis.durationMs.coerceAtLeast(500L)
                             }
+                        songMs = clipLengthMs
                         runCompositionExportBlocking(
                             fullSong = !testMode,
                             sourceUri = song.uri,
@@ -11795,7 +11810,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         runCatching { com.saney.musicvisualizer.export.PresetExportSpeedStore(this).record(result.presetTimings) }
                         CrashJournal.exportFinished(this, "готово · пакет · " + result.frameCount + " кадрів · " + result.totalMs + " мс")
                         // Render time of the clip itself (same number as the 3 s test window) — to compare runs.
-                        results += com.saney.musicvisualizer.export.BatchPlan.SongResult(title, com.saney.musicvisualizer.export.BatchPlan.Outcome.DONE, "відео " + result.totalMs + " мс", elapsed)
+                        results +=
+                            com.saney.musicvisualizer.export.BatchPlan.SongResult(
+                                title,
+                                com.saney.musicvisualizer.export.BatchPlan.Outcome.DONE,
+                                elapsedMs = elapsed,
+                                songMs = songMs,
+                                analysisMs = analysisMs,
+                                heatC = com.saney.musicvisualizer.export.DeviceHeat.batteryC(this),
+                            )
                     }.onFailure { error ->
                         Log.e("FARIC-export", "Batch song failed: $title", error)
                         if (error is CancellationException || cancelled.get()) {
@@ -11814,13 +11837,29 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 if (cancelled.get()) break
             }
             val summary =
-                plan.summary(folder = folderName, results = results, total = songs.size)
+                plan.summary(
+                    folder = folderName,
+                    results = results,
+                    total = songs.size,
+                    settings = batchSettings,
+                    heatStart = batchHeatStart,
+                    heatEnd = com.saney.musicvisualizer.export.DeviceHeat.read(this),
+                )
                     .replace("Відео: " + plan.relativePath(folderName), "Відео: " + relativePath)
                     .let { if (testMode) "Пакет-тест · по ${testClipMs() / 1000} с з середини кожної пісні\n" + it else it }
                     .let {
                         if (albumFolders.isEmpty()) it
                         else it + "\nЗа альбомами з тегів пісень:\n" + albumFolders.joinToString("\n")
                     }
+            // V201: the summary stays in «Журнал збоїв» too — to copy it later.
+            runCatching {
+                CrashJournal.saveExportReport(
+                    this,
+                    if (testMode) "Пакет-тест" else "Пакет",
+                    summary,
+                    seen = true,
+                )
+            }
             runOnUiThread {
                 if (!isDestroyed && !isFinishing) {
                     dialog.dismiss()

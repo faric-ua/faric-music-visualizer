@@ -104,4 +104,28 @@ class BatchPlanTest {
         assertTrue(text.contains("✔ a · 1:01"))
         assertTrue(text.contains("Movies/PulseDeck/Album/"))
     }
+
+    @Test
+    fun detailedRunReport() {
+        // V201 (faric 30.10 19:59): time against the music, fastest / slowest, warmth, settings
+        val text =
+            BatchPlan.summary(
+                folder = "White Side",
+                results =
+                    listOf(
+                        BatchPlan.SongResult("TRACK 01 — ORBITAL AWAKENING", BatchPlan.Outcome.DONE, elapsedMs = 340_000L, songMs = 312_000L, analysisMs = 54_000L, heatC = 33.4f),
+                        BatchPlan.SongResult("BONUS 03 — BEYOND INFINITY", BatchPlan.Outcome.DONE, elapsedMs = 453_000L, songMs = 360_000L, analysisMs = 47_000L, heatC = 35.9f),
+                    ),
+                total = 2,
+                settings = "720×1280 · візуалізація легка 50 %",
+                heatStart = "30.1 °C · норма",
+                heatEnd = "35.2 °C · теплий",
+            )
+        assertTrue(text, text.contains("Час: 13:13 на 11:12 музики · ×1,18 · з них аналіз звуку 1:41"))
+        assertTrue(text, text.contains("Найшвидше: ×1,09 · найповільніше: ×1,26 (BONUS 03 — BEYOND INFINITY)"))
+        assertTrue(text, text.contains("Нагрів: старт 30.1 °C · норма → кінець 35.2 °C · теплий · найгарячіше 35,9 °C"))
+        assertTrue(text, text.contains("Як: 720×1280 · візуалізація легка 50 %"))
+        assertTrue(text, text.contains("✔ TRACK 01 — ORBITAL AWAKENING · 5:40 на 5:12 · ×1,09 · аналіз 0:54 · 33,4 °C"))
+        assertEquals("1:22:24", BatchPlan.formatMinutes(4_944_000L))
+    }
 }

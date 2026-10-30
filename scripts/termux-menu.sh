@@ -7,7 +7,7 @@ ASSET_REPO="$HOME/faric-music-visualizer-assets"
 pause_menu() {
   echo
   printf "Натисни Enter, щоб повернутися..."
-  read -r _
+  read -r _ || exit 0  # Termux закрили не пунктом 0 — вийти, а не крутитись (2026-10-30)
 }
 
 show_status() {
@@ -171,7 +171,7 @@ while true; do
   echo "0 — Вийти"
   echo
   printf "Вибір: "
-  read -r choice
+  read -r choice || exit 0  # Termux закрили не пунктом 0 — вийти, а не крутитись (2026-10-30)
 
   case "$choice" in
     1) open_code ;;

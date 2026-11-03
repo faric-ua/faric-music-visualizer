@@ -34,18 +34,24 @@ data class ScreenPlacement(
         /**
          * @param screenAspect phone screen height / width in portrait (e.g. 2340 / 1080 ≈ 2.17).
          * @param fitWholeScreen «вміщається все» — never cut anything.
+         * @param lying V202 (faric 03.11 02:28: «альбомне відео — а розкладка з Утиліт не застосовується, лягає як
+         *   книжка»): the phone lies on its side — the virtual screen is wide (long × short), as on a turned phone,
+         *   and the HUD takes the «Альбом» set.
          */
         fun compute(
             frameWidth: Int,
             frameHeight: Int,
             screenAspect: Float,
             fitWholeScreen: Boolean,
+            lying: Boolean = false,
         ): ScreenPlacement {
             val w = frameWidth.coerceAtLeast(1)
             val h = frameHeight.coerceAtLeast(1)
             val aspect = screenAspect.takeIf { it.isFinite() && it > 0.2f } ?: (16f / 9f)
-            val vw = min(w, h)
-            val vh = (vw * aspect).roundToInt().coerceAtLeast(1)
+            val short = min(w, h)
+            val long = (short * aspect).roundToInt().coerceAtLeast(1)
+            val vw = if (lying) long else short
+            val vh = if (lying) short else long
             val fill = max(w.toFloat() / vw, h.toFloat() / vh)
             val fit = min(w.toFloat() / vw, h.toFloat() / vh)
             val visibleWithFill = min(w / (vw * fill), h / (vh * fill))

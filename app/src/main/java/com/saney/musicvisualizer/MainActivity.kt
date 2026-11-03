@@ -10030,6 +10030,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 controller.currentTrackUri()?.let { LocalMusicUserState(this).isFavorite(it.toString()) } == true,
             // V46: hero + HUD laid out like this phone screen, then scaled into the frame.
             screenAspect = exportScreenAspect(),
+            // V202: 16:9 — the HUD as on a turned phone, with «Утиліти → Альбом».
+            lyingScreen = exportAspectRatio.width > exportAspectRatio.height,
             fitWholeScreen = exportPrefs().getBoolean(KEY_EXPORT_FIT_WHOLE_SCREEN, false),
             pulseDeckObjectVisibility =
                 PULSEDECK_EXPORT_OBJECT_IDS

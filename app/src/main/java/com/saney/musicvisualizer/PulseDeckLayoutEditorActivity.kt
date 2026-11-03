@@ -102,6 +102,8 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
             runCatching { LayoutProfileId.valueOf(intent.getStringExtra(EXTRA_PROFILE).orEmpty()) }
                 .getOrDefault(LayoutProfileId.PORTRAIT)
         store = LayoutProfileStore(this)
+        // V206: ⚙ of a part in «Шари» opens the editor on that part.
+        LayoutGroups.byId(intent.getStringExtra(EXTRA_GROUP).orEmpty())?.let { selected = it }
         if (savedInstanceState != null) {
             // V121: a turned phone keeps what faric did (it used to start from the saved set again).
             working.putAll(LayoutProfileCodec.decode(savedInstanceState.getString(STATE_WORKING)))
@@ -1025,6 +1027,7 @@ class PulseDeckLayoutEditorActivity : ComponentActivity() {
 
     companion object {
         const val EXTRA_PROFILE = "profile"
+        const val EXTRA_GROUP = "group"
         private const val SNAP_DP = 8
         private val STEPS = listOf(1, 5, 10, 15, 20, 25)
         private val ZOOMS = listOf(1, 2, 3, 4, 5)

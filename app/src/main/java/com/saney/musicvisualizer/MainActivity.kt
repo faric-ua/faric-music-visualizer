@@ -5340,7 +5340,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun coverMix(): com.saney.musicvisualizer.ui.CoverMix =
         com.saney.musicvisualizer.ui.CoverMix.decode(layerPrefs().getString(KEY_COVER_MIX, null))
 
-    private fun showCoverMixMenu() {
+    private fun showCoverMixMenu(then: () -> Unit = {}) {
         val mix = coverMix()
         PulseDeckDialogs.showMultiChoice(
             context = this,
@@ -5354,6 +5354,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 .putInt(KEY_COVER_BOX_MODE, com.saney.musicvisualizer.ui.CoverBoxMode.MIX.ordinal)
                 .apply()
             applyCoverStory()
+            then()
         }
     }
 
@@ -5430,7 +5431,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     /** V135 (faric 22.10 17:17: «може, навіть їх настраювати на певні частоти»). */
-    private fun showCoverGlowMenu() {
+    private fun showCoverGlowMenu(then: () -> Unit = {}) {
         val bands = com.saney.musicvisualizer.ui.CoverGlowBand.entries
         PulseDeckDialogs.showSingleChoice(
             context = this,
@@ -5440,6 +5441,193 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         ) { index ->
             layerPrefs().edit().putInt(KEY_COVER_GLOW_BAND, index).apply()
             applyCoverStory()
+            then()
+        }
+    }
+
+    /** V206: only «what the frame shows» (the ⋮ menu of the frame has the same list plus more). */
+    private fun showCoverContentMenu(then: () -> Unit = {}) {
+        val modes = com.saney.musicvisualizer.ui.CoverBoxMode.entries
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = "Що показує рамка вгорі",
+            labels = modes.map { it.label },
+            checkedIndex = coverBoxMode().ordinal,
+        ) { index ->
+            if (modes[index] == com.saney.musicvisualizer.ui.CoverBoxMode.MIX) {
+                showCoverMixMenu(then)
+            } else {
+                layerPrefs().edit().putInt(KEY_COVER_BOX_MODE, index).apply()
+                applyCoverStory()
+                then()
+            }
+        }
+    }
+
+    /**
+     * V206 (faric 03.11 15:52: «біля кожного шару кнопка ⚙ — окреме вікно з його налаштуваннями, які вже
+     * стоять»). One window with everything a layer or a PulseDeck part has, gathered from Утиліти, the frame's
+     * ⋮, the right page and the themes. Each line shows what is set now and opens the same window as before;
+     * a small choice comes back here, so the new value is seen at once.
+     */
+    private fun showLayerSettings(
+        title: String,
+        settings: List<com.saney.musicvisualizer.ui.LayerSetting>,
+        objectId: String? = null,
+        closeLayers: () -> Unit,
+    ) {
+        if (settings.isEmpty()) return
+        val back = { showLayerSettings(title, settings, objectId, closeLayers) }
+        val nowProfile =
+            if (resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
+                com.saney.musicvisualizer.ui.LayoutProfileId.LANDSCAPE
+            } else {
+                com.saney.musicvisualizer.ui.LayoutProfileId.PORTRAIT
+            }
+        val state = ProjectMStateStore(this)
+        val actions =
+            settings.map { setting ->
+                when (setting) {
+                    com.saney.musicvisualizer.ui.LayerSetting.PROJECTM_FOREGROUND ->
+                        PulseDeckDialogs.Action(
+                            label = "Передній шар (⚙ FG)",
+                            subtitle = "Зараз: " + state.foregroundSample.label,
+                            icon = "◎",
+                        ) { showProjectMSettingsPanel() }
+
+                    com.saney.musicvisualizer.ui.LayerSetting.PROJECTM_BLEND ->
+                        PulseDeckDialogs.Action(
+                            label = "Зміна візуалізацій",
+                            subtitle = "Зараз: " + com.saney.musicvisualizer.projectm.PresetBlend.label(state.blendMs) + " · тап — наступне",
+                            icon = "⇄",
+                        ) {
+                            state.blendMs = com.saney.musicvisualizer.projectm.PresetBlend.next(state.blendMs)
+                            back()
+                        }
+
+                    com.saney.musicvisualizer.ui.LayerSetting.PROJECTM_RIGHT_PAGE ->
+                        PulseDeckDialogs.Action(
+                            label = "Права сторінка",
+                            subtitle = "Фон, фігура, краї (BG / CENTER / EDGE FX), AUTO, група, оцінки",
+                            icon = "›",
+                        ) {
+                            closeLayers()
+                            openProjectMFocusOverlay()
+                        }
+
+                    com.saney.musicvisualizer.ui.LayerSetting.THEME ->
+                        PulseDeckDialogs.Action(
+                            label = "Тема",
+                            subtitle = "Зараз: " + PlaybackThemeRegistry.byId(selectedThemeId).title,
+                            icon = "◆",
+                        ) {
+                            closeLayers()
+                            showThemePicker()
+                        }
+
+                    com.saney.musicvisualizer.ui.LayerSetting.NEON_HERO ->
+                        PulseDeckDialogs.Action(
+                            label = "Налаштування «Неон-героя»",
+                            subtitle = "Фото, дощ, хвилі, герой, удари",
+                            icon = "✺",
+                        ) { startActivity(Intent(this, PulseDeckNeonHeroActivity::class.java)) }
+
+                    com.saney.musicvisualizer.ui.LayerSetting.GRAPHIC_FIGURE ->
+                        PulseDeckDialogs.Action(
+                            label = "Graphic Figure",
+                            subtitle = "Зараз: " + GraphicFigureCatalog.title(currentGraphicFigureThemeId()),
+                            icon = "◇",
+                        ) { pickGraphicFigure { back() } }
+
+                    com.saney.musicvisualizer.ui.LayerSetting.GF_BOARD ->
+                        PulseDeckDialogs.Action(
+                            label = "Board: фон, світіння, частини GF",
+                            subtitle = "Пересунути, розмір",
+                            icon = "▦",
+                        ) {
+                            closeLayers()
+                            boardEditorLayer = BoardLayerId.BACKGROUND
+                            showBoardTransform()
+                        }
+
+                    com.saney.musicvisualizer.ui.LayerSetting.COVER_CONTENT ->
+                        PulseDeckDialogs.Action(
+                            label = "Що в рамці",
+                            subtitle = "Зараз: " + coverBoxMode().label,
+                            icon = "▣",
+                        ) { showCoverContentMenu(back) }
+
+                    com.saney.musicvisualizer.ui.LayerSetting.COVER_GLOW ->
+                        PulseDeckDialogs.Action(
+                            label = "Неонове світіння з-під рамки",
+                            subtitle = "Зараз: " + coverGlowBand().label,
+                            icon = "✧",
+                        ) { showCoverGlowMenu(back) }
+
+                    com.saney.musicvisualizer.ui.LayerSetting.STORY_LANGUAGE ->
+                        PulseDeckDialogs.Action(
+                            label = "Мова історії",
+                            subtitle = "Зараз: " + storyLanguage().label,
+                            icon = "Аа",
+                        ) {
+                            askStoryLanguage(title = "Мова історії") {
+                                applyCoverStory()
+                                back()
+                            }
+                        }
+
+                    com.saney.musicvisualizer.ui.LayerSetting.COVER_TEXT_AND_EDGE ->
+                        PulseDeckDialogs.Action(
+                            label = "Текст і окантовка",
+                            subtitle = "Прозорість, розмір, затемнення тексту; окантовка-еквалайзер",
+                            icon = "≋",
+                        ) { startActivity(Intent(this, PulseDeckEdgeEqActivity::class.java)) }
+
+                    com.saney.musicvisualizer.ui.LayerSetting.PLACE_PORTRAIT,
+                    com.saney.musicvisualizer.ui.LayerSetting.PLACE_LANDSCAPE,
+                    com.saney.musicvisualizer.ui.LayerSetting.PLACE_VIDEO -> {
+                        val profile = com.saney.musicvisualizer.ui.LayerSettingsMap.profileOf(setting)!!
+                        PulseDeckDialogs.Action(
+                            label = "Місце, розмір, прозорість · " + profile.label + if (profile == nowProfile) " (зараз)" else "",
+                            subtitle = "Утиліти › Розкладка — одразу на цій частині",
+                            icon = "⤢",
+                        ) {
+                            startActivity(
+                                Intent(this, PulseDeckLayoutEditorActivity::class.java)
+                                    .putExtra(PulseDeckLayoutEditorActivity.EXTRA_PROFILE, profile.name)
+                                    .putExtra(
+                                        PulseDeckLayoutEditorActivity.EXTRA_GROUP,
+                                        objectId?.let { com.saney.musicvisualizer.ui.LayerSettingsMap.layoutGroupOf(it) },
+                                    ),
+                            )
+                        }
+                    }
+                }
+            }
+        PulseDeckDialogs.show(
+            context = this,
+            title = "⚙ $title",
+            message = "Те саме, що й у старих місцях (Утиліти, ⋮ рамки, права сторінка, теми) — тут лише зібрано разом.",
+            actions = actions + PulseDeckDialogs.Action(label = "Закрити") {},
+        )
+    }
+
+    /** The GF picker (was inside «Шари»; V206 — also from the GF ⚙ window). */
+    private fun pickGraphicFigure(onPicked: (String) -> Unit) {
+        val ids = GraphicFigureCatalog.ids
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = "Graphic Figure",
+            labels = ids.map { id -> GraphicFigureCatalog.title(id) },
+            checkedIndex = ids.indexOf(currentGraphicFigureThemeId()),
+            cancelLabel = "Скасувати",
+            dismissOnSelect = true,
+        ) { which ->
+            val selectedId = ids[which]
+            val selectedTitle = GraphicFigureCatalog.title(selectedId)
+            setGraphicFigureThemeId(selectedId)
+            toast("$selectedTitle · застосовано")
+            onPicked(selectedTitle)
         }
     }
 
@@ -6834,9 +7022,57 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
 
                 childBoxes += child
-                container.addView(
-                    child,
-                )
+                // V206: a PulseDeck part with settings gets its own ⚙ (the frame: what it shows, glow,
+                // language, text and edge; every part: place, size, see-through in each position).
+                val childSettings =
+                    if (layer == PulseDeckLayerStack.Layer.PULSEDECK_LOCKED) {
+                        com.saney.musicvisualizer.ui.LayerSettingsMap.forHudObject(item.id)
+                    } else {
+                        emptyList()
+                    }
+                if (childSettings.isEmpty()) {
+                    container.addView(
+                        child,
+                    )
+                } else {
+                    val childRow =
+                        LinearLayout(this).apply {
+                            orientation = LinearLayout.HORIZONTAL
+                            gravity = Gravity.CENTER_VERTICAL
+                        }
+                    childRow.addView(
+                        child,
+                        LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+                    )
+                    childRow.addView(
+                        TextView(this).apply {
+                            text = "⚙"
+                            textSize = 18f
+                            gravity = Gravity.CENTER
+                            contentDescription = "Налаштування: " + item.label
+                            setTextColor(COLOR_ACCENT_CYAN)
+                            background =
+                                panelDrawable(
+                                    Color.argb(105, 8, 18, 24),
+                                    18,
+                                    Color.argb(95, 80, 220, 255),
+                                    1,
+                                )
+                            setOnClickListener {
+                                showLayerSettings(
+                                    title = item.label,
+                                    settings = childSettings,
+                                    objectId = item.id,
+                                    closeLayers = { dialog.dismiss() },
+                                )
+                            }
+                        },
+                        LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginStart = dp(6) },
+                    )
+                    container.addView(
+                        childRow,
+                    )
+                }
                 objectControlsByLayer
                     .getOrPut(
                         layer,
@@ -7050,60 +7286,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     1,
                                 )
                             setOnClickListener { buttonView ->
-                                val ids =
-                                    GraphicFigureCatalog
-                                        .ids
-                                val labels =
-                                    ids
-                                        .map { id ->
-                                            GraphicFigureCatalog
-                                                .title(
-                                                    id,
-                                                )
-                                        }
-                                        .toTypedArray()
-                                val checked =
-                                    ids.indexOf(
-                                        currentGraphicFigureThemeId(),
-                                    )
-
-                                PulseDeckDialogs.showSingleChoice(
-                                    context =
-                                        this@MainActivity,
-                                    title =
-                                        "Graphic Figure",
-                                    labels =
-                                        labels.toList(),
-                                    checkedIndex =
-                                        checked,
-                                    cancelLabel =
-                                        "Скасувати",
-                                    dismissOnSelect =
-                                        true,
-                                ) { which ->
-                                    val selectedId =
-                                        ids[which]
-                                    val selectedTitle =
-                                        GraphicFigureCatalog
-                                            .title(
-                                                selectedId,
-                                            )
-
-                                    setGraphicFigureThemeId(
-                                        selectedId,
-                                    )
-
-                                    (
-                                        buttonView as?
-                                            TextView
-                                        )
-                                        ?.text =
-                                        selectedTitle
-
-                                    toast(
-                                        selectedTitle +
-                                            " · застосовано",
-                                    )
+                                pickGraphicFigure { selectedTitle ->
+                                    (buttonView as? TextView)?.text = selectedTitle
                                 }
                             }
                         },
@@ -7122,7 +7306,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             textSize = 20f
                             gravity = Gravity.CENTER
                             contentDescription =
-                                "Налаштувати GF Background / Glow"
+                                "Налаштування GF: тема, фігура, Board"
                             setTextColor(
                                 COLOR_ACCENT_CYAN,
                             )
@@ -7144,10 +7328,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     1,
                                 )
                             setOnClickListener {
-                                dialog.dismiss()
-                                boardEditorLayer =
-                                    BoardLayerId.BACKGROUND
-                                showBoardTransform()
+                                // V206: the GF window — theme, «Неон-герой», figure, Board.
+                                showLayerSettings(
+                                    title = "GF / Graphic Figures",
+                                    settings =
+                                        com.saney.musicvisualizer.ui.LayerSettingsMap.forLayer(
+                                            layer.name,
+                                            neonHeroTheme = selectedThemeId == PlaybackThemeId.NEON_HERO,
+                                        ),
+                                    closeLayers = { dialog.dismiss() },
+                                )
                             }
                         },
                         LinearLayout.LayoutParams(
@@ -7191,7 +7381,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             gravity =
                                 Gravity.CENTER
                             contentDescription =
-                                "Налаштувати projectM / FG"
+                                "Налаштування projectM"
                             setTextColor(
                                 COLOR_ACCENT_CYAN,
                             )
@@ -7213,10 +7403,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     1,
                                 )
                             setOnClickListener {
-                                // Preserve the Layers parent dialog under
-                                // the movable child editor. Closing the
-                                // editor returns to this same Layers panel.
-                                showProjectMSettingsPanel()
+                                // V206: the projectM window. The Layers panel stays under it
+                                // (⚙ FG is a movable child editor, as before).
+                                showLayerSettings(
+                                    title = "Visualizer (projectM)",
+                                    settings = com.saney.musicvisualizer.ui.LayerSettingsMap.forLayer(layer.name),
+                                    closeLayers = { dialog.dismiss() },
+                                )
                             }
                         },
                         LinearLayout.LayoutParams(

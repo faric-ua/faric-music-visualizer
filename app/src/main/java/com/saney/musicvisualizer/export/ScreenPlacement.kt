@@ -38,6 +38,9 @@ data class ScreenPlacement(
          *   книжка»): the phone lies on its side — the virtual screen is wide (long × short), as on a turned phone,
          *   and the HUD takes the «Альбом» set.
          * @param screenShortPx the phone screen's short side in pixels; 0 = the frame's short side (old way).
+         * @param panelScale V205 (faric 03.11 15:44: «розмір панелі у відсотках» — щоб візуалізація була «на А0»):
+         *   the whole phone screen (panel, hero) made smaller by this share and kept in the middle; the
+         *   visualization still fills the frame. 1 = as before.
          */
         fun compute(
             frameWidth: Int,
@@ -46,6 +49,7 @@ data class ScreenPlacement(
             fitWholeScreen: Boolean,
             lying: Boolean = false,
             screenShortPx: Int = 0,
+            panelScale: Float = 1f,
         ): ScreenPlacement {
             val w = frameWidth.coerceAtLeast(1)
             val h = frameHeight.coerceAtLeast(1)
@@ -61,7 +65,7 @@ data class ScreenPlacement(
             val fit = min(w.toFloat() / vw, h.toFloat() / vh)
             val visibleWithFill = min(w / (vw * fill), h / (vh * fill))
             val useFill = !fitWholeScreen && 1f - visibleWithFill <= MAX_FILL_CROP + 1e-4f
-            val s = if (useFill) fill else fit
+            val s = (if (useFill) fill else fit) * panelScale.coerceIn(0.2f, 1f)
             return ScreenPlacement(
                 virtualWidth = vw,
                 virtualHeight = vh,

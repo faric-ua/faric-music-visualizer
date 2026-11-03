@@ -46,6 +46,8 @@ data class CompositionExportConfig(
     val lyingScreen: Boolean = false,
     /** V202: the phone screen's short side, px — the virtual screen is the phone's own size. 0 = old way. */
     val screenShortPx: Int = 0,
+    /** V205: «Розмір панелі у відео» — 1 = as before, 0,55 = the panel 55 % big in the middle. */
+    val panelScale: Float = 1f,
     /** V46: «вміщається все» — never cut the screen, even in 9:16. */
     val fitWholeScreen: Boolean = false,
     /**
@@ -348,7 +350,7 @@ class CompositionExportRenderer(
         lastPlacement?.let { cached ->
             if (cachedPlacementWidth == width && cachedPlacementHeight == height) return cached
         }
-        return ScreenPlacement.compute(width, height, config.screenAspect, config.fitWholeScreen, config.lyingScreen, config.screenShortPx).also {
+        return ScreenPlacement.compute(width, height, config.screenAspect, config.fitWholeScreen, config.lyingScreen, config.screenShortPx, config.panelScale).also {
             lastPlacement = it
             cachedPlacementWidth = width
             cachedPlacementHeight = height

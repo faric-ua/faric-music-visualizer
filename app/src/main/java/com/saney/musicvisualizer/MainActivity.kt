@@ -9025,6 +9025,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun exportTurnHudLabel(): String =
         "Панель у відео 16:9: " + if (exportPrefs().getBoolean(KEY_EXPORT_TURN_HUD, true)) "розвернута (Альбом)" else "як книжка, по центру"
 
+    /** V205 (faric 03.11 15:44): the panel in the video 100 / 85 / 70 / 55 % — the visualization takes the rest. */
+    private fun exportPanelPercent(): Int =
+        exportPrefs().getInt(KEY_EXPORT_PANEL_PERCENT, 100).takeIf { it in PANEL_PERCENTS } ?: 100
+
+    private fun exportPanelLabel(): String = "Розмір панелі у відео: ${exportPanelPercent()} %"
+
     /** V204 (faric 03.11 14:02): «щоразу однаково» — re-made videos look the same; default «випадково» (as before). */
     private fun exportRepeatableLabel(): String =
         "Візуалізація у відео: " + if (exportPrefs().getBoolean(KEY_EXPORT_REPEATABLE, false)) "щоразу однаково" else "щоразу по-новому"
@@ -9435,6 +9441,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 setOnClickListener {
                     exportPrefs().edit().putBoolean(KEY_EXPORT_VIDEO_720, !exportVideo720()).apply()
                     text = exportVideoSizeLabel()
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+            },
+        )
+
+        // V205 (faric 03.11 15:44): a smaller panel in the middle — the visualization «на А0».
+        content.addView(
+            exportPill(
+                text = exportPanelLabel(),
+                accent = false,
+            ) {}.apply {
+                setOnClickListener {
+                    val next = PANEL_PERCENTS[(PANEL_PERCENTS.indexOf(exportPanelPercent()) + 1) % PANEL_PERCENTS.size]
+                    exportPrefs().edit().putInt(KEY_EXPORT_PANEL_PERCENT, next).apply()
+                    text = exportPanelLabel()
                 }
             },
             LinearLayout.LayoutParams(
@@ -10101,6 +10127,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             // layout editor (the phone's display), so sizes and places match what faric set there.
             screenAspect = if (exportLyingHud()) displayAspect() else exportScreenAspect(),
             lyingScreen = exportLyingHud(),
+            panelScale = exportPanelPercent() / 100f,
             screenShortPx =
                 if (exportLyingHud()) {
                     resources.displayMetrics.let { minOf(it.widthPixels, it.heightPixels) }
@@ -13725,6 +13752,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 append(" · окантовка: ")
                 append(if (exportFastEdge()) "швидка (тест)" else "звичайна")
                 if (exportPrefs().getBoolean(KEY_EXPORT_REPEATABLE, false)) append(" · щоразу однаково")
+                if (exportPanelPercent() != 100) append(" · панель ").append(exportPanelPercent()).append(" %")
                 append("\nнагрів: старт ")
                 append(exportHeatAtStart ?: "—")
                 append(" → кінець ")
@@ -14030,6 +14058,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val KEY_EXPORT_FAST_EDGE = "edge_fast_mesh"
         private const val KEY_EXPORT_TURN_HUD = "turn_hud_16_9"
         private const val KEY_EXPORT_REPEATABLE = "repeatable_visuals"
+        private const val KEY_EXPORT_PANEL_PERCENT = "panel_percent"
+        private val PANEL_PERCENTS = listOf(100, 85, 70, 55)
         private const val PROJECTM_EXPORT_FPS =
             30
 

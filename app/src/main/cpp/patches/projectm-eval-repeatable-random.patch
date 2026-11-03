@@ -1,0 +1,63 @@
+diff --git a/projectm-eval/TreeFunctions.c b/projectm-eval/TreeFunctions.c
+index cf1a2c0..9d3b728 100644
+--- a/projectm-eval/TreeFunctions.c
++++ b/projectm-eval/TreeFunctions.c
+@@ -162,6 +162,17 @@ void prjm_eval_intrinsic_functions(prjm_eval_intrinsic_function_list_ptr list, u
+     *list = intrinsic_function_table;
+ }
+ 
++/* FARIC (PulseDeck V204): the generator's state lives here, so it can be started again from a seed. */
++static uint32_t prjm_eval_rand_mt[N]; /* the array for the state vector  */
++static int32_t prjm_eval_rand_mti; /* 0 = not initialized yet */
++static uint32_t prjm_eval_rand_seed = 0x4141f00d; /* Initial Mersenne Twister seed */
++
++void projectm_eval_faric_reset_rand(unsigned int seed)
++{
++    prjm_eval_rand_seed = (uint32_t) seed;
++    prjm_eval_rand_mti = 0;
++}
++
+ /* This is Milkdrop's original rand() implementation. */
+ static uint32_t prjm_eval_genrand_int32(void)
+ {
+@@ -169,13 +180,13 @@ static uint32_t prjm_eval_genrand_int32(void)
+     static uint32_t mag01[2] = { 0x0UL, MATRIX_A };
+     /* mag01[x] = x * MATRIX_A  for x=0,1 */
+ 
+-    static uint32_t mt[N]; /* the array for the state vector  */
+-    static int32_t mti; /* mti==N+1 means mt[N] is not initialized */
++    uint32_t* mt = prjm_eval_rand_mt;
++#define mti prjm_eval_rand_mti
+ 
+ 
+     if (!mti)
+     {
+-        uint32_t s = 0x4141f00d; // Initial Mersenne Twister seed
++        uint32_t s = prjm_eval_rand_seed; // Initial Mersenne Twister seed
+         mt[0] = s & 0xffffffffUL;
+         for (mti = 1; mti < N; mti++)
+         {
+@@ -221,6 +232,7 @@ static uint32_t prjm_eval_genrand_int32(void)
+ 
+     return y;
+ }
++#undef mti
+ 
+ /* Variable and constant access */
+ prjm_eval_function_decl(const)
+diff --git a/projectm-eval/api/projectm-eval.h b/projectm-eval/api/projectm-eval.h
+index ab90e51..e9f3b10 100644
+--- a/projectm-eval/api/projectm-eval.h
++++ b/projectm-eval/api/projectm-eval.h
+@@ -77,6 +77,11 @@ void projectm_eval_memory_buffer_destroy(projectm_eval_mem_buffer buffer);
+  */
+ void projectm_eval_memory_global_destroy();
+ 
++/**
++ * @brief FARIC: starts the rand() generator used by expressions again from @a seed (repeatable pictures).
++ */
++void projectm_eval_faric_reset_rand(unsigned int seed);
++
+ /**
+  * @brief Creates a new execution context.
+  * @param global_mem An optional pointer to a prjm_eval_mem_buffer_t which will be used as the global

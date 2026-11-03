@@ -65,6 +65,17 @@ object ProjectMBridge {
         )
     }
 
+    /**
+     * V204: «щоразу однаково» — projectM's random numbers start again from [seed] (the same piece of a song gives
+     * the same picture); false = random as before. Global — works with or without a running instance.
+     */
+    fun setRepeatableRandom(
+        repeatable: Boolean,
+        seed: Int,
+    ) {
+        nativeSetRepeatableRandom(repeatable, seed)
+    }
+
     fun nextPreset() {
         if (active) nativeNextPreset()
     }
@@ -240,6 +251,10 @@ object ProjectMBridge {
     ): Long
     private external fun nativeSetAutoPresetSwitching(enabled: Boolean)
     private external fun nativeSetSoftCutDuration(seconds: Double)
+    private external fun nativeSetRepeatableRandom(
+        repeatable: Boolean,
+        seed: Int,
+    )
     private external fun nativeSetBackgroundVisible(
         visible: Boolean,
     )

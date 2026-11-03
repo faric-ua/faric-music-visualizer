@@ -21,6 +21,16 @@ FetchContent_Declare(
         ${CMAKE_COMMAND} -E chdir <SOURCE_DIR>
         ${GIT_EXECUTABLE} apply --unidiff-zero --whitespace=nowarn
         "${CMAKE_CURRENT_LIST_DIR}/patches/projectm-4.1.7-frame-time.patch"
+    # V204 (faric 03.11 14:02): «щоразу однаково» — repeatable random numbers for a video, and soft cuts
+    # measured by projectM's own clock (the video's time in an export).
+    COMMAND
+        ${CMAKE_COMMAND} -E chdir <SOURCE_DIR>
+        ${GIT_EXECUTABLE} apply --unidiff-zero --whitespace=nowarn
+        "${CMAKE_CURRENT_LIST_DIR}/patches/projectm-4.1.7-repeatable-random.patch"
+    COMMAND
+        ${CMAKE_COMMAND} -E chdir <SOURCE_DIR>/vendor/projectm-eval
+        ${GIT_EXECUTABLE} apply --unidiff-zero --whitespace=nowarn
+        "${CMAKE_CURRENT_LIST_DIR}/patches/projectm-eval-repeatable-random.patch"
 )
 
 FetchContent_MakeAvailable(projectm)

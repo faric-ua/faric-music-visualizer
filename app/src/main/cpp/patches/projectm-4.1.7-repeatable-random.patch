@@ -1,0 +1,322 @@
+diff --git a/src/api/include/projectM-4/parameters.h b/src/api/include/projectM-4/parameters.h
+index a959141..018a482 100644
+--- a/src/api/include/projectM-4/parameters.h
++++ b/src/api/include/projectM-4/parameters.h
+@@ -65,6 +65,12 @@ PROJECTM_EXPORT void projectm_set_frame_time(projectm_handle instance,
+  */
+ PROJECTM_EXPORT double projectm_get_last_frame_time(projectm_handle instance);
+ 
++/**
++ * @brief FARIC: makes projectM's random numbers repeatable (same seed → same picture) or random again.
++ * Also re-seeds rand() and the expression evaluator's rand(). Global for the library.
++ */
++PROJECTM_EXPORT void projectm_faric_set_random(projectm_handle instance, bool repeatable, uint32_t seed);
++
+ /**
+  * @brief Sets the beat sensitivity.
+  *
+diff --git a/src/libprojectM/FaricRandom.hpp b/src/libprojectM/FaricRandom.hpp
+new file mode 100644
+index 0000000..91cdc35
+--- /dev/null
++++ b/src/libprojectM/FaricRandom.hpp
+@@ -0,0 +1,41 @@
++#pragma once
++
++// FARIC (PulseDeck V204): «щоразу однаково» — every random number projectM takes for a video can come from one
++// seeded generator, so the same piece of a song gives the same picture. Off = projectM's own randomness.
++
++#include <cstdint>
++#include <random>
++
++namespace libprojectM {
++namespace FaricRandom {
++
++inline bool& EnabledFlag()
++{
++    static bool enabled{false};
++    return enabled;
++}
++
++inline std::mt19937& Engine()
++{
++    static std::mt19937 engine{0x4141f00du};
++    return engine;
++}
++
++inline auto Enabled() -> bool
++{
++    return EnabledFlag();
++}
++
++inline auto Next() -> uint32_t
++{
++    return static_cast<uint32_t>(Engine()());
++}
++
++inline void Set(bool enabled, uint32_t seed)
++{
++    EnabledFlag() = enabled;
++    Engine().seed(seed);
++}
++
++} // namespace FaricRandom
++} // namespace libprojectM
+diff --git a/src/libprojectM/MilkdropPreset/PresetState.cpp b/src/libprojectM/MilkdropPreset/PresetState.cpp
+index 7ff872a..ab73faa 100644
+--- a/src/libprojectM/MilkdropPreset/PresetState.cpp
++++ b/src/libprojectM/MilkdropPreset/PresetState.cpp
+@@ -3,6 +3,8 @@
+ #include "MilkdropStaticShaders.hpp"
+ #include "PresetFileParser.hpp"
+ 
++#include "../FaricRandom.hpp"
++
+ #include <glm/gtc/matrix_transform.hpp>
+ 
+ #include <random>
+@@ -23,7 +25,7 @@ PresetState::PresetState()
+                                   staticShaders->GetTexturedDrawFragmentShader());
+ 
+     std::random_device randomDevice;
+-    std::mt19937 randomGenerator(randomDevice());
++    std::mt19937 randomGenerator(FaricRandom::Enabled() ? FaricRandom::Next() : randomDevice());
+     std::uniform_int_distribution<> distrib(0, std::numeric_limits<int>::max());
+ 
+     hueRandomOffsets[0] = static_cast<float>(distrib(randomGenerator) % 64841L) * 0.01f;
+diff --git a/src/libprojectM/ProjectM.cpp b/src/libprojectM/ProjectM.cpp
+index 300ea22..c482a08 100644
+--- a/src/libprojectM/ProjectM.cpp
++++ b/src/libprojectM/ProjectM.cpp
+@@ -150,6 +150,7 @@ void ProjectM::RenderFrame(uint32_t targetFramebufferObject)
+ 
+     if (m_transition != nullptr && m_transitioningPreset != nullptr)
+     {
++        m_transition->SetClock(m_timeKeeper->GetRunningTime());
+         if (m_transition->IsDone())
+         {
+             m_activePreset = std::move(m_transitioningPreset);
+diff --git a/src/libprojectM/ProjectMCWrapper.cpp b/src/libprojectM/ProjectMCWrapper.cpp
+index 2061339..85bc80c 100644
+--- a/src/libprojectM/ProjectMCWrapper.cpp
++++ b/src/libprojectM/ProjectMCWrapper.cpp
+@@ -4,6 +4,11 @@
+ 
+ #include <Audio/AudioConstants.hpp>
+ 
++#include "FaricRandom.hpp"
++
++#include <projectm-eval.h>
++
++#include <cstdlib>
+ #include <cstring>
+ #include <sstream>
+ 
+@@ -182,6 +187,16 @@ void projectm_set_frame_time(projectm_handle instance, double seconds_since_firs
+     projectMInstance->SetFrameTime(seconds_since_first_frame);
+ }
+ 
++void projectm_faric_set_random(projectm_handle, bool repeatable, uint32_t seed)
++{
++    libprojectM::FaricRandom::Set(repeatable, seed);
++    if (repeatable)
++    {
++        srand(seed);
++        projectm_eval_faric_reset_rand(seed);
++    }
++}
++
+ double projectm_get_last_frame_time(projectm_handle instance)
+ {
+     auto projectMInstance = handle_to_instance(instance);
+diff --git a/src/libprojectM/Renderer/MilkdropNoise.cpp b/src/libprojectM/Renderer/MilkdropNoise.cpp
+index bb742d3..6d4aaa4 100644
+--- a/src/libprojectM/Renderer/MilkdropNoise.cpp
++++ b/src/libprojectM/Renderer/MilkdropNoise.cpp
+@@ -2,6 +2,8 @@
+ 
+ #include "projectM-opengl.h"
+ 
++#include "../FaricRandom.hpp"
++
+ #include <chrono>
+ #include <random>
+ 
+@@ -108,7 +110,7 @@ auto MilkdropNoise::GetPreferredInternalFormat() -> int
+ 
+ auto MilkdropNoise::generate2D(int size, int zoomFactor) -> std::vector<uint32_t>
+ {
+-    uint32_t randomSeed = static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count());
++    uint32_t randomSeed = FaricRandom::Enabled() ? FaricRandom::Next() : static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count());
+     std::default_random_engine randomGenerator(randomSeed);
+     std::uniform_int_distribution<int> randomDistribution(0, INT32_MAX);
+ 
+@@ -195,7 +197,7 @@ auto MilkdropNoise::generate2D(int size, int zoomFactor) -> std::vector<uint32_t
+ 
+ auto MilkdropNoise::generate3D(int size, int zoomFactor) -> std::vector<uint32_t>
+ {
+-    uint32_t randomSeed = static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count());
++    uint32_t randomSeed = FaricRandom::Enabled() ? FaricRandom::Next() : static_cast<uint32_t>(std::chrono::system_clock::now().time_since_epoch().count());
+     std::default_random_engine randomGenerator(randomSeed);
+     std::uniform_int_distribution<int> randomDistribution(0, INT32_MAX);
+ 
+diff --git a/src/libprojectM/Renderer/PresetTransition.cpp b/src/libprojectM/Renderer/PresetTransition.cpp
+index 2a27f00..b97e4d4 100644
+--- a/src/libprojectM/Renderer/PresetTransition.cpp
++++ b/src/libprojectM/Renderer/PresetTransition.cpp
+@@ -2,6 +2,8 @@
+ 
+ #include "TextureManager.hpp"
+ 
++#include "../FaricRandom.hpp"
++
+ #include <array>
+ #include <cmath>
+ #include <cstddef>
+@@ -15,7 +17,7 @@ PresetTransition::PresetTransition(const std::shared_ptr<Shader>& transitionShad
+     : m_transitionShader(transitionShader)
+     , m_durationSeconds(durationSeconds)
+ {
+-    std::mt19937 rand32(m_randomDevice());
++    std::mt19937 rand32(FaricRandom::Enabled() ? FaricRandom::Next() : m_randomDevice());
+     m_staticRandomValues = {rand32(), rand32(), rand32(), rand32()};
+ 
+     RenderItem::Init();
+@@ -33,9 +35,29 @@ void PresetTransition::InitVertexAttrib()
+     glBufferData(GL_ARRAY_BUFFER, sizeof(points), points.data(), GL_STATIC_DRAW);
+ }
+ 
++void PresetTransition::SetClock(double seconds)
++{
++    // FARIC: the transition follows projectM's own clock (the video's time in an export), not the wall clock.
++    if (m_startClock < 0.0 || seconds < m_startClock)
++    {
++        m_startClock = seconds;
++        m_lastClock = seconds;
++    }
++    m_clock = seconds;
++}
++
++auto PresetTransition::SecondsSinceStart() const -> double
++{
++    if (m_startClock < 0.0)
++    {
++        return std::chrono::duration<double>(std::chrono::system_clock::now() - m_transitionStartTime).count();
++    }
++    return m_clock - m_startClock;
++}
++
+ auto PresetTransition::IsDone() const -> bool
+ {
+-    const auto secondsSinceStart = std::chrono::duration<double>(std::chrono::system_clock::now() - m_transitionStartTime).count();
++    const auto secondsSinceStart = SecondsSinceStart();
+     return m_durationSeconds <= 0.0 || secondsSinceStart >= m_durationSeconds;
+ }
+ 
+@@ -51,10 +73,10 @@ void PresetTransition::Draw(const Preset& oldPreset,
+         return;
+     }
+ 
+-    std::mt19937 rand32(m_randomDevice());
++    std::mt19937 rand32(FaricRandom::Enabled() ? FaricRandom::Next() : m_randomDevice());
+ 
+     // Calculate progress values
+-    const auto secondsSinceStart = std::chrono::duration<double>(std::chrono::system_clock::now() - m_transitionStartTime).count();
++    const auto secondsSinceStart = SecondsSinceStart();
+ 
+     // If duration is zero,
+     double linearProgress{1.0};
+@@ -80,8 +102,10 @@ void PresetTransition::Draw(const Preset& oldPreset,
+                                                             bicubicProgress,
+                                                             m_durationSeconds});
+ 
+-    m_transitionShader->SetUniformFloat2("timeParams", {secondsSinceStart,
+-                                                        std::chrono::duration<float>(std::chrono::system_clock::now() - m_lastFrameTime).count()});
++    const float frameSeconds = m_startClock < 0.0
++                                   ? std::chrono::duration<float>(std::chrono::system_clock::now() - m_lastFrameTime).count()
++                                   : static_cast<float>(m_clock - m_lastClock);
++    m_transitionShader->SetUniformFloat2("timeParams", {static_cast<float>(secondsSinceStart), frameSeconds});
+ 
+     m_transitionShader->SetUniformInt4("iRandStatic", m_staticRandomValues);
+ 
+@@ -131,6 +155,7 @@ void PresetTransition::Draw(const Preset& oldPreset,
+ 
+     // Update last frame time.
+     m_lastFrameTime = std::chrono::system_clock::now();
++    m_lastClock = m_clock;
+ }
+ 
+ } // namespace Renderer
+diff --git a/src/libprojectM/Renderer/PresetTransition.hpp b/src/libprojectM/Renderer/PresetTransition.hpp
+index 2623324..99d4f82 100644
+--- a/src/libprojectM/Renderer/PresetTransition.hpp
++++ b/src/libprojectM/Renderer/PresetTransition.hpp
+@@ -32,6 +32,11 @@ public:
+      */
+     auto IsDone() const -> bool;
+ 
++    /**
++     * @brief FARIC: projectM's running time for this frame — the transition is measured by it.
++     */
++    void SetClock(double seconds);
++
+     /**
+      * @brief Updates the transition variables and renders the shader quad to the current FBO.
+      * @param oldPreset A reference to the old (fading out) preset.
+@@ -63,6 +68,12 @@ private:
+     std::chrono::time_point<std::chrono::system_clock> m_transitionStartTime{std::chrono::system_clock::now()}; //!< Start time of this transition. Duration is measured from this point.
+     std::chrono::time_point<std::chrono::system_clock> m_lastFrameTime{std::chrono::system_clock::now()};       //!< Time when the previous frame was rendered.
+ 
++    auto SecondsSinceStart() const -> double;
++
++    double m_startClock{-1.0}; //!< FARIC: projectM time when the transition started (-1 = not set yet).
++    double m_clock{0.0};       //!< FARIC: projectM time of the current frame.
++    double m_lastClock{0.0};   //!< FARIC: projectM time of the previous frame.
++
+     glm::ivec4 m_staticRandomValues{}; //!< Four random integers, remaining static during the whole transition.
+ 
+     std::random_device m_randomDevice; //!< Seed for the random number generator
+diff --git a/src/libprojectM/Renderer/TextureManager.cpp b/src/libprojectM/Renderer/TextureManager.cpp
+index 9def56c..f5b15e9 100644
+--- a/src/libprojectM/Renderer/TextureManager.cpp
++++ b/src/libprojectM/Renderer/TextureManager.cpp
+@@ -6,6 +6,8 @@
+ #include "Texture.hpp"
+ #include "Utils.hpp"
+ 
++#include "../FaricRandom.hpp"
++
+ #include <SOIL2/SOIL2.h>
+ 
+ #include <algorithm>
+@@ -237,7 +239,7 @@ auto TextureManager::GetRandomTexture(const std::string& randomName) -> TextureS
+     std::string selectedFilename;
+ 
+     std::random_device rndDevice;
+-    std::default_random_engine rndEngine(rndDevice());
++    std::default_random_engine rndEngine(FaricRandom::Enabled() ? FaricRandom::Next() : rndDevice());
+ 
+     ScanTextures();
+ 
+diff --git a/src/libprojectM/Renderer/TransitionShaderManager.cpp b/src/libprojectM/Renderer/TransitionShaderManager.cpp
+index 28ea1fb..3651c39 100644
+--- a/src/libprojectM/Renderer/TransitionShaderManager.cpp
++++ b/src/libprojectM/Renderer/TransitionShaderManager.cpp
+@@ -1,5 +1,7 @@
+ #include "TransitionShaderManager.hpp"
+ 
++#include "../FaricRandom.hpp"
++
+ #include "BuiltInTransitionsResources.hpp"
+ 
+ #include <iostream>
+@@ -25,7 +27,8 @@ auto TransitionShaderManager::RandomTransition() -> std::shared_ptr<Shader>
+         return {};
+     }
+ 
+-    return m_transitionShaders.at(m_mersenneTwister() % m_transitionShaders.size());
++    const uint32_t pick = FaricRandom::Enabled() ? FaricRandom::Next() : m_mersenneTwister();
++    return m_transitionShaders.at(pick % m_transitionShaders.size());
+ }
+ 
+ auto TransitionShaderManager::CompileTransitionShader(const std::string& shaderBodyCode) -> std::shared_ptr<Shader>

@@ -126,6 +126,8 @@ object ShortVideoExportProof {
             ((String, Double?) -> Unit)? = null,
         /** V198: how long one visualization flows into the next (0 = hard cut, as before). */
         presetBlendMs: Int = 0,
+        /** V204: «Візуалізація у відео: щоразу однаково» — the same song piece gives the same picture. */
+        repeatableVisuals: Boolean = false,
         requestedDurationMs: Long =
             DEFAULT_DURATION_MS,
         fps: Int =
@@ -469,6 +471,10 @@ object ShortVideoExportProof {
                     height = height,
                 ).also { it.previewSink = onPreviewFrame }
 
+            // V204: seed before the video's projectM starts (its noise textures and first visualization).
+            val visualSeed = sourceAudioUri.toString().hashCode() * 31 + startMs.toInt()
+            if (repeatableVisuals) runCatching { com.saney.musicvisualizer.projectm.ProjectMBridge.setRepeatableRandom(true, visualSeed) }
+
             directGpuProjectMConfig
                 ?.let { gpuConfig ->
                     encoderSurface
@@ -623,6 +629,11 @@ object ShortVideoExportProof {
                 System.nanoTime().let { now ->
                     if (frameIndex > 0) bookFrameTime(now)
                     frameStartedNs = now
+                }
+
+                // V204: the first frame starts the random numbers again — what played on the screen before does not count.
+                if (repeatableVisuals && frameIndex == 0) {
+                    runCatching { com.saney.musicvisualizer.projectm.ProjectMBridge.setRepeatableRandom(true, visualSeed) }
                 }
 
                 presetForVideoTime
@@ -1399,6 +1410,8 @@ object ShortVideoExportProof {
 
             onProgress(ExportProgress.RENDER_END)
         } finally {
+            // V204: the screen is random again.
+            if (repeatableVisuals) runCatching { com.saney.musicvisualizer.projectm.ProjectMBridge.setRepeatableRandom(false, 0) }
             bitmap.recycle()
             overlayBitmap
                 ?.recycle()

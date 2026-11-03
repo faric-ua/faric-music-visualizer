@@ -82,6 +82,11 @@ class CoverBoxContentTest {
         val small = CoverBoxContent.framePanel(square, 1080f, 2340f, text = true)
         assertEquals(648f, small.right - small.left, 1e-3f)
         assertEquals(270f, small.bottom - small.top, 1e-3f)
+        // V202: a lying phone (2340 × 1080) — faric's frame from «Альбом» stays as he set it
+        val album = LayoutBox(180f, 140f, 1160f, 960f)
+        assertEquals(album, CoverBoxContent.framePanel(album, 2340f, 1080f, text = true))
+        val tiny = CoverBoxContent.framePanel(LayoutBox(200f, 300f, 400f, 500f), 2340f, 1080f, text = true)
+        assertEquals("minimum from the short side", 648f, tiny.right - tiny.left, 1e-3f)
     }
 
     @Test fun paragraphsAndHeadings() {

@@ -68,4 +68,20 @@ class ScreenPlacementTest {
         // the old portrait screen is unchanged when not lying
         assertEquals(720, ScreenPlacement.compute(1280, 720, phone, fitWholeScreen = true).virtualWidth)
     }
+
+    @Test
+    fun virtualScreenIsThePhonesOwnSize() {
+        // V202 (03.11 04:14): a 720p video still lays the screen out at the phone's 1080 px, scaled down
+        val lying = ScreenPlacement.compute(1280, 720, phone, fitWholeScreen = true, lying = true, screenShortPx = 1080)
+        assertEquals(2340, lying.virtualWidth)
+        assertEquals(1080, lying.virtualHeight)
+        assertEquals(1280f / 2340f, lying.scale, 0.001f)
+        assertEquals(360f, lying.mapY(lying.virtualHeight / 2f), 0.5f)
+        val tall = ScreenPlacement.compute(720, 1280, phone, fitWholeScreen = false, screenShortPx = 1080)
+        assertEquals(1080, tall.virtualWidth)
+        assertEquals(720f / 1080f, tall.scale, 0.001f)
+        // 1080p 9:16 on a 1080-px phone — exactly as before
+        val same = ScreenPlacement.compute(1080, 1920, phone, fitWholeScreen = false, screenShortPx = 1080)
+        assertEquals(ScreenPlacement.compute(1080, 1920, phone, fitWholeScreen = false), same)
+    }
 }

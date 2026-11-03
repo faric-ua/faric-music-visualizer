@@ -9046,6 +9046,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         return maxOf(m.widthPixels, m.heightPixels).toFloat() / minOf(m.widthPixels, m.heightPixels).coerceAtLeast(1)
     }
 
+    /** V202: the display's long / short side — as the layout editor sizes its preview. */
+    private fun displayAspect(): Float {
+        val m = resources.displayMetrics
+        return maxOf(m.widthPixels, m.heightPixels).toFloat() / minOf(m.widthPixels, m.heightPixels).coerceAtLeast(1)
+    }
+
+    /** V202: the phone screen's short side, px (the HUD view as it is on the screen). */
+    private fun exportScreenShortPx(): Int {
+        val skin = pulseDeckMainSkinView
+        if (skin != null && skin.width > 0 && skin.height > 0) return minOf(skin.width, skin.height)
+        val m = resources.displayMetrics
+        return minOf(m.widthPixels, m.heightPixels)
+    }
+
     /** V38: «Кнопки у відео» — the PulseDeck HUD drawn into the MP4 or not. */
     private fun hudInVideoEnabled(): Boolean =
         exportPrefs().getBoolean(KEY_EXPORT_HUD_IN_VIDEO, true)
@@ -10029,9 +10043,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             pulseDeckFavorite =
                 controller.currentTrackUri()?.let { LocalMusicUserState(this).isFavorite(it.toString()) } == true,
             // V46: hero + HUD laid out like this phone screen, then scaled into the frame.
-            screenAspect = exportScreenAspect(),
-            // V202: 16:9 — the HUD as on a turned phone, with «Утиліти → Альбом».
+            // V202: 16:9 — the HUD as on a turned phone, with «Утиліти → Альбом»: the same screen size as the
+            // layout editor (the phone's display), so sizes and places match what faric set there.
+            screenAspect = if (exportAspectRatio.width > exportAspectRatio.height) displayAspect() else exportScreenAspect(),
             lyingScreen = exportAspectRatio.width > exportAspectRatio.height,
+            screenShortPx =
+                if (exportAspectRatio.width > exportAspectRatio.height) {
+                    resources.displayMetrics.let { minOf(it.widthPixels, it.heightPixels) }
+                } else {
+                    exportScreenShortPx()
+                },
             fitWholeScreen = exportPrefs().getBoolean(KEY_EXPORT_FIT_WHOLE_SCREEN, false),
             pulseDeckObjectVisibility =
                 PULSEDECK_EXPORT_OBJECT_IDS

@@ -1609,6 +1609,21 @@ Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetSignal(
         );
 }
 
+// V204: «Візуалізація у відео: щоразу однаково» — the same seed gives the same picture; off = random as before.
+extern "C" JNIEXPORT void JNICALL
+Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetRepeatableRandom(
+        JNIEnv*,
+        jclass,
+        jboolean repeatable,
+        jint seed) {
+    std::lock_guard<std::mutex> lock(g_mutex);
+    projectm_faric_set_random(
+        g_projectm,
+        repeatable == JNI_TRUE,
+        static_cast<uint32_t>(seed)
+    );
+}
+
 // V198: the blend length of the next switch («плавно 1 с / 2 с»).
 extern "C" JNIEXPORT void JNICALL
 Java_com_saney_musicvisualizer_projectm_ProjectMBridge_nativeSetSoftCutDuration(

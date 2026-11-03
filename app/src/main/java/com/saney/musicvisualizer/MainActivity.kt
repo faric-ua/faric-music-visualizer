@@ -9025,6 +9025,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun exportTurnHudLabel(): String =
         "Панель у відео 16:9: " + if (exportPrefs().getBoolean(KEY_EXPORT_TURN_HUD, true)) "розвернута (Альбом)" else "як книжка, по центру"
 
+    /** V204 (faric 03.11 14:02): «щоразу однаково» — re-made videos look the same; default «випадково» (as before). */
+    private fun exportRepeatableLabel(): String =
+        "Візуалізація у відео: " + if (exportPrefs().getBoolean(KEY_EXPORT_REPEATABLE, false)) "щоразу однаково" else "щоразу по-новому"
+
     /** V200: «Окантовка у відео: звичайна / швидка (тест)» — default «звичайна» (as before). */
     private fun exportFastEdge(): Boolean = exportPrefs().getBoolean(KEY_EXPORT_FAST_EDGE, false)
 
@@ -9431,6 +9435,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 setOnClickListener {
                     exportPrefs().edit().putBoolean(KEY_EXPORT_VIDEO_720, !exportVideo720()).apply()
                     text = exportVideoSizeLabel()
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+            },
+        )
+
+        // V204 (faric 03.11 14:02: «стартувати візуалізацію завжди з одного місця чи рандомно — раптом захочу
+        // перезалити відео, а воно відрізнятиметься»).
+        content.addView(
+            exportPill(
+                text = exportRepeatableLabel(),
+                accent = false,
+            ) {}.apply {
+                setOnClickListener {
+                    exportPrefs().edit().putBoolean(KEY_EXPORT_REPEATABLE, !exportPrefs().getBoolean(KEY_EXPORT_REPEATABLE, false)).apply()
+                    text = exportRepeatableLabel()
                 }
             },
             LinearLayout.LayoutParams(
@@ -11300,6 +11324,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             }
                         },
                     presetBlendMs = ProjectMStateStore(this).blendMs,
+                    repeatableVisuals = exportPrefs().getBoolean(KEY_EXPORT_REPEATABLE, false),
                     video720 = exportVideo720(),
                     requestedDurationMs =
                         requestedDurationMs,
@@ -13699,6 +13724,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 append(com.saney.musicvisualizer.projectm.PresetBlend.label(ProjectMStateStore(this@MainActivity).blendMs))
                 append(" · окантовка: ")
                 append(if (exportFastEdge()) "швидка (тест)" else "звичайна")
+                if (exportPrefs().getBoolean(KEY_EXPORT_REPEATABLE, false)) append(" · щоразу однаково")
                 append("\nнагрів: старт ")
                 append(exportHeatAtStart ?: "—")
                 append(" → кінець ")
@@ -14003,6 +14029,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val KEY_EXPORT_VIDEO_720 = "video_720p"
         private const val KEY_EXPORT_FAST_EDGE = "edge_fast_mesh"
         private const val KEY_EXPORT_TURN_HUD = "turn_hud_16_9"
+        private const val KEY_EXPORT_REPEATABLE = "repeatable_visuals"
         private const val PROJECTM_EXPORT_FPS =
             30
 

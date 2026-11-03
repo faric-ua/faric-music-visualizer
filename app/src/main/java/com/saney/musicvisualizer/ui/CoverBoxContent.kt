@@ -134,6 +134,9 @@ object CoverBoxContent {
      * утилітах»): the frame is drawn on the SCREEN exactly where and as big as «Розкладка» puts it —
      * only cut to the screen (2 % margins), never wider. Text gets a readable minimum (60 % of the width,
      * a quarter of the width high) only when the frame is smaller than that.
+     * V202 (faric 03.11 04:33, відео 16:9: «знову не виходить» — рамка з історією ширша, ніж у «Розкладка ·
+     * Альбом»): the minimum counts from the screen's SHORT side; on a lying phone «60 % of the width» was
+     * 1 404 px of 2 340 and blew faric's frame up. Portrait — unchanged (the width is the short side).
      */
     fun framePanel(
         frameOnScreen: LayoutBox,
@@ -150,8 +153,9 @@ object CoverBoxContent {
         var top = frameOnScreen.top.coerceAtLeast(minTop)
         var bottom = frameOnScreen.bottom.coerceAtMost(maxBottom)
         if (text) {
-            val minW = screenW * 0.6f
-            val minH = screenW * 0.25f
+            val short = minOf(screenW, screenH)
+            val minW = short * 0.6f
+            val minH = short * 0.25f
             if (right - left < minW) {
                 val cx = ((left + right) / 2f).coerceIn(minLeft + minW / 2f, maxRight - minW / 2f)
                 left = cx - minW / 2f

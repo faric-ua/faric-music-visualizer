@@ -5612,6 +5612,74 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         )
     }
 
+    /** V206: groups of «Шари» opened (▾) in this run — the rest stay folded (▸). */
+    private val layersOpenGroups = mutableSetOf<String>()
+
+    /**
+     * V206: the ⚙ of a PulseDeck group in «Шари». Its parts move in Розкладка by their layout group (the buttons
+     * Next / Play / … together), so one line per layout group, then the position; the frame — its own window.
+     */
+    private fun showLayerGroupSettings(
+        title: String,
+        objects: List<Pair<String, String>>,
+        closeLayers: () -> Unit,
+    ) {
+        val nowProfile =
+            if (resources.configuration.orientation == android.content.res.Configuration.ORIENTATION_LANDSCAPE) {
+                com.saney.musicvisualizer.ui.LayoutProfileId.LANDSCAPE
+            } else {
+                com.saney.musicvisualizer.ui.LayoutProfileId.PORTRAIT
+            }
+        val actions = mutableListOf<PulseDeckDialogs.Action>()
+        objects
+            .filter { (id, _) -> com.saney.musicvisualizer.ui.LayerSettingsMap.hasOwnSettings(id) }
+            .forEach { (id, label) ->
+                actions +=
+                    PulseDeckDialogs.Action(
+                        label = label,
+                        subtitle = "Що в рамці, світіння, мова історії, текст і окантовка",
+                        icon = "▣",
+                    ) {
+                        showLayerSettings(
+                            title = label,
+                            settings = com.saney.musicvisualizer.ui.LayerSettingsMap.forHudObject(id),
+                            objectId = id,
+                            closeLayers = closeLayers,
+                        )
+                    }
+            }
+        com.saney.musicvisualizer.ui.LayerSettingsMap.layoutGroupsOf(objects.map { it.first }).forEach { groupId ->
+            val group = com.saney.musicvisualizer.ui.LayoutGroups.byId(groupId) ?: return@forEach
+            actions +=
+                PulseDeckDialogs.Action(
+                    label = group.label,
+                    subtitle = "Місце, розмір, прозорість — Книжка / Альбом / Відео 9:16",
+                    icon = "⤢",
+                ) {
+                    val profiles = com.saney.musicvisualizer.ui.LayoutProfileId.entries
+                    PulseDeckDialogs.showSingleChoice(
+                        context = this,
+                        title = group.label + " · у якому положенні",
+                        labels = profiles.map { it.label + if (it == nowProfile) " (зараз)" else "" },
+                        checkedIndex = profiles.indexOf(nowProfile),
+                    ) { index ->
+                        startActivity(
+                            Intent(this, PulseDeckLayoutEditorActivity::class.java)
+                                .putExtra(PulseDeckLayoutEditorActivity.EXTRA_PROFILE, profiles[index].name)
+                                .putExtra(PulseDeckLayoutEditorActivity.EXTRA_GROUP, groupId),
+                        )
+                    }
+                }
+        }
+        if (actions.isEmpty()) return
+        PulseDeckDialogs.show(
+            context = this,
+            title = "⚙ $title",
+            message = "Частини однієї рамки чи ряду кнопок рухаються разом — тому налаштування на групу.",
+            actions = actions + PulseDeckDialogs.Action(label = "Закрити") {},
+        )
+    }
+
     /** The GF picker (was inside «Шари»; V206 — also from the GF ⚙ window). */
     private fun pickGraphicFigure(onPicked: (String) -> Unit) {
         val ids = GraphicFigureCatalog.ids
@@ -6939,6 +7007,26 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 )
         }
 
+        fun gearButton(
+            description: String,
+            onClick: () -> Unit,
+        ): TextView =
+            TextView(this).apply {
+                text = "⚙"
+                textSize = 18f
+                gravity = Gravity.CENTER
+                contentDescription = description
+                setTextColor(COLOR_ACCENT_CYAN)
+                background =
+                    panelDrawable(
+                        Color.argb(105, 8, 18, 24),
+                        18,
+                        Color.argb(95, 80, 220, 255),
+                        1,
+                    )
+                setOnClickListener { onClick() }
+            }
+
         fun addObjectGroup(
             layer: PulseDeckLayerStack.Layer,
             groupLabel: String,
@@ -6947,26 +7035,86 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             var updatingGroup = false
             val childBoxes =
                 mutableListOf<android.widget.CheckBox>()
+            // V206 (faric 03.11 22:29: «а якось компактно все там зробити?» → «згорнуті групи»): a group is
+            // folded (▸) until tapped; the parts and their ⚙ show only when it is open (▾).
+            val childViews =
+                mutableListOf<View>()
+            val openKey =
+                layer.name + "/" + groupLabel
+            var open =
+                openKey in layersOpenGroups
 
             val groupBox =
                 android.widget.CheckBox(this).apply {
                     text =
-                        "↳ $groupLabel · ${objects.size}"
+                        "$groupLabel · ${objects.size}"
                     textSize = 13f
-                    setPadding(
-                        dp(12),
-                        0,
-                        0,
-                        0,
-                    )
                 }
 
             styleLayerCheckBox(
                 groupBox,
             )
 
-            container.addView(
+            val arrow =
+                TextView(this).apply {
+                    textSize = 16f
+                    gravity = Gravity.CENTER
+                    setTextColor(COLOR_ACCENT_CYAN)
+                }
+
+            fun applyOpen() {
+                arrow.text = if (open) "▾" else "▸"
+                arrow.contentDescription = if (open) "Згорнути групу" else "Розгорнути групу"
+                childViews.forEach { child ->
+                    child.visibility = if (open) View.VISIBLE else View.GONE
+                }
+            }
+
+            arrow.setOnClickListener {
+                open = !open
+                if (open) layersOpenGroups += openKey else layersOpenGroups -= openKey
+                applyOpen()
+            }
+
+            val groupRow =
+                LinearLayout(this).apply {
+                    orientation = LinearLayout.HORIZONTAL
+                    gravity = Gravity.CENTER_VERTICAL
+                }
+            groupRow.addView(
+                arrow,
+                LinearLayout.LayoutParams(dp(40), dp(44)),
+            )
+            groupRow.addView(
                 groupBox,
+                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+            )
+
+            // The group's ⚙: where its parts sit (they move together), and the frame's own settings.
+            val placeGroups =
+                if (layer == PulseDeckLayerStack.Layer.PULSEDECK_LOCKED) {
+                    com.saney.musicvisualizer.ui.LayerSettingsMap.layoutGroupsOf(objects.map { it.id })
+                } else {
+                    emptyList()
+                }
+            val hasFrame =
+                layer == PulseDeckLayerStack.Layer.PULSEDECK_LOCKED &&
+                    objects.any { com.saney.musicvisualizer.ui.LayerSettingsMap.hasOwnSettings(it.id) }
+            if (placeGroups.isNotEmpty() || hasFrame) {
+                groupRow.addView(
+                    gearButton("Налаштування групи: $groupLabel") {
+                        showLayerGroupSettings(
+                            title = groupLabel,
+                            objects = objects.map { it.id to it.label },
+                            closeLayers = { dialog.dismiss() },
+                        )
+                    },
+                    LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginStart = dp(6) },
+                )
+            }
+
+            container.addView(
+                groupRow,
             )
             objectControlsByLayer
                 .getOrPut(
@@ -7022,57 +7170,38 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
 
                 childBoxes += child
-                // V206: a PulseDeck part with settings gets its own ⚙ (the frame: what it shows, glow,
-                // language, text and edge; every part: place, size, see-through in each position).
-                val childSettings =
-                    if (layer == PulseDeckLayerStack.Layer.PULSEDECK_LOCKED) {
-                        com.saney.musicvisualizer.ui.LayerSettingsMap.forHudObject(item.id)
+                // Only a part with settings of its own (the frame) keeps a ⚙ — place and size are the group's.
+                val ownSettings =
+                    layer == PulseDeckLayerStack.Layer.PULSEDECK_LOCKED &&
+                        com.saney.musicvisualizer.ui.LayerSettingsMap.hasOwnSettings(item.id)
+                val childView: View =
+                    if (!ownSettings) {
+                        child
                     } else {
-                        emptyList()
-                    }
-                if (childSettings.isEmpty()) {
-                    container.addView(
-                        child,
-                    )
-                } else {
-                    val childRow =
                         LinearLayout(this).apply {
                             orientation = LinearLayout.HORIZONTAL
                             gravity = Gravity.CENTER_VERTICAL
+                            addView(
+                                child,
+                                LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
+                            )
+                            addView(
+                                gearButton("Налаштування: " + item.label) {
+                                    showLayerSettings(
+                                        title = item.label,
+                                        settings = com.saney.musicvisualizer.ui.LayerSettingsMap.forHudObject(item.id),
+                                        objectId = item.id,
+                                        closeLayers = { dialog.dismiss() },
+                                    )
+                                },
+                                LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginStart = dp(6) },
+                            )
                         }
-                    childRow.addView(
-                        child,
-                        LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
-                    )
-                    childRow.addView(
-                        TextView(this).apply {
-                            text = "⚙"
-                            textSize = 18f
-                            gravity = Gravity.CENTER
-                            contentDescription = "Налаштування: " + item.label
-                            setTextColor(COLOR_ACCENT_CYAN)
-                            background =
-                                panelDrawable(
-                                    Color.argb(105, 8, 18, 24),
-                                    18,
-                                    Color.argb(95, 80, 220, 255),
-                                    1,
-                                )
-                            setOnClickListener {
-                                showLayerSettings(
-                                    title = item.label,
-                                    settings = childSettings,
-                                    objectId = item.id,
-                                    closeLayers = { dialog.dismiss() },
-                                )
-                            }
-                        },
-                        LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginStart = dp(6) },
-                    )
-                    container.addView(
-                        childRow,
-                    )
-                }
+                    }
+                childViews += childView
+                container.addView(
+                    childView,
+                )
                 objectControlsByLayer
                     .getOrPut(
                         layer,
@@ -7085,6 +7214,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
 
             refreshGroupState()
+            applyOpen()
 
             groupBox.setOnCheckedChangeListener { _, checked ->
                 if (updatingGroup) {

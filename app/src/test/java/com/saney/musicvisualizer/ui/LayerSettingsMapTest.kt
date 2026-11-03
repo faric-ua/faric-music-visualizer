@@ -52,4 +52,19 @@ class LayerSettingsMapTest {
         assertEquals(LayoutProfileId.LANDSCAPE, LayerSettingsMap.profileOf(LayerSetting.PLACE_LANDSCAPE))
         assertEquals(null, LayerSettingsMap.profileOf(LayerSetting.THEME))
     }
+
+    @Test fun buttonsOfOneRowShareOneLayoutGroup() {
+        // Next / Play / Previous move together — the folded group's ⚙ lists «Керування» once.
+        assertEquals(
+            listOf("transport"),
+            LayerSettingsMap.layoutGroupsOf(listOf("next", "play_pause", "previous", "repeat", "shuffle", "transport_rail")),
+        )
+        assertEquals(listOf("cover", "info"), LayerSettingsMap.layoutGroupsOf(listOf("cover_box", "cover_menu", "file_info")))
+    }
+
+    @Test fun onlyTheFrameKeepsItsOwnGear() {
+        assertTrue(LayerSettingsMap.hasOwnSettings("cover_box"))
+        assertTrue(!LayerSettingsMap.hasOwnSettings("file_info"))
+        assertTrue(!LayerSettingsMap.hasOwnSettings("next"))
+    }
 }

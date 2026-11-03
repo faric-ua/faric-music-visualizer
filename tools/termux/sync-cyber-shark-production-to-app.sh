@@ -5,7 +5,6 @@ MAIN_REPO="$HOME/faric-music-visualizer"
 ASSET_REPO="$HOME/faric-music-visualizer-assets"
 SRC="$ASSET_REPO/production/faric/cyber-shark/v1/app/layers"
 DST="$MAIN_REPO/app/src/main/res/drawable-nodpi"
-GRADLE="$MAIN_REPO/app/build.gradle.kts"
 
 echo "========================================"
 echo " FARIC — Cyber Shark production sync"
@@ -66,12 +65,14 @@ cp "$SRC/frame.webp" "$DST/cyber_shark_frame.webp"
 cp "$SRC/creature.webp" "$DST/cyber_shark_creature.webp"
 cp "$SRC/wordmark.webp" "$DST/cyber_shark_wordmark.webp"
 
-if grep -q 'versionCode = 26' "$GRADLE"; then
-  sed -i 's/versionCode = 26/versionCode = 27/' "$GRADLE"
-fi
+# V207 (03.11 22:17): the old step «versionCode 26 → 27» (from v0.7.1) matched 268 too and turned it into 278.
+# The version is raised only in a PR now; this item never touches app/build.gradle.kts.
 
-if grep -q 'versionName = "0.7.1"' "$GRADLE"; then
-  sed -i 's/versionName = "0.7.1"/versionName = "0.7.2"/' "$GRADLE"
+if git diff --quiet -- "$DST"; then
+  echo "Production assets are already the same as in the app — nothing to commit."
+  echo
+  git status --short
+  exit 0
 fi
 
 echo "Production assets copied:"
@@ -101,18 +102,15 @@ esac
 git add \
   "$DST/cyber_shark_frame.webp" \
   "$DST/cyber_shark_creature.webp" \
-  "$DST/cyber_shark_wordmark.webp" \
-  "$GRADLE" || exit 1
+  "$DST/cyber_shark_wordmark.webp" || exit 1
 
-git commit -m "fix: sync real Cyber Shark production assets for v0.7.2" || exit 1
+git commit -m "fix: sync real Cyber Shark production assets" || exit 1
 git push || exit 1
 
 echo
 echo "========================================"
 echo "PASS: real Cyber Shark production assets"
 echo "were pushed to the main app repository."
-echo
-echo "Expected release: v0.7.2 / versionCode 27"
 echo
 echo "Next:"
 echo "  10 — Status Android build"

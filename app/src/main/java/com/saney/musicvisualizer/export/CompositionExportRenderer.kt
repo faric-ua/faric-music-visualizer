@@ -44,6 +44,8 @@ data class CompositionExportConfig(
     val screenAspect: Float = 16f / 9f,
     /** V202: a wide video (16:9) — the screen as a turned phone, with the «Альбом» set. */
     val lyingScreen: Boolean = false,
+    /** V202: the phone screen's short side, px — the virtual screen is the phone's own size. 0 = old way. */
+    val screenShortPx: Int = 0,
     /** V46: «вміщається все» — never cut the screen, even in 9:16. */
     val fitWholeScreen: Boolean = false,
     /**
@@ -346,7 +348,7 @@ class CompositionExportRenderer(
         lastPlacement?.let { cached ->
             if (cachedPlacementWidth == width && cachedPlacementHeight == height) return cached
         }
-        return ScreenPlacement.compute(width, height, config.screenAspect, config.fitWholeScreen, config.lyingScreen).also {
+        return ScreenPlacement.compute(width, height, config.screenAspect, config.fitWholeScreen, config.lyingScreen, config.screenShortPx).also {
             lastPlacement = it
             cachedPlacementWidth = width
             cachedPlacementHeight = height

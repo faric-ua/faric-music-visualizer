@@ -37,6 +37,7 @@ data class ScreenPlacement(
          * @param lying V202 (faric 03.11 02:28: «альбомне відео — а розкладка з Утиліт не застосовується, лягає як
          *   книжка»): the phone lies on its side — the virtual screen is wide (long × short), as on a turned phone,
          *   and the HUD takes the «Альбом» set.
+         * @param screenShortPx the phone screen's short side in pixels; 0 = the frame's short side (old way).
          */
         fun compute(
             frameWidth: Int,
@@ -44,11 +45,15 @@ data class ScreenPlacement(
             screenAspect: Float,
             fitWholeScreen: Boolean,
             lying: Boolean = false,
+            screenShortPx: Int = 0,
         ): ScreenPlacement {
             val w = frameWidth.coerceAtLeast(1)
             val h = frameHeight.coerceAtLeast(1)
             val aspect = screenAspect.takeIf { it.isFinite() && it > 0.2f } ?: (16f / 9f)
-            val short = min(w, h)
+            // V202 (faric 03.11 04:14: «не дотримані розміри й положення, як я виставляв»): the virtual screen is the
+            // phone's own size in pixels (as in the layout editor), not the video's — buttons and text are sized in
+            // the phone's dp, so a 720-px-high screen made them look half as big again.
+            val short = if (screenShortPx > 0) screenShortPx else min(w, h)
             val long = (short * aspect).roundToInt().coerceAtLeast(1)
             val vw = if (lying) long else short
             val vh = if (lying) short else long

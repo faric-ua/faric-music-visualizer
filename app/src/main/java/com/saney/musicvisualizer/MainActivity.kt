@@ -8904,40 +8904,45 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
 
 
-            // Values are absolute for this object; no additive parent motion.
-            // An untouched layer inherits the current all-GF control values.
-            var tuning = boardLayerReactionTuningStore.load(gfThemeId, layerId, groupReaction)
-            fun persistLayerReaction(value: BoardLayerReactionTuning) {
-                tuning = value.sanitized()
-                boardLayerReactionTuningStore.save(gfThemeId, layerId, tuning)
-                boardView.setLayerReactionTuning(layerId, tuning)
+            // V208 (faric 04.11 00:38, падіння): «GF background / glow» не реагує на музику (HeroBoardView
+            // не бере для нього реакцію), а сховище реакцій знає лише рамку, FX, героя й напис — повзунок
+            // «Реакція шару» на фоні валив застосунок. Для фону цього блоку нема.
+            if (BoardLayerReactionTuningStore.supports(layerId)) {
+                // Values are absolute for this object; no additive parent motion.
+                // An untouched layer inherits the current all-GF control values.
+                var tuning = boardLayerReactionTuningStore.load(gfThemeId, layerId, groupReaction)
+                fun persistLayerReaction(value: BoardLayerReactionTuning) {
+                    tuning = value.sanitized()
+                    boardLayerReactionTuningStore.save(gfThemeId, layerId, tuning)
+                    boardView.setLayerReactionTuning(layerId, tuning)
+                }
+                panelContent.addView(
+                    label("Реакція шару на музику · " + layerTitle(layerId),
+                        14f, COLOR_ACCENT_CYAN, true),
+                    LinearLayout.LayoutParams(
+                        ViewGroup.LayoutParams.MATCH_PARENT,
+                        ViewGroup.LayoutParams.WRAP_CONTENT,
+                    ).apply { topMargin = dp(12); bottomMargin = dp(4) },
+                )
+                addSlider(
+                    title = "Плавний поворот шару",
+                    max = 60,
+                    initial = (tuning.rotationSwayDegrees * 10f).toInt(),
+                    valueText = { String.format(Locale.US, "%.1f°", it / 10f) },
+                ) { n -> persistLayerReaction(tuning.copy(rotationSwayDegrees = n / 10f)) }
+                addSlider(
+                    title = "Stereo L/R шару",
+                    max = 100,
+                    initial = (tuning.stereoShiftFraction * 1000f).toInt(),
+                    valueText = { String.format(Locale.US, "%.1f%%", it / 10f) },
+                ) { n -> persistLayerReaction(tuning.copy(stereoShiftFraction = n / 1000f)) }
+                addSlider(
+                    title = "Bass ↑↓ шару",
+                    max = 60,
+                    initial = (tuning.bassFloatFraction * 1000f).toInt(),
+                    valueText = { String.format(Locale.US, "%.1f%%", it / 10f) },
+                ) { n -> persistLayerReaction(tuning.copy(bassFloatFraction = n / 1000f)) }
             }
-            panelContent.addView(
-                label("Реакція шару на музику · " + layerTitle(layerId),
-                    14f, COLOR_ACCENT_CYAN, true),
-                LinearLayout.LayoutParams(
-                    ViewGroup.LayoutParams.MATCH_PARENT,
-                    ViewGroup.LayoutParams.WRAP_CONTENT,
-                ).apply { topMargin = dp(12); bottomMargin = dp(4) },
-            )
-            addSlider(
-                title = "Плавний поворот шару",
-                max = 60,
-                initial = (tuning.rotationSwayDegrees * 10f).toInt(),
-                valueText = { String.format(Locale.US, "%.1f°", it / 10f) },
-            ) { n -> persistLayerReaction(tuning.copy(rotationSwayDegrees = n / 10f)) }
-            addSlider(
-                title = "Stereo L/R шару",
-                max = 100,
-                initial = (tuning.stereoShiftFraction * 1000f).toInt(),
-                valueText = { String.format(Locale.US, "%.1f%%", it / 10f) },
-            ) { n -> persistLayerReaction(tuning.copy(stereoShiftFraction = n / 1000f)) }
-            addSlider(
-                title = "Bass ↑↓ шару",
-                max = 60,
-                initial = (tuning.bassFloatFraction * 1000f).toInt(),
-                valueText = { String.format(Locale.US, "%.1f%%", it / 10f) },
-            ) { n -> persistLayerReaction(tuning.copy(bassFloatFraction = n / 1000f)) }
 
             boardView.setGestureEditing(
                 enabled = true,

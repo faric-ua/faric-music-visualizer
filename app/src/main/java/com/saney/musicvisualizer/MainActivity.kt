@@ -9014,6 +9014,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             " · окантовка " + (if (exportFastEdge()) "швидка (тест)" else "звичайна") +
             " · список " + projectMModeLabel(ProjectMStateStore(this).backgroundMode)
 
+    /**
+     * V203 (faric 03.11 05:06: «для Ютуба меню весь час розвертається — дай можливість не розвертати, лишити по
+     * центру, як книжка; візуалізація заповнить пустоти»): a wide video lays the HUD out as a lying phone
+     * («Альбом», default since v0.21.64) or keeps the portrait one in the middle.
+     */
+    private fun exportLyingHud(): Boolean =
+        exportAspectRatio.width > exportAspectRatio.height && exportPrefs().getBoolean(KEY_EXPORT_TURN_HUD, true)
+
+    private fun exportTurnHudLabel(): String =
+        "Панель у відео 16:9: " + if (exportPrefs().getBoolean(KEY_EXPORT_TURN_HUD, true)) "розвернута (Альбом)" else "як книжка, по центру"
+
     /** V200: «Окантовка у відео: звичайна / швидка (тест)» — default «звичайна» (as before). */
     private fun exportFastEdge(): Boolean = exportPrefs().getBoolean(KEY_EXPORT_FAST_EDGE, false)
 
@@ -9420,6 +9431,25 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 setOnClickListener {
                     exportPrefs().edit().putBoolean(KEY_EXPORT_VIDEO_720, !exportVideo720()).apply()
                     text = exportVideoSizeLabel()
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+            },
+        )
+
+        // V203 (faric 03.11 05:06): 16:9 — turn the HUD («Альбом») or keep it as a book in the middle.
+        content.addView(
+            exportPill(
+                text = exportTurnHudLabel(),
+                accent = false,
+            ) {}.apply {
+                setOnClickListener {
+                    exportPrefs().edit().putBoolean(KEY_EXPORT_TURN_HUD, !exportPrefs().getBoolean(KEY_EXPORT_TURN_HUD, true)).apply()
+                    text = exportTurnHudLabel()
                 }
             },
             LinearLayout.LayoutParams(
@@ -10045,10 +10075,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             // V46: hero + HUD laid out like this phone screen, then scaled into the frame.
             // V202: 16:9 — the HUD as on a turned phone, with «Утиліти → Альбом»: the same screen size as the
             // layout editor (the phone's display), so sizes and places match what faric set there.
-            screenAspect = if (exportAspectRatio.width > exportAspectRatio.height) displayAspect() else exportScreenAspect(),
-            lyingScreen = exportAspectRatio.width > exportAspectRatio.height,
+            screenAspect = if (exportLyingHud()) displayAspect() else exportScreenAspect(),
+            lyingScreen = exportLyingHud(),
             screenShortPx =
-                if (exportAspectRatio.width > exportAspectRatio.height) {
+                if (exportLyingHud()) {
                     resources.displayMetrics.let { minOf(it.widthPixels, it.heightPixels) }
                 } else {
                     exportScreenShortPx()
@@ -13972,6 +14002,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val KEY_EXPORT_PROJECTM_LEVEL = "projectm_export_level"
         private const val KEY_EXPORT_VIDEO_720 = "video_720p"
         private const val KEY_EXPORT_FAST_EDGE = "edge_fast_mesh"
+        private const val KEY_EXPORT_TURN_HUD = "turn_hud_16_9"
         private const val PROJECTM_EXPORT_FPS =
             30
 

@@ -6,7 +6,28 @@ import android.content.Context
 class LayoutProfileStore(context: Context) {
     private val prefs = context.applicationContext.getSharedPreferences(PREFS, Context.MODE_PRIVATE)
 
-    fun load(id: LayoutProfileId): Map<String, LayoutAdjust> = LayoutProfileCodec.decode(prefs.getString(key(id), null))
+    /** V203: the display's long ÷ short side — how much bigger «Альбом» parts were before v0.21.68. */
+    private val longOverShort: Float =
+        context.applicationContext.resources.displayMetrics.let {
+            maxOf(it.widthPixels, it.heightPixels).toFloat() / minOf(it.widthPixels, it.heightPixels).coerceAtLeast(1)
+        }
+
+    fun load(id: LayoutProfileId): Map<String, LayoutAdjust> {
+        val raw = prefs.getString(key(id), null)
+        val flag = key(id) + MIGRATED
+        if (raw.isNullOrBlank() || prefs.getBoolean(flag, false)) return LayoutProfileCodec.decode(raw)
+        val migrated = migrate(id, LayoutProfileCodec.decode(raw))
+        prefs.edit().putString(key(id), LayoutProfileCodec.encode(migrated)).putBoolean(flag, true).apply()
+        return migrated
+    }
+
+    private fun migrate(
+        id: LayoutProfileId,
+        adjusts: Map<String, LayoutAdjust>,
+    ): Map<String, LayoutAdjust> {
+        val split = LayoutMigration.splitTrack(adjusts)
+        return if (id == LayoutProfileId.LANDSCAPE) LayoutMigration.albumSizes(split, longOverShort) else split
+    }
 
     fun loadAll(): Map<LayoutProfileId, Map<String, LayoutAdjust>> = LayoutProfileId.entries.associateWith { load(it) }
 
@@ -14,7 +35,7 @@ class LayoutProfileStore(context: Context) {
         id: LayoutProfileId,
         adjusts: Map<String, LayoutAdjust>,
     ) {
-        prefs.edit().putString(key(id), LayoutProfileCodec.encode(adjusts)).apply()
+        prefs.edit().putString(key(id), LayoutProfileCodec.encode(adjusts)).putBoolean(key(id) + MIGRATED, true).apply()
     }
 
     /** «Скинути весь екран» — back to the approved template for this position only. */
@@ -41,11 +62,17 @@ class LayoutProfileStore(context: Context) {
             .mapNotNull { key ->
                 val id = key.removePrefix(prefix).removeSuffix("|data")
                 val name = snaps.getString("$prefix$id|name", null) ?: return@mapNotNull null
+                val flag = "$prefix$id|$MIGRATED"
+                var adjusts = LayoutProfileCodec.decode(snaps.getString(key, null))
+                if (!snaps.getBoolean(flag, false)) {
+                    adjusts = migrate(profile, adjusts)
+                    snaps.edit().putString(key, LayoutProfileCodec.encode(adjusts)).putBoolean(flag, true).apply()
+                }
                 Snapshot(
                     id = id,
                     name = name,
                     savedAt = snaps.getLong("$prefix$id|at", 0L),
-                    adjusts = LayoutProfileCodec.decode(snaps.getString(key, null)),
+                    adjusts = adjusts,
                 )
             }
             .sortedByDescending { it.savedAt }
@@ -63,6 +90,7 @@ class LayoutProfileStore(context: Context) {
             .putString("$prefix|name", SnapshotName.clean(name))
             .putLong("$prefix|at", now)
             .putString("$prefix|data", LayoutProfileCodec.encode(adjusts))
+            .putBoolean("$prefix|$MIGRATED", true)
             .apply()
     }
 
@@ -71,11 +99,12 @@ class LayoutProfileStore(context: Context) {
         id: String,
     ) {
         val prefix = "${profile.name}|$id"
-        snaps.edit().remove("$prefix|name").remove("$prefix|at").remove("$prefix|data").apply()
+        snaps.edit().remove("$prefix|name").remove("$prefix|at").remove("$prefix|data").remove("$prefix|$MIGRATED").apply()
     }
 
     private companion object {
         const val PREFS = "pulsedeck_layout_profiles"
         const val SNAPS = "pulsedeck_layout_snapshots"
+        const val MIGRATED = "v203"
     }
 }

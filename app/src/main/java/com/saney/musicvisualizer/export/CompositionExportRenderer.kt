@@ -42,6 +42,8 @@ data class CompositionExportConfig(
     val pulseDeckFavorite: Boolean = false,
     /** V46: phone screen height / width in portrait — the hero and HUD are laid out like that. */
     val screenAspect: Float = 16f / 9f,
+    /** V202: a wide video (16:9) — the screen as a turned phone, with the «Альбом» set. */
+    val lyingScreen: Boolean = false,
     /** V46: «вміщається все» — never cut the screen, even in 9:16. */
     val fitWholeScreen: Boolean = false,
     /**
@@ -236,8 +238,14 @@ class CompositionExportRenderer(
                     animate = false,
                 )
                 view.favoriteActive = config.pulseDeckFavorite
-                // V104 / V119: the MP4 uses faric's «Відео 9:16» set (or «Книжка», if he made none).
-                view.forcedLayoutProfile = com.saney.musicvisualizer.ui.LayoutProfileId.VIDEO_9X16
+                // V104 / V119: the MP4 uses faric's «Відео 9:16» set (or «Книжка», if he made none);
+                // V202: a wide video — the «Альбом» set, as on a turned phone.
+                view.forcedLayoutProfile =
+                    if (config.lyingScreen) {
+                        com.saney.musicvisualizer.ui.LayoutProfileId.LANDSCAPE
+                    } else {
+                        com.saney.musicvisualizer.ui.LayoutProfileId.VIDEO_9X16
+                    }
                 view.coverArt = config.hudCoverArt
                 view.coverMode = config.hudCoverMode
                 view.coverMix = config.hudCoverMix
@@ -338,7 +346,7 @@ class CompositionExportRenderer(
         lastPlacement?.let { cached ->
             if (cachedPlacementWidth == width && cachedPlacementHeight == height) return cached
         }
-        return ScreenPlacement.compute(width, height, config.screenAspect, config.fitWholeScreen).also {
+        return ScreenPlacement.compute(width, height, config.screenAspect, config.fitWholeScreen, config.lyingScreen).also {
             lastPlacement = it
             cachedPlacementWidth = width
             cachedPlacementHeight = height

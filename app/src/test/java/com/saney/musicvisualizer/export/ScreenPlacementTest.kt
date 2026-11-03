@@ -49,4 +49,23 @@ class ScreenPlacementTest {
         val p = ScreenPlacement.compute(1080, 1920, Float.NaN, fitWholeScreen = false)
         assertTrue(p.scale > 0f)
     }
+
+    @Test
+    fun youtubeAsATurnedPhone() {
+        // V202: 16:9 — the screen lies on its side (wide), like the phone turned
+        val fit = ScreenPlacement.compute(1280, 720, phone, fitWholeScreen = true, lying = true)
+        assertEquals(1560, fit.virtualWidth)
+        assertEquals(720, fit.virtualHeight)
+        assertTrue("wide", fit.virtualWidth > fit.virtualHeight)
+        assertEquals(1280f / 1560f, fit.scale, 0.001f) // fits by width, nothing cut
+        assertEquals(0f, fit.dx, 0.5f)
+        assertEquals(640f, fit.mapX(fit.virtualWidth / 2f), 0.5f)
+        assertEquals(360f, fit.mapY(fit.virtualHeight / 2f), 0.5f)
+        // «на весь кадр»: fills the height, the sides are cut a little (18 %)
+        val fill = ScreenPlacement.compute(1280, 720, phone, fitWholeScreen = false, lying = true)
+        assertEquals(1f, fill.scale, 0.001f)
+        assertEquals((1280f - 1560f) / 2f, fill.dx, 0.5f)
+        // the old portrait screen is unchanged when not lying
+        assertEquals(720, ScreenPlacement.compute(1280, 720, phone, fitWholeScreen = true).virtualWidth)
+    }
 }

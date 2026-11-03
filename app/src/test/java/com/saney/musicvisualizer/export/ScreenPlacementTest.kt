@@ -84,4 +84,16 @@ class ScreenPlacementTest {
         val same = ScreenPlacement.compute(1080, 1920, phone, fitWholeScreen = false, screenShortPx = 1080)
         assertEquals(ScreenPlacement.compute(1080, 1920, phone, fitWholeScreen = false), same)
     }
+
+    @Test
+    fun smallerPanelStaysInTheMiddle() {
+        // V205 (03.11 15:44): «Розмір панелі у відео» — the phone screen 70 % big, centred
+        val full = ScreenPlacement.compute(1080, 1920, phone, fitWholeScreen = false, screenShortPx = 1080)
+        val small = ScreenPlacement.compute(1080, 1920, phone, fitWholeScreen = false, screenShortPx = 1080, panelScale = 0.7f)
+        assertEquals(full.scale * 0.7f, small.scale, 1e-5f)
+        assertEquals(540f, small.mapX(small.virtualWidth / 2f), 0.5f)
+        assertEquals(960f, small.mapY(small.virtualHeight / 2f), 0.5f)
+        assertTrue("fits inside", small.virtualWidth * small.scale <= 1080f && small.virtualHeight * small.scale <= 1920f)
+        assertEquals(full, ScreenPlacement.compute(1080, 1920, phone, fitWholeScreen = false, screenShortPx = 1080, panelScale = 1f))
+    }
 }

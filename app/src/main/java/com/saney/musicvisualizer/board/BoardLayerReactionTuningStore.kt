@@ -16,9 +16,7 @@ class BoardLayerReactionTuningStore(context: Context) {
         "faric_board_layer_reaction_v1", Context.MODE_PRIVATE,
     )
 
-    private val layers = listOf(
-        BoardLayerId.FRAME, BoardLayerId.FX, BoardLayerId.CREATURE, BoardLayerId.WORDMARK,
-    )
+    private val layers = LAYERS
 
     fun load(
         theme: PlaybackThemeId,
@@ -69,4 +67,11 @@ class BoardLayerReactionTuningStore(context: Context) {
 
     fun resetAll(theme: PlaybackThemeId, parent: BoardGroupReaction) =
         applyParentToAll(theme, parent)
+
+    companion object {
+        /** Layers that react to the music one by one (the GF background does not). */
+        val LAYERS = listOf(BoardLayerId.FRAME, BoardLayerId.FX, BoardLayerId.CREATURE, BoardLayerId.WORDMARK)
+
+        fun supports(layer: BoardLayerId): Boolean = layer in LAYERS
+    }
 }

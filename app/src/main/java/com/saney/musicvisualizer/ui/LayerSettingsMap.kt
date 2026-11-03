@@ -97,6 +97,12 @@ object LayerSettingsMap {
             else -> null
         }
 
+    /** Settings of its own beyond place and size (only the frame) — such a part keeps its ⚙ inside a folded group. */
+    fun hasOwnSettings(objectId: String): Boolean = objectId == COVER_BOX
+
+    /** The layout groups (Розкладка) a set of parts belongs to, in the order met, each once. */
+    fun layoutGroupsOf(objectIds: List<String>): List<String> = objectIds.mapNotNull { LayoutGroups.groupOf(it) }.distinct()
+
     /** The layout group the editor opens on for a part (null — the part has no place of its own). */
     fun layoutGroupOf(objectId: String): String? = LayoutGroups.groupOf(objectId)
 

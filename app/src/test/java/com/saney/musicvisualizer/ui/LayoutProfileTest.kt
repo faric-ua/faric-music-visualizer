@@ -122,4 +122,36 @@ class LayoutProfileTest {
         assertTrue(header.endsWith("…"))
         assertEquals(SnapshotName.NAME_MAX, SnapshotName.clean("x".repeat(500)).length)
     }
+
+    @Test fun titleHeartAndMenuAreSeparateParts() {
+        // V203 (faric 03.11 05:03): ♡, the title and ⋮ move on their own
+        assertEquals("favorite", LayoutGroups.groupOf("favorite"))
+        assertEquals("track", LayoutGroups.groupOf("track_info"))
+        assertEquals("track", LayoutGroups.groupOf("track_artist"))
+        assertEquals(LayoutGroups.TRACK_MENU, LayoutGroups.groupOf("track_more"))
+        // an old set: ♡ and ⋮ start where the title's move put them; their own moves are kept
+        val old = mapOf("track" to LayoutAdjust(dx = 0.1f, dy = -0.2f, scale = 0.8f))
+        val split = LayoutMigration.splitTrack(old)
+        assertEquals(old["track"], split["favorite"])
+        assertEquals(old["track"], split[LayoutGroups.TRACK_MENU])
+        val own = mapOf("track" to LayoutAdjust(dx = 0.1f), "favorite" to LayoutAdjust(dy = 0.3f))
+        assertEquals(LayoutAdjust(dy = 0.3f), LayoutMigration.splitTrack(own)["favorite"])
+        assertEquals(emptyMap<String, LayoutAdjust>(), LayoutMigration.splitTrack(emptyMap()))
+    }
+
+    @Test fun albumKeepsItsSizeAfterTheUnitChange() {
+        // V203: «Альбом» parts were sized by the long side; now by the short one — sizes × long ÷ short once
+        val k = 2340f / 1080f
+        val album = mapOf("transport" to LayoutAdjust(dx = 0.2f, scale = 0.5f), "cover" to LayoutAdjust(scale = 1f, dy = 0.1f))
+        val m = LayoutMigration.albumSizes(album, k)
+        assertEquals(0.5f * k, m["transport"]!!.scale, 1e-4f)
+        assertEquals(0.2f, m["transport"]!!.dx, 1e-6f)
+        assertEquals(k, m["cover"]!!.scale, 1e-4f)
+        // parts faric never touched get the same × (they were as big as the long side too)
+        assertEquals(k, m["quick"]!!.scale, 1e-4f)
+        assertEquals(LayoutGroups.ALL.size, m.size)
+        // an untouched album stays the template; never past the largest size
+        assertEquals(emptyMap<String, LayoutAdjust>(), LayoutMigration.albumSizes(emptyMap(), k))
+        assertEquals(LayoutAdjust.MAX_SCALE, LayoutMigration.albumSizes(mapOf("cover" to LayoutAdjust(scale = 5f)), k)["cover"]!!.scale, 1e-6f)
+    }
 }

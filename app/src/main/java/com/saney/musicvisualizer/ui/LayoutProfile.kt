@@ -70,12 +70,15 @@ object LayoutGroups {
             LayoutGroup("back", "‹ Назад", PROPORTIONAL, listOf("back")),
             LayoutGroup("menu", "⋮ Меню", PROPORTIONAL, listOf("menu")),
             LayoutGroup("header", "Шапка PulseDeck", PROPORTIONAL, listOf("header_title")),
+            // V203 (faric 03.11 05:03: «назву треба відділити від ♡ і ⋮, щоб їх теж міг виставляти»).
+            LayoutGroup("favorite", "♡ Улюблене", PROPORTIONAL, listOf("favorite")),
             LayoutGroup(
                 "track",
-                "Назва з ♡ і ⋮",
+                "Назва пісні",
                 PROPORTIONAL,
-                listOf("favorite", "track_more", "track_info", "track_artist", "track_status"),
+                listOf("track_info", "track_artist", "track_status"),
             ),
+            LayoutGroup(TRACK_MENU, "⋮ Пісня", PROPORTIONAL, listOf("track_more")),
             LayoutGroup(
                 "progress",
                 "Хвиля і смуга часу",
@@ -104,6 +107,38 @@ object LayoutGroups {
     fun groupOf(objectId: String): String? = byMember[objectId]
 
     fun byId(id: String): LayoutGroup? = ALL.firstOrNull { it.id == id }
+
+    const val TRACK_MENU = "track_menu"
+}
+
+/**
+ * V203: saved sets made before v0.21.68.
+ *  · «Назва з ♡ і ⋮» was one part — ♡ and ⋮ start where the title's move put them.
+ *  · «Альбом» (a lying phone): parts used to be sized by the screen's width (2,2× the book); now by the short
+ *    side — faric's sizes are multiplied by long ÷ short once, so his album looks as big as he made it.
+ * Pure — tested on JVM.
+ */
+object LayoutMigration {
+    fun splitTrack(adjusts: Map<String, LayoutAdjust>): Map<String, LayoutAdjust> {
+        val track = adjusts["track"] ?: return adjusts
+        val out = adjusts.toMutableMap()
+        if ("favorite" !in out) out["favorite"] = track
+        if (LayoutGroups.TRACK_MENU !in out) out[LayoutGroups.TRACK_MENU] = track
+        return out
+    }
+
+    fun albumSizes(
+        adjusts: Map<String, LayoutAdjust>,
+        longOverShort: Float,
+    ): Map<String, LayoutAdjust> {
+        if (adjusts.isEmpty() || longOverShort <= 1.0001f) return adjusts
+        val out = adjusts.toMutableMap()
+        for (group in LayoutGroups.ALL) {
+            val a = out[group.id] ?: LayoutAdjust()
+            out[group.id] = a.copy(scale = (a.scale * longOverShort).coerceIn(LayoutAdjust.MIN_SCALE, LayoutAdjust.MAX_SCALE))
+        }
+        return out
+    }
 }
 
 /** One profile as text for SharedPreferences: «id:dx:dy:scale;…» (no JSON — tested on JVM). */

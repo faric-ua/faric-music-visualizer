@@ -460,7 +460,7 @@ class PulseDeckMainSkinView(
         w: Float,
         h: Float,
     ): RectF {
-        val side = w * 0.2f
+        val side = minOf(w, h) * 0.2f
         val offset = editorOffsets[COVER_BOX_ID] ?: (0f to 0f)
         val width = side
         val left = (w - width) / 2f + offset.first * w
@@ -499,7 +499,10 @@ class PulseDeckMainSkinView(
             )
         val frame = RectF(box.left, box.top, box.right, box.bottom)
         // V154: the equalizer goes inside the frame — the tile gives up its width (only if it stays a tile).
-        val eqInset = EdgeEqMath.inset(edgeRenderer.settings, w).coerceAtMost(minOf(frame.width(), frame.height()) * 0.2f)
+        // V203 (faric 03.11 05:03: «у рамці 👍 👎 ⋮ дуже здорові» на лежачому екрані): sizes inside the frame go by the
+        // screen's SHORT side — on a book it is the width (nothing changes), on a lying phone not 2 340 px.
+        val unit = minOf(w, h)
+        val eqInset = EdgeEqMath.inset(edgeRenderer.settings, unit).coerceAtMost(minOf(frame.width(), frame.height()) * 0.2f)
         val panel = RectF(frame).apply { inset(eqInset, eqInset) }
         // V158 (faric 23.10 17:33: «хочу змахнути від центру на праву сторінку, а воно відкриває
         // меню»): the frame itself takes no taps any more — only its ⋮ / 👍 / 👎 do, so a swipe that
@@ -513,7 +516,7 @@ class PulseDeckMainSkinView(
         timedPart(PART_GLOW) { drawCoverGlow(canvas, panel, radius, alpha) }
         // V141: the equalizer round the tile (under the tile — it grows outward from the edge).
         timedPart(PART_EDGE) {
-            edgeRenderer.draw(canvas, panel, radius, spectrumForEdge(), marqueeClockMs ?: SystemClock.uptimeMillis(), alpha, w)
+            edgeRenderer.draw(canvas, panel, radius, spectrumForEdge(), marqueeClockMs ?: SystemClock.uptimeMillis(), alpha, unit)
         }
         when (choice.show) {
             CoverBoxShow.PICTURE -> art?.let { timedPart(PART_PICTURE) { drawCoverPicture(canvas, panel, radius, it, alpha) } }
@@ -543,7 +546,7 @@ class PulseDeckMainSkinView(
                         drawCoverPicture(canvas, inner, innerRadius, under, alpha, if (veilInPicture) veilAlpha else 0)
                     }
                 }
-                timedPart(PART_TEXT) { drawCoverText(canvas, inner, innerRadius, w, choice, alpha, veilDone = veilInPicture) }
+                timedPart(PART_TEXT) { drawCoverText(canvas, inner, innerRadius, unit, choice, alpha, veilDone = veilInPicture) }
             }
             else -> {
                 coverPaint.shader = null
@@ -564,7 +567,7 @@ class PulseDeckMainSkinView(
         coverFramePaint.strokeWidth = resources.displayMetrics.density * 0.8f
         coverFramePaint.color = Color.argb((70 + 120 * coverGlowLevel).toInt() * alpha / 255, 120, 220, 255)
         canvas.drawRoundRect(panel, radius, radius, coverFramePaint)
-        if (isObjectVisible(COVER_MENU_ID)) drawCoverMenu(canvas, panel, w, alpha, group != null)
+        if (isObjectVisible(COVER_MENU_ID)) drawCoverMenu(canvas, panel, unit, alpha, group != null)
         canvas.restoreToCount(save)
     }
 
@@ -2513,7 +2516,8 @@ class PulseDeckMainSkinView(
                     parentRect.width() *
                         layer.localWidth
                 } else {
-                    w *
+                    // V203: PNG parts by the short side — a book is unchanged, a lying phone no longer doubles them.
+                    minOf(w, h) *
                         layer.width
                 }
             ) *
@@ -2945,7 +2949,8 @@ class PulseDeckMainSkinView(
         withGroup(canvas, "header", w, h) {
         if (isObjectVisible("header_title")) {
             // V86 / V76: logo + "PulseDeck", the pair centred where the title was.
-            val headerSize = w * 0.052f
+            // V203: sizes by the short side, gaps by the long side — on a book exactly as before.
+            val headerSize = minOf(w, h) * 0.052f
             textPaint.textSize = headerSize
             textPaint.typeface = Typeface.create(Typeface.DEFAULT, Typeface.BOLD)
             val headerText = "PulseDeck"
@@ -2976,10 +2981,10 @@ class PulseDeckMainSkinView(
 
             resolvedRects["header_title"] =
                 RectF(
-                    headerX - w * 0.24f,
-                    headerY - h * 0.035f,
-                    headerX + w * 0.24f,
-                    headerY + h * 0.014f,
+                    headerX - minOf(w, h) * 0.24f,
+                    headerY - maxOf(w, h) * 0.035f,
+                    headerX + minOf(w, h) * 0.24f,
+                    headerY + maxOf(w, h) * 0.014f,
                 )
         }
         }
@@ -2994,27 +2999,36 @@ class PulseDeckMainSkinView(
             h *
                 trackOffset.second
 
-        withGroup(canvas, "track", w, h) {
-        drawFavoriteHeart(canvas)
+        // V203 (faric 03.11 05:03: «назву треба відділити від ♡ і ⋮, щоб ставити незалежно»): ♡ is its own part.
+        withGroup(canvas, "favorite", w, h) { drawFavoriteHeart(canvas) }
 
+        withGroup(canvas, "track", w, h) {
         if (isObjectVisible("track_info")) {
             // V64 (faric 19.10 23:17): the track lines live between ♡ and ⋮ with a
             // 20 dp gap on each side; a line that does not fit scrolls like a ribbon.
             marqueeRunning = false
             val gap = 20f * resources.displayMetrics.density
             val shiftX = trackX - w * 0.5f
+            val short = minOf(w, h)
+            val long = maxOf(w, h)
             val favoriteRight = resolvedRects["favorite"]?.right ?: (w * 0.141f)
             val moreLeft = resolvedRects["track_more"]?.left ?: (w * 0.859f)
-            val lineLeft = favoriteRight + gap + shiftX
-            val lineRight = (moreLeft - gap + shiftX).coerceAtLeast(lineLeft + w * 0.2f)
+            // V203: on a lying phone ♡ and ⋮ are parts of their own — the lines get the book's width round the title.
+            val lineLeft = if (w <= h) favoriteRight + gap + shiftX else trackX - short * 0.359f + gap
+            val lineRight =
+                (if (w <= h) moreLeft - gap + shiftX else trackX + short * 0.359f - gap)
+                    .coerceAtLeast(lineLeft + short * 0.2f)
+            // V203 (faric 03.11 05:03: на лежачому екрані назва, виконавець і рядок стану налазили один на один):
+            // sizes by the short side, the gaps between the lines by the long side — as on a book.
+            val titleY = h * 0.485f + trackDy
 
             // V69: the three lines take turns — only one moves at a time (TrackMarquee).
             val lines =
                 listOfNotNull(
-                    TrackLine(title, h * 0.485f + trackDy, w * 0.052f, Color.WHITE, true),
-                    TrackLine(artist, h * 0.515f + trackDy, w * 0.037f, Color.rgb(190, 202, 212), false)
+                    TrackLine(title, titleY, short * 0.052f, Color.WHITE, true),
+                    TrackLine(artist, titleY + long * 0.03f, short * 0.037f, Color.rgb(190, 202, 212), false)
                         .takeIf { isObjectVisible("track_artist") },
-                    TrackLine(status, h * 0.538f + trackDy, w * 0.026f, Color.rgb(164, 182, 194), false)
+                    TrackLine(status, titleY + long * 0.053f, short * 0.026f, Color.rgb(164, 182, 194), false)
                         .takeIf { isObjectVisible("track_status") },
                 )
             val widths =
@@ -3035,10 +3049,10 @@ class PulseDeckMainSkinView(
 
             resolvedRects["track_info"] =
                 RectF(
-                    trackX - w * 0.30f,
-                    h * 0.455f + trackDy,
-                    trackX + w * 0.30f,
-                    h * 0.548f + trackDy,
+                    trackX - short * 0.30f,
+                    titleY - long * 0.03f,
+                    trackX + short * 0.30f,
+                    titleY + long * 0.063f,
                 )
         }
         }
@@ -3058,9 +3072,10 @@ class PulseDeckMainSkinView(
             drawCenteredText(
                 canvas = canvas,
                 text = elapsed,
-                x = w * 0.085f + progressDx,
-                y = h * 0.625f + progressDy,
-                size = w * 0.031f,
+                x = w * 0.5f - minOf(w, h) * 0.415f + progressDx,
+                // V203 (faric 03.11 05:03: «цифри налізли на лінію смуги»): under the line by the long side.
+                y = h * 0.595f + maxOf(w, h) * 0.03f + progressDy,
+                size = minOf(w, h) * 0.031f,
                 color = Color.WHITE,
                 bold = true,
             )
@@ -3068,9 +3083,9 @@ class PulseDeckMainSkinView(
             drawCenteredText(
                 canvas = canvas,
                 text = total,
-                x = w * 0.915f + progressDx,
-                y = h * 0.625f + progressDy,
-                size = w * 0.031f,
+                x = w * 0.5f + minOf(w, h) * 0.415f + progressDx,
+                y = h * 0.595f + maxOf(w, h) * 0.03f + progressDy,
+                size = minOf(w, h) * 0.031f,
                 color = Color.WHITE,
                 bold = true,
             )
@@ -3098,9 +3113,10 @@ class PulseDeckMainSkinView(
         if (!isObjectVisible(FILE_INFO_ID)) return
         val lines = fileInfoLines.filter { it.isNotBlank() }.take(2)
         if (lines.isEmpty()) return
-        val size = w * 0.023f
+        // V203: size by the short side; just under the progress line by the long side (book: as before).
+        val size = minOf(w, h) * 0.023f
         val step = size * 1.3f
-        val firstY = h * 0.618f
+        val firstY = h * 0.595f + maxOf(w, h) * 0.023f
         textPaint.textAlign = Paint.Align.CENTER
         textPaint.textSize = size
         var widest = 0f
@@ -3207,9 +3223,10 @@ class PulseDeckMainSkinView(
 
         val waveformOffset = editorOffsets["waveform"] ?: (0f to 0f)
         val centerX = w * 0.5f + waveformOffset.first * w
-        val baseline = h * 0.585f + waveformOffset.second * h
-        val halfWidth = w * 0.445f
-        val maxHeight = h * 0.058f
+        // V203: just above the progress line, bars as tall as on a book (by the long side).
+        val baseline = h * 0.595f - maxOf(w, h) * 0.01f + waveformOffset.second * h
+        val halfWidth = minOf(w, h) * 0.445f
+        val maxHeight = maxOf(w, h) * 0.058f
         val sideBands = 36
         val slot = halfWidth / sideBands
         val barWidth = (slot * 0.28f).coerceAtLeast(1f)
@@ -3233,7 +3250,7 @@ class PulseDeckMainSkinView(
         for (index in 0 until sideBands) {
             val value = sourceValue(index)
             val shaped = value * value * 0.72f + value * 0.28f
-            val barHeight = (maxHeight * shaped).coerceAtLeast(h * 0.0025f)
+            val barHeight = (maxHeight * shaped).coerceAtLeast(maxOf(w, h) * 0.0025f)
             val top = baseline - barHeight
             val distance = slot * (index + 0.55f)
             val gradient =
@@ -3260,7 +3277,7 @@ class PulseDeckMainSkinView(
                 val cx = centerX + distance * direction
                 canvas.drawRoundRect(
                     cx - barWidth * 1.2f,
-                    top - h * 0.0015f,
+                    top - maxOf(w, h) * 0.0015f,
                     cx + barWidth * 1.2f,
                     baseline,
                     barWidth,
@@ -3295,10 +3312,11 @@ class PulseDeckMainSkinView(
         layer: SkinLayer,
     ) {
         val progressOffset = editorOffsets["progress_group"] ?: (0f to 0f)
-        val left = w * 0.055f + progressOffset.first * w
-        val right = w * 0.945f + progressOffset.first * w
+        // V203: the line is as long as on a book (by the short side), centred — a lying phone no longer stretches it.
+        val left = w * 0.5f - minOf(w, h) * 0.445f + progressOffset.first * w
+        val right = w * 0.5f + minOf(w, h) * 0.445f + progressOffset.first * w
         val cy = h * 0.595f + progressOffset.second * h
-        val stroke = w * 0.007f
+        val stroke = minOf(w, h) * 0.007f
 
         val glowPaint =
             Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -3362,8 +3380,8 @@ class PulseDeckMainSkinView(
     ) {
         if (!isObjectVisible("progress_thumb")) return
 
-        val left = w * 0.055f
-        val right = w * 0.945f
+        val left = w * 0.5f - minOf(w, h) * 0.445f
+        val right = w * 0.5f + minOf(w, h) * 0.445f
         val progressOffset = editorOffsets["progress_group"] ?: (0f to 0f)
         val cx =
             left +
@@ -3372,7 +3390,7 @@ class PulseDeckMainSkinView(
         val cy =
             h * 0.595f +
                 progressOffset.second * h
-        val radius = w * 0.014f
+        val radius = minOf(w, h) * 0.014f
 
         val outerPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.rgb(0, 216, 255)
@@ -3382,7 +3400,7 @@ class PulseDeckMainSkinView(
             color = Color.rgb(0, 216, 255)
             alpha = (controlsAlpha * 255f).toInt().coerceIn(0, 255)
             style = Paint.Style.STROKE
-            strokeWidth = w * 0.004f
+            strokeWidth = minOf(w, h) * 0.004f
         }
         val corePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
@@ -3395,10 +3413,10 @@ class PulseDeckMainSkinView(
 
         resolvedRects["progress_group"] =
             RectF(
-                w * 0.045f + progressOffset.first * w,
-                h * 0.575f + progressOffset.second * h,
-                w * 0.955f + progressOffset.first * w,
-                h * 0.635f + progressOffset.second * h,
+                w * 0.5f - minOf(w, h) * 0.455f + progressOffset.first * w,
+                h * 0.595f - maxOf(w, h) * 0.02f + progressOffset.second * h,
+                w * 0.5f + minOf(w, h) * 0.455f + progressOffset.first * w,
+                h * 0.595f + maxOf(w, h) * 0.04f + progressOffset.second * h,
             )
     }
 

@@ -14097,6 +14097,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 "track_status",
                 "progress_time",
                 "progress_thumb",
+                // V206 (faric 03.11 15:52: «інфо про файл не можу відключити в Шарах»): switched off in «Шари» —
+                // gone from the video too (these two were only on the screen).
+                com.saney.musicvisualizer.ui.PulseDeckMainSkinView.FILE_INFO_ID,
+                com.saney.musicvisualizer.ui.PulseDeckMainSkinView.COVER_MENU_ID,
             )
 
         private const val PREFS_NAME =

@@ -97,22 +97,23 @@ index 300ea22..c482a08 100644
          {
              m_activePreset = std::move(m_transitioningPreset);
 diff --git a/src/libprojectM/ProjectMCWrapper.cpp b/src/libprojectM/ProjectMCWrapper.cpp
-index 2061339..85bc80c 100644
+index 2061339..254cc3f 100644
 --- a/src/libprojectM/ProjectMCWrapper.cpp
 +++ b/src/libprojectM/ProjectMCWrapper.cpp
-@@ -4,6 +4,11 @@
+@@ -4,6 +4,12 @@
  
  #include <Audio/AudioConstants.hpp>
  
 +#include "FaricRandom.hpp"
 +
-+#include <projectm-eval.h>
++// FARIC (V204): from the patched projectm-eval (linked into the same library); its header is not on this target's path.
++extern "C" void projectm_eval_faric_reset_rand(unsigned int seed);
 +
 +#include <cstdlib>
  #include <cstring>
  #include <sstream>
  
-@@ -182,6 +187,16 @@ void projectm_set_frame_time(projectm_handle instance, double seconds_since_firs
+@@ -182,6 +188,16 @@ void projectm_set_frame_time(projectm_handle instance, double seconds_since_firs
      projectMInstance->SetFrameTime(seconds_since_first_frame);
  }
  

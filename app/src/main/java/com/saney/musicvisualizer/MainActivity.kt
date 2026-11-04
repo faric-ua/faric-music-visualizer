@@ -6676,11 +6676,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val screenHeight =
             metrics.heightPixels
 
-        // Keep the panel readable, but make it occupy only ~30% of the
+        // Keep the panel readable, but make it occupy only part of the
         // physical screen height so the composition remains visible while
-        // layers/objects are toggled.
+        // layers/objects are toggled. V219 (faric 04.11 20:17): the whole width, 25 % taller (30 → 37,5 %).
         val panelWidth =
-            (screenWidth * 0.88f)
+            screenWidth
                 .toInt()
                 .coerceAtLeast(
                     dp(280),
@@ -6689,10 +6689,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     screenWidth,
                 )
         val panelHeight =
-            (screenHeight * 0.30f)
+            (screenHeight * 0.375f)
                 .toInt()
                 .coerceAtLeast(
-                    dp(220),
+                    dp(275),
                 )
                 .coerceAtMost(
                     screenHeight,
@@ -7655,22 +7655,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         val positionPrefs =
             layerPrefs()
-        val maxX =
-            (
-                screenWidth -
-                    panelWidth
-                )
-                .coerceAtLeast(
-                    0,
-                )
-        val maxY =
-            (
-                screenHeight -
-                    panelHeight
-                )
-                .coerceAtLeast(
-                    0,
-                )
+        // V219: up to 40 % of the panel may go behind the left, right and bottom edges (not the top).
+        window.addFlags(
+            android.view.WindowManager
+                .LayoutParams
+                .FLAG_LAYOUT_NO_LIMITS,
+        )
+        val panelBounds =
+            com.saney.musicvisualizer.ui.FloatingPanelBounds.of(
+                screenWidth = screenWidth,
+                screenHeight = screenHeight,
+                panelWidth = panelWidth,
+                panelHeight = panelHeight,
+            )
 
         fun setPanelPosition(
             x: Int,
@@ -7678,14 +7675,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             persist: Boolean,
         ) {
             val safeX =
-                x.coerceIn(
-                    0,
-                    maxX,
+                panelBounds.clampX(
+                    x,
                 )
             val safeY =
-                y.coerceIn(
-                    0,
-                    maxY,
+                panelBounds.clampY(
+                    y,
                 )
 
             val attrs =

@@ -90,6 +90,12 @@ object BatchPlan {
     /** V100 (faric 21.10 01:06: «додай тести по 10 секунд кожного файла»). */
     const val TEST_CLIP_LONG_MS = 10_000L
 
+    /** V214 (faric 04.11 20:01: «тест з вибором, скільки секунд — допустимо 30–40»): own length of a test clip. */
+    val TEST_CLIP_CHOICES_S: List<Int> = listOf(20, 30, 40, 45, 60, 90, 120)
+
+    /** The last chosen own length, or 30 s; only from the list. */
+    fun customTestSeconds(stored: Int): Int = stored.takeIf { it in TEST_CLIP_CHOICES_S } ?: 30
+
     /**
      * Which 3 seconds of a song the test takes: the middle of the song (music is
      * usually playing there, unlike the quiet intro). Returns start and length in ms.

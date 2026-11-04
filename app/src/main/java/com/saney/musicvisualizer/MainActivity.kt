@@ -10019,6 +10019,32 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         }
 
+        // V214: own length — 20 … 120 s from where the song is now.
+        content.addView(
+            exportPill(
+                text = "Тест: своя довжина (${customTestSeconds()} с) → MP4",
+                accent = false,
+            ) {
+                when {
+                    !exportReady -> toast("Ця тема ще не вміє експорт MP4")
+                    !hasTrack -> longToast("Спочатку обери пісню")
+                    else ->
+                        askCustomTestSeconds(title = "Тест: скільки секунд (з того місця, де грає пісня)") { seconds ->
+                            setTestClipMs(seconds * 1000L)
+                            exportProofVideo()
+                        }
+                }
+            }.apply {
+                if (!(exportReady && hasTrack)) alpha = 0.5f
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(10)
+            },
+        )
+
         content.addView(
             exportPill(
                 text = "Уся пісня → MP4",
@@ -10068,6 +10094,24 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 },
             )
         }
+
+        content.addView(
+            exportPill(
+                text = "Пакет-тест: своя довжина (${customTestSeconds()} с) з кожної пісні",
+                accent = false,
+            ) {
+                askCustomTestSeconds(title = "Пакет-тест: скільки секунд із середини кожної пісні") { seconds ->
+                    setTestClipMs(seconds * 1000L)
+                    startBatchFolderPicker(testMode = true)
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(10)
+            },
+        )
 
         content.addView(
             exportPill(
@@ -10612,6 +10656,27 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun setTestClipMs(value: Long) {
         exportPrefs().edit().putLong(KEY_EXPORT_TEST_CLIP_MS, value).commit()
+    }
+
+    /** V214: the own test length chosen last time (20 … 120 s). */
+    private fun customTestSeconds(): Int =
+        com.saney.musicvisualizer.export.BatchPlan.customTestSeconds(exportPrefs().getInt(KEY_EXPORT_TEST_CUSTOM_S, 30))
+
+    private fun askCustomTestSeconds(
+        title: String,
+        then: (Int) -> Unit,
+    ) {
+        val choices = com.saney.musicvisualizer.export.BatchPlan.TEST_CLIP_CHOICES_S
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = title,
+            labels = choices.map { sec -> if (sec >= 60) "$sec с (${sec / 60}:${"%02d".format(sec % 60)})" else "$sec с" },
+            checkedIndex = choices.indexOf(customTestSeconds()),
+        ) { index ->
+            val seconds = choices[index]
+            exportPrefs().edit().putInt(KEY_EXPORT_TEST_CUSTOM_S, seconds).apply()
+            then(seconds)
+        }
     }
 
     private fun exportProofVideo() {
@@ -12047,7 +12112,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 buildString {
                     append("Папка: ").append(folderName).append('\n')
                     append("Пісень: ").append(songs.size).append(" · з кожної — ").append(testSeconds).append(" с із середини пісні\n")
-                    append("Орієнтовно: ").append(if (testSeconds > 3) "до хвилини" else "по пів хвилини").append(" на пісню (аналіз звуку + ").append(testSeconds).append(" с відео)\n")
+                    append("Орієнтовно: ").append(
+                        when {
+                            testSeconds <= 3 -> "по пів хвилини"
+                            testSeconds <= 10 -> "до хвилини"
+                            // V214: own lengths — sound analysis + about 1,5 s of work per second of video (1080p, 30).
+                            else -> "~" + ((20 + testSeconds * 3 / 2 + 59) / 60) + " хв"
+                        },
+                    ).append(" на пісню (аналіз звуку + ").append(testSeconds).append(" с відео)\n")
                     append("Відео: ").append(plan.relativePath(folderName)).append("Тест ").append(testSeconds).append("с <дата час>/ — кожен запуск в окрему папку\n")
                     append("Шари й формат — як зараз на екрані (").append(exportAspectRatio.width).append('×').append(exportAspectRatio.height).append(")\n")
                     append("У підсумку — час кожної пісні, можна порівняти з наступним запуском.\n")
@@ -14512,6 +14584,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val BATCH_REQUEST_PREFS = "faric_batch_request_v1"
         private const val KEY_BATCH_TEST_MODE = "test_mode"
         private const val KEY_EXPORT_TEST_CLIP_MS = "test_clip_ms"
+        private const val KEY_EXPORT_TEST_CUSTOM_S = "test_custom_s"
         private const val KEY_EXPORT_PROJECTM_HIGH = "projectm_high_quality"
         private const val KEY_EXPORT_PROJECTM_LEVEL = "projectm_export_level"
         private const val KEY_EXPORT_VIDEO_720 = "video_720p"

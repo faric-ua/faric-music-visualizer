@@ -630,6 +630,11 @@ class ProjectMActivity : ComponentActivity() {
                             }
                         }
 
+                    ProjectMBackgroundMode.FAVORITE ->
+                        ProjectMFavoritesStore(this).let { favorites ->
+                            ProjectMLibraryManager.allPresetFiles(this).filter { favorites.isFavorite(it) }
+                        }
+
                     // V161: the load lists live on the right page; the old setup screen shows all.
                     ProjectMBackgroundMode.LIGHT,
                     ProjectMBackgroundMode.MEDIUM,

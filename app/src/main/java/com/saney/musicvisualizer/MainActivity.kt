@@ -9430,6 +9430,68 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun hudInVideoEnabled(): Boolean =
         exportPrefs().getBoolean(KEY_EXPORT_HUD_IN_VIDEO, true)
 
+    /** V215: a foldable group of Export Lab — children [from, to) of the content column. */
+    private data class LabGroup(
+        val key: String,
+        val title: String,
+        val summary: String,
+        val from: Int,
+        val to: Int,
+    )
+
+    private fun foldExportLabGroups(
+        content: LinearLayout,
+        groups: List<LabGroup>,
+    ) {
+        // from the last group to the first, so the earlier indices stay right
+        groups.filter { it.to > it.from }.sortedByDescending { it.from }.forEach { group ->
+            val children = (group.from until group.to).map { content.getChildAt(it) }
+            children.forEach { content.removeView(it) }
+            val box = LinearLayout(this).apply { orientation = LinearLayout.VERTICAL }
+            children.forEach { box.addView(it) }
+            val prefKey = "lab_open_" + group.key
+            var open = exportPrefs().getBoolean(prefKey, true)
+            val header =
+                label("", 16f, COLOR_ACCENT_CYAN, true).apply {
+                    minHeight = dp(52)
+                    gravity = Gravity.CENTER_VERTICAL
+                    setPadding(dp(14), dp(8), dp(14), dp(8))
+                    background =
+                        panelDrawable(
+                            Color.argb(105, 8, 18, 24),
+                            18,
+                            Color.argb(95, 80, 220, 255),
+                            1,
+                        )
+                    isClickable = true
+                }
+
+            fun apply() {
+                header.text = (if (open) "▾  " else "▸  ") + group.title + if (group.summary.isNotBlank()) "  ·  " + group.summary else ""
+                header.contentDescription = group.title + if (open) " — згорнути" else " — розгорнути"
+                box.visibility = if (open) View.VISIBLE else View.GONE
+            }
+            header.setOnClickListener {
+                open = !open
+                exportPrefs().edit().putBoolean(prefKey, open).apply()
+                apply()
+            }
+            apply()
+            content.addView(
+                header,
+                group.from,
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
+                    topMargin = dp(16)
+                },
+            )
+            content.addView(
+                box,
+                group.from + 1,
+                LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+            )
+        }
+    }
+
     /** V3: Export Lab can sit on top of the running PulseDeck scene. */
     private fun hasRetainedExportScene(): Boolean =
         persistentSceneRoot != null &&
@@ -9696,9 +9758,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val hasTrack =
             controller.currentTrackUri() != null
 
-        content.addView(
-            label("Формат", 18f, Color.WHITE, true),
-        )
+        // V215: where each group of Export Lab begins (folded / unfolded at the end).
+        // («Формат» is the group's own header now.)
+        val labFormatFrom = content.childCount
 
         val formats =
             listOf(
@@ -9733,6 +9795,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             )
         }
 
+        val labSettingsFrom = content.childCount
         // V46: 9:16 fills the frame (a little is cut) unless «вміщається все»; 16:9 always fits.
         val fitWhole = exportPrefs().getBoolean(KEY_EXPORT_FIT_WHOLE_SCREEN, false)
         content.addView(
@@ -9962,6 +10025,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val exportReady =
             true
 
+        val labOneFrom = content.childCount
         content.addView(
             exportPill(
                 text =
@@ -10040,6 +10104,55 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
         )
 
+        // V217: the same own length, but from 0:00.
+        content.addView(
+            exportPill(
+                text = "Тест з початку пісні (${customTestSeconds()} с) → MP4",
+                accent = false,
+            ) {
+                when {
+                    !exportReady -> toast("Ця тема ще не вміє експорт MP4")
+                    !hasTrack -> longToast("Спочатку обери пісню")
+                    else ->
+                        askCustomTestSeconds(title = "Тест з початку пісні: скільки секунд") { seconds ->
+                            setTestClipMs(seconds * 1000L)
+                            testStartOverrideMs = 0L
+                            exportProofVideo()
+                        }
+                }
+            }.apply {
+                if (!(exportReady && hasTrack)) alpha = 0.5f
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(10)
+            },
+        )
+
+        // V218: every size × frames a second the phone can make, one table at the end.
+        content.addView(
+            exportPill(
+                text = "Тест усіх режимів: 720p → 4K × 30 / 60",
+                accent = false,
+            ) {
+                when {
+                    !exportReady -> toast("Ця тема ще не вміє експорт MP4")
+                    !hasTrack -> longToast("Спочатку обери пісню")
+                    else -> askModesTest()
+                }
+            }.apply {
+                if (!(exportReady && hasTrack)) alpha = 0.5f
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(10)
+            },
+        )
+
         content.addView(
             exportPill(
                 text = "Уся пісня → MP4",
@@ -10057,6 +10170,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
         )
 
+        val labBatchFrom = content.childCount
         content.addView(
             exportPill(
                 text = "Пакет: усі пісні з папки → MP4",
@@ -10108,6 +10222,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             },
         )
 
+        val labBatchTo = content.childCount
         content.addView(
             exportPill(
                 text = "Відкрити папку експорту",
@@ -10125,7 +10240,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
         content.addView(
             label(
-                "«Тест 3 с» / «Тест 10 с» — 3 або 10 секунд з того місця, де зараз пісня. «Уся пісня» — від 0:00 до кінця. Звук аналізується сам, рівно стільки, скільки треба для відео.",
+                "«Тест 3 с» / «10 с» / «своя довжина» — з того місця, де зараз пісня; «з початку пісні» — від 0:00. «Уся пісня» — від 0:00 до кінця. «Тест усіх режимів» — той самий шматок у 720p, 1080p, 2K, 4K × 30 / 60 кадрів, у кінці таблиця. Групи згортаються тапом по заголовку ▸ / ▾. Звук аналізується сам, рівно стільки, скільки треба для відео.",
                 12f,
                 COLOR_MUTED,
                 false,
@@ -10136,6 +10251,30 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ).apply {
                 topMargin = dp(14)
             },
+        )
+
+        // V215 (faric 04.11 20:11: «кнопок уже стрічка на весь екран — згрупувати, згорнути / розгорнути»).
+        val (labW, labH) = exportVideoFrame()
+        foldExportLabGroups(
+            content,
+            listOf(
+                LabGroup(
+                    "format",
+                    "Формат",
+                    formats.firstOrNull { it.first == exportAspectRatio }?.second ?: "",
+                    labFormatFrom,
+                    labSettingsFrom,
+                ),
+                LabGroup(
+                    "settings",
+                    "Налаштування відео",
+                    "${labW}×$labH · ${exportFps()} кадр/с · " + exportProjectMLevel().label,
+                    labSettingsFrom,
+                    labOneFrom,
+                ),
+                LabGroup("one", "Одна пісня", "кадр PNG, тести, уся пісня, тест режимів", labOneFrom, labBatchFrom),
+                LabGroup("batch", "Пакет (папка)", "уся папка, тести з кожної пісні", labBatchFrom, labBatchTo),
+            ),
         )
 
         scroll.addView(content)
@@ -10789,6 +10928,172 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     /** V115: battery temperature and Android's heat level when the export started. */
     private var exportHeatAtStart: String? = null
 
+    /** V217 / V218: where the next test clip starts (null — where the song plays now). */
+    private var testStartOverrideMs: Long? = null
+
+    /** V218: «Тест усіх режимів» — the same clip in every size × frames a second, one after another. */
+    private class ModesRun(
+        val modes: List<com.saney.musicvisualizer.export.ExportModesTest.Mode>,
+        val seconds: Int,
+        val relativePath: String,
+        val savedSize: String?,
+        val savedFps60: Boolean,
+        val savedClipMs: Long,
+        val settings: String,
+    ) {
+        var index = 0
+        val rows = mutableListOf<com.saney.musicvisualizer.export.ExportModesTest.Row>()
+        var continueNext = false
+        var stopped = false
+        val current: com.saney.musicvisualizer.export.ExportModesTest.Mode get() = modes[index]
+    }
+
+    private var modesRun: ModesRun? = null
+
+    private fun askModesTest() {
+        if (exportRunGate.isActive() || modesRun != null) {
+            toast("Експорт уже виконується")
+            return
+        }
+        if (controller.currentTrackUri() == null) {
+            longToast("Спочатку обери пісню")
+            return
+        }
+        askCustomTestSeconds(title = "Тест усіх режимів: скільки секунд кожен (з того місця, де грає пісня)") { seconds ->
+            val plan = com.saney.musicvisualizer.export.ExportModesTest
+            val modes = plan.allModes()
+            val lines =
+                modes.map { mode ->
+                    val (w, h) = com.saney.musicvisualizer.export.ExportVideoSize.fit(exportAspectRatio.width, exportAspectRatio.height, mode.size)
+                    val can = com.saney.musicvisualizer.export.EncoderSupport.supports(w, h, mode.fps)
+                    mode to (mode.label + " · ${w}×$h" + if (can == false) " — телефон не вміє, пропущу" else "")
+                }
+            val runnable = lines.filter { !it.second.contains("не вміє") }.map { it.first }
+            PulseDeckDialogs.showConfirm(
+                context = this,
+                title = "Тест усіх режимів · ${runnable.size} × $seconds с",
+                message =
+                    lines.joinToString("\n") { it.second } +
+                        "\n\nОрієнтовно ~" + plan.estimateMinutes(runnable, seconds) + " хв. Той самий шматок пісні в кожному режимі; " +
+                        "у кінці — одна таблиця. Відео — у Movies/PulseDeck/Тест режимів/. Не вимикай екран.",
+                positiveLabel = "Почати",
+                negativeLabel = "Скасувати",
+            ) {
+                val prefs = exportPrefs()
+                val stamp = java.text.SimpleDateFormat("dd.MM HH-mm", java.util.Locale.ROOT).format(java.util.Date())
+                val run =
+                    ModesRun(
+                        modes = modes,
+                        seconds = seconds,
+                        relativePath =
+                            com.saney.musicvisualizer.export.BatchPlan.testRelativePath("Тест режимів", stamp, seconds),
+                        savedSize = prefs.getString(KEY_EXPORT_VIDEO_SIZE, null),
+                        savedFps60 = prefs.getBoolean(KEY_EXPORT_FPS60, false),
+                        savedClipMs = testClipMs(),
+                        settings = "${exportAspectRatio.width}:${exportAspectRatio.height} · " + exportProjectMLevel().label +
+                            " · зміна " + com.saney.musicvisualizer.projectm.PresetBlend.label(ProjectMStateStore(this).blendMs),
+                    )
+                val songDurationMs = latestSnapshot.durationMs
+                testStartOverrideMs =
+                    latestSnapshot.positionMs.coerceAtMost((songDurationMs - seconds * 1000L).coerceAtLeast(0L))
+                setTestClipMs(seconds * 1000L)
+                modesRun = run
+                withStoryLanguage(batch = false) { modesRunNext() }
+            }
+        }
+    }
+
+    private fun modesRunNext() {
+        val run = modesRun ?: return
+        while (run.index < run.modes.size) {
+            val mode = run.current
+            val (w, h) = com.saney.musicvisualizer.export.ExportVideoSize.fit(exportAspectRatio.width, exportAspectRatio.height, mode.size)
+            if (com.saney.musicvisualizer.export.EncoderSupport.supports(w, h, mode.fps) == false) {
+                run.rows += com.saney.musicvisualizer.export.ExportModesTest.Row(mode, w, h, totalMs = null, note = "телефон не вміє")
+                run.index++
+                continue
+            }
+            exportPrefs().edit()
+                .putString(KEY_EXPORT_VIDEO_SIZE, mode.size.name)
+                .putBoolean(KEY_EXPORT_FPS60, mode.fps > 30)
+                .commit()
+            withExportProjectM { startCompositionVideoExport(fullSong = false) }
+            return
+        }
+        finishModesRun()
+    }
+
+    /** After one export of the run: write its row (on the export thread). */
+    private fun modesRunRecord(
+        result: ShortVideoExportProof.Result?,
+        note: String?,
+        stop: Boolean,
+    ) {
+        val run = modesRun ?: return
+        if (run.index >= run.modes.size) return
+        val mode = run.current
+        val (w, h) =
+            result?.let { it.width to it.height }
+                ?: com.saney.musicvisualizer.export.ExportVideoSize.fit(exportAspectRatio.width, exportAspectRatio.height, mode.size)
+        val bytes =
+            result?.uri?.let { uri ->
+                runCatching {
+                    contentResolver.query(uri, arrayOf(android.provider.OpenableColumns.SIZE), null, null, null)
+                        ?.use { c -> if (c.moveToFirst() && !c.isNull(0)) c.getLong(0) else null }
+                }.getOrNull()
+            }
+        run.rows +=
+            com.saney.musicvisualizer.export.ExportModesTest.Row(
+                mode = mode,
+                width = w,
+                height = h,
+                totalMs = result?.takeIf { it.uri != null }?.totalMs,
+                videoMs = result?.durationMs ?: 0L,
+                frames = result?.frameCount ?: 0,
+                bytes = bytes,
+                heat = com.saney.musicvisualizer.export.DeviceHeat.batteryC(this)?.let { String.format(java.util.Locale.ROOT, "%.0f °C", it) },
+                note = note,
+            )
+        run.index++
+        run.stopped = stop
+        run.continueNext = true
+    }
+
+    /** On the UI thread, after the export's guard is released. */
+    private fun modesRunAfterExport() {
+        val run = modesRun ?: return
+        if (!run.continueNext) return
+        run.continueNext = false
+        if (run.stopped) {
+            finishModesRun()
+            return
+        }
+        // a short rest for the GL / encoder clean-up of the previous video
+        android.os.Handler(android.os.Looper.getMainLooper()).postDelayed({ modesRunNext() }, 1500L)
+    }
+
+    private fun finishModesRun() {
+        val run = modesRun ?: return
+        modesRun = null
+        testStartOverrideMs = null
+        exportPrefs().edit().apply {
+            if (run.savedSize == null) remove(KEY_EXPORT_VIDEO_SIZE) else putString(KEY_EXPORT_VIDEO_SIZE, run.savedSize)
+            putBoolean(KEY_EXPORT_FPS60, run.savedFps60)
+        }.commit()
+        setTestClipMs(run.savedClipMs)
+        val text =
+            com.saney.musicvisualizer.export.ExportModesTest.summary(
+                title = "PulseDeck ${BuildConfig.VERSION_NAME} · збірка ${BuildConfig.VERSION_CODE} · тест режимів" +
+                    if (run.stopped) " (зупинено)" else "",
+                seconds = run.seconds,
+                settings = run.settings,
+                rows = run.rows,
+            ) + "\n\n" + run.relativePath
+        runCatching { CrashJournal.saveExportReport(this, "Тест режимів", text, seen = false) }
+        if (screen == Screen.EXPORT_LAB) showExportLab()
+        showCopyableReport("Тест режимів", text)
+    }
+
     private fun beginGuardedExport(fullSong: Boolean): Boolean {
         if (!exportRunGate.tryStart()) {
             toast("Експорт уже виконується")
@@ -10889,11 +11194,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             } else {
                 // V115 (faric 19:16: «тест 10 с» дав 15 кадрів — пісня майже скінчилась): near the end
                 // the test starts earlier, so it is the whole clip length.
-                snapshot.positionMs
+                // V217 / V218: «з початку пісні» or the same place for every mode of the run.
+                (testStartOverrideMs ?: snapshot.positionMs)
                     .coerceAtMost(
                         (songDurationMs - testClipMs()).coerceAtLeast(0L),
                     )
             }
+        if (modesRun == null) testStartOverrideMs = null
         val requestedDurationMs =
             if (fullSong) {
                 songDurationMs.coerceAtLeast(500L)
@@ -11027,7 +11334,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val dialog =
             PulseDeckDialogs.show(
                 context = this,
-                title = if (fullSong) "Експорт усієї пісні" else "Тестовий MP4 · ${testClipMs() / 1000} с",
+                title =
+                    modesRun?.let { run -> "Тест режимів ${run.index + 1} / ${run.modes.size} · " + run.current.label }
+                        ?: if (fullSong) "Експорт усієї пісні" else "Тестовий MP4 · ${testClipMs() / 1000} с",
                 body = progressBody,
                 cancelable = false,
                 actions =
@@ -11156,10 +11465,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 songDisplayName = resolveDisplayName(sourceUri),
                             )
                         } else {
-                            null
+                            // V218: «01 — 720p 30 кадр.mp4» … in the run's own folder.
+                            modesRun?.let { run -> com.saney.musicvisualizer.export.ExportModesTest.fileName(run.index, run.current) }
                         },
                     relativePath =
-                        songTags.album
+                        modesRun?.relativePath ?: songTags.album
                             ?.takeIf { fullSong }
                             ?.let { com.saney.musicvisualizer.export.BatchPlan.albumRelativePath(it) }
                             ?: com.saney.musicvisualizer.export.Mp4AvMuxer.DEFAULT_RELATIVE_PATH,
@@ -11181,10 +11491,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 if (result.uri != null) {
                     runCatching { CrashJournal.saveExportReport(this, "Експорт завершено", exportTimingText(result), seen = false) }
                 }
+                if (modesRun != null) {
+                    modesRunRecord(result, note = if (result.uri == null) "MP4 не збережено" else null, stop = false)
+                }
                 runOnUiThread {
                     if (!isDestroyed && !isFinishing) dialog.dismiss()
 
-                    if (
+                    if (modesRun != null) {
+                        // V218: one table at the end instead of a report per mode.
+                    } else if (
                         result.uri !=
                         null
                     ) {
@@ -11212,8 +11527,17 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     this,
                     if (cancelledByUser) "скасовано" else "помилка · " + errorLine.take(200),
                 )
+                val inModesRun = modesRun != null
+                if (inModesRun) {
+                    modesRunRecord(
+                        result = null,
+                        note = if (cancelledByUser) "скасовано" else "помилка: " + (error.message ?: error.javaClass.simpleName).take(120),
+                        stop = cancelledByUser,
+                    )
+                }
                 runOnUiThread {
                     if (!isDestroyed && !isFinishing) dialog.dismiss()
+                    if (inModesRun) return@runOnUiThread
 
                     val partial = error as? ShortVideoExportProof.ExportCancelledException
                     if (cancelledByUser && partial != null && partial.partial.frameCount > 0 && !isDestroyed && !isFinishing) {
@@ -11244,7 +11568,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             }
 
             // Keep orientation locked until native GL and PCM cleanup is done.
-            runOnUiThread { endGuardedExport() }
+            runOnUiThread {
+                endGuardedExport()
+                // V218: the next mode of «Тест усіх режимів».
+                modesRunAfterExport()
+            }
         }
     }
 

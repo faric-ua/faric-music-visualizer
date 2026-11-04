@@ -235,6 +235,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     /** V156: the open list follows the visualization on screen (highlight + centred). */
     private var projectMPresetListView: android.widget.ListView? = null
     private var projectMPresetListAdapter: android.widget.BaseAdapter? = null
+
+    /** V220: ♡ / ♥ on the right page — the visualization on screen. */
+    private var projectMFavoriteControl: TextView? = null
     private var projectMPresetListCentred: String? = null
     private var projectMFocusCatalogGeneration = 0
     private var projectMFocusStatus: TextView? = null
@@ -5087,6 +5090,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val row2 =
             controlRow(
                 3, 8,
+                lowControl("♡", 0.8f) { toggleProjectMFocusFavorite() }.also { projectMFavoriteControl = it },
                 lowControl("👍") { rateProjectMFocusPreset(ProjectMPresetRating.UP) },
                 lowControl("👎") { rateProjectMFocusPreset(ProjectMPresetRating.DOWN) },
                 lowControl("Шари ▾", 1.3f) { showProjectMLayersMenu() },
@@ -5132,11 +5136,19 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             projectMModeLabel(state.backgroundMode) + " · " + place +
                 (if (state.autoShuffle) " · 🔀" else "") +
                 (if (rating == ProjectMPresetRating.NONE) "" else " · $ratingIcon") +
+                (if (current != null && com.saney.musicvisualizer.projectm.ProjectMFavoritesStore(this).isFavorite(current)) " · ♥" else "") +
                 "\n" + (current?.nameWithoutExtension ?: "—") + " ▾"
         val (timeText, timeColor) = projectMTimeLabel(state)
         listOfNotNull(projectMFocusTimeLabel, projectMFocusTimeControl).forEach { label ->
             label.text = timeText + if (label === projectMFocusTimeControl) " ▾" else ""
             label.setTextColor(timeColor)
+        }
+        // V220: ♥ when the one on screen is a favourite.
+        projectMFavoriteControl?.let { heart ->
+            val fav = current != null && com.saney.musicvisualizer.projectm.ProjectMFavoritesStore(this).isFavorite(current)
+            heart.text = com.saney.musicvisualizer.projectm.PresetFavorites.icon(fav)
+            heart.setTextColor(if (fav) Color.rgb(255, 92, 120) else Color.WHITE)
+            heart.contentDescription = if (fav) "Улюблена — тап, щоб прибрати" else "Додати в улюблені"
         }
         // V156: the open list follows what is on screen.
         centreProjectMPresetList()
@@ -5288,6 +5300,24 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 }
             }
         }
+    }
+
+    /** V220: ♡ on / off for the visualization on screen; in «♥ Улюблені» an un-hearted one leaves the round. */
+    private fun toggleProjectMFocusFavorite(file: File? = null) {
+        val state = ProjectMStateStore(this)
+        val current = file ?: state.lastPresetFileOrNull() ?: return
+        val now = com.saney.musicvisualizer.projectm.ProjectMFavoritesStore(this).toggle(current)
+        toast(if (now) "♥ В улюблених" else "Прибрано з улюблених")
+        if (!now && state.backgroundMode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.FAVORITE) {
+            if (state.lastPresetPath == current.absolutePath) {
+                removeFromRoundAndStepBack(current.absolutePath)
+            } else {
+                projectMFocusPresets = projectMFocusPresets.filterNot { it.absolutePath == current.absolutePath }
+                projectMShuffleOrder = projectMShuffleOrder.filterNot { it == current.absolutePath }
+            }
+        }
+        projectMPresetListAdapter?.notifyDataSetChanged()
+        updateProjectMFocusStatus()
     }
 
     private fun rateProjectMFocusPreset(
@@ -5768,6 +5798,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     (ProjectMLibraryManager.allPresetFiles(this) + ProjectMLibraryManager.fastPresetFiles(this))
                         .distinctBy { ProjectMLibraryManager.presetId(it) }
                         .filter { ratings.ratingFor(it) == ProjectMPresetRating.UP }
+                // V220: ♡ — wherever the visualization lives.
+                com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.FAVORITE -> {
+                    val favorites = com.saney.musicvisualizer.projectm.ProjectMFavoritesStore(this)
+                    (ProjectMLibraryManager.allPresetFiles(this) + ProjectMLibraryManager.fastPresetFiles(this))
+                        .distinctBy { ProjectMLibraryManager.presetId(it) }
+                        .filter { favorites.isFavorite(it) }
+                }
                 // V161: the lists made by «Аналіз візуалізацій».
                 com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIGHT,
                 com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.MEDIUM,
@@ -5790,6 +5827,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP -> "ТОП"
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL -> "ВСІ"
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED -> "👍"
+            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.FAVORITE -> "♥ Улюблені"
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIGHT -> "Легкі"
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.MEDIUM -> "Середні"
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.HEAVY -> "Важкі"
@@ -5820,6 +5858,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 if (pool.isEmpty() && mode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED) {
                     // V110: nothing liked yet — stay on ТОП, say how to fill the list.
                     toast("Ще нема візуалізацій з 👍. Постав 👍 тим, що подобаються, — і вони крутитимуться в 👍.")
+                    loadProjectMFocusPresets(com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP, onLoaded)
+                    return@runOnUiThread
+                }
+                if (pool.isEmpty() && mode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.FAVORITE) {
+                    // V220: nothing hearted yet.
+                    toast("Ще нема улюблених. Тапни ♡ біля візуалізації — і вона буде в «♥ Улюблені».")
                     loadProjectMFocusPresets(com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP, onLoaded)
                     return@runOnUiThread
                 }
@@ -5988,7 +6032,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 },
                                 LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f),
                             )
-                            listOf("👍", "👎").forEach { icon ->
+                            listOf("👍", "👎", "♡").forEach { icon ->
                                 addView(
                                     TextView(this@MainActivity).apply {
                                         text = icon
@@ -6003,6 +6047,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     val name = row.getChildAt(0) as TextView
                     val up = row.getChildAt(1) as TextView
                     val down = row.getChildAt(2) as TextView
+                    // V220: ♡ / ♥ in every row.
+                    val heart = row.getChildAt(3) as TextView
+                    val fav = com.saney.musicvisualizer.projectm.ProjectMFavoritesStore(this@MainActivity).isFavorite(file)
+                    heart.text = com.saney.musicvisualizer.projectm.PresetFavorites.icon(fav)
+                    heart.setTextColor(if (fav) Color.rgb(255, 92, 120) else Color.WHITE)
+                    heart.alpha = if (fav) 1f else 0.5f
+                    heart.contentDescription = (if (fav) "Улюблена: " else "В улюблені: ") + file.nameWithoutExtension
+                    heart.setOnClickListener { toggleProjectMFocusFavorite(file) }
                     val isCurrent = file.absolutePath == ProjectMStateStore(this@MainActivity).lastPresetPath
                     name.text = (if (isCurrent) "▶ " else "") + file.nameWithoutExtension
                     name.setTextColor(if (isCurrent) Color.rgb(90, 220, 255) else Color.rgb(176, 216, 242))
@@ -6259,6 +6311,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP -> "ТОП — швидкі зі збірки"
                             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL -> "ВСІ"
                             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED -> "👍 — мої вибрані"
+                            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.FAVORITE ->
+                                "♥ Улюблені — найкращі (${com.saney.musicvisualizer.projectm.ProjectMFavoritesStore(this).count()})"
                             else -> projectMModeLabel(mode)
                         }
                     DropRow(label, DropTick.GREY, hint = klass?.let { "за аналізом: ${counts[it] ?: 0}" }) {
@@ -10903,10 +10957,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val runnable = lines.filter { !it.second.contains("не вміє") }.map { it.first }
             PulseDeckDialogs.showConfirm(
                 context = this,
-                title = "Тест усіх режимів · ${runnable.size} × $seconds с",
+                // V228 (faric 04.11 23:12): the title alone; «7 режимів × 20 с» — the first line.
+                title = "Тест усіх режимів",
                 message =
-                    lines.joinToString("\n") { it.second } +
-                        "\n\nОрієнтовно ~" + plan.estimateMinutes(runnable, seconds) + " хв. Той самий шматок пісні в кожному режимі; " +
+                    "${runnable.size} режимів × $seconds с · ~" + plan.estimateMinutes(runnable, seconds) + " хв\n\n" +
+                        lines.joinToString("\n") { it.second } +
+                        "\n\nТой самий шматок пісні в кожному режимі; " +
                         "у кінці — одна таблиця. Відео — у Movies/PulseDeck/Тест режимів/. Не вимикай екран.",
                 positiveLabel = "Почати",
                 negativeLabel = "Скасувати",

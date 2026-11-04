@@ -6757,7 +6757,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val title =
             TextView(this).apply {
                 text =
-                    "☰  Шари та об'єкти · тягни панель"
+                    "☰  Шари та об'єкти"
                 textSize = 15f
                 setTextColor(
                     Color.WHITE,
@@ -6777,130 +6777,62 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ),
         )
 
+        // V223 (faric 04.11 20:34: «кнопочки одного розміру, кругленькі, як ⚙ — а то як яйце одне, друге, третє;
+        // і ? — хелп на весь екран»): four equal round buttons.
+        fun headerButton(
+            symbol: String,
+            description: String,
+            sizeSp: Float,
+            onClick: (() -> Unit)?,
+        ): TextView =
+            TextView(this).apply {
+                text = symbol
+                textSize = sizeSp
+                gravity = Gravity.CENTER
+                includeFontPadding = false
+                contentDescription = description
+                setTextColor(COLOR_ACCENT_CYAN)
+                background =
+                    panelDrawable(
+                        Color.argb(105, 8, 18, 24),
+                        18,
+                        Color.argb(95, 80, 220, 255),
+                        1,
+                    )
+                if (onClick != null) setOnClickListener { onClick() }
+            }
+
         val exportConfig =
-            TextView(this).apply {
-                text = "⇩"
-                textSize = 21f
-                gravity = Gravity.CENTER
-                contentDescription =
-                    "Експортувати конфігурацію шарів"
-                setPadding(
-                    dp(9),
-                    dp(4),
-                    dp(9),
-                    dp(4),
+            headerButton("⇩", "Зберегти шари у файл", 20f) {
+                exportLayerConfiguration.launch(
+                    "FARIC-layers-v" +
+                        BuildConfig.VERSION_NAME +
+                        ".json",
                 )
-                setTextColor(
-                    Color.WHITE,
-                )
-                background =
-                    panelDrawable(
-                        Color.argb(
-                            120,
-                            16,
-                            22,
-                            30,
-                        ),
-                        18,
-                        Color.argb(
-                            100,
-                            35,
-                            211,
-                            238,
-                        ),
-                        1,
-                    )
-                setOnClickListener {
-                    exportLayerConfiguration.launch(
-                        "FARIC-layers-v" +
-                            BuildConfig.VERSION_NAME +
-                            ".json",
-                    )
-                }
             }
-
         val resetPosition =
-            TextView(this).apply {
-                text = "◎"
-                textSize = 22f
-                gravity = Gravity.CENTER
-                contentDescription =
-                    "Повернути панель у центр"
-                setPadding(
-                    dp(10),
-                    dp(4),
-                    dp(10),
-                    dp(4),
+            headerButton("◎", "Панель по центру екрана", 20f, null)
+        val help =
+            headerButton("?", "Довідка: що в цій панелі", 20f) {
+                PulseDeckDialogs.showMessage(
+                    context = this,
+                    title = com.saney.musicvisualizer.ui.LayersHelp.TITLE,
+                    message = com.saney.musicvisualizer.ui.LayersHelp.TEXT,
+                    primaryLabel = "Зрозуміло",
+                    scrollableMessage = true,
                 )
-                setTextColor(
-                    Color.WHITE,
-                )
-                background =
-                    panelDrawable(
-                        Color.argb(
-                            120,
-                            16,
-                            22,
-                            30,
-                        ),
-                        18,
-                        Color.argb(
-                            100,
-                            35,
-                            211,
-                            238,
-                        ),
-                        1,
-                    )
             }
-
         val close =
-            TextView(this).apply {
-                text = "✕"
-                textSize = 20f
-                gravity = Gravity.CENTER
-                contentDescription =
-                    "Закрити панель"
-                setPadding(
-                    dp(10),
-                    dp(4),
-                    dp(8),
-                    dp(4),
-                )
-                setTextColor(
-                    Color.WHITE,
-                )
-                background =
-                    panelDrawable(
-                        Color.argb(
-                            120,
-                            16,
-                            22,
-                            30,
-                        ),
-                        18,
-                        Color.argb(
-                            100,
-                            35,
-                            211,
-                            238,
-                        ),
-                        1,
-                    )
-                setOnClickListener {
-                    dialog.dismiss()
-                }
+            headerButton("✕", "Закрити панель", 20f) {
+                dialog.dismiss()
             }
 
-        header.addView(
-            exportConfig,
-        )
-        header.addView(
-            resetPosition,
-        )
-        header.addView(
-            close,
-        )
+        listOf(exportConfig, resetPosition, help, close).forEach { button ->
+            header.addView(
+                button,
+                LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginStart = dp(6) },
+            )
+        }
         panel.addView(
             header,
         )
@@ -7109,7 +7041,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             closeLayers = { dialog.dismiss() },
                         )
                     },
-                    LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginStart = dp(6) },
+                    LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginStart = dp(6) },
                 )
             }
 
@@ -7194,7 +7126,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         closeLayers = { dialog.dismiss() },
                                     )
                                 },
-                                LinearLayout.LayoutParams(dp(42), dp(42)).apply { marginStart = dp(6) },
+                                LinearLayout.LayoutParams(dp(48), dp(48)).apply { marginStart = dp(6) },
                             )
                         }
                     }
@@ -7423,7 +7355,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         },
                         LinearLayout.LayoutParams(
                             dp(112),
-                            dp(42),
+                            dp(48),
                         ).apply {
                             marginStart =
                                 dp(6)
@@ -7471,8 +7403,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             }
                         },
                         LinearLayout.LayoutParams(
-                            dp(42),
-                            dp(42),
+                            dp(48),
+                            dp(48),
                         ).apply {
                             marginStart = dp(6)
                         },
@@ -7543,8 +7475,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             }
                         },
                         LinearLayout.LayoutParams(
-                            dp(42),
-                            dp(42),
+                            dp(48),
+                            dp(48),
                         ).apply {
                             marginStart =
                                 dp(6)

@@ -238,7 +238,7 @@ object ShortVideoExportProof {
                 // fine HUD details ran out of bits (blocky «mosquito» noise). More bits, keyframe every 2 s.
                 setInteger(
                     MediaFormat.KEY_BIT_RATE,
-                    ExportStorageBudget.videoBitRate(width, height).toInt(),
+                    ExportStorageBudget.videoBitRate(width, height, safeFps).toInt(),
                 )
                 setInteger(
                     MediaFormat.KEY_FRAME_RATE,

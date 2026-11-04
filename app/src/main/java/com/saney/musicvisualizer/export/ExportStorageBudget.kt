@@ -21,7 +21,9 @@ object ExportStorageBudget {
     fun videoBitRate(
         width: Int,
         height: Int,
-    ): Long = (width.toLong() * height * 9L).coerceIn(MIN_VIDEO_BIT_RATE, MAX_VIDEO_BIT_RATE)
+        // V210: 60 frames a second get half as many bits more (twice the frames, each needs fewer — motion is small).
+        fps: Int = 30,
+    ): Long = (width.toLong() * height * 9L * (if (fps > 30) 3L else 2L) / 2L).coerceIn(MIN_VIDEO_BIT_RATE, MAX_VIDEO_BIT_RATE)
 
     fun estimateRequiredBytes(
         durationMs: Long,

@@ -380,21 +380,26 @@ object PulseDeckDialogs {
         checked: BooleanArray,
         positiveLabel: String = "Зберегти",
         negativeLabel: String = "Скасувати",
+        /** V211: «☑ Усі» / «☐ Жодної» above the list and a scrolling list (long song queues). */
+        bulkToggles: Boolean = false,
+        message: String? = null,
         onSaved: (BooleanArray) -> Unit,
     ): Dialog {
         val state = checked.copyOf(labels.size)
         val body = LinearLayout(context).apply { orientation = LinearLayout.VERTICAL }
-        labels.forEachIndexed { index, labelText ->
-            fun text() = (if (state[index]) "☑  " else "☐  ") + labelText
+        val rows = mutableListOf<TextView>()
+        fun text(index: Int) = (if (state[index]) "☑  " else "☐  ") + labels[index]
+        labels.forEachIndexed { index, _ ->
             lateinit var row: TextView
             row =
                 actionButton(
                     context = context,
-                    action = Action(label = text()) {},
+                    action = Action(label = text(index)) {},
                 ) {
                     state[index] = !state[index]
-                    row.text = text()
+                    row.text = text(index)
                 }
+            rows += row
             body.addView(
                 row,
                 LinearLayout.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT).apply {
@@ -402,16 +407,32 @@ object PulseDeckDialogs {
                 },
             )
         }
+        val bulk =
+            if (!bulkToggles) {
+                emptyList()
+            } else {
+                fun setAll(value: Boolean) {
+                    state.fill(value)
+                    rows.forEachIndexed { index, row -> row.text = text(index) }
+                }
+                listOf(
+                    Action(label = "☑ Усі", dismissOnClick = false) { setAll(true) },
+                    Action(label = "☐ Жодної", dismissOnClick = false) { setAll(false) },
+                )
+            }
         return show(
             context = context,
             title = title,
+            message = message,
             body = body,
             actions =
-                listOf(
-                    Action(label = positiveLabel, accent = true) { onSaved(state.copyOf()) },
-                    Action(label = negativeLabel) {},
-                ),
+                bulk +
+                    listOf(
+                        Action(label = positiveLabel, accent = true) { onSaved(state.copyOf()) },
+                        Action(label = negativeLabel) {},
+                    ),
             dismissAfterAction = true,
+            scrollableBody = bulkToggles,
         )
     }
 
@@ -667,6 +688,8 @@ object PulseDeckDialogs {
         scrollableMessage: Boolean = false,
         /** false = Back and outside taps do nothing (progress of a running export). */
         cancelable: Boolean = true,
+        /** V211: a long body (a list of songs) scrolls; title and buttons stay visible. */
+        scrollableBody: Boolean = false,
     ): Dialog {
         lateinit var dialog:
             Dialog
@@ -794,7 +817,19 @@ object PulseDeckDialogs {
             panel.flexible = messageScroll
         }
 
-        body?.let { bodyView ->
+        body?.let { plainBody ->
+            val bodyView =
+                if (scrollableBody) {
+                    ScrollView(context).apply {
+                        isFillViewport = false
+                        addView(
+                            plainBody,
+                            ViewGroup.LayoutParams(ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT),
+                        )
+                    }.also { panel.flexible = it }
+                } else {
+                    plainBody
+                }
             panel.addView(
                 bodyView,
                 LinearLayout.LayoutParams(

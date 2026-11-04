@@ -12,6 +12,7 @@ object ExportStorageBudget {
     private const val PCM_MONO_BYTES_PER_SECOND = 96_000L
     private const val MIN_VIDEO_BIT_RATE = 8_000_000L
     private const val MAX_VIDEO_BIT_RATE = 24_000_000L
+    private const val MAX_BIG_VIDEO_BIT_RATE = 60_000_000L
     const val MIN_FREE_RESERVE_BYTES = 128L * MIB
 
     /**
@@ -23,7 +24,12 @@ object ExportStorageBudget {
         height: Int,
         // V210: 60 frames a second get half as many bits more (twice the frames, each needs fewer — motion is small).
         fps: Int = 30,
-    ): Long = (width.toLong() * height * 9L * (if (fps > 30) 3L else 2L) / 2L).coerceIn(MIN_VIDEO_BIT_RATE, MAX_VIDEO_BIT_RATE)
+    ): Long =
+        (width.toLong() * height * 9L * (if (fps > 30) 3L else 2L) / 2L).coerceIn(
+            MIN_VIDEO_BIT_RATE,
+            // V213: 2K / 4K need more than the 1080p ceiling (YouTube: 4K ~35–45 Mbit/s at 30, ~53–68 at 60).
+            if (width.toLong() * height > 1920L * 1080L) MAX_BIG_VIDEO_BIT_RATE else MAX_VIDEO_BIT_RATE,
+        )
 
     fun estimateRequiredBytes(
         durationMs: Long,

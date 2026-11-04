@@ -30,10 +30,13 @@ class ExportStorageBudgetTest {
         // V113: 1080×1920 → 9 bits per pixel-second ≈ 18.7 Mbit/s (was 6 → 12.4).
         assertEquals(18_662_400L, ExportStorageBudget.videoBitRate(1080, 1920))
         assertEquals(8_000_000L, ExportStorageBudget.videoBitRate(320, 240))
-        assertEquals(24_000_000L, ExportStorageBudget.videoBitRate(3840, 2160))
+        assertEquals(60_000_000L, ExportStorageBudget.videoBitRate(3840, 2160)) // V213: big frames — 60 Mbit/s ceiling (was 24)
         // V210: 60 fps — ×1,5 (720p 8,3 → 12,4 Mbit/s; 1080p hits the 24 Mbit/s cap).
         assertEquals(12_441_600L, ExportStorageBudget.videoBitRate(720, 1280, fps = 60))
-        assertEquals(24_000_000L, ExportStorageBudget.videoBitRate(1080, 1920, fps = 60))
+        assertEquals(24_000_000L, ExportStorageBudget.videoBitRate(1080, 1920, fps = 60)) // 1080p ceiling stays 24
         assertEquals(18_662_400L, ExportStorageBudget.videoBitRate(1080, 1920, fps = 30))
+        // V213: 2K / 4K — own ceiling 60 Mbit/s.
+        assertEquals(33_177_600L, ExportStorageBudget.videoBitRate(1440, 2560))
+        assertEquals(60_000_000L, ExportStorageBudget.videoBitRate(2160, 3840))
     }
 }

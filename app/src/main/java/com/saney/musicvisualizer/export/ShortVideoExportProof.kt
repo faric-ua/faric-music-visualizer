@@ -72,6 +72,10 @@ object ShortVideoExportProof {
             ProjectMOfflineTiming?,
         /** V115: whole-frame time per visualization (slowest first) — which ones make the export slow. */
         val presetTimings: List<PresetTiming> = emptyList(),
+        /** V212: frames where the empty see-through layers were not composed (clean projectM). */
+        val overlaySkippedFrames: Int = 0,
+        /** V210: frames a second of this video. */
+        val fps: Int = 30,
     )
 
     /**
@@ -95,6 +99,24 @@ object ShortVideoExportProof {
 
     private const val MIME = "video/avc"
     private const val DEFAULT_FPS = 30
+    private const val OVERLAY_CHECK_ROWS = 32
+
+    /** V212: not one pixel with alpha (checked in strips of rows — once per few hundred frames). */
+    private fun transparentBitmap(
+        bitmap: Bitmap,
+        buffer: IntArray,
+    ): Boolean {
+        val w = bitmap.width
+        val rows = (buffer.size / w.coerceAtLeast(1)).coerceAtLeast(1)
+        var y = 0
+        while (y < bitmap.height) {
+            val n = minOf(rows, bitmap.height - y)
+            bitmap.getPixels(buffer, 0, w, 0, y, w, n)
+            if (!EmptyOverlayGuard.allTransparent(buffer, w * n)) return false
+            y += n
+        }
+        return true
+    }
     private const val DEFAULT_DURATION_MS = 3_000L
     private const val TIMEOUT_US = 10_000L
 
@@ -146,8 +168,8 @@ object ShortVideoExportProof {
         },
         /** V172: 0–100 with tenths — [ExportProgress] shares (picture · sound · file). */
         onProgress: (Float) -> Unit = {},
-        /** V199: 720p frame (short edge 720) instead of 1080p. */
-        video720: Boolean = false,
+        /** V199: 720p frame (short edge 720) instead of 1080p; V213: 2K / 4K too. */
+        videoSize: VideoSize = VideoSize.P1080,
     ): Result {
         val totalStartedNs =
             System.nanoTime()
@@ -156,7 +178,7 @@ object ShortVideoExportProof {
             ExportVideoSize.fit(
                 project.aspectRatio.width,
                 project.aspectRatio.height,
-                video720,
+                videoSize,
             )
 
         val availableMs =
@@ -168,6 +190,11 @@ object ShortVideoExportProof {
                 1,
                 60,
             )
+
+        // V213: 2K / 4K (and 4K at 60) — not every phone's encoder can; say so before any work is done.
+        check(EncoderSupport.supports(width, height, safeFps) != false) {
+            "Телефон не вміє стискати відео ${width}×$height на $safeFps кадр/с — вибери менший розмір або 30 кадрів"
+        }
 
         val durationMs =
             minOf(
@@ -238,7 +265,10 @@ object ShortVideoExportProof {
                 // fine HUD details ran out of bits (blocky «mosquito» noise). More bits, keyframe every 2 s.
                 setInteger(
                     MediaFormat.KEY_BIT_RATE,
-                    ExportStorageBudget.videoBitRate(width, height, safeFps).toInt(),
+                    // V213: never above what the phone's encoder takes (2K / 4K ask for more than 1080p).
+                    ExportStorageBudget.videoBitRate(width, height, safeFps)
+                        .coerceAtMost((EncoderSupport.maxBitRate(width, height) ?: Int.MAX_VALUE).toLong())
+                        .toInt(),
                 )
                 setInteger(
                     MediaFormat.KEY_FRAME_RATE,
@@ -340,6 +370,21 @@ object ShortVideoExportProof {
                 } ==
                 true
 
+        // V212: only a clean projectM video (no GF, theme, effects, PulseDeck parts) may skip the empty overlay.
+        val overlayGuard =
+            EmptyOverlayGuard(
+                allowed =
+                    compositionConfig != null &&
+                        !compositionConfig.graphicFiguresVisible &&
+                        compositionConfig.standaloneTheme == null &&
+                        !compositionConfig.effectsVisible &&
+                        (
+                            !compositionConfig.pulseDeckVisible ||
+                                compositionConfig.pulseDeckObjectVisibility.values.none { it }
+                        ),
+            )
+        val overlayCheckRows = IntArray(width * OVERLAY_CHECK_ROWS)
+        var overlaySkippedFrames = 0
         val overlayBitmap =
             if (
                 useGpuCyberSharkGlow ||
@@ -777,6 +822,7 @@ object ShortVideoExportProof {
                 val compositionStartedNs =
                     System.nanoTime()
 
+                var drawOverlaysNow = true
                 var gpuGlow:
                     CyberSharkGpuGlow? =
                     null
@@ -802,6 +848,10 @@ object ShortVideoExportProof {
                         postWordmarkOverlayBitmap !=
                             null
                     ) {
+                        // V212: nothing over projectM — the three see-through layers are not composed.
+                        drawOverlaysNow = overlayGuard.mustDraw(frameIndex)
+                        if (!drawOverlaysNow) overlaySkippedFrames++
+                        if (drawOverlaysNow) {
                         overlayBitmap.eraseColor(
                             Color.TRANSPARENT,
                         )
@@ -907,6 +957,7 @@ object ShortVideoExportProof {
                                     analysis.durationMs,
                                 playing = true,
                             )
+                        }
                     } else if (
                         useGpuCyberSharkGlow &&
                         overlayBitmap != null
@@ -1207,9 +1258,17 @@ object ShortVideoExportProof {
                     postWordmarkOverlayBitmap !=
                         null
                 ) {
+                    if (drawOverlaysNow && overlayGuard.checking) {
+                        overlayGuard.observe(
+                            transparentBitmap(overlayBitmap, overlayCheckRows) &&
+                                transparentBitmap(postFrameOverlayBitmap, overlayCheckRows) &&
+                                transparentBitmap(postWordmarkOverlayBitmap, overlayCheckRows),
+                        )
+                    }
                     val gpuTiming =
                         activeEncoderSurface
                             .drawGpuProjectMGraphicFigureComposite(
+                                drawOverlays = drawOverlaysNow,
                                 lowerOverlayBitmap =
                                     overlayBitmap,
                                 frame =
@@ -1392,6 +1451,8 @@ object ShortVideoExportProof {
                                 presetFrameStats
                                     .map { (path, slot) -> PresetTiming(path, slot[1].toInt(), slot[0] / 1_000_000L) }
                                     .sortedByDescending { it.msPerFrame },
+                            overlaySkippedFrames = overlaySkippedFrames,
+                            fps = safeFps,
                         ),
                     plannedFrames = frameCount,
                 )
@@ -1592,6 +1653,8 @@ object ShortVideoExportProof {
                     presetFrameStats
                         .map { (path, slot) -> PresetTiming(path, slot[1].toInt(), slot[0] / 1_000_000L) }
                         .sortedByDescending { it.msPerFrame },
+                overlaySkippedFrames = overlaySkippedFrames,
+                fps = safeFps,
             )
         } finally {
             videoTemp.delete()

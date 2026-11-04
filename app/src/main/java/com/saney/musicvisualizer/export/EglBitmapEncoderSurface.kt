@@ -967,6 +967,8 @@ class EglBitmapEncoderSurface(
      * layers that do not have a native GPU renderer yet.
      */
     fun drawGpuProjectMGraphicFigureComposite(
+        /** V212: false — the three see-through layers are empty; only projectM goes into the frame. */
+        drawOverlays: Boolean = true,
         lowerOverlayBitmap: Bitmap,
         frame: CyberSharkGpuFrame?,
         fxOverlayBitmap: Bitmap,
@@ -1014,11 +1016,13 @@ class EglBitmapEncoderSurface(
 
         val lowerOverlayStartedNs =
             System.nanoTime()
+        if (drawOverlays) {
         drawBitmapLayer(
             bitmap =
                 lowerOverlayBitmap,
             alphaBlend = true,
         )
+        }
         var overlayNs =
             System.nanoTime() -
                 lowerOverlayStartedNs
@@ -1037,11 +1041,13 @@ class EglBitmapEncoderSurface(
 
         val fxOverlayStartedNs =
             System.nanoTime()
+        if (drawOverlays) {
         drawBitmapLayer(
             bitmap =
                 fxOverlayBitmap,
             alphaBlend = true,
         )
+        }
         overlayNs +=
             System.nanoTime() -
                 fxOverlayStartedNs
@@ -1072,11 +1078,13 @@ class EglBitmapEncoderSurface(
 
         val topOverlayStartedNs =
             System.nanoTime()
+        if (drawOverlays) {
         drawBitmapLayer(
             bitmap =
                 topOverlayBitmap,
             alphaBlend = true,
         )
+        }
         overlayNs +=
             System.nanoTime() -
                 topOverlayStartedNs

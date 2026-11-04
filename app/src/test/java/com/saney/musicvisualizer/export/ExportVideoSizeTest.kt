@@ -22,4 +22,22 @@ class ExportVideoSizeTest {
         assertEquals(2f / 3f, ExportVideoSize.scaleOf(1080, 1920, true), 1e-4f)
         assertEquals("already small — not grown", 640 to 360, ExportVideoSize.fit(640, 360, true))
     }
+
+    @Test fun twoKAndFourKGrowTheFullHdFrame() {
+        assertEquals(1440 to 2560, ExportVideoSize.fit(1080, 1920, VideoSize.P1440))
+        assertEquals(2560 to 1440, ExportVideoSize.fit(1920, 1080, VideoSize.P1440))
+        assertEquals(2160 to 3840, ExportVideoSize.fit(1080, 1920, VideoSize.P2160))
+        assertEquals(3840 to 2160, ExportVideoSize.fit(1920, 1080, VideoSize.P2160))
+        assertEquals(2160 to 2160, ExportVideoSize.fit(1080, 1080, VideoSize.P2160))
+        assertEquals(2160 to 2700, ExportVideoSize.fit(1080, 1350, VideoSize.P2160))
+        assertEquals(2f, ExportVideoSize.scaleOf(1080, 1920, VideoSize.P2160), 1e-6f)
+    }
+
+    @Test fun oldSavedChoiceStillWorks() {
+        assertEquals(VideoSize.P720, VideoSize.from(null, old720 = true))
+        assertEquals(VideoSize.P1080, VideoSize.from(null, old720 = false))
+        assertEquals(VideoSize.P2160, VideoSize.from("P2160", old720 = true))
+        assertEquals(VideoSize.P720, VideoSize.P2160.next())
+        assertEquals(ExportVideoSize.fit(1080, 1920, true), ExportVideoSize.fit(1080, 1920, VideoSize.P720))
+    }
 }

@@ -52,5 +52,5 @@ object SongSourceInfo {
         width: Int,
         height: Int,
         fps: Int,
-    ): String = FileInfoText.video(width, height, fps, ExportStorageBudget.videoBitRate(width, height), AudioClipTranscoder.AUDIO_BITRATE.toLong())
+    ): String = FileInfoText.video(width, height, fps, ExportStorageBudget.videoBitRate(width, height, fps), AudioClipTranscoder.AUDIO_BITRATE.toLong())
 }

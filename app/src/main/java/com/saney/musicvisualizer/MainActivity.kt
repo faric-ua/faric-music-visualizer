@@ -9337,6 +9337,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     /** V201: how the videos are made, one line (batch summary). */
     private fun exportSettingsLine(): String =
         com.saney.musicvisualizer.export.ExportVideoSize.fit(exportAspectRatio.width, exportAspectRatio.height, exportVideo720()).let { (w, h) -> "${w}×$h" } +
+            " · ${exportFps()} кадр/с" +
             " · візуалізація " + exportProjectMLevel().label +
             " · зміна " + com.saney.musicvisualizer.projectm.PresetBlend.label(ProjectMStateStore(this).blendMs) +
             " · окантовка " + (if (exportFastEdge()) "швидка (тест)" else "звичайна") +
@@ -9368,6 +9369,15 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     private fun exportFastEdgeLabel(): String =
         "Окантовка у відео: " + if (exportFastEdge()) "швидка (тест)" else "звичайна"
+
+    /**
+     * V210 (faric 04.11 15:19: «не все время 60 кадрів, але деякі моменти — чому б і ні»): «Кадрів у відео: 30 / 60».
+     * Every frame is drawn and encoded, so 60 takes about twice as long; 30 by default (as before).
+     */
+    private fun exportFps(): Int = if (exportPrefs().getBoolean(KEY_EXPORT_FPS60, false)) 60 else 30
+
+    private fun exportFpsLabel(): String =
+        "Кадрів у відео: " + if (exportFps() == 60) "60 (плавніше, експорт ~вдвічі довший)" else "30"
 
     /** V199: «Розмір відео: 1080p / 720p» (test: 1080p by default). */
     private fun exportVideo720(): Boolean = exportPrefs().getBoolean(KEY_EXPORT_VIDEO_720, false)
@@ -9769,6 +9779,25 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 setOnClickListener {
                     exportPrefs().edit().putBoolean(KEY_EXPORT_VIDEO_720, !exportVideo720()).apply()
                     text = exportVideoSizeLabel()
+                }
+            },
+            LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.WRAP_CONTENT,
+            ).apply {
+                topMargin = dp(14)
+            },
+        )
+
+        // V210: 30 / 60 frames a second.
+        content.addView(
+            exportPill(
+                text = exportFpsLabel(),
+                accent = false,
+            ) {}.apply {
+                setOnClickListener {
+                    exportPrefs().edit().putBoolean(KEY_EXPORT_FPS60, exportFps() != 60).apply()
+                    text = exportFpsLabel()
                 }
             },
             LinearLayout.LayoutParams(
@@ -11334,7 +11363,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 val projectMFrameCount =
                     (
                         projectMRenderDurationMs *
-                            PROJECTM_EXPORT_FPS /
+                            exportFps() /
                             1000L
                         )
                         .toInt()
@@ -11425,7 +11454,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                                     1L
                                                 ) *
                                             1000L /
-                                            PROJECTM_EXPORT_FPS
+                                            exportFps()
 
                                     pcmReader
                                         ?.samplesBetween(
@@ -11471,7 +11500,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                     1L
                                 ) *
                             1000L /
-                            PROJECTM_EXPORT_FPS
+                            exportFps()
 
                     val pcm =
                         activePcmReader
@@ -11495,7 +11524,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             frameTimeSeconds =
                                 frameIndex
                                     .toDouble() /
-                                    PROJECTM_EXPORT_FPS,
+                                    exportFps(),
                             pcm =
                                 pcm,
                             signal =
@@ -11519,7 +11548,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             aspectRatio =
                                 ratio,
                             frameRate =
-                                PROJECTM_EXPORT_FPS,
+                                exportFps(),
                         ),
                     analysis =
                         analysis,
@@ -11626,7 +11655,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                         exportStartMs +
                                             nextFrameIndex *
                                             1000L /
-                                            PROJECTM_EXPORT_FPS
+                                            exportFps()
 
                                     pendingProjectMFrame =
                                         queueProjectMFrame(
@@ -11684,7 +11713,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     requestedDurationMs =
                         requestedDurationMs,
                     fps =
-                        PROJECTM_EXPORT_FPS,
+                        exportFps(),
                     displayNamePrefix =
                         if (fullSong) {
                             "PulseDeck-Full"
@@ -11813,6 +11842,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val uri: Uri,
         val name: String,
         val durationMs: Long,
+        /** V211: a whole-song video of it is already in Movies/PulseDeck (the queue starts it unticked). */
+        val hasVideo: Boolean = false,
     )
 
     private fun startBatchFolderPicker(testMode: Boolean = false) {
@@ -11838,7 +11869,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
         toast("Шукаю пісні в папці…")
         thread(name = "faric-batch-scan") {
-            val scan = runCatching { scanBatchFolder(treeUri) }
+            val scan = runCatching { scanBatchFolder(treeUri, markDone = !testMode) }
             runOnUiThread {
                 if (isFinishing || isDestroyed) return@runOnUiThread
                 scan
@@ -11854,7 +11885,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
-    private fun scanBatchFolder(treeUri: Uri): Pair<String, List<BatchSong>> {
+    private fun scanBatchFolder(
+        treeUri: Uri,
+        markDone: Boolean = false,
+    ): Pair<String, List<BatchSong>> {
         val treeDocId = android.provider.DocumentsContract.getTreeDocumentId(treeUri)
         val folderDoc = android.provider.DocumentsContract.buildDocumentUriUsingTree(treeUri, treeDocId)
         val folderName =
@@ -11902,15 +11936,85 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             retriever.release()
                         }
                     }.getOrDefault(0L)
-                BatchSong(uri = uri, name = name, durationMs = duration)
+                BatchSong(
+                    uri = uri,
+                    name = name,
+                    durationMs = duration,
+                    hasVideo = markDone && songVideoExists(folderName, uri, name),
+                )
             }
         return folderName to songs
     }
 
+    /** V211: the same place and names the batch itself checks (runBatchExport) — «відео вже є». */
+    private fun songVideoExists(
+        folderName: String,
+        uri: Uri,
+        name: String,
+    ): Boolean {
+        val plan = com.saney.musicvisualizer.export.BatchPlan
+        val title = plan.songTitle(name)
+        val tags =
+            runCatching {
+                com.saney.musicvisualizer.export.SongTags.read(context = this, uri = uri, fallbackTitle = title, fallbackArtist = null)
+            }.getOrNull() ?: return false
+        val songPath = tags.album?.let { plan.albumRelativePath(it) } ?: plan.relativePath(folderName)
+        return mediaStoreHasVideo(songPath, plan.songVideoFileName(tags.title, tags.track, name), alsoLegacyFolder = true) ||
+            mediaStoreHasVideo(songPath, plan.videoFileName(name), alsoLegacyFolder = true)
+    }
+
+    /**
+     * V211 (faric 04.11 15:19: «коли вибираєш всю папку — віконечко з переліком файлів, галочками вибрати, які
+     * пропустити… у папці 14, один я вже зробив — хочу вибрати те, що потрібно, і те конвертувати»). The queue:
+     * every song with a tick; songs that already have a video start unticked and say so.
+     */
     private fun confirmBatch(
         folderName: String,
         songs: List<BatchSong>,
         testMode: Boolean = false,
+    ) {
+        if (songs.size <= 1) {
+            confirmBatchQueue(folderName, songs, testMode)
+            return
+        }
+        val plan = com.saney.musicvisualizer.export.BatchPlan
+        val labels =
+            songs.mapIndexed { i, s ->
+                buildString {
+                    append(i + 1).append(". ").append(plan.songTitle(s.name))
+                    if (s.durationMs > 0) append(" · ").append(plan.formatMinutes(s.durationMs))
+                    if (s.hasVideo) append(" — відео вже є")
+                }
+            }
+        val done = songs.count { it.hasVideo }
+        val queue =
+            PulseDeckDialogs.showMultiChoice(
+                context = this,
+                title = (if (testMode) "Пакет-тест" else "Пакет") + " · черга: $folderName",
+                message =
+                    "Галочка — робити, без галочки — пропустити. " +
+                        if (done > 0) "Вже зроблені ($done) стоять без галочки." else "Усі ${songs.size} вибрані.",
+                labels = labels,
+                checked = BooleanArray(songs.size) { !songs[it].hasVideo },
+                positiveLabel = "Далі",
+                negativeLabel = "Скасувати",
+                bulkToggles = true,
+            ) { ticks ->
+                val chosen = songs.filterIndexed { i, _ -> ticks[i] }
+                if (chosen.isEmpty()) {
+                    toast("Нічого не вибрано")
+                } else {
+                    confirmBatchQueue(folderName, chosen, testMode, of = songs.size)
+                }
+            }
+        rememberBatchConfirm(queue, testMode)
+    }
+
+    private fun confirmBatchQueue(
+        folderName: String,
+        songs: List<BatchSong>,
+        testMode: Boolean = false,
+        of: Int = songs.size,
     ) {
         if (songs.isEmpty()) {
             PulseDeckDialogs.showMessage(
@@ -11939,7 +12043,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val confirm =
                 PulseDeckDialogs.showConfirm(
                     context = this,
-                    title = "Пакет-тест: ${songs.size} × $testSeconds с",
+                    title = "Пакет-тест: ${songs.size}" + (if (of > songs.size) " з $of" else "") + " × $testSeconds с",
                     message = message,
                     positiveLabel = "Почати тест",
                     negativeLabel = "Скасувати",
@@ -11968,7 +12072,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val confirm =
             PulseDeckDialogs.showConfirm(
                 context = this,
-                title = "Пакет: ${songs.size} пісень → MP4",
+                title = "Пакет: ${songs.size}" + (if (of > songs.size) " з $of" else "") + " пісень → MP4",
                 message = message,
                 positiveLabel = "Почати",
                 negativeLabel = "Скасувати",
@@ -13347,7 +13451,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         listOfNotNull(
             source,
             com.saney.musicvisualizer.export.ExportVideoSize.fit(exportAspectRatio.width, exportAspectRatio.height, exportVideo720()).let { (w, h) ->
-                com.saney.musicvisualizer.export.SongSourceInfo.videoLine(w, h, PROJECTM_EXPORT_FPS)
+                com.saney.musicvisualizer.export.SongSourceInfo.videoLine(w, h, exportFps())
             },
         )
 
@@ -14388,8 +14492,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         private const val KEY_EXPORT_REPEATABLE = "repeatable_visuals"
         private const val KEY_EXPORT_PANEL_PERCENT = "panel_percent"
         private val PANEL_PERCENTS = listOf(100, 85, 70, 55)
-        private const val PROJECTM_EXPORT_FPS =
-            30
+        private const val KEY_EXPORT_FPS60 = "fps_60"
 
         private val PULSEDECK_EXPORT_OBJECT_IDS =
             listOf(

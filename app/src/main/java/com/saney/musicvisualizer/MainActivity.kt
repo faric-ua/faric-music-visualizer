@@ -7978,7 +7978,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             centerY = defaultY,
                         )
                     setPanelPosition(x = x, y = y, persist = true)
-                    popup.dismiss()
+                    // V232: the pad stays where it is, so a second ← / → / ↓ tucks the panel further; ◎ closes it.
+                    if (snap == com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.CENTER) popup.dismiss()
                 }.also { button ->
                     if (snap == com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.CENTER) {
                         button.text = ""

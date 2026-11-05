@@ -16,14 +16,20 @@ class FloatingPanelBoundsTest {
         assertEquals(432, r.clampX(2000))
     }
 
-    @Test fun snapsStickToTheEdges() {
+    @Test fun firstPressStandsStraightSecondTucks() {
         // full-width panel 1080 × 900 on 1080 × 2400: centre (0, 750)
         val r = FloatingPanelBounds.of(1080, 2400, 1080, 900)
-        val s = FloatingPanelBounds.Snap.entries.associateWith { FloatingPanelBounds.snap(r, it, x = 100, y = 300, centerX = 0, centerY = 750) }
-        assertEquals(100 to 0, s[FloatingPanelBounds.Snap.TOP])
-        assertEquals("bottom, whole panel visible", 100 to 1500, s[FloatingPanelBounds.Snap.BOTTOM])
-        assertEquals("40 % behind the left edge", -432 to 300, s[FloatingPanelBounds.Snap.LEFT])
-        assertEquals(432 to 300, s[FloatingPanelBounds.Snap.RIGHT])
-        assertEquals(0 to 750, s[FloatingPanelBounds.Snap.CENTER])
+        fun snap(s: FloatingPanelBounds.Snap, x: Int, y: Int) = FloatingPanelBounds.snap(r, s, x, y, centerX = 0, centerY = 750)
+        // hidden on the right, ← : first all of it visible at the left edge, then 40 % behind it
+        assertEquals(0 to 300, snap(FloatingPanelBounds.Snap.LEFT, 432, 300))
+        assertEquals(-432 to 300, snap(FloatingPanelBounds.Snap.LEFT, 0, 300))
+        assertEquals(0 to 300, snap(FloatingPanelBounds.Snap.RIGHT, -432, 300))
+        assertEquals(432 to 300, snap(FloatingPanelBounds.Snap.RIGHT, 0, 300))
+        // ↓ : first all visible at the bottom, then 40 % below
+        assertEquals(100 to 1500, snap(FloatingPanelBounds.Snap.BOTTOM, 100, 300))
+        assertEquals(100 to 1860, snap(FloatingPanelBounds.Snap.BOTTOM, 100, 1500))
+        // ↑ never hides
+        assertEquals(100 to 0, snap(FloatingPanelBounds.Snap.TOP, 100, 0))
+        assertEquals(0 to 750, snap(FloatingPanelBounds.Snap.CENTER, -432, 1860))
     }
 }

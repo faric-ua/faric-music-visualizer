@@ -14,6 +14,28 @@ object FloatingPanelBounds {
         fun clampY(y: Int): Int = y.coerceIn(minY, maxY)
     }
 
+    /** V224: «приліпити» — where the panel goes for each arrow of the ◎ pad (x, y). */
+    enum class Snap { TOP, BOTTOM, LEFT, RIGHT, CENTER }
+
+    fun snap(
+        range: Range,
+        snap: Snap,
+        x: Int,
+        y: Int,
+        centerX: Int,
+        centerY: Int,
+    ): Pair<Int, Int> =
+        when (snap) {
+            // top / bottom — right against the edge, the whole panel visible
+            Snap.TOP -> x to range.minY
+            // the centred panel stands at (screen − panel) / 2, so the fully visible bottom is twice that
+            Snap.BOTTOM -> x to range.clampY(centerY * 2)
+            // left / right — tucked behind the edge as far as allowed (40 %), the height kept
+            Snap.LEFT -> range.minX to y
+            Snap.RIGHT -> range.maxX to y
+            Snap.CENTER -> centerX to centerY
+        }
+
     fun of(
         screenWidth: Int,
         screenHeight: Int,

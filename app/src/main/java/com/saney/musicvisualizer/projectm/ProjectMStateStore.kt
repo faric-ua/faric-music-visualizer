@@ -13,6 +13,9 @@ enum class ProjectMBackgroundMode {
     /** V220 (faric 04.11 20:18): ♡ — the chosen best ones, separate from 👍. */
     FAVORITE,
 
+    /** V221: one of faric's own lists ([ProjectMStateStore.customListId]). */
+    CUSTOM,
+
     /** V161: by the measured load (analysis on the right page). */
     LIGHT,
     MEDIUM,
@@ -63,6 +66,13 @@ class ProjectMStateStore(context: Context) {
         get() = PresetBlend.safe(prefs.getInt(KEY_BLEND_MS, 0))
         set(value) {
             prefs.edit().putInt(KEY_BLEND_MS, PresetBlend.safe(value)).apply()
+        }
+
+    /** V221: which own list «📁» plays when [backgroundMode] is CUSTOM. */
+    var customListId: String?
+        get() = prefs.getString(KEY_CUSTOM_LIST_ID, null)
+        set(value) {
+            prefs.edit().apply { if (value == null) remove(KEY_CUSTOM_LIST_ID) else putString(KEY_CUSTOM_LIST_ID, value) }.apply()
         }
 
     var lightMode: Boolean
@@ -338,6 +348,7 @@ class ProjectMStateStore(context: Context) {
         private const val KEY_FG_EDGE_HIGH =
             "fg_edge_high"
         private const val KEY_BLEND_MS = "preset_blend_ms"
+        private const val KEY_CUSTOM_LIST_ID = "custom_list_id"
         private const val KEY_FG_EDGE_BEAT =
             "fg_edge_beat"
 

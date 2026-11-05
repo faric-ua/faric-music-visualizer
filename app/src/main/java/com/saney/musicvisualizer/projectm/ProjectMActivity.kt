@@ -630,6 +630,12 @@ class ProjectMActivity : ComponentActivity() {
                             }
                         }
 
+                    ProjectMBackgroundMode.CUSTOM -> {
+                        val lists = ProjectMPresetListsStore(this)
+                        val id = ProjectMStateStore(this).customListId
+                        ProjectMLibraryManager.allPresetFiles(this).filter { id != null && lists.contains(id, it) }
+                    }
+
                     ProjectMBackgroundMode.FAVORITE ->
                         ProjectMFavoritesStore(this).let { favorites ->
                             ProjectMLibraryManager.allPresetFiles(this).filter { favorites.isFavorite(it) }

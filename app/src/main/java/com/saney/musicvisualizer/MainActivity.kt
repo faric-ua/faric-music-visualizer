@@ -5302,6 +5302,105 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         }
     }
 
+    /** V221: the visualization on screen — in which own lists (ticks); «＋ новий» adds it to a new one. */
+    private fun showCurrentPresetLists() {
+        val current = ProjectMStateStore(this).lastPresetFileOrNull() ?: return
+        val store = com.saney.musicvisualizer.projectm.ProjectMPresetListsStore(this)
+        val lists = store.lists()
+        if (lists.isEmpty()) {
+            askNewPresetList(addCurrent = true)
+            return
+        }
+        PulseDeckDialogs.showMultiChoice(
+            context = this,
+            title = "«${current.nameWithoutExtension}» — у моїх списках",
+            labels = lists.map { "📁 " + it.name + " (" + store.count(it.id) + ")" },
+            checked = BooleanArray(lists.size) { store.contains(lists[it].id, current) },
+            positiveLabel = "Зберегти",
+            message = "Галочка — візуалізація в цьому списку. Новий список — «Група ▾» → «＋ Новий список…».",
+        ) { ticks ->
+            val state = ProjectMStateStore(this)
+            lists.forEachIndexed { i, entry ->
+                val was = store.contains(entry.id, current)
+                if (ticks[i] != was) store.setMember(entry.id, current, ticks[i])
+                // playing this list and the one on screen left it — it leaves the round
+                if (was && !ticks[i] && state.backgroundMode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.CUSTOM &&
+                    state.customListId == entry.id
+                ) {
+                    removeFromRoundAndStepBack(current.absolutePath)
+                }
+            }
+            toast("Збережено")
+            updateProjectMFocusStatus()
+        }
+    }
+
+    private fun askNewPresetList(addCurrent: Boolean) {
+        PulseDeckDialogs.showTextInput(
+            context = this,
+            title = "Новий список візуалізацій",
+            hint = "Назва, напр. «Для альбому White Side»",
+            positiveLabel = "Створити",
+            clearButton = true,
+        ) { name ->
+            val store = com.saney.musicvisualizer.projectm.ProjectMPresetListsStore(this)
+            val entry = store.create(name)
+            val current = ProjectMStateStore(this).lastPresetFileOrNull()
+            if (addCurrent && current != null) {
+                store.setMember(entry.id, current, true)
+                toast("📁 «${entry.name}» створено, «${current.nameWithoutExtension}» — у ньому")
+            } else {
+                toast("📁 «${entry.name}» створено. Додавати: Ще ⋯ → «📁 Додати в мої списки…»")
+            }
+        }
+    }
+
+    private fun showManagePresetLists() {
+        val store = com.saney.musicvisualizer.projectm.ProjectMPresetListsStore(this)
+        val lists = store.lists()
+        if (lists.isEmpty()) return
+        PulseDeckDialogs.showActionList(
+            context = this,
+            title = "Мої списки",
+            items = lists.map { "📁 " + it.name + " (" + store.count(it.id) + ") ›" },
+        ) { index ->
+            val entry = lists[index]
+            PulseDeckDialogs.showActionList(
+                context = this,
+                title = "📁 " + entry.name,
+                items = listOf("Перейменувати…", "Видалити список…"),
+            ) { action ->
+                if (action == 0) {
+                    PulseDeckDialogs.showTextInput(
+                        context = this,
+                        title = "Нова назва",
+                        initialValue = entry.name,
+                        clearButton = true,
+                    ) { name ->
+                        store.rename(entry.id, name)
+                        updateProjectMFocusStatus()
+                    }
+                } else {
+                    PulseDeckDialogs.showConfirm(
+                        context = this,
+                        title = "Видалити список «${entry.name}»?",
+                        message = "Зникне лише список. Самі візуалізації лишаються — у ТОП / ВСІ, з 👍 і ♥, як були.",
+                        positiveLabel = "Видалити",
+                        destructive = true,
+                    ) {
+                        store.delete(entry.id)
+                        val state = ProjectMStateStore(this)
+                        if (state.backgroundMode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.CUSTOM && state.customListId == entry.id) {
+                            state.customListId = null
+                            loadProjectMFocusPresets(com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP)
+                        }
+                        toast("Список видалено")
+                    }
+                }
+            }
+        }
+    }
+
     /** V220: ♡ on / off for the visualization on screen; in «♥ Улюблені» an un-hearted one leaves the round. */
     private fun toggleProjectMFocusFavorite(file: File? = null) {
         val state = ProjectMStateStore(this)
@@ -5798,6 +5897,18 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     (ProjectMLibraryManager.allPresetFiles(this) + ProjectMLibraryManager.fastPresetFiles(this))
                         .distinctBy { ProjectMLibraryManager.presetId(it) }
                         .filter { ratings.ratingFor(it) == ProjectMPresetRating.UP }
+                // V221: one of faric's own lists.
+                com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.CUSTOM -> {
+                    val lists = com.saney.musicvisualizer.projectm.ProjectMPresetListsStore(this)
+                    val id = ProjectMStateStore(this).customListId
+                    if (id == null || lists.find(id) == null) {
+                        emptyList()
+                    } else {
+                        (ProjectMLibraryManager.allPresetFiles(this) + ProjectMLibraryManager.fastPresetFiles(this))
+                            .distinctBy { ProjectMLibraryManager.presetId(it) }
+                            .filter { lists.contains(id, it) }
+                    }
+                }
                 // V220: ♡ — wherever the visualization lives.
                 com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.FAVORITE -> {
                     val favorites = com.saney.musicvisualizer.projectm.ProjectMFavoritesStore(this)
@@ -5828,6 +5939,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.ALL -> "ВСІ"
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED -> "👍"
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.FAVORITE -> "♥ Улюблені"
+            com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.CUSTOM ->
+                "📁 " + (
+                    com.saney.musicvisualizer.projectm.ProjectMPresetListsStore(this)
+                        .find(ProjectMStateStore(this).customListId)?.name ?: "свій список"
+                    )
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIGHT -> "Легкі"
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.MEDIUM -> "Середні"
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.HEAVY -> "Важкі"
@@ -5858,6 +5974,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 if (pool.isEmpty() && mode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.LIKED) {
                     // V110: nothing liked yet — stay on ТОП, say how to fill the list.
                     toast("Ще нема візуалізацій з 👍. Постав 👍 тим, що подобаються, — і вони крутитимуться в 👍.")
+                    loadProjectMFocusPresets(com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP, onLoaded)
+                    return@runOnUiThread
+                }
+                if (pool.isEmpty() && mode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.CUSTOM) {
+                    // V221: an empty own list — say how to fill it.
+                    toast("У цьому списку ще нічого. Ще ⋯ → «📁 Додати в мої списки…» — на тій, що грає.")
                     loadProjectMFocusPresets(com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.TOP, onLoaded)
                     return@runOnUiThread
                 }
@@ -6303,7 +6425,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val counts = com.saney.musicvisualizer.projectm.PresetLoadStore(this).counts { ratingsForCount.isHiddenId(it) }
             val current = ProjectMStateStore(this).backgroundMode
             com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.entries
-                .filter { it != current }
+                .filter { it != current && it != com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.CUSTOM }
                 .map { mode ->
                     val klass = loadClassOf(mode)
                     val label =
@@ -6319,6 +6441,25 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         loadProjectMFocusPresets(mode)
                         scheduleProjectMFocusAuto()
                     }
+                } +
+                // V221: faric's own lists, then «new list» / «manage».
+                run {
+                    val listsStore = com.saney.musicvisualizer.projectm.ProjectMPresetListsStore(this)
+                    val state = ProjectMStateStore(this)
+                    listsStore.lists().map { entry ->
+                        val chosen = current == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.CUSTOM && state.customListId == entry.id
+                        DropRow("📁 " + entry.name, if (chosen) DropTick.GREEN else DropTick.GREY, hint = "${listsStore.count(entry.id)}") {
+                            state.customListId = entry.id
+                            loadProjectMFocusPresets(com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.CUSTOM)
+                            scheduleProjectMFocusAuto()
+                        }
+                    } +
+                        DropRow("＋ Новий список…", DropTick.NONE) { askNewPresetList(addCurrent = false) } +
+                        if (listsStore.lists().isNotEmpty()) {
+                            listOf(DropRow("Мої списки: назва, видалити…", DropTick.NONE) { showManagePresetLists() })
+                        } else {
+                            emptyList()
+                        }
                 } +
                 run {
                     // V187 (faric 24.10 04:16–04:27: «пункт, щоб повернути сховані — хай буде»).
@@ -6439,6 +6580,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 },
                 DropRow("Аналіз: легкі / середні / важкі…", DropTick.NONE) { askPresetAnalysis() },
                 DropRow("Підсумок аналізу (таблиця)", DropTick.NONE) { showAnalysisSummary("Підсумок аналізу") },
+                DropRow("📁 Додати в мої списки…", DropTick.NONE, hint = "галочками") { showCurrentPresetLists() },
                 DropRow("Сховати цю візуалізацію назавжди…", DropTick.NONE, hint = "було «−»") { confirmHideProjectMFocusPreset() },
                 DropRow("Зробити відео (Export Lab)", DropTick.NONE, hint = "було EXPORT") {
                     closeProjectMFocusOverlay()

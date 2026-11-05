@@ -8035,8 +8035,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
                     isOutsideTouchable = true
                 }
-            // the pad's middle cell lands on ◎ itself
-            popup.showAsDropDown(anchor, -(padSize - anchor.width) / 2, -anchor.height - (padSize - anchor.height) / 2)
+            // V234 (faric 05.11 23:13: «каша все одно — хай стрілки будуть окремою панеллю, не прив'язаною до вікна,
+            // на самому верху й по центру екрана; панель їздить, а стрілки стоять; тап на порожньому — сховати»):
+            // the pad stands in the middle of the screen, not on ◎.
+            popup.showAtLocation(anchor.rootView, Gravity.CENTER, 0, 0)
             true
         }
 

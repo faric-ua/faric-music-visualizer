@@ -8000,10 +8000,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             Color.argb(140, 80, 220, 255),
                             1,
                         )
-                    if (snap == com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.CENTER) {
-                        button.text = ""
-                        button.foreground = com.saney.musicvisualizer.ui.CenterArrowsDrawable(COLOR_ACCENT_CYAN, dp(2).toFloat())
-                    }
+                    // V235: every icon drawn with lines — the four arrows alike, the centre with its own arrows.
+                    button.text = ""
+                    button.foreground =
+                        when (snap) {
+                            com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.CENTER ->
+                                com.saney.musicvisualizer.ui.CenterArrowsDrawable(COLOR_ACCENT_CYAN, dp(2).toFloat())
+                            com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.TOP ->
+                                com.saney.musicvisualizer.ui.ArrowLineDrawable(0, -1, COLOR_ACCENT_CYAN, dp(2).toFloat())
+                            com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.BOTTOM ->
+                                com.saney.musicvisualizer.ui.ArrowLineDrawable(0, 1, COLOR_ACCENT_CYAN, dp(2).toFloat())
+                            com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.LEFT ->
+                                com.saney.musicvisualizer.ui.ArrowLineDrawable(-1, 0, COLOR_ACCENT_CYAN, dp(2).toFloat())
+                            com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.RIGHT ->
+                                com.saney.musicvisualizer.ui.ArrowLineDrawable(1, 0, COLOR_ACCENT_CYAN, dp(2).toFloat())
+                        }
                 }
             }
             listOf(
@@ -8030,15 +8041,33 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     },
                 )
             }
+            // V235: the size from the buttons themselves (the ↓ row was cut before).
+            grid.measure(
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+                View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED),
+            )
+            val padW = maxOf(grid.measuredWidth, padSize)
+            val padH = maxOf(grid.measuredHeight, padSize)
             popup =
-                android.widget.PopupWindow(grid, padSize, padSize, true).apply {
+                android.widget.PopupWindow(grid, padW, padH, true).apply {
+                    // may stand outside the «Шари» window — it belongs to the screen, not to the panel
+                    isClippingEnabled = false
                     setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
                     isOutsideTouchable = true
                 }
             // V234 (faric 05.11 23:13: «каша все одно — хай стрілки будуть окремою панеллю, не прив'язаною до вікна,
             // на самому верху й по центру екрана; панель їздить, а стрілки стоять; тап на порожньому — сховати»):
             // the pad stands in the middle of the screen, not on ◎.
-            popup.showAtLocation(anchor.rootView, Gravity.CENTER, 0, 0)
+            // V235 (faric 05.11 23:50: «по центру всього екрана, а ти кладеш посередині самої панелі»): a popup of the
+            // «Шари» window counts from that window's corner — so take the window's place on screen away.
+            val windowOnScreen = IntArray(2)
+            anchor.rootView.getLocationOnScreen(windowOnScreen)
+            popup.showAtLocation(
+                anchor.rootView,
+                Gravity.TOP or Gravity.START,
+                (screenWidth - padW) / 2 - windowOnScreen[0],
+                (screenHeight - padH) / 2 - windowOnScreen[1],
+            )
             true
         }
 

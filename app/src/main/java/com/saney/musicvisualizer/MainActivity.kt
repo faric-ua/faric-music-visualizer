@@ -7030,7 +7030,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val title =
             TextView(this).apply {
                 text =
-                    "☰  Шари та об'єкти"
+                    // V225 (faric 04.11 22:49: «може просто «Шари» — і так зрозуміло»): one line.
+                    "☰  Шари"
                 textSize = 15f
                 setTextColor(
                     Color.WHITE,
@@ -7083,8 +7084,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         ".json",
                 )
             }
+        // V226: a ring with four arrows to the centre, drawn with lines.
         val resetPosition =
-            headerButton("◎", "Панель по центру екрана", 20f, null)
+            headerButton("", "Панель по центру екрана; утримати — приліпити до краю", 20f, null).apply {
+                foreground = com.saney.musicvisualizer.ui.CenterArrowsDrawable(COLOR_ACCENT_CYAN, dp(2).toFloat())
+            }
         val help =
             headerButton("?", "Довідка: що в цій панелі", 20f) {
                 PulseDeckDialogs.showMessage(
@@ -7942,6 +7946,78 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 y = defaultY,
                 persist = true,
             )
+        }
+
+        // V224 (faric 04.11 22:49: «тримаєш — з кнопки вилітають ще 4: вгору, вниз, вліво, вправо — до якого краю
+        // приліпити»): a small pad around ◎; the middle one — centre again.
+        resetPosition.setOnLongClickListener { anchor ->
+            val cell = dp(48)
+            val gap = dp(4)
+            val padSize = cell * 3 + gap * 2
+            lateinit var popup: android.widget.PopupWindow
+            val grid =
+                android.widget.GridLayout(this).apply {
+                    rowCount = 3
+                    columnCount = 3
+                }
+            fun padButton(
+                symbol: String,
+                description: String,
+                snap: com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap?,
+            ): View {
+                if (snap == null) return View(this)
+                return headerButton(symbol, description, 20f) {
+                    val attrs = window.attributes
+                    val (x, y) =
+                        com.saney.musicvisualizer.ui.FloatingPanelBounds.snap(
+                            range = panelBounds,
+                            snap = snap,
+                            x = attrs.x,
+                            y = attrs.y,
+                            centerX = defaultX,
+                            centerY = defaultY,
+                        )
+                    setPanelPosition(x = x, y = y, persist = true)
+                    popup.dismiss()
+                }.also { button ->
+                    if (snap == com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.CENTER) {
+                        button.text = ""
+                        button.foreground = com.saney.musicvisualizer.ui.CenterArrowsDrawable(COLOR_ACCENT_CYAN, dp(2).toFloat())
+                    }
+                }
+            }
+            listOf(
+                padButton("", "", null),
+                padButton("↑", "Приліпити вгору", com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.TOP),
+                padButton("", "", null),
+                padButton("←", "Приліпити вліво (сховати 40 %)", com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.LEFT),
+                padButton("", "По центру", com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.CENTER),
+                padButton("→", "Приліпити вправо (сховати 40 %)", com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.RIGHT),
+                padButton("", "", null),
+                padButton("↓", "Приліпити вниз", com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.BOTTOM),
+                padButton("", "", null),
+            ).forEachIndexed { index, view ->
+                grid.addView(
+                    view,
+                    android.widget.GridLayout.LayoutParams(
+                        android.widget.GridLayout.spec(index / 3),
+                        android.widget.GridLayout.spec(index % 3),
+                    ).apply {
+                        width = cell
+                        height = cell
+                        if (index % 3 > 0) leftMargin = gap
+                        if (index / 3 > 0) topMargin = gap
+                    },
+                )
+            }
+            popup =
+                android.widget.PopupWindow(grid, padSize, padSize, true).apply {
+                    setBackgroundDrawable(android.graphics.drawable.ColorDrawable(Color.TRANSPARENT))
+                    isOutsideTouchable = true
+                }
+            // the pad's middle cell lands on ◎ itself
+            popup.showAsDropDown(anchor, -(padSize - anchor.width) / 2, -anchor.height - (padSize - anchor.height) / 2)
+            true
         }
 
         var dragStartRawX = 0f
@@ -11145,6 +11221,10 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val savedFps60: Boolean,
         val savedClipMs: Long,
         val settings: String,
+        // V229: one visualization and the same picture in every mode; given back afterwards.
+        val savedAuto: Boolean,
+        val savedAutoPerTrack: Boolean,
+        val savedRepeatable: Boolean,
     ) {
         var index = 0
         val rows = mutableListOf<com.saney.musicvisualizer.export.ExportModesTest.Row>()
@@ -11181,7 +11261,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 message =
                     "${runnable.size} режимів × $seconds с · ~" + plan.estimateMinutes(runnable, seconds) + " хв\n\n" +
                         lines.joinToString("\n") { it.second } +
-                        "\n\nТой самий шматок пісні в кожному режимі; " +
+                        "\n\nТой самий шматок пісні й та сама візуалізація (що зараз на екрані) в кожному режимі — AUTO на час тесту вимкнеться, потім повернеться; " +
                         "у кінці — одна таблиця. Відео — у Movies/PulseDeck/Тест режимів/. Не вимикай екран.",
                 positiveLabel = "Почати",
                 negativeLabel = "Скасувати",
@@ -11198,8 +11278,21 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         savedFps60 = prefs.getBoolean(KEY_EXPORT_FPS60, false),
                         savedClipMs = testClipMs(),
                         settings = "${exportAspectRatio.width}:${exportAspectRatio.height} · " + exportProjectMLevel().label +
-                            " · зміна " + com.saney.musicvisualizer.projectm.PresetBlend.label(ProjectMStateStore(this).blendMs),
+                            " · зміна " + com.saney.musicvisualizer.projectm.PresetBlend.label(ProjectMStateStore(this).blendMs) +
+                            "\nВізуалізація в усіх режимах одна: " +
+                            (ProjectMStateStore(this).lastPresetFileOrNull()?.nameWithoutExtension ?: "—") + " · щоразу однаково",
+                        savedAuto = ProjectMStateStore(this).autoEnabled,
+                        savedAutoPerTrack = ProjectMStateStore(this).autoPerTrack,
+                        savedRepeatable = prefs.getBoolean(KEY_EXPORT_REPEATABLE, false),
                     )
+                // V229 (замір 05.11 02:42: AUTO давав кожному режиму свої візуалізації): for the run — the one on
+                // screen, AUTO off, «щоразу однаково» on.
+                ProjectMStateStore(this).apply {
+                    autoEnabled = false
+                    autoPerTrack = false
+                }
+                stopProjectMAuto()
+                prefs.edit().putBoolean(KEY_EXPORT_REPEATABLE, true).commit()
                 val songDurationMs = latestSnapshot.durationMs
                 testStartOverrideMs =
                     latestSnapshot.positionMs.coerceAtMost((songDurationMs - seconds * 1000L).coerceAtLeast(0L))
@@ -11286,7 +11379,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         exportPrefs().edit().apply {
             if (run.savedSize == null) remove(KEY_EXPORT_VIDEO_SIZE) else putString(KEY_EXPORT_VIDEO_SIZE, run.savedSize)
             putBoolean(KEY_EXPORT_FPS60, run.savedFps60)
+            putBoolean(KEY_EXPORT_REPEATABLE, run.savedRepeatable)
         }.commit()
+        ProjectMStateStore(this).apply {
+            autoEnabled = run.savedAuto
+            autoPerTrack = run.savedAutoPerTrack
+        }
+        scheduleProjectMFocusAuto()
         setTestClipMs(run.savedClipMs)
         val text =
             com.saney.musicvisualizer.export.ExportModesTest.summary(

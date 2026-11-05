@@ -7957,6 +7957,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             val padInset = dp(8)
             val padSize = cell * 3 + gap * 2 + padInset * 2
             lateinit var popup: android.widget.PopupWindow
+            // V236: where the pad stands, counted from the «Шари» window's corner (it moves with that window).
+            var padOffsetX = 0
+            var padOffsetY = 0
             val grid =
                 android.widget.GridLayout(this).apply {
                     rowCount = 3
@@ -7988,9 +7991,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             centerX = defaultX,
                             centerY = defaultY,
                         )
+                    val oldX = attrs.x
+                    val oldY = attrs.y
                     setPanelPosition(x = x, y = y, persist = true)
                     // V232: the pad stays where it is, so a second ← / → / ↓ tucks the panel further; ◎ closes it.
-                    if (snap == com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.CENTER) popup.dismiss()
+                    if (snap == com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.CENTER) {
+                        popup.dismiss()
+                    } else {
+                        // V236 (faric 06.11 00:23: «з'являється там, де треба, а потім їде за панелькою; униз — зникає»):
+                        // the pad belongs to the «Шари» window and moves with it — move it back by the same step.
+                        val now = window.attributes
+                        padOffsetX -= now.x - oldX
+                        padOffsetY -= now.y - oldY
+                        popup.update(padOffsetX, padOffsetY, -1, -1)
+                    }
                 }.also { button ->
                     // solid, so nothing of the header shows through
                     button.background =
@@ -8062,11 +8076,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             // «Шари» window counts from that window's corner — so take the window's place on screen away.
             val windowOnScreen = IntArray(2)
             anchor.rootView.getLocationOnScreen(windowOnScreen)
+            padOffsetX = (screenWidth - padW) / 2 - windowOnScreen[0]
+            padOffsetY = (screenHeight - padH) / 2 - windowOnScreen[1]
             popup.showAtLocation(
                 anchor.rootView,
                 Gravity.TOP or Gravity.START,
-                (screenWidth - padW) / 2 - windowOnScreen[0],
-                (screenHeight - padH) / 2 - windowOnScreen[1],
+                padOffsetX,
+                padOffsetY,
             )
             true
         }

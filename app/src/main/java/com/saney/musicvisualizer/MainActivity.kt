@@ -5090,7 +5090,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         val row2 =
             controlRow(
                 3, 8,
-                lowControl("♡", 0.8f) { toggleProjectMFocusFavorite() }.also { projectMFavoriteControl = it },
+                // V230: ♡ or one of the own lists «📁» — tap adds / removes, hold chooses which.
+                lowControl("♡", 0.8f) { toggleQuickSlot() }.also { slot ->
+                    projectMFavoriteControl = slot
+                    slot.setOnLongClickListener {
+                        chooseQuickSlot()
+                        true
+                    }
+                },
                 lowControl("👍") { rateProjectMFocusPreset(ProjectMPresetRating.UP) },
                 lowControl("👎") { rateProjectMFocusPreset(ProjectMPresetRating.DOWN) },
                 lowControl("Шари ▾", 1.3f) { showProjectMLayersMenu() },
@@ -5143,12 +5150,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             label.text = timeText + if (label === projectMFocusTimeControl) " ▾" else ""
             label.setTextColor(timeColor)
         }
-        // V220: ♥ when the one on screen is a favourite.
-        projectMFavoriteControl?.let { heart ->
-            val fav = current != null && com.saney.musicvisualizer.projectm.ProjectMFavoritesStore(this).isFavorite(current)
-            heart.text = com.saney.musicvisualizer.projectm.PresetFavorites.icon(fav)
-            heart.setTextColor(if (fav) Color.rgb(255, 92, 120) else Color.WHITE)
-            heart.contentDescription = if (fav) "Улюблена — тап, щоб прибрати" else "Додати в улюблені"
+        // V220: ♥ when the one on screen is a favourite. V230: or 📁 of the chosen own list (✓ — it is in it).
+        projectMFavoriteControl?.let { slot ->
+            val list = quickSlotList()
+            if (list == null) {
+                val fav = current != null && com.saney.musicvisualizer.projectm.ProjectMFavoritesStore(this).isFavorite(current)
+                slot.text = com.saney.musicvisualizer.projectm.PresetFavorites.icon(fav)
+                slot.setTextColor(if (fav) Color.rgb(255, 92, 120) else Color.WHITE)
+                slot.contentDescription = (if (fav) "Улюблена — тап, щоб прибрати" else "Додати в улюблені") + "; утримати — вибрати список"
+            } else {
+                val member = current != null && com.saney.musicvisualizer.projectm.ProjectMPresetListsStore(this).contains(list.id, current)
+                slot.text = if (member) "📁✓" else "📁"
+                slot.setTextColor(if (member) Color.rgb(61, 220, 132) else Color.WHITE)
+                slot.contentDescription = "«${list.name}»: " + (if (member) "тап — прибрати" else "тап — додати") + "; утримати — вибрати список"
+            }
         }
         // V156: the open list follows what is on screen.
         centreProjectMPresetList()
@@ -5398,6 +5413,59 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     }
                 }
             }
+        }
+    }
+
+    /** V230: the own list on the quick button (null — ♥ «Улюблені», also when the list was deleted). */
+    private fun quickSlotList(): com.saney.musicvisualizer.projectm.PresetLists.Entry? =
+        com.saney.musicvisualizer.projectm.ProjectMPresetListsStore(this).find(ProjectMStateStore(this).quickSlotListId)
+
+    private fun toggleQuickSlot() {
+        val list = quickSlotList() ?: return toggleProjectMFocusFavorite()
+        val state = ProjectMStateStore(this)
+        val current = state.lastPresetFileOrNull() ?: return
+        val store = com.saney.musicvisualizer.projectm.ProjectMPresetListsStore(this)
+        val now = !store.contains(list.id, current)
+        store.setMember(list.id, current, now)
+        toast(if (now) "📁 У «${list.name}»" else "Прибрано з «${list.name}»")
+        if (!now && state.backgroundMode == com.saney.musicvisualizer.projectm.ProjectMBackgroundMode.CUSTOM && state.customListId == list.id) {
+            removeFromRoundAndStepBack(current.absolutePath)
+        }
+        projectMPresetListAdapter?.notifyDataSetChanged()
+        updateProjectMFocusStatus()
+    }
+
+    /** V230: what the quick button adds to — ♥ «Улюблені» or one of the own lists (or a new one). */
+    private fun chooseQuickSlot() {
+        val store = com.saney.musicvisualizer.projectm.ProjectMPresetListsStore(this)
+        val lists = store.lists()
+        val state = ProjectMStateStore(this)
+        val labels = listOf("♥ Улюблені") + lists.map { "📁 " + it.name + " (" + store.count(it.id) + ")" } + "＋ Новий список…"
+        val checked = quickSlotList()?.let { chosen -> 1 + lists.indexOfFirst { it.id == chosen.id } } ?: 0
+        PulseDeckDialogs.showSingleChoice(
+            context = this,
+            title = "Кнопка перед 👍 — куди додає",
+            labels = labels,
+            checkedIndex = checked,
+        ) { index ->
+            when {
+                index == 0 -> state.quickSlotListId = null
+                index <= lists.size -> state.quickSlotListId = lists[index - 1].id
+                else ->
+                    PulseDeckDialogs.showTextInput(
+                        context = this,
+                        title = "Новий список візуалізацій",
+                        hint = "Назва, напр. «Для альбому White Side»",
+                        positiveLabel = "Створити",
+                        clearButton = true,
+                    ) { name ->
+                        val entry = store.create(name)
+                        state.quickSlotListId = entry.id
+                        toast("📁 «${entry.name}» — на кнопці. Тап — додати візуалізацію")
+                        updateProjectMFocusStatus()
+                    }
+            }
+            updateProjectMFocusStatus()
         }
     }
 
@@ -6580,7 +6648,16 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 },
                 DropRow("Аналіз: легкі / середні / важкі…", DropTick.NONE) { askPresetAnalysis() },
                 DropRow("Підсумок аналізу (таблиця)", DropTick.NONE) { showAnalysisSummary("Підсумок аналізу") },
-                DropRow("📁 Додати в мої списки…", DropTick.NONE, hint = "галочками") { showCurrentPresetLists() },
+                // V230: the menu offers what is not on the quick button.
+                if (quickSlotList() == null) {
+                    DropRow("📁 Додати в мої списки…", DropTick.NONE, hint = "галочками") { showCurrentPresetLists() }
+                } else {
+                    val fav = state.lastPresetFileOrNull()?.let { com.saney.musicvisualizer.projectm.ProjectMFavoritesStore(this).isFavorite(it) } == true
+                    DropRow(if (fav) "♥ Прибрати з улюблених" else "♡ В улюблені", DropTick.NONE) { toggleProjectMFocusFavorite() }
+                },
+                DropRow("Кнопка ♡ / 📁 на панелі: " + (quickSlotList()?.let { "📁 " + it.name } ?: "♡ Улюблені"), DropTick.NONE, hint = "змінити ›") {
+                    chooseQuickSlot()
+                },
                 DropRow("Сховати цю візуалізацію назавжди…", DropTick.NONE, hint = "було «−»") { confirmHideProjectMFocusPreset() },
                 DropRow("Зробити відео (Export Lab)", DropTick.NONE, hint = "було EXPORT") {
                     closeProjectMFocusOverlay()

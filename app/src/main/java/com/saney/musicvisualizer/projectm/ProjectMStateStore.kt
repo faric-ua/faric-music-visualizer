@@ -68,6 +68,16 @@ class ProjectMStateStore(context: Context) {
             prefs.edit().putInt(KEY_BLEND_MS, PresetBlend.safe(value)).apply()
         }
 
+    /**
+     * V230 (faric 05.11 19:04): what the quick button on the right page (before 👍) adds to — null = ♥ «Улюблені»,
+     * otherwise the id of one of the own lists «📁».
+     */
+    var quickSlotListId: String?
+        get() = prefs.getString(KEY_QUICK_SLOT, null)
+        set(value) {
+            prefs.edit().apply { if (value == null) remove(KEY_QUICK_SLOT) else putString(KEY_QUICK_SLOT, value) }.apply()
+        }
+
     /** V221: which own list «📁» plays when [backgroundMode] is CUSTOM. */
     var customListId: String?
         get() = prefs.getString(KEY_CUSTOM_LIST_ID, null)
@@ -349,6 +359,7 @@ class ProjectMStateStore(context: Context) {
             "fg_edge_high"
         private const val KEY_BLEND_MS = "preset_blend_ms"
         private const val KEY_CUSTOM_LIST_ID = "custom_list_id"
+        private const val KEY_QUICK_SLOT = "quick_slot_list_id"
         private const val KEY_FG_EDGE_BEAT =
             "fg_edge_beat"
 

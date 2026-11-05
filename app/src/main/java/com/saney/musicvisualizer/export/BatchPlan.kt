@@ -126,6 +126,30 @@ object BatchPlan {
 
     fun estimateMinutes(totalAudioMs: Long): Int = Math.ceil(totalAudioMs.coerceAtLeast(0L) * TIME_FACTOR / 60_000.0).toInt()
 
+    /**
+     * V237 (faric 06.11 00:50: «чому там 1080×1920, а я вибрав 720» + «~44 хв, вдвічі довше» — старе): how many times
+     * longer than the music a video takes, from the «Тест усіх режимів» tables (04.11 23:07, 05.11 02:42; A26, projectM
+     * high, a little HUD) with a margin for sound analysis, heat and heavier visualizations.
+     */
+    fun speedFactor(
+        shortEdge: Int,
+        fps: Int,
+    ): Double {
+        val at30 =
+            when {
+                shortEdge <= 720 -> 0.85
+                shortEdge <= 1080 -> 1.0
+                shortEdge <= 1440 -> 1.3
+                else -> 2.4
+            }
+        return at30 * (if (fps > 30) 1.6 else 1.0)
+    }
+
+    fun estimateMinutes(
+        totalAudioMs: Long,
+        factor: Double,
+    ): Int = Math.ceil(totalAudioMs.coerceAtLeast(0L) * factor / 60_000.0).toInt().coerceAtLeast(1)
+
     private fun clean(
         raw: String,
         fallback: String,

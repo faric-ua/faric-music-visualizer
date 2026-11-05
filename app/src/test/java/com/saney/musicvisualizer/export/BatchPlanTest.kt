@@ -128,4 +128,12 @@ class BatchPlanTest {
         assertTrue(text, text.contains("✔ TRACK 01 — ORBITAL AWAKENING · 5:40 на 5:12 · ×1,09 · аналіз 0:54 · 33,4 °C"))
         assertEquals("1:22:24", BatchPlan.formatMinutes(4_944_000L))
     }
+
+    @Test fun estimateFollowsSizeAndFrames() {
+        // 19:42 of music (faric 06.11): 720p 60 — about the music's length, not «вдвічі довше»
+        val total = (19 * 60 + 42) * 1000L
+        assertEquals(27, BatchPlan.estimateMinutes(total, BatchPlan.speedFactor(720, 60)))
+        assertEquals(20, BatchPlan.estimateMinutes(total, BatchPlan.speedFactor(1080, 30)))
+        assertTrue(BatchPlan.speedFactor(2160, 30) > BatchPlan.speedFactor(1440, 60))
+    }
 }

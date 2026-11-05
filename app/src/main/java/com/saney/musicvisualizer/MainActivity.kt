@@ -12817,7 +12817,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         },
                     ).append(" на пісню (аналіз звуку + ").append(testSeconds).append(" с відео)\n")
                     append("Відео: ").append(plan.relativePath(folderName)).append("Тест ").append(testSeconds).append("с <дата час>/ — кожен запуск в окрему папку\n")
-                    append("Шари й формат — як зараз на екрані (").append(exportAspectRatio.width).append('×').append(exportAspectRatio.height).append(")\n")
+                    append("Розмір: ").append(exportVideoFrame().first).append('×').append(exportVideoFrame().second).append(" · ").append(exportFps())
+                        .append(" кадр/с · шари — як зараз на екрані\n")
                     append("У підсумку — час кожної пісні, можна порівняти з наступним запуском.\n")
                     append("Не вимикай екран і не виходь із застосунку.\n\n")
                     songs.take(12).forEachIndexed { i, s -> append(i + 1).append(". ").append(s.name).append('\n') }
@@ -12840,9 +12841,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             buildString {
                 append("Папка: ").append(folderName).append('\n')
                 append("Пісень: ").append(songs.size).append(" · разом ").append(plan.formatMinutes(totalMs)).append('\n')
-                append("Орієнтовно: ~").append(plan.estimateMinutes(totalMs)).append(" хв (телефон рахує приблизно вдвічі довше за музику)\n")
+                // V237: the time and the frame from the chosen video size and frames a second.
+                val (videoW, videoH) = exportVideoFrame()
+                val factor = plan.speedFactor(minOf(videoW, videoH), exportFps())
+                append("Орієнтовно: ~").append(plan.estimateMinutes(totalMs, factor)).append(" хв (").append(plan.formatRatio(factor))
+                    .append(" музики — ${minOf(videoW, videoH)}p, ${exportFps()} кадр/с)\n")
                 append("Відео: ").append(plan.relativePath(folderName)).append(" · назва = назва пісні\n")
-                append("Шари й формат — як зараз на екрані (").append(exportAspectRatio.width).append('×').append(exportAspectRatio.height).append(")\n")
+                append("Розмір: ").append(videoW).append('×').append(videoH).append(" · ").append(exportFps()).append(" кадр/с · шари — як зараз на екрані\n")
                 append("Готові відео пропускаються — можна продовжити пізніше.\n")
                 append("Не вимикай екран і не виходь із застосунку; краще на зарядці.\n\n")
                 songs.take(12).forEachIndexed { i, s ->

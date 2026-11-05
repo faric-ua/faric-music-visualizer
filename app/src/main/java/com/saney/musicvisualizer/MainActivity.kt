@@ -7953,12 +7953,23 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         resetPosition.setOnLongClickListener { anchor ->
             val cell = dp(48)
             val gap = dp(4)
-            val padSize = cell * 3 + gap * 2
+            // V233 (faric 05.11 21:50, скріни: стрілки напівпрозорі й лягали на ⇩ ? — кашa): a solid card under the pad.
+            val padInset = dp(8)
+            val padSize = cell * 3 + gap * 2 + padInset * 2
             lateinit var popup: android.widget.PopupWindow
             val grid =
                 android.widget.GridLayout(this).apply {
                     rowCount = 3
                     columnCount = 3
+                    setPadding(padInset, padInset, padInset, padInset)
+                    background =
+                        panelDrawable(
+                            Color.rgb(10, 18, 26),
+                            22,
+                            Color.argb(170, 80, 220, 255),
+                            1,
+                        )
+                    elevation = dp(8).toFloat()
                 }
             fun padButton(
                 symbol: String,
@@ -7981,6 +7992,14 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     // V232: the pad stays where it is, so a second ← / → / ↓ tucks the panel further; ◎ closes it.
                     if (snap == com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.CENTER) popup.dismiss()
                 }.also { button ->
+                    // solid, so nothing of the header shows through
+                    button.background =
+                        panelDrawable(
+                            Color.rgb(16, 30, 40),
+                            18,
+                            Color.argb(140, 80, 220, 255),
+                            1,
+                        )
                     if (snap == com.saney.musicvisualizer.ui.FloatingPanelBounds.Snap.CENTER) {
                         button.text = ""
                         button.foreground = com.saney.musicvisualizer.ui.CenterArrowsDrawable(COLOR_ACCENT_CYAN, dp(2).toFloat())

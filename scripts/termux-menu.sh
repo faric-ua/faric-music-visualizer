@@ -150,6 +150,7 @@ while true; do
   echo "9 — Запустити Android build"
   echo "10 — Статус Android build"
   echo "22 — Зібрати APK тут, на телефоні (без чекання GitHub)"
+  echo "23 — 🔑 Покласти ключ підпису в «Ключі» (для брата)"
   echo
   echo "MASTER ASSETS"
   echo "11 — Підключити / відновити FARIC assets"
@@ -196,6 +197,7 @@ while true; do
     20) bash "$REPO/tools/termux/documentation-menu.sh" ;;
     21) run_tool "$REPO/tools/termux/album-preview.sh" ;;
     22) run_tool "$REPO/tools/termux/phone-build-apk.sh" ;;
+    23) clear; bash "$REPO/tools/termux/faric-keys-put.sh" "Music Visualizer"; pause_menu ;;
     0) clear; exit 0 ;;
     *) echo "Невідомий пункт."; sleep 1 ;;
   esac

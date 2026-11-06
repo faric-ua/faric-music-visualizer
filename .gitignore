@@ -39,3 +39,9 @@ reference-media/
 *.mkv
 *.wav
 *.flac
+
+# Ключі підпису — ніколи не в git (інспектор 2026-11-06)
+*.age
+*-signing.properties
+local-build-env.sh
+Ключі/

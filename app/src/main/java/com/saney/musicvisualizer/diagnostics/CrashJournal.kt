@@ -28,6 +28,7 @@ import java.util.Locale
 object CrashJournal {
     private const val TAG = "FARIC-crash"
     private const val KEY_EXPORT_REPORT_UNSEEN = "export_report_unseen"
+    private const val KEY_EXPORT_REPORT_FOLDER = "export_report_folder"
     private const val PREFS = "faric_diagnostics"
     private const val DIR = "diagnostics"
     private const val CRASH_FILE = "last-crash.txt"
@@ -177,12 +178,19 @@ object CrashJournal {
         title: String,
         text: String,
         seen: Boolean,
+        folder: String? = null,
     ) {
         runCatching {
             exportReportFile(context).apply { parentFile?.mkdirs() }.writeText(title + "\n" + text)
-            prefs(context).edit().putBoolean(KEY_EXPORT_REPORT_UNSEEN, !seen).commit()
+            prefs(context).edit()
+                .putBoolean(KEY_EXPORT_REPORT_UNSEEN, !seen)
+                .apply { if (folder != null) putString(KEY_EXPORT_REPORT_FOLDER, folder) else remove(KEY_EXPORT_REPORT_FOLDER) }
+                .commit()
         }
     }
+
+    /** V238: the batch's video folder — its window opens it in one tap. Null for a single export. */
+    fun exportReportFolder(context: Context): String? = prefs(context).getString(KEY_EXPORT_REPORT_FOLDER, null)
 
     fun unseenExportReport(context: Context): Pair<String, String>? {
         if (!prefs(context).getBoolean(KEY_EXPORT_REPORT_UNSEEN, false)) return null

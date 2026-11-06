@@ -755,6 +755,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         openFromNotification(intent)
         // V24: after a crash / killed process, say why — once, on a cold start.
         if (savedInstanceState == null) {
+            // V238: this start's report check is maybeShowCrashReport() — onStart skips its own once.
+            skipStartReportCheck = true
             window.decorView.postDelayed({ maybeShowCrashReport() }, 900L)
         }
     }
@@ -1044,6 +1046,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onStart() {
         super.onStart()
+        // V238: an export that finished while PulseDeck was hidden (or this screen was rebuilt) — its window now.
+        shownInstance = java.lang.ref.WeakReference(this)
+        if (skipStartReportCheck) {
+            skipStartReportCheck = false
+        } else {
+            window.decorView.postDelayed({ showWaitingExportReportOnReturn() }, 600L)
+        }
         // V126: back from «Утиліти» — read the saved layouts again (size, place, прозорість, видимість).
         pulseDeckMainSkinView?.reloadLayoutProfiles()
         // V141: back from «Окантовка-еквалайзер» — take its settings.
@@ -1068,6 +1077,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     }
 
     override fun onStop() {
+        if (shownInstance?.get() === this) shownInstance = null
         emergencyRecoveryArmed = false
         playerSwipeEligible = false
         emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
@@ -11193,14 +11203,50 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun maybeShowCrashReport() {
         if (isFinishing || isDestroyed) return
         // V133: an export that finished while PulseDeck was closed / hidden — its report now.
-        CrashJournal.unseenExportReport(this)?.let { (title, text) ->
-            CrashJournal.markExportReportSeen(this)
-            showCopyableReport("$title (поки тебе не було)", text)
-            return
-        }
+        if (showWaitingExportReport(away = true)) return
         val report = runCatching { CrashJournal.pendingReport(this) }.getOrNull() ?: return
         CrashJournal.markReported(this)
         showDiagnosticsReport(title = "Минулого разу застосунок закрився", report = report)
+    }
+
+    /** V238: PulseDeck is on show — a window opened now survives being hidden and rebuilt. */
+    private fun isShownNow(): Boolean =
+        !isDestroyed && !isFinishing && lifecycle.currentState.isAtLeast(androidx.lifecycle.Lifecycle.State.STARTED)
+
+    /**
+     * V238 (faric 06.11 02:29): the report of a finished export is already saved as «not seen»; open its window
+     * on a PulseDeck screen that is on show — else it waits for onStart.
+     */
+    private fun deliverFinishedExportReport() {
+        val other = shownInstance?.get()?.takeIf { it !== this && it.isShownNow() }
+        when (com.saney.musicvisualizer.export.FinishedExportWindow.where(isShownNow(), other != null)) {
+            com.saney.musicvisualizer.export.FinishedExportWindow.Where.HERE -> showWaitingExportReport(away = false)
+            com.saney.musicvisualizer.export.FinishedExportWindow.Where.OTHER_SCREEN -> other?.showWaitingExportReport(away = false)
+            com.saney.musicvisualizer.export.FinishedExportWindow.Where.WAIT ->
+                CrashJournal.exportNote(this, "вікно підсумку чекає повернення в PulseDeck")
+        }
+    }
+
+    private fun showWaitingExportReportOnReturn() {
+        if (!isShownNow()) return
+        val waiting = CrashJournal.unseenExportReport(this) != null
+        if (com.saney.musicvisualizer.export.FinishedExportWindow.showWaitingOnReturn(exportRunGate.isActive(), waiting)) {
+            showWaitingExportReport(away = true)
+        }
+    }
+
+    /** Opens the saved, not yet seen report (batch — with «Відкрити папку з відео»); false — nothing waits. */
+    private fun showWaitingExportReport(away: Boolean): Boolean {
+        val (title, text) = CrashJournal.unseenExportReport(this) ?: return false
+        val folder = CrashJournal.exportReportFolder(this)
+        CrashJournal.markExportReportSeen(this)
+        val shownTitle = if (away) title + com.saney.musicvisualizer.export.FinishedExportWindow.AWAY_SUFFIX else title
+        if (folder != null) {
+            showBatchSummaryWindow(title = shownTitle, summary = text, relativePath = folder)
+        } else {
+            showCopyableReport(shownTitle, text)
+        }
+        return true
     }
 
     private fun showDiagnosticsReport(
@@ -11464,7 +11510,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
             ) + "\n\n" + run.relativePath
         runCatching { CrashJournal.saveExportReport(this, "Тест режимів", text, seen = false) }
         if (screen == Screen.EXPORT_LAB) showExportLab()
-        showCopyableReport("Тест режимів", text)
+        deliverFinishedExportReport()
     }
 
     private fun beginGuardedExport(fullSong: Boolean): Boolean {
@@ -13176,29 +13222,20 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                         if (albumFolders.isEmpty()) it
                         else it + "\nЗа альбомами з тегів пісень:\n" + albumFolders.joinToString("\n")
                     }
+            val summaryTitle =
+                when {
+                    cancelled.get() -> if (testMode) "Пакет-тест зупинено" else "Пакет зупинено"
+                    testMode -> "Пакет-тест готовий"
+                    else -> "Пакет готовий"
+                }
             // V201: the summary stays in «Журнал збоїв» too — to copy it later.
+            // V238: saved «not seen» with its folder; the window opens on a shown screen (now or on return).
             runCatching {
-                CrashJournal.saveExportReport(
-                    this,
-                    if (testMode) "Пакет-тест" else "Пакет",
-                    summary,
-                    seen = true,
-                )
+                CrashJournal.saveExportReport(this, summaryTitle, summary, seen = false, folder = relativePath)
             }
             runOnUiThread {
-                if (!isDestroyed && !isFinishing) {
-                    dialog.dismiss()
-                    showBatchSummaryWindow(
-                        title =
-                            when {
-                                cancelled.get() -> if (testMode) "Пакет-тест зупинено" else "Пакет зупинено"
-                                testMode -> "Пакет-тест готовий"
-                                else -> "Пакет готовий"
-                            },
-                        summary = summary,
-                        relativePath = relativePath,
-                    )
-                }
+                if (!isDestroyed && !isFinishing) dialog.dismiss()
+                deliverFinishedExportReport()
                 endGuardedExport()
             }
         }
@@ -14789,9 +14826,9 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         headline: String? = null,
     ) {
         val message = exportTimingText(result, headline)
-        // V133: kept in the journal too; shown now — so not offered again at the next start.
-        CrashJournal.saveExportReport(this, title, message, seen = true)
-        showCopyableReport(title, message)
+        // V133: kept in the journal too. V238: «not seen» until its window really opens on a shown screen.
+        CrashJournal.saveExportReport(this, title, message, seen = false)
+        deliverFinishedExportReport()
     }
 
     private fun exportTimingText(
@@ -15270,7 +15307,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     private fun dp(value: Int): Int =
         (value * resources.displayMetrics.density).toInt()
 
+    /** V238: the cold start's report check is maybeShowCrashReport() — the first onStart skips its own. */
+    private var skipStartReportCheck = false
+
     companion object {
+        /** V238: the PulseDeck screen on show now (a hidden or rebuilt one hands the finished-export window to it). */
+        private var shownInstance: java.lang.ref.WeakReference<MainActivity>? = null
+
         const val EXTRA_OPEN_SCREEN = "faric.open.screen"
         private const val KEY_EXPORT_HUD_IN_VIDEO = "hud_in_video"
         private const val KEY_EXPORT_FIT_WHOLE_SCREEN = "fit_whole_screen"

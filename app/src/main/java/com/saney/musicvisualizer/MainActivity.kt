@@ -602,6 +602,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        listenScreenOnOff(applicationContext)
 
         window.statusBarColor = Color.TRANSPARENT
         window.navigationBarColor = Color.TRANSPARENT
@@ -1048,6 +1049,7 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
         super.onStart()
         // V238: an export that finished while PulseDeck was hidden (or this screen was rebuilt) — its window now.
         shownInstance = java.lang.ref.WeakReference(this)
+        visibilityClock.mark(com.saney.musicvisualizer.export.VisibilityClock.State.ON_SCREEN, android.os.SystemClock.elapsedRealtime())
         if (skipStartReportCheck) {
             skipStartReportCheck = false
         } else {
@@ -1078,6 +1080,11 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
 
     override fun onStop() {
         if (shownInstance?.get() === this) shownInstance = null
+        // V240: hidden behind another app — or the screen went off with PulseDeck on it.
+        visibilityClock.mark(
+            if (screenIsOn(this)) com.saney.musicvisualizer.export.VisibilityClock.State.HIDDEN else com.saney.musicvisualizer.export.VisibilityClock.State.SCREEN_OFF,
+            android.os.SystemClock.elapsedRealtime(),
+        )
         emergencyRecoveryArmed = false
         playerSwipeEligible = false
         emergencyRecoveryHandler.removeCallbacks(emergencyRecoveryRunnable)
@@ -13080,6 +13087,8 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                     continue
                 }
                 val startedAt = System.currentTimeMillis()
+                // V240: where PulseDeck is while this song is made.
+                val visibilityAtStart = visibilityClock.snapshot(android.os.SystemClock.elapsedRealtime())
                 var analysisMs = 0L
                 var songMs = song.durationMs
                 CrashJournal.exportStarted(
@@ -13188,6 +13197,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                                 songMs = songMs,
                                 analysisMs = analysisMs,
                                 heatC = com.saney.musicvisualizer.export.DeviceHeat.batteryC(this),
+                                visibility = visibilityClock.snapshot(android.os.SystemClock.elapsedRealtime()) - visibilityAtStart,
+                                slowest =
+                                    com.saney.musicvisualizer.export.BatchPlan.slowestOf(
+                                        result.presetTimings.map { Triple(it.path, it.frames, it.msPerFrame) },
+                                        result.fps,
+                                    ),
                             )
                     }.onFailure { error ->
                         Log.e("FARIC-export", "Batch song failed: $title", error)
@@ -15312,6 +15327,56 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
     companion object {
         /** V238: the PulseDeck screen on show now (a hidden or rebuilt one hands the finished-export window to it). */
         private var shownInstance: java.lang.ref.WeakReference<MainActivity>? = null
+
+        /** V240: on screen / hidden / screen off — for the batch summary (one per app run). */
+        private val visibilityClock =
+            com.saney.musicvisualizer.export.VisibilityClock(
+                com.saney.musicvisualizer.export.VisibilityClock.State.HIDDEN,
+                android.os.SystemClock.elapsedRealtime(),
+            )
+        private var screenListenerOn = false
+
+        private fun screenIsOn(context: android.content.Context): Boolean =
+            (context.getSystemService(android.content.Context.POWER_SERVICE) as? android.os.PowerManager)?.isInteractive != false
+
+        /** V240: the screen going off / on while PulseDeck is hidden — Android tells only by this broadcast. */
+        private fun listenScreenOnOff(app: android.content.Context) {
+            if (screenListenerOn) return
+            screenListenerOn = true
+            val receiver =
+                object : android.content.BroadcastReceiver() {
+                    override fun onReceive(
+                        context: android.content.Context,
+                        intent: Intent,
+                    ) {
+                        val now = android.os.SystemClock.elapsedRealtime()
+                        when (intent.action) {
+                            Intent.ACTION_SCREEN_OFF -> visibilityClock.mark(com.saney.musicvisualizer.export.VisibilityClock.State.SCREEN_OFF, now)
+                            Intent.ACTION_SCREEN_ON ->
+                                visibilityClock.mark(
+                                    if (shownInstance?.get()?.isShownNow() == true) {
+                                        com.saney.musicvisualizer.export.VisibilityClock.State.ON_SCREEN
+                                    } else {
+                                        com.saney.musicvisualizer.export.VisibilityClock.State.HIDDEN
+                                    },
+                                    now,
+                                )
+                        }
+                    }
+                }
+            val filter =
+                android.content.IntentFilter().apply {
+                    addAction(Intent.ACTION_SCREEN_OFF)
+                    addAction(Intent.ACTION_SCREEN_ON)
+                }
+            runCatching {
+                if (Build.VERSION.SDK_INT >= 33) {
+                    app.registerReceiver(receiver, filter, android.content.Context.RECEIVER_NOT_EXPORTED)
+                } else {
+                    app.registerReceiver(receiver, filter)
+                }
+            }
+        }
 
         const val EXTRA_OPEN_SCREEN = "faric.open.screen"
         private const val KEY_EXPORT_HUD_IN_VIDEO = "hud_in_video"

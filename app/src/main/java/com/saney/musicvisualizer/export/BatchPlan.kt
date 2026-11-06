@@ -190,6 +190,30 @@ object BatchPlan {
 
     enum class Outcome { DONE, SKIPPED_EXISTS, FAILED, CANCELLED }
 
+    /** V240: one visualization that took the longest per frame. */
+    data class Slowest(
+        val name: String,
+        val msPerFrame: Long,
+        val seconds: Int,
+    )
+
+    /**
+     * V240: the slowest visualization that stayed at least [MIN_SLOWEST_S] s (a blink between two is noise).
+     * [timings] — (path, frames, ms a frame).
+     */
+    fun slowestOf(
+        timings: List<Triple<String, Int, Long>>,
+        fps: Int,
+    ): Slowest? {
+        val f = fps.coerceAtLeast(1)
+        return timings
+            .filter { it.second >= f * MIN_SLOWEST_S }
+            .maxByOrNull { it.third }
+            ?.let { (path, frames, ms) -> Slowest(path.substringAfterLast('/').substringBeforeLast('.').take(40), ms, frames / f) }
+    }
+
+    const val MIN_SLOWEST_S = 5
+
     data class SongResult(
         val name: String,
         val outcome: Outcome,
@@ -201,6 +225,10 @@ object BatchPlan {
         val analysisMs: Long = 0L,
         /** V201: battery temperature when this song was done, °C. */
         val heatC: Float? = null,
+        /** V240: where PulseDeck was while this song was made (on screen / hidden / screen off). */
+        val visibility: VisibilityClock.Share? = null,
+        /** V240: the slowest visualization of the song — name, ms a frame, seconds in the video. */
+        val slowest: Slowest? = null,
     ) {
         /** Time to make ÷ length of the song: 1,10 = 10 % longer than the song plays. */
         val ratio: Double? get() = if (elapsedMs > 0 && songMs > 0) elapsedMs.toDouble() / songMs else null
@@ -255,6 +283,13 @@ object BatchPlan {
                 heats.maxOrNull()?.let { append(" · найгарячіше ").append(formatHeat(it)) }
                 append('\n')
             }
+            // V240: where PulseDeck was during the whole run.
+            results
+                .mapNotNull { it.visibility }
+                .takeIf { it.isNotEmpty() }
+                ?.reduce { a, b -> VisibilityClock.Share(a.onScreenMs + b.onScreenMs, a.hiddenMs + b.hiddenMs, a.screenOffMs + b.screenOffMs) }
+                ?.label()
+                ?.let { append("PulseDeck: ").append(it).append('\n') }
             settings?.takeIf { it.isNotBlank() }?.let { append("Як: ").append(it).append('\n') }
             results.forEachIndexed { index, r ->
                 append('\n').append(index + 1).append(". ")
@@ -274,6 +309,13 @@ object BatchPlan {
                 if (r.analysisMs > 0) append(" · аналіз ").append(formatMinutes(r.analysisMs))
                 r.heatC?.let { append(" · ").append(formatHeat(it)) }
                 if (r.detail.isNotBlank()) append(" · ").append(r.detail)
+                // V240: why this song was fast or slow — PulseDeck on screen or not, and its heaviest visualization.
+                val why =
+                    listOfNotNull(
+                        r.visibility?.label(),
+                        r.slowest?.let { "найповільніша: " + it.name + " · " + it.msPerFrame + " мс/кадр · " + it.seconds + " с" },
+                    )
+                if (why.isNotEmpty()) append("\n   ").append(why.joinToString(" · "))
             }
         }
 

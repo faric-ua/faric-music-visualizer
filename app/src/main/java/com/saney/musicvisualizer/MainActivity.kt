@@ -12861,12 +12861,12 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                             // V214: own lengths — sound analysis + about 1,5 s of work per second of video (1080p, 30).
                             else -> "~" + ((20 + testSeconds * 3 / 2 + 59) / 60) + " хв"
                         },
-                    ).append(" на пісню (аналіз звуку + ").append(testSeconds).append(" с відео)\n")
+                    ).append(" на пісню (аналіз звуку + ").append(testSeconds).append(" с відео; у фоні — утричі довше)\n")
                     append("Відео: ").append(plan.relativePath(folderName)).append("Тест ").append(testSeconds).append("с <дата час>/ — кожен запуск в окрему папку\n")
                     append("Розмір: ").append(exportVideoFrame().first).append('×').append(exportVideoFrame().second).append(" · ").append(exportFps())
                         .append(" кадр/с · шари — як зараз на екрані\n")
                     append("У підсумку — час кожної пісні, можна порівняти з наступним запуском.\n")
-                    append("Не вимикай екран і не виходь із застосунку.\n\n")
+                    append("Для порівняння часу тримай PulseDeck на екрані: згорнутий — утричі повільніше.\n\n")
                     songs.take(12).forEachIndexed { i, s -> append(i + 1).append(". ").append(s.name).append('\n') }
                     if (songs.size > 12) append("… і ще ").append(songs.size - 12)
                 }.trimEnd()
@@ -12888,14 +12888,13 @@ class MainActivity : ComponentActivity(), PlaybackController.Listener {
                 append("Папка: ").append(folderName).append('\n')
                 append("Пісень: ").append(songs.size).append(" · разом ").append(plan.formatMinutes(totalMs)).append('\n')
                 // V237: the time and the frame from the chosen video size and frames a second.
+                // V239: two times — PulseDeck on screen and hidden (another app open).
                 val (videoW, videoH) = exportVideoFrame()
-                val factor = plan.speedFactor(minOf(videoW, videoH), exportFps())
-                append("Орієнтовно: ~").append(plan.estimateMinutes(totalMs, factor)).append(" хв (").append(plan.formatRatio(factor))
-                    .append(" музики — ${minOf(videoW, videoH)}p, ${exportFps()} кадр/с)\n")
+                append(plan.estimateLine(totalMs, minOf(videoW, videoH), exportFps())).append('\n')
                 append("Відео: ").append(plan.relativePath(folderName)).append(" · назва = назва пісні\n")
                 append("Розмір: ").append(videoW).append('×').append(videoH).append(" · ").append(exportFps()).append(" кадр/с · шари — як зараз на екрані\n")
                 append("Готові відео пропускаються — можна продовжити пізніше.\n")
-                append("Не вимикай екран і не виходь із застосунку; краще на зарядці.\n\n")
+                append("PulseDeck на екрані — швидше; згорнутий — утричі довше, зате телефон менше гріється. Краще на зарядці.\n\n")
                 songs.take(12).forEachIndexed { i, s ->
                     append(i + 1).append(". ").append(s.name)
                     if (s.durationMs > 0) append(" · ").append(plan.formatMinutes(s.durationMs))

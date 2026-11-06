@@ -136,4 +136,13 @@ class BatchPlanTest {
         assertEquals(20, BatchPlan.estimateMinutes(total, BatchPlan.speedFactor(1080, 30)))
         assertTrue(BatchPlan.speedFactor(2160, 30) > BatchPlan.speedFactor(1440, 60))
     }
+
+    @Test fun batchWindowGivesScreenAndBackgroundTimes() {
+        // V239: 06.11 Black Side — 9:06 of music, 720p60 in the background took 34:53 (×3,84).
+        val total = 9 * 60_000L + 6_000L
+        assertEquals(36, BatchPlan.estimateMinutes(total, BatchPlan.backgroundFactor(720, 60)))
+        val line = BatchPlan.estimateLine(total, 720, 60)
+        assertTrue(line, line.startsWith("Орієнтовно: на екрані ~13 хв (×1,36) · у фоні ~36 хв (×3,94)"))
+        assertTrue(line, line.endsWith("— 720p, 60 кадр/с"))
+    }
 }

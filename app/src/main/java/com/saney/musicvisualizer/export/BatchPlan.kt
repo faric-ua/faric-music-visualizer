@@ -150,6 +150,31 @@ object BatchPlan {
         factor: Double,
     ): Int = Math.ceil(totalAudioMs.coerceAtLeast(0L) * factor / 60_000.0).toInt().coerceAtLeast(1)
 
+    /**
+     * V239 (faric 06.11 04:06: «можеш добавити два — N хвилин і M хвилин»): PulseDeck hidden (another app open) —
+     * Android gives it less power. Measured 06.11 02:35 (A26, 720p60, 2 whole songs, 33 °C): ×3,84 against ×1,11 on
+     * screen; with the on-screen margin (×1,36) that is ~2,8× — a little margin on top.
+     */
+    const val BACKGROUND_SLOWDOWN = 2.9
+
+    fun backgroundFactor(
+        shortEdge: Int,
+        fps: Int,
+    ): Double = speedFactor(shortEdge, fps) * BACKGROUND_SLOWDOWN
+
+    /** «Орієнтовно: на екрані ~27 хв (×1,36) · у фоні ~77 хв (×3,94) — 720p, 60 кадр/с». */
+    fun estimateLine(
+        totalAudioMs: Long,
+        shortEdge: Int,
+        fps: Int,
+    ): String {
+        val screen = speedFactor(shortEdge, fps)
+        val background = backgroundFactor(shortEdge, fps)
+        return "Орієнтовно: на екрані ~" + estimateMinutes(totalAudioMs, screen) + " хв (" + formatRatio(screen) + ")" +
+            " · у фоні ~" + estimateMinutes(totalAudioMs, background) + " хв (" + formatRatio(background) + ")" +
+            " — ${shortEdge}p, $fps кадр/с"
+    }
+
     private fun clean(
         raw: String,
         fallback: String,

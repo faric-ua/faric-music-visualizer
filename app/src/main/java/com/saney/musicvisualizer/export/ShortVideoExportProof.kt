@@ -223,6 +223,7 @@ object ShortVideoExportProof {
                 width = width,
                 height = height,
                 needsPcm = compositionConfig?.projectMVisible == true,
+                fps = safeFps,
             )
             val available = context.cacheDir.usableSpace
             Log.i("FARIC-export", "Storage preflight requiredMiB=" +

@@ -22,6 +22,12 @@ data class OfflineAnalysisResult(
      * «3 s test» analysis (only that piece is analysed). [durationMs] stays the whole song.
      */
     val startMs: Long = 0L,
+    /**
+     * V242: the true step between signals, ms with fractions (1024 samples: 23,22 ms at 44,1 kHz, 21,33 at 48 kHz).
+     * [frameIntervalMs] is whole ms (23 / 21) — counting by it ran the reactions ~1–1,6 % ahead of the sound.
+     * 0 — not known (old callers): the whole-ms step is used.
+     */
+    val exactFrameIntervalMs: Double = 0.0,
 ) {
     fun signalAt(
         songTimeMs: Long,
@@ -38,19 +44,11 @@ data class OfflineAnalysisResult(
         }
 
         val index =
-            (
-                timeMs
-                    .coerceAtLeast(0L)
-                    .toDouble() /
-                    frameIntervalMs
-                        .coerceAtLeast(1L)
-                        .toDouble()
-                )
-                .toInt()
-                .coerceIn(
-                    0,
-                    signals.lastIndex,
-                )
+            AnalysisClock.indexAt(
+                timeMs = timeMs,
+                intervalMs = if (exactFrameIntervalMs > 0.0) exactFrameIntervalMs else frameIntervalMs.toDouble(),
+                size = signals.size,
+            )
 
         return signals[index]
     }
@@ -664,9 +662,9 @@ object OfflineAudioAnalyzer {
                 )
                 .coerceAtLeast(1L)
 
+        // V242: with the true step (was whole ms — a song of unknown length came out ~1 % short).
         val inferredDurationMs =
-            result.size *
-                frameIntervalMs
+            (result.size * AnalysisClock.intervalMs(HOP_SIZE, sampleRate)).toLong()
 
         return OfflineAnalysisResult(
             durationMs =
@@ -682,6 +680,7 @@ object OfflineAudioAnalyzer {
                 frameIntervalMs,
             signals =
                 result,
+            exactFrameIntervalMs = AnalysisClock.intervalMs(HOP_SIZE, sampleRate),
         )
     }
 

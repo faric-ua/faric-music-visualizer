@@ -1,7 +1,7 @@
 #!/data/data/com.termux/files/usr/bin/bash
 # 🔑 Покласти ключ підпису в «Ключі» (faric 2026-11-06; інспектор GitHub Storage).
 #
-# Той самий файл у всіх репо faric-ua; у кожному репо в таблиці лише його рядок.
+# Той самий файл у всіх репо faric-ua; у кожному репо в таблиці лише його рядок (майстер — faric-inspector).
 # Виклик: faric-keys-put.sh "<Назва>".
 # КОПІЮЄ ключ цього застосунку з Termux у ~/Ключі/<Назва>/ разом з паролями,
 # відбитком і контрольними сумами — формат як у YTM (меню YTM 8 → 3 / 8 → 4).
@@ -10,12 +10,13 @@
 set -uo pipefail
 
 KEYS_DIR="${FARIC_KEYS_DIR:-$HOME/Ключі}"
+SHARED="${FARIC_SHARED:-/storage/emulated/0}"
 NAME="${1:-}"
 
-# Назва | repo | файл ключа | файл паролів | вид | назва ключа | секрети GitHub (keystore store key) | пакети на телефоні
+# Назва | repo | файл ключа | файл паролів | вид | назва ключа | секрети GitHub (keystore store key) | пакети на телефоні | назви APK-файлів
 app_row() {
   case "$1" in
-    "Music Visualizer") echo "faric-music-visualizer|$HOME/.faric-secrets/music-visualizer-dev/faric-music-visualizer-dev.jks|$HOME/.faric-secrets/music-visualizer-dev/local-build-env.sh|env:VISUALIZER_DEV|faric-music-visualizer-dev|VISUALIZER_DEV_KEYSTORE_B64 VISUALIZER_DEV_STORE_PASSWORD VISUALIZER_DEV_KEY_PASSWORD (+ VISUALIZER_DEV_KEY_ALIAS, VISUALIZER_DEV_CERT_SHA256)|com.saney.musicvisualizer" ;;
+    "Music Visualizer") echo "faric-music-visualizer|$HOME/.faric-secrets/music-visualizer-dev/faric-music-visualizer-dev.jks|$HOME/.faric-secrets/music-visualizer-dev/local-build-env.sh|env:VISUALIZER_DEV|faric-music-visualizer-dev|VISUALIZER_DEV_KEYSTORE_B64 VISUALIZER_DEV_STORE_PASSWORD VISUALIZER_DEV_KEY_PASSWORD (+ VISUALIZER_DEV_KEY_ALIAS, VISUALIZER_DEV_CERT_SHA256)|com.saney.musicvisualizer|FARIC-Music-Visualizer*.apk" ;;
     *) return 1 ;;
   esac
 }
@@ -46,11 +47,21 @@ while pos < end:
 PY
 }
 
+# Найновіший APK цього застосунку в Documents / Download (за назвою файлу).
+newest_apk() {
+  local - g args=()
+  set -f
+  for g in $1; do args+=(-o -iname "$g"); done
+  [ "${#args[@]}" -gt 0 ] || return 0
+  find "$SHARED/Documents" "$SHARED/Download" -maxdepth 6 -type f \( "${args[@]:1}" \) -printf '%T@ %p\n' 2>/dev/null \
+    | sort -rn | head -n 1 | cut -d' ' -f2-
+}
+
 main() {
-  local row repo key pwfile kind alias secrets pkgs sp kp al kfp="" check="" when dest stamp tmp p apk afp
+  local row repo key pwfile kind alias secrets pkgs globs sp kp al kfp="" check="" when dest stamp tmp p apk afp
   [ -n "$NAME" ] || fail "Не вказано назву застосунку."
   row="$(app_row "$NAME")" || fail "Не знаю застосунку «$NAME»."
-  IFS='|' read -r repo key pwfile kind alias secrets pkgs <<< "$row"
+  IFS='|' read -r repo key pwfile kind alias secrets pkgs globs <<< "$row"
   echo "🔑 $NAME — покласти копію ключа в «Ключі»"
   echo
   [ -f "$key" ] || fail "Ключа нема на цьому телефоні: ${key/#$HOME/~}"
@@ -82,16 +93,30 @@ main() {
   fi
 
   # Порівняти з установленим застосунком на цьому телефоні.
+  # Android 14+ не пускає Termux до `pm` («Failure calling service package») — тоді звіряємо
+  # з найновішим APK цього застосунку в Documents / Download (той самий підпис, що й установлений).
+  local pm_ok=""
   for p in $pkgs; do
     apk="$(pm path "$p" 2>/dev/null | sed -n 's/^package://p' | grep -m1 'base.apk')"
     [ -n "$apk" ] && [ -r "$apk" ] || continue
+    pm_ok=1
     afp="$(apk_cert "$apk")" || continue
     [ -n "$afp" ] || continue
     if [ -n "$kfp" ] && [ "$afp" = "$kfp" ]; then check="✓ збігається з установленим $p"; break; fi
     [ -n "$kfp" ] && check="✗ НЕ збігається з установленим $p (там ${afp:0:16}…)"
   done
+  if [ -z "$check" ] && [ -n "$kfp" ]; then
+    apk="$(newest_apk "$globs")"
+    if [ -n "$apk" ] && afp="$(apk_cert "$apk")" && [ -n "$afp" ]; then
+      if [ "$afp" = "$kfp" ]; then check="✓ збігається з APK $(basename "$apk")"
+      else check="✗ НЕ збігається з APK $(basename "$apk") (там ${afp:0:16}…)"; fi
+    fi
+  fi
   if [ -z "$check" ]; then
-    if [ -n "$kfp" ]; then check="не перевірено: застосунку на телефоні нема або нема python3"; else check="не перевірено: нема keytool"; fi
+    if [ -z "$kfp" ]; then check="не перевірено: нема keytool"
+    elif ! command -v python3 >/dev/null 2>&1; then check="не перевірено: нема python3"
+    elif [ -z "$pm_ok" ]; then check="не перевірено: Android не дає Termux бачити застосунки, а APK-файлу в Documents / Download нема"
+    else check="не перевірено: не вдалось прочитати підпис APK"; fi
   fi
   echo "• Перевірка: $check"
 

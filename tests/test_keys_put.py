@@ -5,6 +5,7 @@
 паролі не на екран, неправильний пароль — нічого не копіюється, інший ключ — поруч, не замість.
 """
 import os
+import struct
 import re
 import shutil
 import subprocess
@@ -16,6 +17,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SCRIPT = ROOT / "tools" / "termux" / "faric-keys-put.sh"
 ROW = re.search(r'^\s+"([^"]+)"\) echo "([^|]+)\|\$HOME/([^|]+)\|([^|]+)\|([^|]+)\|([^|]+)\|', SCRIPT.read_text(encoding="utf-8"), re.M)
 NAME, REPO, KEY, PWFILE, KIND, ALIAS = ROW.groups()
+GLOB = re.search(r'^\s+"[^"]+"\) echo ".*\|([^|"]+)" ;;$', SCRIPT.read_text(encoding="utf-8"), re.M).group(1).split()[0]
 PW = "dorama-alpha" if KIND.startswith("fixed:") else "pw123456"
 
 
@@ -46,7 +48,7 @@ class KeysPutTest(unittest.TestCase):
             f.write_text(f"export {p}_STORE_PASSWORD='{PW}'\nexport {p}_KEY_ALIAS='{ALIAS}'\nexport {p}_KEY_PASSWORD='{keypass}'\n")
 
     def run_put(self):
-        env = dict(os.environ, HOME=str(self.home))
+        env = dict(os.environ, HOME=str(self.home), FARIC_SHARED=str(self.home / "shared"), PATH="/usr/bin:/bin")
         return subprocess.run(["bash", str(SCRIPT), NAME], capture_output=True, text=True, env=env, timeout=120)
 
     def test_copies_key_with_passwords_and_checksums(self):
@@ -84,6 +86,45 @@ class KeysPutTest(unittest.TestCase):
         self.assertEqual(r.returncode, 0, r.stdout)
         self.assertIn("ІНШИЙ ключ", r.stdout)
         self.assertEqual(len([p for p in (self.home / "Ключі").iterdir() if p.name.startswith(f"{NAME} (новий")]), 1)
+
+    def fake_apk(self, keystore, alias):
+        """Мінімальний «APK»: лише блок підпису v2 з сертифікатом і кінець ZIP — цього досить для apk_cert."""
+        cert = subprocess.run(["keytool", "-exportcert", "-keystore", str(keystore), "-storepass", PW, "-alias", alias],
+                              check=True, capture_output=True).stdout
+        lp = lambda b: struct.pack("<I", len(b)) + b
+        signed = lp(b"") + lp(lp(cert))
+        val = lp(lp(lp(signed)))
+        pair = struct.pack("<QI", 4 + len(val), 0x7109871A) + val
+        size = len(pair) + 24
+        block = struct.pack("<Q", size) + pair + struct.pack("<Q", size) + b"APK Sig Block 42"
+        cd = len(block)
+        eocd = b"PK\x05\x06" + b"\0" * 12 + struct.pack("<I", cd) + b"\0\0"
+        d = self.home / "shared" / "Documents" / "App"
+        d.mkdir(parents=True, exist_ok=True)
+        f = d / GLOB.replace("*", "-v1.0")
+        f.write_bytes(block + eocd)
+        return f
+
+    @unittest.skipUnless(shutil.which("python3"), "python3 недоступний")
+    def test_checks_against_apk_file_when_pm_is_closed(self):
+        self.fake_apk(self.key, ALIAS)
+        r = self.run_put()
+        self.assertIn("✓ збігається з APK", r.stdout, r.stdout)
+
+    @unittest.skipUnless(shutil.which("python3"), "python3 недоступний")
+    def test_apk_with_other_key_is_flagged(self):
+        other = self.home / "other.jks"
+        subprocess.run(["keytool", "-genkeypair", "-keystore", str(other), "-storetype", "JKS", "-storepass", PW,
+                        "-keypass", PW, "-alias", "x", "-keyalg", "RSA", "-keysize", "2048", "-validity", "100",
+                        "-dname", "CN=Other"], check=True, capture_output=True)
+        self.fake_apk(other, "x")
+        r = self.run_put()
+        self.assertIn("✗ НЕ збігається з APK", r.stdout, r.stdout)
+
+    def test_no_apk_says_why(self):
+        r = self.run_put()
+        self.assertIn("не перевірено", r.stdout)
+        self.assertNotIn("✓ збігається", r.stdout)
 
     def test_missing_key_is_reported(self):
         self.key.unlink()
